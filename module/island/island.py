@@ -17,6 +17,11 @@ SELECT_PRODUCT_INERTIA_STOP = Button(
     file={'cn': '', 'en': '', 'jp': '', 'tw': ''}
 )
 
+# select_product 中滑动操作的点击记录名称，提取为常量避免硬编码多处不一致
+SELECTION_UP_SWIPE_NAME = "SelectionUpSwipe"
+# select_product 最大滑动尝试次数，覆盖列表底部产品（海参等位于列表末尾）
+_SELECT_PRODUCT_MAX_SWIPES = 8
+
 class Island(SelectCharacter):
     def __init__(self, *args, **kwargs):
         # 调用两个父类的初始化
@@ -241,10 +246,11 @@ class Island(SelectCharacter):
             self.device.sleep(0.3)
 
     def select_product(self, product_selection, product_selection_check):
-        max_attempts = 6  # 最大尝试次数
-        attempt = 0
+        # 清理之前可能残留的滑动记录，避免多次调用累积触发单按钮死循环检测
+        # （click_record maxlen=15，两次调用各 _SELECT_PRODUCT_MAX_SWIPES 条 >12 阈值）
+        self.device.click_record_remove(SELECTION_UP_SWIPE_NAME)
 
-        while attempt < max_attempts:
+        for _ in range(_SELECT_PRODUCT_MAX_SWIPES):
             self.device.screenshot()
 
             # 使用形状+颜色双重验证来识别 product_selection_check
@@ -257,14 +263,22 @@ class Island(SelectCharacter):
                 continue
 
             # 如果都不匹配，则滑动寻找
-            self.device.swipe_vector(vector=(0, -200), box=(333, 142, 431, 602), name="SelectionUpSwipe")
-            # 点击安全区域消除滑动惯性，防止截图时列表仍在滚动
+            self.device.swipe_vector(vector=(0, -200), box=(333, 142, 431, 602), name=SELECTION_UP_SWIPE_NAME)
             self.device.sleep(0.3)
-            self.device.click(SELECT_PRODUCT_INERTIA_STOP)
+            # 点击安全区域消除滑动惯性，使用 control_check=False 避免与 swipe 交替
+            # 触发 GameTooManyClickError（两个按钮各 ≥6 次即报错）。
+            # swipe 本身仍记录在 click_record 中，8 次滑动 < 12 次单按钮阈值，安全。
+            self.device.click(SELECT_PRODUCT_INERTIA_STOP, control_check=False)
             self.device.sleep(0.2)
-            attempt += 1
 
         return False
+
+    def _handle_select_product_failure(self, product):
+        """select_product 失败时的统一处理：记录警告、关闭岗位面板、返回 False"""
+        logger.warning(f"select_product 失败：未能找到产品 {product} 的选择项")
+        self.device.click(POST_CLOSE)
+        return False
+
     def post_close(self):
         while 1:
             self.device.screenshot()

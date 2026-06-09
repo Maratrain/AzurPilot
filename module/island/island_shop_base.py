@@ -8,6 +8,9 @@ from module.island.island_season import get_global_season_config
 
 
 class IslandShopBase(Island, WarehouseOCR):
+    # 游戏层材料不足的产品集，按店铺类型分 key，跨运行实例持久化
+    _stalled_by_shop = {}
+
     def __init__(self, config, device=None, task=None):
         # 分别初始化每个父类
         Island.__init__(self, config=config, device=device, task=task)
@@ -292,6 +295,13 @@ class IslandShopBase(Island, WarehouseOCR):
 
     # ============ 核心逻辑 ============
 
+    @property
+    def _stalled(self):
+        """获取当前店铺的游戏层材料不足产品集（跨实例持久化）。"""
+        if self.shop_type not in IslandShopBase._stalled_by_shop:
+            IslandShopBase._stalled_by_shop[self.shop_type] = set()
+        return IslandShopBase._stalled_by_shop[self.shop_type]
+
     def _compute_base_demands(self):
         """计算基础需求：严格按槽位顺序处理，找到第一个有缺口的槽位
         即停止，后续槽位本轮不处理。
@@ -306,12 +316,23 @@ class IslandShopBase(Island, WarehouseOCR):
         self.to_post_products = {}
         virtual_totals = dict(self.current_totals)
 
-        # 遍历槽位，找到第一个有缺口的就只处理它
+        # 遍历槽位，找到第一个有缺口且可生产的就只处理它
+        # 材料完全不可得的槽位本轮跳过，等后续模块补料后再试
+        if self._stalled:
+            logger.info(f"[stalled] 当前店铺({self.shop_type})的停滞列表: {self._stalled}")
         break_idx = len(self.post_products)
         for idx, (name, target) in enumerate(self.post_products):
             current = virtual_totals.get(name, 0)
             if current < target:
+                # 此前游戏中材料不足 → 本轮跳过，等后续模块补料
+                if name in self._stalled:
+                    logger.info(f"槽位{idx + 1} {name} 此前游戏中材料不足，本轮跳过")
+                    continue
                 deficit = target - current
+                # 检查能否至少生产一部分（>0 即材料部分可得）
+                if self.get_max_producible(name, min(6, deficit)) <= 0:
+                    logger.info(f"槽位{idx + 1} {name} 材料完全不足，本轮跳过")
+                    continue
                 self.to_post_products[name] = deficit
                 virtual_totals[name] = target
                 break_idx = idx
@@ -370,6 +391,8 @@ class IslandShopBase(Island, WarehouseOCR):
             logger.info(f"基础需求配置（共{len(self.post_products)}个槽位）: {self.post_products}")
             logger.info("===============")
 
+            # 保存原始库存，retry 时恢复
+            _orig_totals = dict(self.current_totals)
             self._compute_base_demands()
 
             logger.info(f"待完成备餐: {self.to_post_products}")
@@ -379,10 +402,17 @@ class IslandShopBase(Island, WarehouseOCR):
                 self.to_post_products = self.process_meal_requirements(self.to_post_products)
                 logger.info(f"基础需求生产计划: {self.to_post_products}")
 
-            # ============ 安排基础需求生产 ============
+            # ============ 安排基础需求生产（带停滞重试） ============
             if self.to_post_products:
-                # 安排基础需求生产
+                stalled_before = set(self._stalled)
                 self.schedule_production()
+                # 有新产品被标记停滞且仍有空闲岗位 → 恢复库存后重跑需求
+                if set(self._stalled) - stalled_before and self.get_idle_posts():
+                    self.current_totals = _orig_totals
+                    self._compute_base_demands()
+                    if self.to_post_products:
+                        self.to_post_products = self.process_meal_requirements(self.to_post_products)
+                        self.schedule_production()
             else:
                 logger.info("基础需求已满足")
 
@@ -699,6 +729,7 @@ class IslandShopBase(Island, WarehouseOCR):
             return
 
         # 非常驻餐品模式：处理所有产品需求
+        to_post_before = set(self.to_post_products.keys())
         products_to_process = list(self.to_post_products.items())
 
         # 如果有多个产品需求，按槽位顺序排序（原料优先）
@@ -737,6 +768,7 @@ class IslandShopBase(Island, WarehouseOCR):
             products_to_process.sort(key=slot_priority)
 
         # 为每个空闲岗位分配生产任务
+        _produced_any = set()  # 本轮至少产出了1个的产品
         post_index = 0
         total_idle_posts = len(idle_posts)
 
@@ -774,6 +806,8 @@ class IslandShopBase(Island, WarehouseOCR):
                     logger.info(f"生产 {product} 时检测到原料不足，保留在计划中等待下一轮")
                     break  # 跳过当前产品，但保留在 to_post_products 中
 
+                # 记录已产出（部分生产不算停滞）
+                _produced_any.add(product)
                 # 更新需求
                 if product in self.to_post_products:
                     self.to_post_products[product] -= actual_number
@@ -789,6 +823,17 @@ class IslandShopBase(Island, WarehouseOCR):
             # 如果所有岗位都已分配，退出循环
             if post_index >= total_idle_posts:
                 break
+
+        # 更新停滞标记：只标记零产量的（真正游戏层不足），部分生产的跳过
+        remaining = set(self.to_post_products.keys())
+        zero_produced = {p for p in (to_post_before & remaining) if p not in _produced_any}
+        cleared = to_post_before - remaining
+        if zero_produced:
+            logger.info(f"[stalled] 标记游戏层失败: {zero_produced}")
+        if cleared:
+            logger.info(f"[stalled] 清除标记: {cleared}")
+        self._stalled.update(zero_produced)
+        self._stalled.difference_update(cleared)
 
         if self.to_post_products:
             logger.info(f"生产安排完成，剩余需求: {self.to_post_products}")
