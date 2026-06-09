@@ -308,6 +308,8 @@ class IslandRestaurant(IslandShopBase):
             logger.info(f"基础需求配置（共{len(self.post_products)}个槽位）: {self.post_products}")
             logger.info("===============")
 
+            # 保存原始库存，retry 时恢复（避免 max_targets 清零影响重算）
+            _orig_totals = dict(self.current_totals)
             self._compute_base_demands()
 
             logger.info(f"待完成备餐: {self.to_post_products}")
@@ -343,9 +345,17 @@ class IslandRestaurant(IslandShopBase):
                 self.to_post_products = temp_products
                 logger.info(f"剩余基础需求生产计划: {self.to_post_products}")
 
-            # ============ 安排基础需求生产 ============
+            # ============ 安排基础需求生产（带停滞重试） ============
             if self.to_post_products:
+                stalled_before = set(self._stalled)
                 self.schedule_production()
+                # 有新产品被标记停滞且仍有空闲岗位 → 恢复库存后重跑需求
+                if set(self._stalled) - stalled_before and self.get_idle_posts():
+                    self.current_totals = _orig_totals
+                    self._compute_base_demands()
+                    if self.to_post_products:
+                        self.to_post_products = self.process_meal_requirements(self.to_post_products)
+                        self.schedule_production()
             else:
                 logger.info("基础需求已满足")
 

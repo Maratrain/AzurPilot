@@ -329,6 +329,8 @@ class IslandTeahouse(IslandShopBase):
             logger.info(f"基础需求配置（共{len(self.post_products)}个槽位）: {self.post_products}")
             logger.info("===============")
 
+            # 保存原始库存，retry 时恢复
+            _orig_totals = dict(self.current_totals)
             self._compute_base_demands()
 
             logger.info(f"待完成备餐: {self.to_post_products}")
@@ -360,9 +362,17 @@ class IslandTeahouse(IslandShopBase):
             else:
                 logger.info("迎春花茶优先生产已关闭，直接处理基础需求")
 
-            # ============ 安排基础需求生产 ============
+            # ============ 安排基础需求生产（带停滞重试） ============
             if self.to_post_products:
+                stalled_before = set(self._stalled)
                 self.schedule_production()
+                # 有新产品被标记停滞且仍有空闲岗位 → 恢复库存后重跑需求
+                if set(self._stalled) - stalled_before and self.get_idle_posts():
+                    self.current_totals = _orig_totals
+                    self._compute_base_demands()
+                    if self.to_post_products:
+                        self.to_post_products = self.process_meal_requirements(self.to_post_products)
+                        self.schedule_production()
             else:
                 logger.info("基础需求已满足")
 
