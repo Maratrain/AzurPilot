@@ -267,18 +267,9 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
     def _cl1_run_battle(self):
         """执行侵蚀 1 战后的战略搜索与扫荡逻辑"""
         search_completed = self.run_strategic_search()
-        if self.is_combat_loading():
-            logger.warning(
-                'Combat loading detected, skip map_rescan'
-            )
-            return
-        if self.is_in_combat():
-            logger.warning(
-                'Combat detected, skip map_rescan'
-            )
-            return
         if not search_completed and search_completed is not None:
             logger.warning("战略搜索返回 False，可能已被提前中断")
+
 
         # 第一次重扫：检查是否还有事件
         self._solved_map_event = set()

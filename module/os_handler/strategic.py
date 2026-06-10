@@ -15,10 +15,6 @@ class StrategicSearchHandler(MapEventHandler):
             # End
             if self.appear(STRATEGIC_SEARCH_POPUP_CHECK, offset=(20, 20)):
                 return True
-            if self.is_combat_loading():
-                return True
-            if self.is_in_combat():
-                return True
             if self.handle_map_event():
                 continue
             if self.appear(AUTO_SEARCH_REWARD, offset=(50, 50)):
@@ -122,25 +118,7 @@ class StrategicSearchHandler(MapEventHandler):
             if self.appear(STRATEGIC_SEARCH_POPUP_CHECK, offset=(20, 20)) \
                     and self.handle_popup_confirm(offset=(30, 30), name='STRATEGIC_SEARCH'):
                 continue
-            if self.is_combat_loading():
-                logger.info(
-                    'Strategic search entered combat loading'
-                )
-                return True
-            if self.is_in_combat():
-                logger.info(
-                    'Strategic search entered combat'
-                )
-                return True
             if self.is_in_map():
-                return True
-            if self.is_in_combat():
-                logger.info('Combat detected')
-                self.device.sleep(2)
-                return True
-            if self.is_combat_loading():
-                logger.info('Combat loading detected')
-                self.device.sleep(2)
                 return True
 
     def strategic_search_start(self, skip_first_screenshot=True):
