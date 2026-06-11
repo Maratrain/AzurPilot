@@ -423,7 +423,7 @@ class IslandManufacture(IslandShopBase):
         self.to_post_products = {}
         logger.info("制造业使用内置生产规则，不设置常驻餐品")
 
-    def get_max_producible(self, product, requested_quantity):
+    def get_max_producible(self, product, requested_quantity, skip_zero_materials=False):
         """覆盖：制造业的生产数量由材料检查决定"""
         return requested_quantity
 

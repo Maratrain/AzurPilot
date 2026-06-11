@@ -282,18 +282,18 @@ class Island(SelectCharacter):
     def post_close(self):
         while 1:
             self.device.screenshot()
-            if self.ui_page_appear(page_island_postmanage) and not self.appear(ISLAND_POST_CHECK, offset=30) and not self.appear(ISLAND_POST_VACANT_CHECK, offset=30):
+            if self.ui_page_appear(page_island_postmanage) and not self.appear(ISLAND_POST_CHECK) and not self.appear(ISLAND_POST_VACANT_CHECK):
                 break
             if self.appear(ISLAND_GET, offset=30):
                 self.device.click(ISLAND_POST_SAFE_AREA)
                 continue
-            if self.appear(ISLAND_POST_CHECK, offset=30) or self.appear(ISLAND_POST_VACANT_CHECK, offset=30):
+            if self.appear(ISLAND_POST_CHECK) or self.appear(ISLAND_POST_VACANT_CHECK):
                 self.device.click(POST_CLOSE)
                 continue
     def post_get_and_close(self):
         while 1:
             self.device.screenshot()
-            if self.ui_page_appear(page_island_postmanage) and not self.appear(ISLAND_POST_CHECK, offset=30) and not self.appear(ISLAND_POST_VACANT_CHECK, offset=30):
+            if self.ui_page_appear(page_island_postmanage) and not self.appear(ISLAND_POST_CHECK) and not self.appear(ISLAND_POST_VACANT_CHECK):
                 break
             if self.appear(ERROR1, offset=30):
                 self.device.click(POST_CLOSE)
@@ -310,7 +310,7 @@ class Island(SelectCharacter):
                 self.device.click(ISLAND_POST_SAFE_AREA)
                 self.device.sleep(0.5)
                 continue
-            if (self.appear(ISLAND_POST_CHECK, offset=30) or self.appear(ISLAND_POST_VACANT_CHECK, offset=30)) and not self.appear(POST_GET, offset=(50, 0)):
+            if (self.appear(ISLAND_POST_CHECK) or self.appear(ISLAND_POST_VACANT_CHECK)) and not self.appear(POST_GET, offset=(50, 0)):
                 self.device.click(POST_CLOSE)
                 continue
     def post_get_and_add(self,product_selection,product_selection_check):

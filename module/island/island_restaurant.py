@@ -230,7 +230,7 @@ class IslandRestaurant(IslandShopBase):
                 logger.info(f"扣除豆腐：tofu -{tofu_needed} (用于制作 {product})")
 
     def apply_special_material_constraints(self, requirements):
-        """覆盖：根据豆腐库存调整需求"""
+        """覆盖：根据豆腐库存调整需求，豆腐不足时自动补入生产计划"""
         result = requirements.copy()
 
         # 获取豆腐库存
@@ -242,11 +242,14 @@ class IslandRestaurant(IslandShopBase):
             tofu_needed = cabbage_needed * 1  # 每个cabbage_tofu需要1个豆腐
 
             if tofu_stock < tofu_needed:
-                # 调整需求
                 max_cabbage = tofu_stock // 1
+                deficit = cabbage_needed - max_cabbage
                 result['cabbage_tofu'] = max_cabbage
-                logger.info(f"豆腐不足：cabbage_tofu需求从{cabbage_needed}调整为{max_cabbage}")
-                tofu_stock -= max_cabbage  # 更新剩余豆腐
+                # 豆腐本店可生产，限产的同时补入豆腐需求
+                if 'tofu' in self.name_to_config:
+                    result['tofu'] = result.get('tofu', 0) + deficit
+                    logger.info(f"豆腐不足：cabbage_tofu {cabbage_needed}→{max_cabbage}，补入 tofu x{deficit}")
+                tofu_stock -= max_cabbage
 
         # 处理tofu_meat的需求
         if 'tofu_meat' in result and result['tofu_meat'] > 0:
@@ -254,10 +257,13 @@ class IslandRestaurant(IslandShopBase):
             tofu_needed = tofu_meat_needed * 2  # 每个tofu_meat需要2个豆腐
 
             if tofu_stock < tofu_needed:
-                # 调整需求
                 max_tofu_meat = tofu_stock // 2
+                deficit = tofu_meat_needed - max_tofu_meat
                 result['tofu_meat'] = max_tofu_meat
-                logger.info(f"豆腐不足：tofu_meat需求从{tofu_meat_needed}调整为{max_tofu_meat}")
+                if 'tofu' in self.name_to_config:
+                    result['tofu'] = result.get('tofu', 0) + deficit * 2
+                    logger.info(f"豆腐不足：tofu_meat {tofu_meat_needed}→{max_tofu_meat}，补入 tofu x{deficit * 2}")
+                tofu_stock -= max_tofu_meat * 2
 
         return result
 
@@ -345,19 +351,54 @@ class IslandRestaurant(IslandShopBase):
                 self.to_post_products = temp_products
                 logger.info(f"剩余基础需求生产计划: {self.to_post_products}")
 
-            # ============ 安排基础需求生产（带停滞重试） ============
-            if self.to_post_products:
-                stalled_before = set(self._stalled)
-                self.schedule_production()
-                # 有新产品被标记停滞且仍有空闲岗位 → 恢复库存后重跑需求
-                if set(self._stalled) - stalled_before and self.get_idle_posts():
-                    self.current_totals = _orig_totals
-                    self._compute_base_demands()
-                    if self.to_post_products:
-                        self.to_post_products = self.process_meal_requirements(self.to_post_products)
-                        self.schedule_production()
-            else:
-                logger.info("基础需求已满足")
+            # ============ 安排基础需求生产（循环直到无空岗或无缺口） ============
+            _produced_pass = {}
+            _force_skip_run = set()
+            _loop_count = 0
+
+            self._schedule_and_track(_produced_pass)
+
+            while self.get_idle_posts():
+                _loop_count += 1
+                if _loop_count > self._MAX_FILL_LOOP:
+                    logger.warning(f"[循环] 已达最大迭代次数 {self._MAX_FILL_LOOP}，强制退出")
+                    break
+                self.current_totals = dict(_orig_totals)
+                for name, qty in _produced_pass.items():
+                    self.current_totals[name] = self.current_totals.get(name, 0) + qty
+
+                self._compute_base_demands(force_skip=_force_skip_run)
+                if not self.to_post_products:
+                    logger.info("所有槽位需求已满足")
+                    break
+
+                self.to_post_products = self.process_meal_requirements(self.to_post_products)
+                logger.info(f"基础需求生产计划: {self.to_post_products}")
+
+                prev_pass_total = sum(_produced_pass.values())
+                self._schedule_and_track(_produced_pass)
+
+                if sum(_produced_pass.values()) == prev_pass_total and self.to_post_products:
+                    logger.info("[循环] 当前缺口排产失败，切换严格模式扫描")
+                    self.to_post_products = {}
+                    self.current_totals = dict(_orig_totals)
+                    for name, qty in _produced_pass.items():
+                        self.current_totals[name] = self.current_totals.get(name, 0) + qty
+                    self._compute_base_demands(check_materials=True)
+                    if not self.to_post_products:
+                        break
+                    self.to_post_products = self.process_meal_requirements(self.to_post_products)
+                    logger.info(f"基础需求生产计划（严格模式）: {self.to_post_products}")
+
+                    strict_prev_total = sum(_produced_pass.values())
+                    self._schedule_and_track(_produced_pass)
+
+                    if sum(_produced_pass.values()) == strict_prev_total and self.to_post_products:
+                        stuck_now = set(self.to_post_products.keys())
+                        logger.info(f"[循环] 严格模式也无产出，强制跳过: {stuck_now}")
+                        _force_skip_run.update(stuck_now)
+                        self.to_post_products = {}
+                    continue
 
             # ============ 检查是否还有空闲岗位，安排常驻餐品 ============
             idle_posts_after_basic = self.get_idle_posts()

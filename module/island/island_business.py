@@ -231,6 +231,43 @@ class IslandBusiness(Island):
             return [char.strip() for char in config_str.split('>')]
         return ['WorkerJuu']
 
+    def _switch_to_business_tab(self):
+        """
+        切换到经营页签，并处理切换后可能出现的美食评审弹窗遮挡问题。
+
+        点击经营页签按钮后，游戏可能弹出美食评审界面遮挡所有页签按钮，
+        导致 post_manage_mode() 陷入死循环。此方法在每次点击后检测弹窗
+        并及时关闭，确保成功切换到经营页签。
+        """
+        for attempt in range(10):
+            self.device.screenshot()
+
+            # 已成功切换到经营页签
+            if self.appear(POST_MANAGE_BUSINESS, offset=30):
+                logger.info("已在经营页签")
+                return
+
+            # 检查是否有弹窗遮挡（生产和经营页签的蓝色指示器都不可见）
+            if not self.appear(POST_MANAGE_PRODUCTION, offset=30) \
+                    and not self.appear(POST_MANAGE_BUSINESS, offset=30):
+                # 不使用 appear 判断但使用固定坐标检测弹窗位置
+                logger.info("页签按钮被弹窗遮挡，点击安全区域关闭")
+                self.device.click(BUSINESS_REVIEW_SAFE_AREA)
+                self.device.sleep(1)
+                continue
+
+            # 在采集页签
+            if self.appear(ISLAND_GATHER_COLLECT_CHECK, offset=30):
+                self.device.click(POST_MANAGE_PRODUCTION)
+                self.device.sleep(0.5)
+                continue
+
+            # 在其他页签（如生产），点击经营页签按钮切换
+            self.device.click(POST_MANAGE_PRODUCTION)
+            self.device.sleep(0.5)
+
+        logger.warning("切换到经营页签失败（超过最大尝试次数）")
+
     def run(self):
         logger.info("=== 开始经营模块 ===")
         self.goto_postmanage()
@@ -241,11 +278,9 @@ class IslandBusiness(Island):
         self._handle_food_review()
 
         logger.info("切换到经营页签")
-        self.post_manage_mode(POST_MANAGE_BUSINESS)
-        self.device.sleep(3)
+        self._switch_to_business_tab()
         self.device.sleep(1)
 
-        # 处理每日首次进入可能出现的美食评审界面
         # 切换页签后再次处理可能出现的弹窗
         self._handle_food_review()
 
@@ -485,7 +520,7 @@ class IslandBusiness(Island):
             # 无识别的界面元素，点击安全区域等待
             else:
                 self.device.click(BUSINESS_REWARD_SAFE_AREA)
-                self.device.sleep(0.5)
+                self.device.sleep(1)
 
             # 统一在循环末尾递增 timeout，确保每次循环仅递增一次
             timeout += 1

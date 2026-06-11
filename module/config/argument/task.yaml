@@ -417,6 +417,12 @@ Island:
     IslandAirDrop:
       - Scheduler
       - IslandAirDrop
+    IslandCargoPreparation:
+      - Scheduler
+      - IslandCargoPreparation
+    IslandDailyOrder:
+      - Scheduler
+      - IslandDailyOrder
 
 # ==================== Tool ====================
 

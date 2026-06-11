@@ -5,8 +5,6 @@
 各个模块通过全局配置 `IslandPlan.Season` 来启用/禁用季节性物品。
 """
 
-import json
-import os
 from module.logger import logger
 
 
@@ -92,27 +90,13 @@ class SeasonConfig:
         self._update_season()
 
     def _update_season(self):
-        """从配置文件中读取当前季节（优先读取 config/alas.json 中的覆盖值）"""
-        raw = None
-        # 直接读取 config/alas.json 中的覆盖值（GUI 保存的位置）
-        # island_season.py 在 module/island/ 下，根目录是 ../../../
-        alas_cfg = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'config', 'alas.json')
-        if os.path.exists(alas_cfg):
-            try:
-                with open(alas_cfg, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                raw = data.get('IslandPlan', {}).get('IslandPlan', {}).get('Season')
-            except (json.JSONDecodeError, IOError):
-                pass
-
-        # 如果 alas.json 中没找到，回退到 config 对象
-        if raw is None and self._config is not None:
-            raw = getattr(self._config, 'IslandPlan_Season', None)
-
-        if raw and raw in SEASONS:
-            self._season = raw
-        else:
-            self._season = 'spring'
+        """从配置对象中读取当前季节"""
+        if self._config is not None:
+            raw = self._config.cross_get('IslandPlan.IslandPlan.Season')
+            if raw and raw in SEASONS:
+                self._season = raw
+                return
+        self._season = 'spring'
 
     @property
     def season(self):

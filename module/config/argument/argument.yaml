@@ -284,7 +284,7 @@ YukikazeTaskManager:
       > RaidDaily > CoalitionSp > WarArchives > MaritimeEscort
       > IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant
       > IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture
-      > IslandAirDrop > IslandBusiness
+      > IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandCargoPreparation
       > Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3
       > OpsiMeowfficerFarming
       > GemsFarming
@@ -1467,6 +1467,18 @@ Handmade:
     option: [ 0, 1, 2 ]
 IslandAirDrop:
   LastSteal: 2020-01-01 00:00:00
+
+IslandDailyOrder:
+  RejectCount:
+    value: 0
+  RejectFilter:
+    value: "Cheese > Tofu"
+  UrgentDetectRefreshTime:
+    value: "2020-01-01 00:00:00"
+
+IslandCargoPreparation:
+  Blacklist:
+    value: "Milk"
 
 # ---------- Island Business Shops ----------
 _IslandBusinessChar: &IslandBusinessChar
