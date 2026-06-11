@@ -176,9 +176,9 @@ class OSMapOperation(MapOrderHandler, MissionHandler, PortHandler, StorageHandle
                 name,
                 ('安全海域', '隐秘海域', '深渊海域', '塞壬要塞海域', '安全', '隐秘', '深渊'),
             )
-        m = re.search(r'.*海[A-H]', name, re.I)
+        m = re.match(r'^(.*海[A-H])', name, re.I)
         if m:
-        name = m.group(0)
+            name = m.group(0)
         return name
 
     def get_current_zone(self):
