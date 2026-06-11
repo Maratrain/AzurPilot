@@ -125,6 +125,14 @@ class ZoneManager:
                     return zone
                 if name == parse_name(zone.tw):
                     return zone
+            for zone in self.zones:
+    cn = parse_name(zone.cn)
+
+    if len(name) > len(cn) and name.startswith(cn):
+        logger.warning(
+            f'Zone fuzzy match: OCR={name}, Zone={zone.cn}'
+        )
+        return zone
             # Normal arbiter, Hard arbiter, BOSS after hard arbiter cleared
             # 普通难度：仲裁者·XXX, 困难难度：仲裁者·XXX, 困难模拟战：仲裁机关
             for keyword in ['普通', '困难', '仲裁']:
