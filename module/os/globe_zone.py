@@ -132,12 +132,6 @@ class ZoneManager:
                         f'Zone fuzzy match: OCR={name}, Zone={zone.cn}'
                     )
                     return zone
-
-    if len(name) > len(cn) and name.startswith(cn):
-        logger.warning(
-            f'Zone fuzzy match: OCR={name}, Zone={zone.cn}'
-        )
-        return zone
             # Normal arbiter, Hard arbiter, BOSS after hard arbiter cleared
             # 普通难度：仲裁者·XXX, 困难难度：仲裁者·XXX, 困难模拟战：仲裁机关
             for keyword in ['普通', '困难', '仲裁']:
