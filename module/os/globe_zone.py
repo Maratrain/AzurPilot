@@ -127,7 +127,10 @@ class ZoneManager:
                     return zone
             for zone in self.zones:
                 cn = parse_name(zone.cn)
-                if len(name) > len(cn) and name.startswith(cn):
+                if (len(name) > len(cn) 
+                and len(name) - len(cn) <= 2 
+                and name.startswith(cn)
+                ):
                     logger.warning(
                         f'Zone fuzzy match: OCR={name}, Zone={zone.cn}'
                     )
