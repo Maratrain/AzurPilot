@@ -267,9 +267,9 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
     def _cl1_run_battle(self):
         """执行侵蚀 1 战后的战略搜索与扫荡逻辑"""
         search_completed = self.run_strategic_search()
+
         if not search_completed and search_completed is not None:
             logger.warning("战略搜索返回 False，可能已被提前中断")
-
 
         # 第一次重扫：检查是否还有事件
         self._solved_map_event = set()
@@ -981,24 +981,6 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
             self.config.save()
         except Exception as e:
             logger.error(f"体力/货币记录异常: {e}")
-        instance_name = getattr(
-    self.config,
-    "config_name",
-    "default",
-)
-from module.statistics.daily_report import (
-    try_send_daily_report
-)
-
-try:
-    try_send_daily_report(
-        instance_name,
-        self.config,
-    )
-except Exception:
-    logger.exception(
-        "Daily report failed"
-    )
 
     def detect_and_record_sea_miles(self):
         """
