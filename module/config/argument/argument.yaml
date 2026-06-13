@@ -667,7 +667,6 @@ BuyFurniture:
 Meowfficer:
   BuyAmount: 1
   FortChoreMeowfficer: true
-  OverflowCoins: -1
 MeowfficerTrain:
   Enable: false
   Mode:

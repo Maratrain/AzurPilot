@@ -1989,10 +1989,6 @@
     "FortChoreMeowfficer": {
       "name": "Meow Nest Interaction",
       "help": "Clean, feed and entertain cats"
-    },
-    "OverflowCoins": {
-      "name": "Buy Boxes On Coin Overflow",
-      "help": "When coins are above this value, keep buying boxes until coins drop to it or boxes run out; -1 to disable"
     }
   },
   "MeowfficerTrain": {

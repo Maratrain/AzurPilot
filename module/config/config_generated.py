@@ -364,7 +364,6 @@ class GeneratedConfig:
     # 配置组 `Meowfficer`
     Meowfficer_BuyAmount = 1
     Meowfficer_FortChoreMeowfficer = True
-    Meowfficer_OverflowCoins = -1
 
     # 配置组 `MeowfficerTrain`
     MeowfficerTrain_Enable = False

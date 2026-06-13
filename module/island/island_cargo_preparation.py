@@ -557,10 +557,13 @@ class IslandCargoPreparation(IslandUI):
 
     def _next_grey_retry_time(self):
         now = datetime.now().replace(microsecond=0)
+        today_morning = now.replace(hour=self.EARLY_MORNING_DELAY_HOUR, minute=0, second=0)
         today_evening = now.replace(hour=self.EVENING_DELAY_HOUR, minute=0, second=0)
         tomorrow_morning = (now + timedelta(days=1)).replace(
             hour=self.EARLY_MORNING_DELAY_HOUR, minute=0, second=0
         )
+        if now < today_morning:
+            return today_morning
         if now < today_evening:
             return today_evening
         return tomorrow_morning

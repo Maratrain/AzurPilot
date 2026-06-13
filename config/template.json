@@ -1938,8 +1938,7 @@
     },
     "Meowfficer": {
       "BuyAmount": 1,
-      "FortChoreMeowfficer": true,
-      "OverflowCoins": -1
+      "FortChoreMeowfficer": true
     },
     "MeowfficerTrain": {
       "Enable": false,

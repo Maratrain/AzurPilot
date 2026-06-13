@@ -1989,10 +1989,6 @@
     "FortChoreMeowfficer": {
       "name": "喵窝互动 (。・ω・。)",
       "help": "清扫、喂食、逗猫喵"
-    },
-    "OverflowCoins": {
-      "name": "金幣溢出時購買貓箱",
-      "help": "當金幣高於此值時，繼續購買貓箱直至金幣降至此值或貓箱售罄；-1 關閉"
     }
   },
   "MeowfficerTrain": {
