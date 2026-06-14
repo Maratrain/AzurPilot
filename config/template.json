@@ -2429,6 +2429,7 @@
       "MissionZones": null,
       "CollectTargetReward": false
     },
+    "OpsiGeneral_LastCrashNotifyTime": null
     "OpsiFleet": {
       "Fleet": 1,
       "Submarine": false

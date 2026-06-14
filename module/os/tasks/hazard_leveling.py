@@ -5,6 +5,7 @@ from module.base.timer import Timer
 from module.equipment.assets import EQUIPMENT_OPEN
 from module.exception import MapDetectionError, ScriptError
 from module.logger import logger
+from module.notify.notify import send_crash_messages
 from module.os.assets import FLEET_FLAGSHIP
 from module.os.map import OSMap
 from module.os.ship_exp import ship_info_get_level_exp
@@ -239,9 +240,11 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
     def _cl1_ap_check(self):
         """最低行动力保留检查"""
         min_reserve = self.config.OS_ACTION_POINT_PRESERVE
-        if self._action_point_total < min_reserve:
+
+        # 优先判定严重坠机阈值（固定 200）
+        if self._action_point_total < 200:
             logger.warning(
-                f"[智能调度] 行动力低于最低保留 ({self._action_point_total} < {min_reserve})"
+                f"[智能调度] 行动力严重不足 ({self._action_point_total} < 200)，触发坠机通知"
             )
 
             _previous_ap_insufficient = getattr(
@@ -249,12 +252,53 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
             )
             if not _previous_ap_insufficient:
                 _previous_ap_insufficient = True
-                self.notify_push(
-                    title="[AzurPilot info] 智能调度 - 行动力低于最低保留",
-                    content=f"当前行动力 {self._action_point_total} 低于最低保留 {min_reserve}，已推迟任务",
-                )
+                # 发送坠机通知（仅发送已坠机消息）
+                try:
+                    send_crash_messages(
+                        self.config,
+                        config_name=getattr(self.config, 'config_name', 'AzurPilot'),
+                        total_ap=self._action_point_total,
+                        onepush_config=getattr(self.config, 'Error_OnePushConfig', None),
+                        notify_push_func=self.notify_push,
+                        webui_instance=getattr(self.config, 'config_name', 'AzurPilot'),
+                        send_crashed=True,
+                        send_warning=False,
+                    )
+                except Exception as e:
+                    logger.debug(f"发送坠机通知失败: {e}")
             else:
-                logger.info("上次检查行动力低于最低保留，跳过推送通知")
+                logger.info("上次检查行动力严重不足，跳过推送通知")
+
+            logger.info("[智能调度] 推迟侵蚀 1 任务 50 分钟")
+            self.config.task_delay(minute=50)
+            self.config.OpsiHazard1_PreviousApInsufficient = _previous_ap_insufficient
+            self.config.task_stop()
+        elif 0 < self._action_point_total < min_reserve:
+            logger.warning(
+                f"[智能调度] 行动力低于用户保留 ({self._action_point_total} < {min_reserve})，触发即将坠机提醒"
+            )
+
+            _previous_ap_insufficient = getattr(
+                self.config, "OpsiHazard1_PreviousApInsufficient", False
+            )
+            if not _previous_ap_insufficient:
+                _previous_ap_insufficient = True
+                # 发送即将坠机提醒（仅发送警告消息）
+                try:
+                    send_crash_messages(
+                        self.config,
+                        config_name=getattr(self.config, 'config_name', 'AzurPilot'),
+                        total_ap=self._action_point_total,
+                        onepush_config=getattr(self.config, 'Error_OnePushConfig', None),
+                        notify_push_func=self.notify_push,
+                        webui_instance=getattr(self.config, 'config_name', 'AzurPilot'),
+                        send_crashed=False,
+                        send_warning=True,
+                    )
+                except Exception as e:
+                    logger.debug(f"发送即将坠机提醒失败: {e}")
+            else:
+                logger.info("上次检查行动力低于保留值，跳过推送通知")
 
             logger.info("[智能调度] 推迟侵蚀 1 任务 50 分钟")
             self.config.task_delay(minute=50)
