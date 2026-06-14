@@ -612,6 +612,8 @@ class GeneratedConfig:
     OpsiHazard1Leveling_RecordNonCL1AP = True
     OpsiHazard1Leveling_PreserveVirtualAsset = 0
     OpsiHazard1Leveling_RecordSeaMiles = True  # True, False
+    OpsiHazard1Leveling_LowapNotification = True  # True, False
+    OpsiHazard1Leveling_Setklowapgoal = 500
 
     # 配置组 `OpsiSirenBug`
     OpsiSirenBug_SirenResearch_Enable = True
