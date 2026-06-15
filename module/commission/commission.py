@@ -617,9 +617,9 @@ class RewardCommission(UI, InfoHandler):
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
                 tracked = []
                 if merged_items.get('Gem', 0) > 0:
-                    tracked.append(f'💎钻石 + {merged_items["Gem"]}')
+                    tracked.append(f'💎钻石 * {merged_items["Gem"]}')
                 if merged_items.get('Cube', 0) > 0:
-                    tracked.append(f'⚠️魔方 + {merged_items["Cube"]}')
+                    tracked.append(f'🧊魔方 * {merged_items["Cube"]}')
                 if tracked:
                     msg = '\n'.join(tracked)
                     handle_notify(
