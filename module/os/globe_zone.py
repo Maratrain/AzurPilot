@@ -126,14 +126,15 @@ class ZoneManager:
                 if name == parse_name(zone.tw):
                     return zone
             for zone in self.zones:
-                cn = parse_name(zone.cn)
-                if (len(name) == len(cn) + 1
-                and name.startswith(cn)
-                ):
-                    logger.warning(
-                        f'Zone fuzzy match: OCR={name}, Zone={zone.cn}'
-                    )
-                    return zone
+                for lang_name in [zone.cn, zone.tw]:
+                    parsed = parse_name(lang_name)
+                    if len(name) == len(parsed) + 1 and name.startswith(parsed):
+                        from module.logger import logger
+                        logger.warning(
+                            f'Zone fuzzy match: OCR={name}, Zone={lang_name}'
+                        )
+                        return zone
+            # Normal arbiter, Hard ar
             # Normal arbiter, Hard arbiter, BOSS after hard arbiter cleared
             # 普通难度：仲裁者·XXX, 困难难度：仲裁者·XXX, 困难模拟战：仲裁机关
             for keyword in ['普通', '困难', '仲裁']:

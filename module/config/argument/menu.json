@@ -121,7 +121,8 @@
       "IslandDailyGather",
       "IslandAirDrop",
       "IslandCargoPreparation",
-      "IslandDailyOrder"
+      "IslandDailyOrder",
+      "IslandPearlSell"
     ]
   },
   "Tool": {

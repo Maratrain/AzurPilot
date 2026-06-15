@@ -4,6 +4,7 @@ from datetime import datetime
 from module.handler.login import LoginHandler
 from module.island.warehouse import *
 from module.logger import logger
+from module.base.timer import Timer
 
 
 class IslandFarm(Island, WarehouseOCR, LoginHandler):
@@ -362,6 +363,28 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         if self.appear(ISLAND_SHOP_GET):
             self.device.click(ISLAND_SHOP_CONFIRM)
 
+    def _back_to_island_after_seed_purchase(self):
+        """从种子商店返回岛屿页，避免商店页误判导致漏点返回。"""
+        logger.info('返回岛屿页')
+        confirm_timer = Timer(1, count=2).start()
+        self.interval_clear([ISLAND_BACK, ISLAND_SHOP_GOTO_ISLAND])
+        self.device.click(ISLAND_BACK)
+        self.device.sleep(0.5)
+        for _ in self.loop(timeout=12, skip_first=False):
+            if self.appear(ISLAND_CHECK):
+                if confirm_timer.reached():
+                    return True
+                continue
+            confirm_timer.reset()
+
+            if self.appear_then_click(ISLAND_BACK, offset=(20, 20), interval=2):
+                continue
+            if self.appear_then_click(ISLAND_SHOP_GOTO_ISLAND, offset=(20, 20), interval=2):
+                continue
+
+        logger.warning('返回岛屿页超时，继续尝试后续导航')
+        return False
+
     def run(self):
         self.island_error = False
         self.check_inventory_and_prepare_lists()
@@ -533,12 +556,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                     logger.info(f"购买{category}类别的{crop}种子，{count}份")
                     for _ in range(count):
                         self.buy_seeds(crop, category)
-            while 1:
-                self.device.screenshot()
-                if self.appear(ISLAND_CHECK):
-                    break
-                self.device.click(ISLAND_BACK)
-                self.device.sleep(0.5)
+            self._back_to_island_after_seed_purchase()
 
             self.goto_management()
             self.ui_goto(page_island_postmanage, get_ship=False)

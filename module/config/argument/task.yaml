@@ -367,6 +367,7 @@ Island:
       - IslandPlan
     IslandBusiness:
       - Scheduler
+      - IslandBusiness
       - IslandBusinessShop1
       - IslandBusinessShop2
       - IslandBusinessShop3
@@ -417,6 +418,15 @@ Island:
     IslandAirDrop:
       - Scheduler
       - IslandAirDrop
+    IslandCargoPreparation:
+      - Scheduler
+      - IslandCargoPreparation
+    IslandDailyOrder:
+      - Scheduler
+      - IslandDailyOrder
+    IslandPearlSell:
+      - Scheduler
+      - IslandPearlSell
 
 # ==================== Tool ====================
 

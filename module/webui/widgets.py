@@ -536,11 +536,44 @@ def put_arg_storage(kwargs: T_Output_Kwargs) -> Optional[Output]:
     )
 
 
+def put_arg_multiselect(kwargs: T_Output_Kwargs) -> Output:
+    """多选组件：使用竖向复选框组实现多选，交互直观。
+
+    支持 options 和 options_label，value 为选中值的列表（如 [1, 3, 5]）。
+    每个选项渲染为一个独立的 checkbox，竖向排列避免横向布局的点击区域冲突。
+    """
+    name: str = kwargs["name"]
+    value: list = kwargs.get("value", [])
+    if not isinstance(value, list):
+        value = [value] if value else []
+    options: List[str] = kwargs.get("options", [])
+    options_label: List[str] = kwargs.pop("options_label", [])
+    _: str = kwargs.pop("invalid_feedback", None)
+    # 从 kwargs 中移除多余的键，避免传递给 put_checkbox 造成冲突
+    for key in ("disabled", "value", "options"):
+        kwargs.pop(key, None)
+
+    checkbox_options = [{
+        "label": opt_label,
+        "value": opt,
+        "selected": opt in value,
+    } for opt, opt_label in zip(options, options_label)]
+
+    return put_scope(
+        f"arg_container-multiselect-{name}",
+        [
+            get_title_help(kwargs),
+            put_checkbox(**kwargs, options=checkbox_options).style("--input--"),
+        ],
+    )
+
+
 _widget_type_to_func: Dict[str, Callable] = {
     "input": put_arg_input,
     "lock": put_arg_state,
     "datetime": put_arg_input,  # TODO
     "select": put_arg_select,
+    "multiselect": put_arg_multiselect,
     "textarea": put_arg_textarea,
     "checkbox": put_arg_checkbox,
     "storage": put_arg_storage,

@@ -13,7 +13,6 @@ from module.island.assets import (
     OCR_TRANSPORT_TIME,
     OCR_TRANSPORT_TIME_REMAIN,
     TEMPLATE_ITEM_SATISFIED,
-    TEMPLATE_MILK,
     TRANSPORT_LOCKED,
     TRANSPORT_RECEIVE,
     TRANSPORT_REFRESH,
@@ -29,6 +28,7 @@ from module.island_cargo_preparation.assets import (
     REFRESH_BUTTON_BLUE,
     REFRESH_BUTTON_GREY,
     REPLACE_PAGE_CHECK,
+    TEMPLATE_CARGO_MILK,
 )
 from module.island.ui import IslandUI
 from module.logger import logger
@@ -194,7 +194,7 @@ class CargoPreparationTransportItem:
 
     def handle_blacklist_items(self):
         for template in self.blacklist:
-            if template.match(self.image):
+            if template.match(self.image, similarity=0.80):
                 return True
         return False
 
@@ -227,12 +227,12 @@ class IslandCargoPreparation(IslandUI):
         """
         货物黑名单。
 
-        当前仅支持 Milk，且使用现有 TEMPLATE_MILK 资源直接识别货物格子。
+        当前仅支持 Milk，且使用 TEMPLATE_CARGO_MILK 资源直接识别货物格子。
         """
         names = str(self.config.IslandCargoPreparation_Blacklist or '')
         blacklist = []
         if 'milk' in names.lower():
-            blacklist.append(TEMPLATE_MILK)
+            blacklist.append(TEMPLATE_CARGO_MILK)
         return blacklist
 
     def run(self):

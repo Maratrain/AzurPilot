@@ -2,19 +2,22 @@ from module.island.island import *
 from time import sleep
 from module.ui.scroll import Scroll
 
+
 class IslandAirDrop(Island):
     def run(self):
         self.island_error = False
         now = datetime.now()
         today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        next_daily_time = today.replace(hour=1, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        next_daily_time = today.replace(
+            hour=1, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
         last_steal_time = self.config.IslandAirDrop_LastSteal
         next_steal_time = now + timedelta(hours=5)
         last_attempt_today = now.replace(hour=23, minute=0, second=0, microsecond=0)
         if last_steal_time < today:
             self.goto_postmanage()
             if self.appear_then_click(MY_AIR_DROP_ALREADY):
-                self.ui_goto(page_island,get_ship=False)
+                self.ui_goto(page_island, get_ship=False)
                 self.island_air_drop()
                 while 1:
                     self.device.screenshot()
@@ -33,56 +36,75 @@ class IslandAirDrop(Island):
                 self.device.sleep(1)
                 self.island_down(1000)
                 self.island_air_drop()
-        has_drops = True
-        self.goto_management()
-        while 1:
-            self.ui_goto(page_island_visit, get_ship=False)
-            ocr_air_drop = DigitCounter(OCR_AIR_DROP, name='air_drop', letter=(150, 150, 150), threshold=80,
-                                        alphabet='0123456789/')
-            image = self.device.screenshot()
-            number1,number2,number3 = ocr_air_drop.ocr(image)
-            if number1 > 0:
-                has_drops = True
-                if self.find_air_drop():
-                    self.device.sleep(1)
-                    self.run_and_get()
-                    self.device.sleep(3)
-                    # 每次完成补给后立即重新检测剩余次数，确认消耗是否成功
-                    # 因为运行可能失败导致次数没使用成功
-                    self.ui_goto(page_island_visit, get_ship=False)
-                    ocr_air_drop = DigitCounter(OCR_AIR_DROP, name='air_drop', letter=(150, 150, 150), threshold=80,
-                                                alphabet='0123456789/')
-                    image = self.device.screenshot()
-                    number1, number2, number3 = ocr_air_drop.ocr(image)
-                    if number1 > 0:
-                        logger.info(f"剩余补给次数: {number1}/{number2}，继续执行好友补给")
-                        continue
+        # 是否前往其他玩家岛屿拿补给
+        if self.config.IslandAirDrop_VisitOtherIsland:
+            has_drops = True
+            self.goto_management()
+            while 1:
+                self.ui_goto(page_island_visit, get_ship=False)
+                ocr_air_drop = DigitCounter(
+                    OCR_AIR_DROP,
+                    name="air_drop",
+                    letter=(150, 150, 150),
+                    threshold=80,
+                    alphabet="0123456789/",
+                )
+                image = self.device.screenshot()
+                number1, number2, number3 = ocr_air_drop.ocr(image)
+                if number1 > 0:
+                    has_drops = True
+                    if self.find_air_drop():
+                        self.device.sleep(1)
+                        self.run_and_get()
+                        self.device.sleep(3)
+                        # 每次完成补给后立即重新检测剩余次数，确认消耗是否成功
+                        # 因为运行可能失败导致次数没使用成功
+                        self.ui_goto(page_island_visit, get_ship=False)
+                        ocr_air_drop = DigitCounter(
+                            OCR_AIR_DROP,
+                            name="air_drop",
+                            letter=(150, 150, 150),
+                            threshold=80,
+                            alphabet="0123456789/",
+                        )
+                        image = self.device.screenshot()
+                        number1, number2, number3 = ocr_air_drop.ocr(image)
+                        if number1 > 0:
+                            logger.info(
+                                f"剩余补给次数: {number1}/{number2}，继续执行好友补给"
+                            )
+                            continue
+                        else:
+                            logger.info("补给次数已用尽")
+                            has_drops = False
+                            break
                     else:
-                        logger.info("补给次数已用尽")
-                        has_drops = False
                         break
                 else:
+                    has_drops = False
                     break
-            else:
-                has_drops = False
-                break
+        else:
+            logger.info("已禁用拜访其他玩家岛屿，跳过好友补给")
+            has_drops = False
         self.config.IslandAirDrop_LastSteal = datetime.now().replace(microsecond=0)
 
-        if has_drops and next_steal_time<last_attempt_today:
+        if has_drops and next_steal_time < last_attempt_today:
             self.config.task_delay(target=next_steal_time)
-        elif has_drops and next_steal_time>last_attempt_today>now:
+        elif has_drops and next_steal_time > last_attempt_today > now:
             self.config.task_delay(target=last_attempt_today)
         else:
             self.config.task_delay(target=next_daily_time)
         if self.island_error:
             from module.exception import GameBugError
+
             raise GameBugError("检测到岛屿拜访卡死，需要重启")
         self.device.sleep(1)
 
-
     def find_air_drop(self):
         search_area = (662, 90, 720, 660)
-        VISIT_SCROLL = Scroll(VISIT_SCROLL_AREA, color=(255, 255, 255), name='VISIT_SCROLL')
+        VISIT_SCROLL = Scroll(
+            VISIT_SCROLL_AREA, color=(255, 255, 255), name="VISIT_SCROLL"
+        )
         max_swipe_attempts = 15
         swipe_count = 0
         last_attempt_swipe = 1
@@ -90,21 +112,18 @@ class IslandAirDrop(Island):
             self.device.screenshot()
             region_image = self.image_crop(search_area, copy=False)
             air_drop_buttons = TEMPLATE_AIR_DROP.match_multi(
-                region_image,
-                similarity=0.85,
-                threshold=5,
-                name="air_drop_buttons"
+                region_image, similarity=0.85, threshold=5, name="air_drop_buttons"
             )
 
             if not air_drop_buttons:
                 logger.info("在指定区域内未找到补给")
 
                 # 检查是否在底部
-                if VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe>0:
+                if VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe > 0:
                     last_attempt_swipe -= 1
                     logger.info("滑动槽已在底部，最后尝试滑动")
                     continue
-                elif VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe<=0:
+                elif VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe <= 0:
                     logger.info("滑动槽已在底部，停止搜索")
                     return False
                 # 如果还有滑动次数，尝试滑动
@@ -128,7 +147,9 @@ class IslandAirDrop(Island):
                 air_drop_button_x = air_drop_button.area[0] + search_area[0]
                 air_drop_button_y = air_drop_button.area[1] + search_area[1]
 
-                visit_button = self.calculate_visit_position(air_drop_button_x, air_drop_button_y)
+                visit_button = self.calculate_visit_position(
+                    air_drop_button_x, air_drop_button_y
+                )
                 result = self.check_visit(visit_button)
                 if result == "skip":
                     logger.info("无法访问，跳过当前补给")
@@ -144,11 +165,11 @@ class IslandAirDrop(Island):
             if not has_clickable_air_drop:
                 logger.info("当前页面没有可用补给目标")
                 # 检查是否在底部
-                if VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe>0:
+                if VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe > 0:
                     last_attempt_swipe -= 1
                     logger.info("滑动槽已在底部，最后尝试滑动")
                     continue
-                elif VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe<=0:
+                elif VISIT_SCROLL.at_bottom(main=self) and last_attempt_swipe <= 0:
                     logger.info("滑动槽已在底部，停止搜索")
                     return False
                 # 滑动继续查找
@@ -163,7 +184,9 @@ class IslandAirDrop(Island):
                     return False
 
             if swipe_count < max_swipe_attempts:
-                logger.info(f"所有补给尝试失败，滑动尝试 {swipe_count + 1}/{max_swipe_attempts}")
+                logger.info(
+                    f"所有补给尝试失败，滑动尝试 {swipe_count + 1}/{max_swipe_attempts}"
+                )
                 self.visit_swipe(480)
                 swipe_count += 1
                 self.device.sleep(0.5)
@@ -200,7 +223,7 @@ class IslandAirDrop(Island):
             area=(visit_button_x1, visit_button_y1, visit_button_x2, visit_button_y2),
             color=(),
             button=(visit_button_x1, visit_button_y1, visit_button_x2, visit_button_y2),
-            name="visit_button"
+            name="visit_button",
         )
         return visit_button
 
@@ -209,13 +232,13 @@ class IslandAirDrop(Island):
             area=(500, 90, 630, 660),
             color=(),
             button=(500, 90, 630, 660),
-            name="stop_button"
+            name="stop_button",
         )
-        self.device.swipe_vector(vector=(0, -distance), box=(500, 90, 630, 660), name="VisitSwipe")
+        self.device.swipe_vector(
+            vector=(0, -distance), box=(500, 90, 630, 660), name="VisitSwipe"
+        )
         self.device.click(stop_button)
         self.device.click_record_clear()
-
-
 
     def island_access_map_check(self):
         while True:
@@ -238,6 +261,7 @@ class IslandAirDrop(Island):
         self.device.click(ISLAND_AIR_DROP_B)
         sleep(0.1)
         self.device.click(ISLAND_AIR_DROP_C)
+
     def run_and_get(self):
         self.island_up(3000)
         self.island_right(700)
@@ -272,9 +296,10 @@ class IslandAirDrop(Island):
             self.island_down(500)
             self.island_air_drop()
         self.device.click(AIR_DROP_RUN_AWAY)
+
     def test(self):
         image = self.device.screenshot()
-        area = OCR_AIR_DROP.area if hasattr(OCR_AIR_DROP, 'area') else OCR_AIR_DROP
+        area = OCR_AIR_DROP.area if hasattr(OCR_AIR_DROP, "area") else OCR_AIR_DROP
         cropped = crop(image, area)
 
         # 测试不同参数
@@ -283,14 +308,15 @@ class IslandAirDrop(Island):
         processed = extract_letters(cropped, letter=letter, threshold=threshold)
 
         # 显示处理后的图像
-        cv2.imshow('Processed OCR', processed)
+        cv2.imshow("Processed OCR", processed)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
     def test1(self):
         self.goto_management()
 
+
 if __name__ == "__main__":
-    az =IslandAirDrop('alas', task='Alas')
+    az = IslandAirDrop("alas", task="Alas")
     az.device.screenshot()
     az.test1()

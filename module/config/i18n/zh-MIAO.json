@@ -316,15 +316,15 @@
     },
     "IslandGrill": {
       "name": "乌鱼烤肉喵 (╯▽╰)",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "IslandJuuEatery": {
       "name": "啾啾简餐喵 (´・ω・`)つ",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "IslandJuuCoffee": {
       "name": "啾咖啡喵 (´▽`ʃ♡ƪ)",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "IslandManufacture": {
       "name": "制造业喵 (｀ω´)",
@@ -336,15 +336,19 @@
     },
     "IslandAirDrop": {
       "name": "每日补给喵 (・ω<)",
-      "help": ""
+      "help": "仅支持minitouch喵，领取每日补给~ (・ω<)"
     },
     "IslandCargoPreparation": {
-      "name": "货物筹备喵",
+      "name": "货物筹备喵 (๑¯◡¯๑)",
       "help": "自动领取货运奖励，避开牛奶货物，确认默认选中的第一个可替换委托并装载货物喵。"
     },
     "IslandDailyOrder": {
       "name": "每日订单喵 (๑¯◡¯๑)",
       "help": "从岛屿手机页面进入订单界面，超自动检测紧急/挑战/轻松订单喵~(目前不支持普通订单,以后估计也不考虑支持) 芝士和豆腐通通驳回！(๑•̀ㅂ•́)و✧\n\n每日订单功能还在测试喵，如果有每日订单或紧急委托无法交付，请截图反馈（要保证截图为 1280x720 的游戏内截图）喵。"
+    },
+    "IslandPearlSell": {
+      "name": "每周珍珠采购与售卖喵 (๑¯◡¯๑)",
+      "help": "每周二 01:00 自动处理珍珠喵：先买本周珍珠，再卖已有珍珠。仅支持minitouch喵。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错喵。"
     },
     "Daemon": {
       "name": "半自动点击小助手 (｀・ω・´)つ",
@@ -3974,7 +3978,7 @@
   "IslandGrill": {
     "_info": {
       "name": "乌鱼烤肉喵 (╯▽╰)",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "PostNumber": {
       "name": "岗位数量",
@@ -4136,7 +4140,7 @@
   "IslandJuuEatery": {
     "_info": {
       "name": "啾啾简餐喵 (´・ω・`)つ",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "PostNumber": {
       "name": "岗位数量",
@@ -4325,7 +4329,7 @@
   "IslandJuuCoffee": {
     "_info": {
       "name": "啾咖啡喵 (´▽`ʃ♡ƪ)",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "PostNumber": {
       "name": "岗位数量",
@@ -4509,7 +4513,7 @@
   "WoodProcessing": {
     "_info": {
       "name": "木料加工喵 (｀・ω・´)",
-      "help": ""
+      "help": "只制作文件柜喵，木匠活就交给雪风吧 (｀・ω・´)9"
     },
     "Positions": {
       "name": "岗位数",
@@ -4522,7 +4526,7 @@
   "ElectronicProcessing": {
     "_info": {
       "name": "电子加工喵 (｀・ω・´)",
-      "help": ""
+      "help": "只做滤芯喵~ 其他电子设备暂时不考虑 (｀・ω・´)"
     },
     "Positions": {
       "name": "岗位数",
@@ -4535,7 +4539,7 @@
   "Industrial": {
     "_info": {
       "name": "工业生产喵 (｀・ω・´)",
-      "help": ""
+      "help": "钉子超过20个开始做餐具喵，还没解锁就手动做吧 (。-ω-)zzz"
     },
     "Positions": {
       "name": "岗位数",
@@ -4548,7 +4552,7 @@
   "Handmade": {
     "_info": {
       "name": "手工制作喵 (｀・ω・´)",
-      "help": ""
+      "help": "皮革超过10个开始做鞋靴喵，没解锁的话需要手动做 (´・ω・`)"
     },
     "Positions": {
       "name": "岗位数",
@@ -4566,6 +4570,10 @@
     "LastSteal": {
       "name": "上次运行时间",
       "help": ""
+    },
+    "VisitOtherIsland": {
+      "name": "去别人家拿补给喵",
+      "help": "关掉的话就只收自己岛上的空投，不去别人家串门蹭吃蹭喝啦 (｀・ω・´)"
     }
   },
   "IslandDailyOrder": {
@@ -4586,14 +4594,80 @@
       "help": "紧急委托的冷却时间喵~ 在这之前不会检测紧急委托的说！格式：YYYY-MM-DD HH:mm:ss"
     }
   },
+  "IslandPearlSell": {
+    "_info": {
+      "name": "每周珍珠采购与售卖喵 (๑¯◡¯๑)",
+      "help": "每周二 01:00 自动处理珍珠喵：先按最高采购价买本周珍珠，再按最低售卖价卖已有珍珠。其他没完成的流程会延迟到次日 01:00 重试。仅支持minitouch喵。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错喵。"
+    },
+    "BuyPrice": {
+      "name": "最高采购价格喵",
+      "help": "采购阶段允许的最高折算价格喵，范围 200~1000。"
+    },
+    "SellPrice": {
+      "name": "最低售卖价格喵",
+      "help": "售卖阶段要求的最低价格喵，范围 200~1000。"
+    },
+    "BuyNextRun": {
+      "name": "采购下次运行时间喵",
+      "help": ""
+    },
+    "DailyPriceRefresh": {
+      "name": "每日03:00刷新价格喵",
+      "help": "开启后每天03:00进入珍珠商店刷新价格显示喵"
+    },
+    "NextPearlTradeTime": {
+      "name": "下次采购售卖时间喵",
+      "help": "记录下次执行采购售卖的时间喵。到达此时间前仅做价格刷新（如启用）。"
+    }
+  },
   "IslandCargoPreparation": {
     "_info": {
-      "name": "货物筹备喵",
+      "name": "货物筹备喵 (๑¯◡¯๑)",
       "help": "自动处理岛屿货运委托的领取、更换和装载流程喵。"
     },
     "Blacklist": {
       "name": "货物黑名单喵",
       "help": "命中黑名单货物时更换委托喵。目前仅支持 Milk（牛奶）。"
+    }
+  },
+  "IslandBusiness": {
+    "_info": {
+      "name": "经营模块喵 (ฅ´ω`ฅ)",
+      "help": "管理店铺经营，支持分批经营喵~"
+    },
+    "BatchEnabled": {
+      "name": "启用分批经营",
+      "help": "把5个商店分两批安排，避免抢人打架喵",
+      "True": "启用",
+      "False": "禁用"
+    },
+    "Batch1Shops": {
+      "name": "第一批经营商店",
+      "help": "第一批要经营的商店",
+      "1": "有鱼餐馆",
+      "2": "白熊饮品",
+      "3": "啾啾简餐",
+      "4": "乌鱼烤肉",
+      "5": "啾咖啡"
+    },
+    "Batch2Shops": {
+      "name": "第二批经营商店",
+      "help": "第二批要经营的商店",
+      "1": "有鱼餐馆",
+      "2": "白熊饮品",
+      "3": "啾啾简餐",
+      "4": "乌鱼烤肉",
+      "5": "啾咖啡"
+    },
+    "SeasonalReplaceEnabled": {
+      "name": "启用季节限定替换",
+      "help": "季节菜品不够吃就自动换别的喵",
+      "True": "启用",
+      "False": "禁用"
+    },
+    "SeasonalThreshold": {
+      "name": "季节限定替换阈值",
+      "help": "库存低于这个数就换菜喵"
     }
   },
   "IslandBusinessShop1": {
@@ -4721,6 +4795,21 @@
       "hearty_meal": "绵玉定食",
       "fo_tiao": "佛跳墙",
       "amaranth_rice_ball": "苋菜饭团"
+    },
+    "SeasonalFallback": {
+      "name": "季节餐品备用餐品",
+      "help": "有鱼餐馆季节菜不够时换成这个喵",
+      "None": "无",
+      "double_bamboo_shoots": "凉拌双笋",
+      "tofu_meat": "肉末烧豆腐",
+      "tofu_combo": "经典豆腐套餐",
+      "hearty_meal": "绵玉定食",
+      "fo_tiao": "佛跳墙",
+      "amaranth_rice_ball": "苋菜饭团"
+    },
+    "BoostReplaceFilter": {
+      "name": "有鱼餐馆加成替换过滤",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：double_bamboo_shoots:凉拌双笋, tofu_meat:肉末烧豆腐, tofu_combo:经典豆腐套餐, hearty_meal:绵玉定食, fo_tiao:佛跳墙, amaranth_rice_ball:苋菜饭团\n示例：30 > 20 > 10"
     }
   },
   "IslandBusinessShop2": {
@@ -4858,12 +4947,16 @@
       "lavender_tea": "薰衣草茶",
       "sunny_honey": "阳光蜜水",
       "watermelon_juice": "西瓜汁"
+    },
+    "BoostReplaceFilter": {
+      "name": "白熊饮品加成替换过滤",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：spring_flower_tea:迎春花茶, strawberry_lemon:草莓蜜沁, strawberry_honey:草莓蜂蜜冰沙, floral_fruity:花香果韵, fruit_paradise:缤纷果乐园, lavender_tea:薰衣草茶, sunny_honey:阳光蜜水, watermelon_juice:西瓜汁\n示例：30 > 20 > strawberry_honey > fruit_paradise > 10"
     }
   },
   "IslandBusinessShop3": {
     "_info": {
       "name": "啾啾简餐喵 (´・ω・`)つ",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "Char1": {
       "name": "角色1",
@@ -4980,12 +5073,16 @@
       "berry_orange": "莓果香橙甜点组",
       "strawberry_charlotte": "草莓夏洛特",
       "seafood_rice": "海鲜饭"
+    },
+    "BoostReplaceFilter": {
+      "name": "啾啾简餐加成替换过滤",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：orchard_duo:果园二重奏, succulently_sweet:香甜组合, berry_orange:莓果香橙甜点组, strawberry_charlotte:草莓夏洛特, seafood_rice:海鲜饭\n示例：30 > 20 > succulently_sweet > 10"
     }
   },
   "IslandBusinessShop4": {
     "_info": {
       "name": "烏魚烤肉喵",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "Char1": {
       "name": "角色1喵",
@@ -5056,58 +5153,62 @@
     "Product1": {
       "name": "餐品1喵",
       "help": "",
-      "None": "無喵",
-      "roasted_skewer": "烤肉串喵",
-      "stir_fried_chicken": "炒雞丁喵",
-      "steak_bowl": "牛排飯喵",
-      "carnival": "狂歡套餐喵",
-      "double_energy": "雙倍能量喵"
+      "None": "None",
+      "roasted_skewer": "碳烤肉串",
+      "stir_fried_chicken": "爆炒禽肉",
+      "steak_bowl": "汉堡肉饭",
+      "carnival": "烤肉狂欢",
+      "double_energy": "能量双拼套餐"
     },
     "Product2": {
       "name": "餐品2喵",
       "help": "",
-      "None": "無喵",
-      "roasted_skewer": "烤肉串喵",
-      "stir_fried_chicken": "炒雞丁喵",
-      "steak_bowl": "牛排飯喵",
-      "carnival": "狂歡套餐喵",
-      "double_energy": "雙倍能量喵"
+      "None": "None",
+      "roasted_skewer": "碳烤肉串",
+      "stir_fried_chicken": "爆炒禽肉",
+      "steak_bowl": "汉堡肉饭",
+      "carnival": "烤肉狂欢",
+      "double_energy": "能量双拼套餐"
     },
     "Product3": {
       "name": "餐品3喵",
       "help": "",
-      "None": "無喵",
-      "roasted_skewer": "烤肉串喵",
-      "stir_fried_chicken": "炒雞丁喵",
-      "steak_bowl": "牛排飯喵",
-      "carnival": "狂歡套餐喵",
-      "double_energy": "雙倍能量喵"
+      "None": "None",
+      "roasted_skewer": "碳烤肉串",
+      "stir_fried_chicken": "爆炒禽肉",
+      "steak_bowl": "汉堡肉饭",
+      "carnival": "烤肉狂欢",
+      "double_energy": "能量双拼套餐"
     },
     "Product4": {
       "name": "餐品4喵",
       "help": "",
-      "None": "無喵",
-      "roasted_skewer": "烤肉串喵",
-      "stir_fried_chicken": "炒雞丁喵",
-      "steak_bowl": "牛排飯喵",
-      "carnival": "狂歡套餐喵",
-      "double_energy": "雙倍能量喵"
+      "None": "None",
+      "roasted_skewer": "碳烤肉串",
+      "stir_fried_chicken": "爆炒禽肉",
+      "steak_bowl": "汉堡肉饭",
+      "carnival": "烤肉狂欢",
+      "double_energy": "能量双拼套餐"
     },
     "Product5": {
       "name": "餐品5喵",
       "help": "",
-      "None": "無喵",
-      "roasted_skewer": "烤肉串喵",
-      "stir_fried_chicken": "炒雞丁喵",
-      "steak_bowl": "牛排飯喵",
-      "carnival": "狂歡套餐喵",
-      "double_energy": "雙倍能量喵"
+      "None": "None",
+      "roasted_skewer": "碳烤肉串",
+      "stir_fried_chicken": "爆炒禽肉",
+      "steak_bowl": "汉堡肉饭",
+      "carnival": "烤肉狂欢",
+      "double_energy": "能量双拼套餐"
+    },
+    "BoostReplaceFilter": {
+      "name": "乌鱼烤肉加成替换过滤",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：roasted_skewer:碳烤肉串, stir_fried_chicken:爆炒禽肉, steak_bowl:汉堡肉饭, carnival:烤肉狂欢, double_energy:能量双拼套餐\n示例：30 > 20 > 10"
     }
   },
   "IslandBusinessShop5": {
     "_info": {
       "name": "啾咖啡喵",
-      "help": ""
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
     },
     "Char1": {
       "name": "角色1喵",
@@ -5178,52 +5279,56 @@
     "Product1": {
       "name": "餐品1喵",
       "help": "",
-      "None": "無喵",
-      "cheese": "芝士喵",
-      "strawberry_milkshake": "草莓奶昔喵",
-      "morning_light": "晨光咖啡喵",
-      "wake_up_call": "叫醒咖啡喵",
-      "fruity_fruitier": "水果特飲喵"
+      "None": "None",
+      "cheese": "芝士",
+      "strawberry_milkshake": "草莓奶绿",
+      "morning_light": "晨光活力组合",
+      "wake_up_call": "醒神套餐",
+      "fruity_fruitier": "果香双杯乐"
     },
     "Product2": {
       "name": "餐品2喵",
       "help": "",
-      "None": "無喵",
-      "cheese": "芝士喵",
-      "strawberry_milkshake": "草莓奶昔喵",
-      "morning_light": "晨光咖啡喵",
-      "wake_up_call": "叫醒咖啡喵",
-      "fruity_fruitier": "水果特飲喵"
+      "None": "None",
+      "cheese": "芝士",
+      "strawberry_milkshake": "草莓奶绿",
+      "morning_light": "晨光活力组合",
+      "wake_up_call": "醒神套餐",
+      "fruity_fruitier": "果香双杯乐"
     },
     "Product3": {
       "name": "餐品3喵",
       "help": "",
-      "None": "無喵",
-      "cheese": "芝士喵",
-      "strawberry_milkshake": "草莓奶昔喵",
-      "morning_light": "晨光咖啡喵",
-      "wake_up_call": "叫醒咖啡喵",
-      "fruity_fruitier": "水果特飲喵"
+      "None": "None",
+      "cheese": "芝士",
+      "strawberry_milkshake": "草莓奶绿",
+      "morning_light": "晨光活力组合",
+      "wake_up_call": "醒神套餐",
+      "fruity_fruitier": "果香双杯乐"
     },
     "Product4": {
       "name": "餐品4喵",
       "help": "",
-      "None": "無喵",
-      "cheese": "芝士喵",
-      "strawberry_milkshake": "草莓奶昔喵",
-      "morning_light": "晨光咖啡喵",
-      "wake_up_call": "叫醒咖啡喵",
-      "fruity_fruitier": "水果特飲喵"
+      "None": "None",
+      "cheese": "芝士",
+      "strawberry_milkshake": "草莓奶绿",
+      "morning_light": "晨光活力组合",
+      "wake_up_call": "醒神套餐",
+      "fruity_fruitier": "果香双杯乐"
     },
     "Product5": {
       "name": "餐品5喵",
       "help": "",
-      "None": "無喵",
-      "cheese": "芝士喵",
-      "strawberry_milkshake": "草莓奶昔喵",
-      "morning_light": "晨光咖啡喵",
-      "wake_up_call": "叫醒咖啡喵",
-      "fruity_fruitier": "水果特飲喵"
+      "None": "None",
+      "cheese": "芝士",
+      "strawberry_milkshake": "草莓奶绿",
+      "morning_light": "晨光活力组合",
+      "wake_up_call": "醒神套餐",
+      "fruity_fruitier": "果香双杯乐"
+    },
+    "BoostReplaceFilter": {
+      "name": "啾咖啡加成替换过滤",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：cheese:芝士, strawberry_milkshake:草莓奶绿, morning_light:晨光活力组合, wake_up_call:醒神套餐, fruity_fruitier:果香双杯乐\n示例：30 > 20 > cheese > 10"
     }
   },
   "Daemon": {

@@ -601,6 +601,10 @@ class AzurLaneAutoScript:
         from module.island.island_daily_order import IslandDailyOrder
         IslandDailyOrder(config=self.config, device=self.device).run()
 
+    def island_pearl_sell(self):
+        from module.island.island_pearl_sell import IslandPearlSell
+        IslandPearlSell(config=self.config, device=self.device).run()
+
     def daily(self):
         from module.daily.daily import Daily
         Daily(config=self.config, device=self.device).run()

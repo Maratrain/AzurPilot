@@ -71,8 +71,8 @@
       "help": "Use a 3-oil low-cost fleet to fight. Automatically replaces and retires the flagship when it reaches level 32."
     },
     "Ambush11": {
-      "name": "Task.Ambush11.name",
-      "help": "Task.Ambush11.help"
+      "name": "Ambush 1-1",
+      "help": ""
     },
     "EventGeneral": {
       "name": "Event General",
@@ -283,68 +283,72 @@
       "help": "    AzurPilot will enter Operation Siren 10 minutes before the cross-month reset, wait for the reset without exiting, then complete the new day's OpSi daily, Obscured Zone, Abyssal Zone and Meowfficer Farming to earn extra rewards. When running OpSi Daily, it follows the \"OpSi - Daily\" task settings, and likewise for others.\n    Important: Do not operate the game while AzurPilot is waiting for the cross-month reset."
     },
     "OpsiSimulator": {
-      "name": "Task.OpsiSimulator.name",
-      "help": "Task.OpsiSimulator.help"
+      "name": "OpSi Simulator Alpha",
+      "help": "Uses the Monte Carlo algorithm to estimate the outcome of continuing corrosion cycles for a period of time in the current state. This feature does not affect AzurPilot's normal operation.\nModel parameters are taken from AzurPilot configuration and statistics. Please ensure that OpSi settings such as Smart Scheduling are correctly configured.\nCurrently in beta; results may not have much reference value.\nThe model for the shady dealer selling Action Points lacks sufficient evidence. Specifically, it assumes that the dealer's 6 types of AP boxes follow a hypergeometric distribution X~H(6,6,24).\nRegarding \"crashes\": here, a crash means that during the entire simulation, AP drops below the AP reserve threshold set in Smart Scheduling at least once. If it falls below that threshold, the simulator will stop corrosion cycles and wait for AP to recover naturally."
     },
     "IslandPlan": {
-      "name": "Task.IslandPlan.name",
-      "help": "Task.IslandPlan.help"
+      "name": "Global Config",
+      "help": "Global configuration for Island Plan, including season settings."
     },
     "IslandBusiness": {
-      "name": "Task.IslandBusiness.name",
-      "help": "Task.IslandBusiness.help"
+      "name": "Business Module",
+      "help": "Auto-manage 5 shops: Fish Restaurant, Polar Bear Drinks, Squid Grill, Juu Eatery, Juu Coffee."
     },
     "IslandFarm": {
-      "name": "Task.IslandFarm.name",
-      "help": "Task.IslandFarm.help"
+      "name": "Farmland",
+      "help": ""
     },
     "IslandRancher": {
-      "name": "Task.IslandRancher.name",
-      "help": "Task.IslandRancher.help"
+      "name": "Ranch",
+      "help": ""
     },
     "IslandMineForest": {
-      "name": "Task.IslandMineForest.name",
-      "help": "Task.IslandMineForest.help"
+      "name": "Mine & Forest",
+      "help": ""
     },
     "IslandRestaurant": {
-      "name": "Task.IslandRestaurant.name",
-      "help": "Task.IslandRestaurant.help"
+      "name": "Fish Restaurant",
+      "help": ""
     },
     "IslandTeahouse": {
-      "name": "Task.IslandTeahouse.name",
-      "help": "Task.IslandTeahouse.help"
+      "name": "Polar Bear Drinks",
+      "help": ""
     },
     "IslandGrill": {
-      "name": "Task.IslandGrill.name",
-      "help": "Task.IslandGrill.help"
+      "name": "Squid Grill",
+      "help": "Sequentially produce meals matching the menu requirements."
     },
     "IslandJuuEatery": {
-      "name": "Task.IslandJuuEatery.name",
-      "help": "Task.IslandJuuEatery.help"
+      "name": "Juu Eatery",
+      "help": "Sequentially produce meals matching the menu requirements."
     },
     "IslandJuuCoffee": {
-      "name": "Task.IslandJuuCoffee.name",
-      "help": "Task.IslandJuuCoffee.help"
+      "name": "Juu Coffee",
+      "help": "Sequentially produce meals matching the menu requirements."
     },
     "IslandManufacture": {
-      "name": "Task.IslandManufacture.name",
-      "help": "Task.IslandManufacture.help"
+      "name": "Manufacturing",
+      "help": ""
     },
     "IslandDailyGather": {
-      "name": "Task.IslandDailyGather.name",
-      "help": "Task.IslandDailyGather.help"
+      "name": "Daily Gathering",
+      "help": "Gather resources from the management interface gathering tab."
     },
     "IslandAirDrop": {
-      "name": "Task.IslandAirDrop.name",
-      "help": "Task.IslandAirDrop.help"
+      "name": "Daily Supply",
+      "help": "Only supports minitouch."
     },
     "IslandCargoPreparation": {
-      "name": "Task.IslandCargoPreparation.name",
-      "help": "Task.IslandCargoPreparation.help"
+      "name": "Cargo Preparation",
+      "help": "Auto-manage cargo commissions."
     },
     "IslandDailyOrder": {
       "name": "Daily Order",
       "help": "Enter the daily order interface from the island phone page, automatically detect order types (Urgent/Challenge/Easy), deliver or reject based on item conditions. \"Standard\" type orders are not supported."
+    },
+    "IslandPearlSell": {
+      "name": "Weekly Pearl Trade",
+      "help": "Process pearls every Tuesday at 01:00."
     },
     "Daemon": {
       "name": "Semi-Auto Click",
@@ -367,8 +371,8 @@
       "help": ""
     },
     "OcrBenchmark": {
-      "name": "Task.OcrBenchmark.name",
-      "help": "Task.OcrBenchmark.help"
+      "name": "OCR Performance Test",
+      "help": ""
     },
     "AzurLaneUncensored": {
       "name": "Uncensor",
@@ -379,8 +383,8 @@
       "help": ""
     },
     "EmulatorManager": {
-      "name": "Task.EmulatorManager.name",
-      "help": "Task.EmulatorManager.help"
+      "name": "Emulator Manager",
+      "help": "Provides an entry point for manually restarting the emulator."
     }
   },
   "Scheduler": {
@@ -680,8 +684,8 @@
       "help": "The number of times the device cannot be detected in a row triggers a restart."
     },
     "LlmAnalysis": {
-      "name": "Error.LlmAnalysis.name",
-      "help": "Error.LlmAnalysis.help"
+      "name": "Enable LLM Error Analysis",
+      "help": "Automatically use LLM to analyze errors when they occur."
     },
     "LlmApiKey": {
       "name": "LLM API Key",
@@ -796,8 +800,8 @@
       "help": "",
       "do_not": "No Action",
       "save": "Save",
-      "upload": "upload",
-      "save_and_upload": "Save and upload"
+      "upload": "Upload",
+      "save_and_upload": "Save and Upload"
     },
     "TelemetryReport": {
       "name": "Telemetry data reporting",
@@ -810,7 +814,7 @@
   },
   "Log": {
     "_info": {
-      "name": "log",
+      "name": "Log",
       "help": "It will take effect after the scheduler is restarted."
     },
     "LogKeepCount": {
@@ -842,7 +846,7 @@
       "name": "Retirement mode",
       "help": "If you choose to strengthen, you will fall back to one-click retirement when the strengthening materials are insufficient.",
       "one_click_retire": "Retire with one click",
-      "enhance": "strengthen",
+      "enhance": "Enhance",
       "old_retire": "traditional retirement"
     }
   },
@@ -1221,11 +1225,11 @@
     "Fleet1Mode": {
       "name": "Fleet 1 Auto Mode",
       "help": "",
-      "combat_auto": "combat_auto",
-      "combat_manual": "combat_manual",
-      "stand_still_in_the_middle": "stand_still_in_the_middle",
-      "hide_in_bottom_left": "hide_in_bottom_left",
-      "hide_in_upper_left": "hide_in_upper_left"
+      "combat_auto": "Auto Battle",
+      "combat_manual": "Manual",
+      "stand_still_in_the_middle": "Stand Still in Middle",
+      "hide_in_bottom_left": "Hide in Bottom Left",
+      "hide_in_upper_left": "Hide in Upper Left"
     },
     "Fleet1Step": {
       "name": "Fleet 1 Step Size",
@@ -1256,11 +1260,11 @@
     "Fleet2Mode": {
       "name": "Fleet 2 Auto Mode",
       "help": "",
-      "combat_auto": "combat_auto",
-      "combat_manual": "combat_manual",
-      "stand_still_in_the_middle": "stand_still_in_the_middle",
-      "hide_in_bottom_left": "hide_in_bottom_left",
-      "hide_in_upper_left": "hide_in_upper_left"
+      "combat_auto": "Auto Battle",
+      "combat_manual": "Manual",
+      "stand_still_in_the_middle": "Stand Still in Middle",
+      "hide_in_bottom_left": "Hide in Bottom Left",
+      "hide_in_upper_left": "Hide in Upper Left"
     },
     "Fleet2Step": {
       "name": "Fleet 2 Step Size",
@@ -1556,12 +1560,12 @@
       "help": "Only takes effect when \"Change Ship + Equipment\" is selected.\nWhen changing a ship, if the current ship equipment code in the settings is null, it will be exported; when changing a ship, if the current ship equipment code in the settings is null, the equipment code exported from the previous ship will be used, otherwise the equipment code in the settings will be used.\nBluestacks simulator users need to enable the virtual keyboard first. For details, see https://support.bluestacks.com/hc/zh-tw/articles/360061968892-%E5%A6%82%E4%BD%95%E5%9C% A8-BlueStacks-5-%E4%B8%8A%E4%BD%BF%E7%94%A8%E5%B0%8F%E9%8D%B5%E7%9B%A4-%E8%99%9B%E6%93%AC%E9%8D%B5%E7%9B%A4\nDD: front row expulsion bogue: Borg hermes: athletic god langley: Langley ranger: raider"
     },
     "UseEmotionFirst": {
-      "name": "GemsFarming.UseEmotionFirst.name",
-      "help": "GemsFarming.UseEmotionFirst.help"
+      "name": "Prioritize Mood",
+      "help": "When replacing ships, prioritize the highest mood ships."
     },
     "IgnoreEmotionWarning": {
-      "name": "GemsFarming.IgnoreEmotionWarning.name",
-      "help": "GemsFarming.IgnoreEmotionWarning.help"
+      "name": "Ignore Mood Warning Popup",
+      "help": "Force through the mood warning popup when it appears."
     },
     "ALLowHighFlagshipLevel": {
       "name": "Only replace the full-level rear row",
@@ -1580,12 +1584,12 @@
       "help": "To prevent the number of emergency orders from being too large and unable to complete daily orders when running 7x24, it is recommended to select only short-term high-yield orders in the order filter."
     },
     "VanguardLevelMin": {
-      "name": "GemsFarming.VanguardLevelMin.name",
-      "help": "GemsFarming.VanguardLevelMin.help"
+      "name": "Vanguard Minimum Level",
+      "help": "Used to filter eligible white-rarity vanguard ships. Default is 1."
     },
     "VanguardLevelMax": {
-      "name": "GemsFarming.VanguardLevelMax.name",
-      "help": "GemsFarming.VanguardLevelMax.help"
+      "name": "Vanguard Maximum Level",
+      "help": "Used to filter eligible white-rarity vanguard ships. Default is 125."
     }
   },
   "EventGeneral": {
@@ -1645,11 +1649,11 @@
       "help": ""
     },
     "Mode": {
-      "name": "difficulty",
+      "name": "Difficulty",
       "help": "",
       "easy": "Simple",
-      "normal": "ordinary",
-      "hard": "difficulty",
+      "normal": "Normal",
+      "hard": "Hard",
       "ex": "EX"
     },
     "UseTicket": {
@@ -1696,11 +1700,11 @@
       "help": ""
     },
     "Mode": {
-      "name": "difficulty",
+      "name": "Difficulty",
       "help": "",
-      "easy": "noon",
-      "normal": "dusk",
-      "hard": "night"
+      "easy": "Easy",
+      "normal": "Normal",
+      "hard": "Hard"
     },
     "Stage": {
       "name": "Level name",
@@ -1728,12 +1732,12 @@
       "help": "Teams must be manually allocated in the game before going out."
     },
     "Mode": {
-      "name": "difficulty",
-      "help": "SP graph needs to be run using active daily SP",
-      "easy": "easy",
-      "normal": "normal",
-      "hard": "hard",
-      "sp": "sp"
+      "name": "Difficulty",
+      "help": "SP map requires running the daily SP mission first",
+      "easy": "Easy",
+      "normal": "Normal",
+      "hard": "Hard",
+      "sp": "SP"
     },
     "Fleet": {
       "name": "attack team",
@@ -1744,7 +1748,7 @@
   },
   "EventShop": {
     "_info": {
-      "name": "Event Shop Settings",
+      "name": "Event Shop",
       "help": ""
     },
     "UnlockSSRShip": {
@@ -1752,7 +1756,7 @@
       "help": ""
     },
     "BuyURShip": {
-      "name": "Buy X UR Ship(s)",
+      "name": "Buy X UR Ships",
       "help": "",
       "0": "0",
       "1": "1",
@@ -1760,18 +1764,18 @@
     },
     "PresetFilter": {
       "name": "Event Shop Filter",
-      "help": "Generally does not need to be modified.",
+      "help": "Default is to buy everything.",
       "all": "All",
       "custom": "Custom"
     },
     "CustomFilter": {
       "name": "Custom Filter",
-      "help": "To use your own filter, set \"Event Shop Filter\" to \"Custom\". All options have been defined at <https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_en>"
+      "help": "To use a custom filter, set \"Event Shop Filter\" to \"Custom\" and read https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
     }
   },
   "Commission": {
     "_info": {
-      "name": "entrust",
+      "name": "Commission",
       "help": ""
     },
     "PresetFilter": {
@@ -2935,8 +2939,8 @@
       "help": "Automatically updated value. Fill in 0 to reset progress. After reset, already explored sea zones will be automatically skipped.\nSupports sea zone ID, CN/EN/JP/TW server zone names, e.g. \"51\", \"NA Ocean SE Sector E\""
     },
     "ExploreProgress": {
-      "name": "OpsiExplore.ExploreProgress.name",
-      "help": "OpsiExplore.ExploreProgress.help"
+      "name": "Monthly Exploration Progress",
+      "help": "Shows the current completion percentage of monthly exploration."
     }
   },
   "OpsiShop": {
@@ -3040,8 +3044,8 @@
       "help": "When enabled, it will consume additional Action Points. Generally not needed, just run it slowly."
     },
     "HasStronghold": {
-      "name": "OpsiStronghold.HasStronghold.name",
-      "help": "OpsiStronghold.HasStronghold.help"
+      "name": "Has Stronghold",
+      "help": "Whether a Siren Fortress is available on the map."
     }
   },
   "OpsiMonthBoss": {
@@ -3098,20 +3102,20 @@
   },
   "OpsiTarget": {
     "_info": {
-      "name": "Opsi Achievement",
+      "name": "Zone Achievements",
       "help": ""
     },
     "TargetFarming": {
-      "name": "Farm for Safe Zone Achievement",
+      "name": "Farm Safe Zone Achievements",
       "help": ""
     },
     "TargetZone": {
-      "name": "Target Zone ID",
-      "help": "Supports either Zone ID or Name in CN/EN/JP/TW, i.e. \"51\", \"NA Ocean SE Sector E\"\nIf specified, AzurPilot will loop on this same zone after each clear\nUse default value 0 or clear the field to remove the specification\nZone information can be acquired from <./module/os/map_data.py>"
+      "name": "Target Zone",
+      "help": "Only sortie to specified zones. Can be used to earn Operation Siren achievement stars.\nSupports zone ID, CN/EN/JP/TW zone names, e.g. \"51\", \"NA Ocean SE Sector E\"\nEnter default value 0 or delete the value to cancel targeting."
     },
     "LastRun": {
-      "name": "Last Collect Time",
-      "help": "This value is automatically recorded and generally does not need to be modified."
+      "name": "Last Claim Time",
+      "help": "This value is auto-recorded and generally does not need modification."
     }
   },
   "OpsiHazard1Leveling": {
@@ -3202,18 +3206,18 @@
       "help": "Records the time of last check to prevent repeated runs, check interval is 1 day. This value is auto-recorded and generally does not need manual modification."
     },
     "CheckInterval": {
-      "name": "OpsiCheckLeveling.CheckInterval.name",
-      "help": "OpsiCheckLeveling.CheckInterval.help"
+      "name": "Check Interval (Hours)",
+      "help": "How many hours between each experience check. Default is 24 hours."
     },
     "EnableCustomCheck": {
-      "name": "OpsiCheckLeveling.EnableCustomCheck.name",
-      "help": "OpsiCheckLeveling.EnableCustomCheck.help",
+      "name": "Enable Custom Ship Check",
+      "help": "Check only specified ships instead of all ships.",
       "True": "True",
       "False": "False"
     },
     "CustomCheckPositions": {
-      "name": "OpsiCheckLeveling.CustomCheckPositions.name",
-      "help": "OpsiCheckLeveling.CustomCheckPositions.help"
+      "name": "Custom Check Positions",
+      "help": "Ship position numbers 1-6, separated by comma. Only these positions will be checked."
     },
     "DelayAfterFull": {
       "name": "Delay Task After Reaching Target Level",
@@ -3222,26 +3226,26 @@
   },
   "OpsiFleetAutoChange": {
     "_info": {
-      "name": "OpsiFleetAutoChange._info.name",
-      "help": "OpsiFleetAutoChange._info.help"
+      "name": "Fleet Auto-Compose",
+      "help": "Automatically replace ships that have reached the target level."
     },
     "Enable": {
-      "name": "OpsiFleetAutoChange.Enable.name",
-      "help": "OpsiFleetAutoChange.Enable.help",
+      "name": "Enable Auto-Compose",
+      "help": "Automatically replace ships that have reached max level.",
       "True": "True",
       "False": "False"
     },
     "CooldownHours": {
-      "name": "OpsiFleetAutoChange.CooldownHours.name",
-      "help": "OpsiFleetAutoChange.CooldownHours.help",
+      "name": "Cooldown Hours",
+      "help": "Cooldown period in hours after an auto-compose before the next one.",
       "12": "12",
       "24": "24",
       "48": "48",
       "72": "72"
     },
     "LastRun": {
-      "name": "OpsiFleetAutoChange.LastRun.name",
-      "help": "OpsiFleetAutoChange.LastRun.help"
+      "name": "Last Run Time (Auto-recorded)",
+      "help": "Records the last auto-compose execution time. Do not modify manually."
     }
   },
   "OpsiScheduling": {
@@ -3309,38 +3313,38 @@
   },
   "IslandPlan": {
     "_info": {
-      "name": "IslandPlan._info.name",
-      "help": "IslandPlan._info.help"
+      "name": "Global Config",
+      "help": "Global configuration for Island Plan, including season settings."
     },
     "Season": {
-      "name": "IslandPlan.Season.name",
-      "help": "IslandPlan.Season.help",
-      "spring": "spring",
-      "summer": "summer",
-      "autumn": "autumn",
-      "winter": "winter"
+      "name": "Current Season",
+      "help": "Some items are season-limited. Adjust according to the current season.",
+      "spring": "Spring",
+      "summer": "Summer",
+      "autumn": "Autumn",
+      "winter": "Winter"
     }
   },
   "IslandFarm": {
     "_info": {
-      "name": "IslandFarm._info.name",
-      "help": "IslandFarm._info.help"
+      "name": "Farmland",
+      "help": ""
     },
     "Positions": {
-      "name": "IslandFarm.Positions.name",
-      "help": "IslandFarm.Positions.help",
+      "name": "Farmland Positions",
+      "help": "",
       "1": "1",
       "2": "2",
       "3": "3",
       "4": "4"
     },
     "MinFarm": {
-      "name": "IslandFarm.MinFarm.name",
-      "help": "IslandFarm.MinFarm.help"
+      "name": "Crop Stock Threshold",
+      "help": "Recommended 660 or above."
     },
     "PlantPotatoes": {
-      "name": "IslandFarm.PlantPotatoes.name",
-      "help": "IslandFarm.PlantPotatoes.help",
+      "name": "Plant Wheat",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2",
@@ -3350,28 +3354,28 @@
   },
   "IslandOrchard": {
     "_info": {
-      "name": "IslandOrchard._info.name",
-      "help": "IslandOrchard._info.help"
+      "name": "Orchard",
+      "help": "The warehouse only recognizes two rows. Please clean up regularly."
     },
     "Positions": {
-      "name": "IslandOrchard.Positions.name",
-      "help": "IslandOrchard.Positions.help",
+      "name": "Orchard Positions",
+      "help": "",
       "1": "1",
       "2": "2",
       "3": "3",
       "4": "4"
     },
     "MinOrchard": {
-      "name": "IslandOrchard.MinOrchard.name",
-      "help": "IslandOrchard.MinOrchard.help"
+      "name": "Fruit Stock Threshold",
+      "help": ""
     },
     "IgnoreAvocado": {
-      "name": "IslandOrchard.IgnoreAvocado.name",
-      "help": "IslandOrchard.IgnoreAvocado.help"
+      "name": "Ignore Avocado",
+      "help": ""
     },
     "PlantRubber": {
-      "name": "IslandOrchard.PlantRubber.name",
-      "help": "IslandOrchard.PlantRubber.help",
+      "name": "Plant Rubber",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2",
@@ -3379,32 +3383,32 @@
       "4": "4"
     },
     "AmagiChanRubber": {
-      "name": "IslandOrchard.AmagiChanRubber.name",
-      "help": "IslandOrchard.AmagiChanRubber.help"
+      "name": "Amagi-chan Plants Rubber",
+      "help": ""
     }
   },
   "IslandNursery": {
     "_info": {
-      "name": "IslandNursery._info.name",
-      "help": "IslandNursery._info.help"
+      "name": "Nursery",
+      "help": ""
     },
     "Positions": {
-      "name": "IslandNursery.Positions.name",
-      "help": "IslandNursery.Positions.help",
+      "name": "Nursery Positions",
+      "help": "",
       "1": "1",
       "2": "2"
     },
     "MinNursery": {
-      "name": "IslandNursery.MinNursery.name",
-      "help": "IslandNursery.MinNursery.help"
+      "name": "Nursery Crop Stock Threshold",
+      "help": ""
     },
     "IgnorePineapple": {
-      "name": "IslandNursery.IgnorePineapple.name",
-      "help": "IslandNursery.IgnorePineapple.help"
+      "name": "Ignore Pineapple",
+      "help": ""
     },
     "PlantLavender": {
-      "name": "IslandNursery.PlantLavender.name",
-      "help": "IslandNursery.PlantLavender.help",
+      "name": "Plant Lavender",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2"
@@ -3412,91 +3416,91 @@
   },
   "IslandRancher": {
     "_info": {
-      "name": "IslandRancher._info.name",
-      "help": "IslandRancher._info.help"
+      "name": "Ranch",
+      "help": ""
     },
     "MinChicken": {
-      "name": "IslandRancher.MinChicken.name",
-      "help": "IslandRancher.MinChicken.help"
+      "name": "Chicken Stock Threshold",
+      "help": ""
     },
     "MinPork": {
-      "name": "IslandRancher.MinPork.name",
-      "help": "IslandRancher.MinPork.help"
+      "name": "Pork Stock Threshold",
+      "help": ""
     },
     "Milk": {
-      "name": "IslandRancher.Milk.name",
-      "help": "IslandRancher.Milk.help"
+      "name": "Raise Cattle",
+      "help": ""
     },
     "RancherFilter": {
-      "name": "IslandRancher.RancherFilter.name",
-      "help": "IslandRancher.RancherFilter.help"
+      "name": "Character Filter",
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao"
     },
     "Wool": {
-      "name": "IslandRancher.Wool.name",
-      "help": "IslandRancher.Wool.help"
+      "name": "Raise Sheep",
+      "help": ""
     }
   },
   "IslandFishery": {
     "_info": {
-      "name": "IslandFishery._info.name",
-      "help": "IslandFishery._info.help"
+      "name": "Fishery",
+      "help": "Supports 7 types of seafood: Bass, Yellowfin Tuna, Shell, Shrimp, Crab, Squid, Sea Cucumber.\nDefault: raise Yellowfin Tuna."
     },
     "Positions": {
-      "name": "IslandFishery.Positions.name",
-      "help": "IslandFishery.Positions.help",
+      "name": "Fishery Positions",
+      "help": "",
       "1": "1",
       "2": "2",
       "3": "3"
     },
     "MinBass": {
-      "name": "IslandFishery.MinBass.name",
-      "help": "IslandFishery.MinBass.help"
+      "name": "Bass Stock Threshold",
+      "help": ""
     },
     "MinYellowfinTuna": {
-      "name": "IslandFishery.MinYellowfinTuna.name",
-      "help": "IslandFishery.MinYellowfinTuna.help"
+      "name": "Yellowfin Tuna Stock Threshold",
+      "help": ""
     },
     "MinShell": {
-      "name": "IslandFishery.MinShell.name",
-      "help": "IslandFishery.MinShell.help"
+      "name": "Shell Stock Threshold",
+      "help": ""
     },
     "MinShrimp": {
-      "name": "IslandFishery.MinShrimp.name",
-      "help": "IslandFishery.MinShrimp.help"
+      "name": "Shrimp Stock Threshold",
+      "help": ""
     },
     "MinCrab": {
-      "name": "IslandFishery.MinCrab.name",
-      "help": "IslandFishery.MinCrab.help"
+      "name": "Crab Stock Threshold",
+      "help": ""
     },
     "MinSquid": {
-      "name": "IslandFishery.MinSquid.name",
-      "help": "IslandFishery.MinSquid.help"
+      "name": "Squid Stock Threshold",
+      "help": ""
     },
     "MinSeaCucumber": {
-      "name": "IslandFishery.MinSeaCucumber.name",
-      "help": "IslandFishery.MinSeaCucumber.help"
+      "name": "Sea Cucumber Stock Threshold",
+      "help": ""
     },
     "PlantYellowfinTuna": {
-      "name": "IslandFishery.PlantYellowfinTuna.name",
-      "help": "IslandFishery.PlantYellowfinTuna.help",
+      "name": "Raise Yellowfin Tuna",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2",
       "3": "3"
     },
     "RancherFilter": {
-      "name": "IslandFishery.RancherFilter.name",
-      "help": "IslandFishery.RancherFilter.help"
+      "name": "Character Filter",
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao"
     }
   },
   "IslandMine": {
     "_info": {
-      "name": "IslandMine._info.name",
-      "help": "IslandMine._info.help"
+      "name": "Mine",
+      "help": ""
     },
     "Positions": {
-      "name": "IslandMine.Positions.name",
-      "help": "IslandMine.Positions.help",
+      "name": "Position Count",
+      "help": "",
       "1": "1",
       "2": "2",
       "3": "3",
@@ -3512,34 +3516,34 @@
       "4": "4"
     },
     "MinCopper": {
-      "name": "Min Copper",
-      "help": "Minimum copper inventory threshold"
+      "name": "Copper Ore Min Stock",
+      "help": "Mine positions only produce when copper ore in warehouse falls below this value."
     },
     "MinAluminium": {
-      "name": "Min Aluminium",
-      "help": "Minimum aluminium inventory threshold"
+      "name": "Aluminium Ore Min Stock",
+      "help": "Mine positions only produce when aluminium ore in warehouse falls below this value."
     },
     "MinIron": {
-      "name": "Min Iron",
-      "help": "Minimum iron inventory threshold"
+      "name": "Iron Ore Min Stock",
+      "help": "Mine positions only produce when iron ore in warehouse falls below this value."
     },
     "MinSulphur": {
-      "name": "Min Sulphur",
-      "help": "Minimum sulphur inventory threshold"
+      "name": "Sulphur Min Stock",
+      "help": "Mine positions only produce when sulphur in warehouse falls below this value."
     },
     "MinSilver": {
-      "name": "Min Silver",
-      "help": "Minimum silver inventory threshold"
+      "name": "Silver Ore Min Stock",
+      "help": "Mine positions only produce when silver ore in warehouse falls below this value."
     }
   },
   "IslandForest": {
     "_info": {
-      "name": "IslandForest._info.name",
-      "help": "IslandForest._info.help"
+      "name": "Forest",
+      "help": ""
     },
     "Positions": {
-      "name": "IslandForest.Positions.name",
-      "help": "IslandForest.Positions.help",
+      "name": "Position Count",
+      "help": "",
       "1": "1",
       "2": "2",
       "3": "3",
@@ -3555,965 +3559,965 @@
       "4": "4"
     },
     "MinElegant": {
-      "name": "Min Elegant Wood",
-      "help": "Minimum elegant wood inventory threshold"
+      "name": "Elegant Wood Min Stock",
+      "help": "Forest positions only produce when elegant wood in warehouse falls below this value."
     },
     "MinPractical": {
-      "name": "Min Practical Wood",
-      "help": "Minimum practical wood inventory threshold"
+      "name": "Practical Wood Min Stock",
+      "help": "Forest positions only produce when practical wood in warehouse falls below this value."
     },
     "MinSelected": {
-      "name": "Min Selected Wood",
-      "help": "Minimum selected wood inventory threshold"
+      "name": "Selected Wood Min Stock",
+      "help": "Forest positions only produce when selected wood in warehouse falls below this value."
     }
   },
   "IslandRestaurant": {
     "_info": {
-      "name": "IslandRestaurant._info.name",
-      "help": "IslandRestaurant._info.help"
+      "name": "Fish Restaurant",
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime.\nDouble Bamboo Shoots and Asparagus Shrimp in meals 1-8 will automatically switch to corresponding seasonal meals based on the current season."
     },
     "PostNumber": {
-      "name": "IslandRestaurant.PostNumber.name",
-      "help": "IslandRestaurant.PostNumber.help",
+      "name": "Position Count",
+      "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "IslandRestaurant.ChefFilter.name",
-      "help": "IslandRestaurant.ChefFilter.help"
+      "name": "Chef Filter",
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao"
     },
     "DoubleBambooShoots": {
-      "name": "IslandRestaurant.DoubleBambooShoots.name",
-      "help": "IslandRestaurant.DoubleBambooShoots.help"
+      "name": "Cold Bamboo Shoots",
+      "help": "Produced with highest priority before base meals."
     },
     "Meal1": {
-      "name": "IslandRestaurant.Meal1.name",
-      "help": "IslandRestaurant.Meal1.help",
+      "name": "Meal 1",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber1": {
-      "name": "IslandRestaurant.MealNumber1.name",
-      "help": "IslandRestaurant.MealNumber1.help"
+      "name": "Meal 1 Quantity",
+      "help": ""
     },
     "Meal2": {
-      "name": "IslandRestaurant.Meal2.name",
-      "help": "IslandRestaurant.Meal2.help",
+      "name": "Meal 2",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber2": {
-      "name": "IslandRestaurant.MealNumber2.name",
-      "help": "IslandRestaurant.MealNumber2.help"
+      "name": "Meal 2 Quantity",
+      "help": ""
     },
     "Meal3": {
-      "name": "IslandRestaurant.Meal3.name",
-      "help": "IslandRestaurant.Meal3.help",
+      "name": "Meal 3",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber3": {
-      "name": "IslandRestaurant.MealNumber3.name",
-      "help": "IslandRestaurant.MealNumber3.help"
+      "name": "Meal 3 Quantity",
+      "help": ""
     },
     "Meal4": {
-      "name": "IslandRestaurant.Meal4.name",
-      "help": "IslandRestaurant.Meal4.help",
+      "name": "Meal 4",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber4": {
-      "name": "IslandRestaurant.MealNumber4.name",
-      "help": "IslandRestaurant.MealNumber4.help"
+      "name": "Meal 4 Quantity",
+      "help": ""
     },
     "Meal5": {
-      "name": "IslandRestaurant.Meal5.name",
-      "help": "IslandRestaurant.Meal5.help",
+      "name": "Meal 5",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber5": {
-      "name": "IslandRestaurant.MealNumber5.name",
-      "help": "IslandRestaurant.MealNumber5.help"
+      "name": "Meal 5 Quantity",
+      "help": ""
     },
     "Meal6": {
-      "name": "IslandRestaurant.Meal6.name",
-      "help": "IslandRestaurant.Meal6.help",
+      "name": "Meal 6",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber6": {
-      "name": "IslandRestaurant.MealNumber6.name",
-      "help": "IslandRestaurant.MealNumber6.help"
+      "name": "Meal 6 Quantity",
+      "help": ""
     },
     "Meal7": {
-      "name": "IslandRestaurant.Meal7.name",
-      "help": "IslandRestaurant.Meal7.help",
+      "name": "Meal 7",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber7": {
-      "name": "IslandRestaurant.MealNumber7.name",
-      "help": "IslandRestaurant.MealNumber7.help"
+      "name": "Meal 7 Quantity",
+      "help": ""
     },
     "Meal8": {
-      "name": "IslandRestaurant.Meal8.name",
-      "help": "IslandRestaurant.Meal8.help",
+      "name": "Meal 8",
+      "help": "",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     },
     "MealNumber8": {
-      "name": "IslandRestaurant.MealNumber8.name",
-      "help": "IslandRestaurant.MealNumber8.help"
+      "name": "Meal 8 Quantity",
+      "help": ""
     }
   },
   "IslandRestaurantNextTask": {
     "_info": {
-      "name": "IslandRestaurantNextTask._info.name",
-      "help": "IslandRestaurantNextTask._info.help"
+      "name": "Backup Tasks",
+      "help": ""
     },
     "AwayCook": {
-      "name": "IslandRestaurantNextTask.AwayCook.name",
-      "help": "IslandRestaurantNextTask.AwayCook.help",
+      "name": "Permanent Meal",
+      "help": "Produce permanent meals after all above are completed.",
       "None": "None",
-      "tofu": "tofu",
-      "omurice": "omurice",
-      "cabbage_tofu": "cabbage_tofu",
-      "salad": "salad",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "asparagus_shrimp": "asparagus_shrimp",
-      "fish_chip": "fish_chip",
-      "fo_tiao": "fo_tiao",
-      "onion_fish": "onion_fish"
+      "tofu": "Tofu",
+      "omurice": "Omurice",
+      "cabbage_tofu": "Cabbage Tofu Soup",
+      "salad": "Garden Salad",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "asparagus_shrimp": "Asparagus Shrimp",
+      "fish_chip": "Fish & Chips",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "onion_fish": "Steamed Onion Fish"
     }
   },
   "IslandTeahouse": {
     "_info": {
-      "name": "IslandTeahouse._info.name",
-      "help": "IslandTeahouse._info.help"
+      "name": "Polar Bear Drinks",
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime.\nPlease craft honey products manually.\nSpring Flower Tea and Fresh Pineapple Juice in meals will automatically switch to corresponding seasonal meals based on the current season."
     },
     "PostNumber": {
-      "name": "IslandTeahouse.PostNumber.name",
-      "help": "IslandTeahouse.PostNumber.help",
+      "name": "Position Count",
+      "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "IslandTeahouse.ChefFilter.name",
-      "help": "IslandTeahouse.ChefFilter.help"
+      "name": "Chef Filter",
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao"
     },
     "Seasonal": {
-      "name": "IslandTeahouse.Seasonal.name",
-      "help": "IslandTeahouse.Seasonal.help"
+      "name": "Spring Flower Tea",
+      "help": "Checked and produced before permanent meals."
     },
     "Meal1": {
-      "name": "IslandTeahouse.Meal1.name",
-      "help": "IslandTeahouse.Meal1.help",
+      "name": "Meal 1",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber1": {
-      "name": "IslandTeahouse.MealNumber1.name",
-      "help": "IslandTeahouse.MealNumber1.help"
+      "name": "Meal 1 Quantity",
+      "help": ""
     },
     "Meal2": {
-      "name": "IslandTeahouse.Meal2.name",
-      "help": "IslandTeahouse.Meal2.help",
+      "name": "Meal 2",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber2": {
-      "name": "IslandTeahouse.MealNumber2.name",
-      "help": "IslandTeahouse.MealNumber2.help"
+      "name": "Meal 2 Quantity",
+      "help": ""
     },
     "Meal3": {
-      "name": "IslandTeahouse.Meal3.name",
-      "help": "IslandTeahouse.Meal3.help",
+      "name": "Meal 3",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber3": {
-      "name": "IslandTeahouse.MealNumber3.name",
-      "help": "IslandTeahouse.MealNumber3.help"
+      "name": "Meal 3 Quantity",
+      "help": ""
     },
     "Meal4": {
-      "name": "IslandTeahouse.Meal4.name",
-      "help": "IslandTeahouse.Meal4.help",
+      "name": "Meal 4",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber4": {
-      "name": "IslandTeahouse.MealNumber4.name",
-      "help": "IslandTeahouse.MealNumber4.help"
+      "name": "Meal 4 Quantity",
+      "help": ""
     },
     "Meal5": {
-      "name": "IslandTeahouse.Meal5.name",
-      "help": "IslandTeahouse.Meal5.help",
+      "name": "Meal 5",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber5": {
-      "name": "IslandTeahouse.MealNumber5.name",
-      "help": "IslandTeahouse.MealNumber5.help"
+      "name": "Meal 5 Quantity",
+      "help": ""
     },
     "Meal6": {
-      "name": "IslandTeahouse.Meal6.name",
-      "help": "IslandTeahouse.Meal6.help",
+      "name": "Meal 6",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber6": {
-      "name": "IslandTeahouse.MealNumber6.name",
-      "help": "IslandTeahouse.MealNumber6.help"
+      "name": "Meal 6 Quantity",
+      "help": ""
     },
     "Meal7": {
-      "name": "IslandTeahouse.Meal7.name",
-      "help": "IslandTeahouse.Meal7.help",
+      "name": "Meal 7",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber7": {
-      "name": "IslandTeahouse.MealNumber7.name",
-      "help": "IslandTeahouse.MealNumber7.help"
+      "name": "Meal 7 Quantity",
+      "help": ""
     },
     "Meal8": {
-      "name": "IslandTeahouse.Meal8.name",
-      "help": "IslandTeahouse.Meal8.help",
+      "name": "Meal 8",
+      "help": "",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     },
     "MealNumber8": {
-      "name": "IslandTeahouse.MealNumber8.name",
-      "help": "IslandTeahouse.MealNumber8.help"
+      "name": "Meal 8 Quantity",
+      "help": ""
     }
   },
   "IslandTeahouseNextTask": {
     "_info": {
-      "name": "IslandTeahouseNextTask._info.name",
-      "help": "IslandTeahouseNextTask._info.help"
+      "name": "Backup Tasks",
+      "help": ""
     },
     "AwayCook": {
-      "name": "IslandTeahouseNextTask.AwayCook.name",
-      "help": "IslandTeahouseNextTask.AwayCook.help",
+      "name": "Permanent Meal",
+      "help": "Produce permanent meals after all above are completed.",
       "None": "None",
-      "apple_juice": "apple_juice",
-      "banana_mango": "banana_mango",
-      "honey_lemon": "honey_lemon",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "spring_flower_tea": "spring_flower_tea"
+      "apple_juice": "Apple Juice",
+      "banana_mango": "Banana Mango Juice",
+      "honey_lemon": "Honey Lemon Water",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "spring_flower_tea": "Spring Flower Tea"
     }
   },
   "IslandGrill": {
     "_info": {
-      "name": "IslandGrill._info.name",
-      "help": "IslandGrill._info.help"
+      "name": "Squid Grill",
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime."
     },
     "PostNumber": {
-      "name": "IslandGrill.PostNumber.name",
-      "help": "IslandGrill.PostNumber.help",
+      "name": "Position Count",
+      "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "IslandGrill.ChefFilter.name",
-      "help": "IslandGrill.ChefFilter.help"
+      "name": "Chef Filter",
+      "help": "Connect with >"
     },
     "Meal1": {
-      "name": "IslandGrill.Meal1.name",
-      "help": "IslandGrill.Meal1.help",
+      "name": "Meal 1",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber1": {
-      "name": "IslandGrill.MealNumber1.name",
-      "help": "IslandGrill.MealNumber1.help"
+      "name": "Meal 1 Quantity",
+      "help": ""
     },
     "Meal2": {
-      "name": "IslandGrill.Meal2.name",
-      "help": "IslandGrill.Meal2.help",
+      "name": "Meal 2",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber2": {
-      "name": "IslandGrill.MealNumber2.name",
-      "help": "IslandGrill.MealNumber2.help"
+      "name": "Meal 2 Quantity",
+      "help": ""
     },
     "Meal3": {
-      "name": "IslandGrill.Meal3.name",
-      "help": "IslandGrill.Meal3.help",
+      "name": "Meal 3",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber3": {
-      "name": "IslandGrill.MealNumber3.name",
-      "help": "IslandGrill.MealNumber3.help"
+      "name": "Meal 3 Quantity",
+      "help": ""
     },
     "Meal4": {
-      "name": "IslandGrill.Meal4.name",
-      "help": "IslandGrill.Meal4.help",
+      "name": "Meal 4",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber4": {
-      "name": "IslandGrill.MealNumber4.name",
-      "help": "IslandGrill.MealNumber4.help"
+      "name": "Meal 4 Quantity",
+      "help": ""
     },
     "Meal5": {
-      "name": "IslandGrill.Meal5.name",
-      "help": "IslandGrill.Meal5.help",
+      "name": "Meal 5",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber5": {
-      "name": "IslandGrill.MealNumber5.name",
-      "help": "IslandGrill.MealNumber5.help"
+      "name": "Meal 5 Quantity",
+      "help": ""
     },
     "Meal6": {
-      "name": "IslandGrill.Meal6.name",
-      "help": "IslandGrill.Meal6.help",
+      "name": "Meal 6",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber6": {
-      "name": "IslandGrill.MealNumber6.name",
-      "help": "IslandGrill.MealNumber6.help"
+      "name": "Meal 6 Quantity",
+      "help": ""
     },
     "Meal7": {
-      "name": "IslandGrill.Meal7.name",
-      "help": "IslandGrill.Meal7.help",
+      "name": "Meal 7",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber7": {
-      "name": "IslandGrill.MealNumber7.name",
-      "help": "IslandGrill.MealNumber7.help"
+      "name": "Meal 7 Quantity",
+      "help": ""
     },
     "Meal8": {
-      "name": "IslandGrill.Meal8.name",
-      "help": "IslandGrill.Meal8.help",
+      "name": "Meal 8",
+      "help": "",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "MealNumber8": {
-      "name": "IslandGrill.MealNumber8.name",
-      "help": "IslandGrill.MealNumber8.help"
+      "name": "Meal 8 Quantity",
+      "help": ""
     }
   },
   "IslandGrillNextTask": {
     "_info": {
-      "name": "IslandGrillNextTask._info.name",
-      "help": "IslandGrillNextTask._info.help"
+      "name": "Backup Tasks",
+      "help": ""
     },
     "AwayCook": {
-      "name": "IslandGrillNextTask.AwayCook.name",
-      "help": "IslandGrillNextTask.AwayCook.help",
+      "name": "Permanent Meal",
+      "help": "Produce permanent meals after all above are completed.",
       "None": "None",
-      "roasted_skewer": "roasted_skewer",
-      "chicken_potato": "chicken_potato",
-      "carrot_omelette": "carrot_omelette",
-      "stir_fried_chicken": "stir_fried_chicken",
-      "steak_bowl": "steak_bowl",
-      "carnival": "carnival",
-      "double_energy": "double_energy"
+      "roasted_skewer": "Grilled Skewers",
+      "chicken_potato": "Chicken Potato Platter",
+      "carrot_omelette": "Carrot Omelette",
+      "stir_fried_chicken": "Stir-Fried Chicken",
+      "steak_bowl": "Steak Bowl",
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     }
   },
   "IslandJuuEatery": {
     "_info": {
-      "name": "IslandJuuEatery._info.name",
-      "help": "IslandJuuEatery._info.help"
+      "name": "Juu Eatery",
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime."
     },
     "PostNumber": {
-      "name": "IslandJuuEatery.PostNumber.name",
-      "help": "IslandJuuEatery.PostNumber.help",
+      "name": "Position Count",
+      "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "IslandJuuEatery.ChefFilter.name",
-      "help": "IslandJuuEatery.ChefFilter.help"
+      "name": "Chef Filter",
+      "help": "Connect with >"
     },
     "Meal1": {
-      "name": "IslandJuuEatery.Meal1.name",
-      "help": "IslandJuuEatery.Meal1.help",
+      "name": "Meal 1",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber1": {
-      "name": "IslandJuuEatery.MealNumber1.name",
-      "help": "IslandJuuEatery.MealNumber1.help"
+      "name": "Meal 1 Quantity",
+      "help": ""
     },
     "Meal2": {
-      "name": "IslandJuuEatery.Meal2.name",
-      "help": "IslandJuuEatery.Meal2.help",
+      "name": "Meal 2",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber2": {
-      "name": "IslandJuuEatery.MealNumber2.name",
-      "help": "IslandJuuEatery.MealNumber2.help"
+      "name": "Meal 2 Quantity",
+      "help": ""
     },
     "Meal3": {
-      "name": "IslandJuuEatery.Meal3.name",
-      "help": "IslandJuuEatery.Meal3.help",
+      "name": "Meal 3",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber3": {
-      "name": "IslandJuuEatery.MealNumber3.name",
-      "help": "IslandJuuEatery.MealNumber3.help"
+      "name": "Meal 3 Quantity",
+      "help": ""
     },
     "Meal4": {
-      "name": "IslandJuuEatery.Meal4.name",
-      "help": "IslandJuuEatery.Meal4.help",
+      "name": "Meal 4",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber4": {
-      "name": "IslandJuuEatery.MealNumber4.name",
-      "help": "IslandJuuEatery.MealNumber4.help"
+      "name": "Meal 4 Quantity",
+      "help": ""
     },
     "Meal5": {
-      "name": "IslandJuuEatery.Meal5.name",
-      "help": "IslandJuuEatery.Meal5.help",
+      "name": "Meal 5",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber5": {
-      "name": "IslandJuuEatery.MealNumber5.name",
-      "help": "IslandJuuEatery.MealNumber5.help"
+      "name": "Meal 5 Quantity",
+      "help": ""
     },
     "Meal6": {
-      "name": "IslandJuuEatery.Meal6.name",
-      "help": "IslandJuuEatery.Meal6.help",
+      "name": "Meal 6",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber6": {
-      "name": "IslandJuuEatery.MealNumber6.name",
-      "help": "IslandJuuEatery.MealNumber6.help"
+      "name": "Meal 6 Quantity",
+      "help": ""
     },
     "Meal7": {
-      "name": "IslandJuuEatery.Meal7.name",
-      "help": "IslandJuuEatery.Meal7.help",
+      "name": "Meal 7",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber7": {
-      "name": "IslandJuuEatery.MealNumber7.name",
-      "help": "IslandJuuEatery.MealNumber7.help"
+      "name": "Meal 7 Quantity",
+      "help": ""
     },
     "Meal8": {
-      "name": "IslandJuuEatery.Meal8.name",
-      "help": "IslandJuuEatery.Meal8.help",
+      "name": "Meal 8",
+      "help": "",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "MealNumber8": {
-      "name": "IslandJuuEatery.MealNumber8.name",
-      "help": "IslandJuuEatery.MealNumber8.help"
+      "name": "Meal 8 Quantity",
+      "help": ""
     }
   },
   "IslandJuuEateryNextTask": {
     "_info": {
-      "name": "IslandJuuEateryNextTask._info.name",
-      "help": "IslandJuuEateryNextTask._info.help"
+      "name": "Backup Tasks",
+      "help": ""
     },
     "AwayCook": {
-      "name": "IslandJuuEateryNextTask.AwayCook.name",
-      "help": "IslandJuuEateryNextTask.AwayCook.help",
+      "name": "Permanent Meal",
+      "help": "Produce permanent meals after all above are completed.",
       "None": "None",
-      "apple_pie": "apple_pie",
-      "corn_cup": "corn_cup",
-      "orange_pie": "orange_pie",
-      "banana_crepe": "banana_crepe",
-      "orchard_duo": "orchard_duo",
-      "rice_mango": "rice_mango",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "apple_pie": "Apple Pie",
+      "corn_cup": "Corn Cup",
+      "orange_pie": "Orange Pie",
+      "banana_crepe": "Banana Crepe",
+      "orchard_duo": "Orchard Duo",
+      "rice_mango": "Mango Sticky Rice",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     }
   },
   "IslandJuuCoffee": {
     "_info": {
-      "name": "IslandJuuCoffee._info.name",
-      "help": "IslandJuuCoffee._info.help"
+      "name": "Juu Coffee",
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime."
     },
     "PostNumber": {
-      "name": "IslandJuuCoffee.PostNumber.name",
-      "help": "IslandJuuCoffee.PostNumber.help",
+      "name": "Position Count",
+      "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "IslandJuuCoffee.ChefFilter.name",
-      "help": "IslandJuuCoffee.ChefFilter.help"
+      "name": "Chef Filter",
+      "help": "Connect with >"
     },
     "Friedrich": {
-      "name": "IslandJuuCoffee.Friedrich.name",
-      "help": "IslandJuuCoffee.Friedrich.help"
+      "name": "Friedrich",
+      "help": "Cheese only recognizes characters in the first two rows, otherwise defaults to Juu. The Wake-up Call specifically requires Friedrich; if she is not in the first two rows, it will not be produced."
     },
     "Meal1": {
-      "name": "IslandJuuCoffee.Meal1.name",
-      "help": "IslandJuuCoffee.Meal1.help",
+      "name": "Meal 1",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber1": {
-      "name": "IslandJuuCoffee.MealNumber1.name",
-      "help": "IslandJuuCoffee.MealNumber1.help"
+      "name": "Meal 1 Quantity",
+      "help": ""
     },
     "Meal2": {
-      "name": "IslandJuuCoffee.Meal2.name",
-      "help": "IslandJuuCoffee.Meal2.help",
+      "name": "Meal 2",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber2": {
-      "name": "IslandJuuCoffee.MealNumber2.name",
-      "help": "IslandJuuCoffee.MealNumber2.help"
+      "name": "Meal 2 Quantity",
+      "help": ""
     },
     "Meal3": {
-      "name": "IslandJuuCoffee.Meal3.name",
-      "help": "IslandJuuCoffee.Meal3.help",
+      "name": "Meal 3",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber3": {
-      "name": "IslandJuuCoffee.MealNumber3.name",
-      "help": "IslandJuuCoffee.MealNumber3.help"
+      "name": "Meal 3 Quantity",
+      "help": ""
     },
     "Meal4": {
-      "name": "IslandJuuCoffee.Meal4.name",
-      "help": "IslandJuuCoffee.Meal4.help",
+      "name": "Meal 4",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber4": {
-      "name": "IslandJuuCoffee.MealNumber4.name",
-      "help": "IslandJuuCoffee.MealNumber4.help"
+      "name": "Meal 4 Quantity",
+      "help": ""
     },
     "Meal5": {
-      "name": "IslandJuuCoffee.Meal5.name",
-      "help": "IslandJuuCoffee.Meal5.help",
+      "name": "Meal 5",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber5": {
-      "name": "IslandJuuCoffee.MealNumber5.name",
-      "help": "IslandJuuCoffee.MealNumber5.help"
+      "name": "Meal 5 Quantity",
+      "help": ""
     },
     "Meal6": {
-      "name": "IslandJuuCoffee.Meal6.name",
-      "help": "IslandJuuCoffee.Meal6.help",
+      "name": "Meal 6",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber6": {
-      "name": "IslandJuuCoffee.MealNumber6.name",
-      "help": "IslandJuuCoffee.MealNumber6.help"
+      "name": "Meal 6 Quantity",
+      "help": ""
     },
     "Meal7": {
-      "name": "IslandJuuCoffee.Meal7.name",
-      "help": "IslandJuuCoffee.Meal7.help",
+      "name": "Meal 7",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber7": {
-      "name": "IslandJuuCoffee.MealNumber7.name",
-      "help": "IslandJuuCoffee.MealNumber7.help"
+      "name": "Meal 7 Quantity",
+      "help": ""
     },
     "Meal8": {
-      "name": "IslandJuuCoffee.Meal8.name",
-      "help": "IslandJuuCoffee.Meal8.help",
+      "name": "Meal 8",
+      "help": "",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     },
     "MealNumber8": {
-      "name": "IslandJuuCoffee.MealNumber8.name",
-      "help": "IslandJuuCoffee.MealNumber8.help"
+      "name": "Meal 8 Quantity",
+      "help": ""
     }
   },
   "IslandJuuCoffeeNextTask": {
     "_info": {
-      "name": "IslandJuuCoffeeNextTask._info.name",
-      "help": "IslandJuuCoffeeNextTask._info.help"
+      "name": "Backup Tasks",
+      "help": ""
     },
     "AwayCook": {
-      "name": "IslandJuuCoffeeNextTask.AwayCook.name",
-      "help": "IslandJuuCoffeeNextTask.AwayCook.help",
+      "name": "Permanent Meal",
+      "help": "Produce permanent meals after all above are completed.",
       "None": "None",
-      "iced_coffee": "iced_coffee",
-      "omelette": "omelette",
-      "cheese": "cheese",
-      "latte": "latte",
-      "citrus_coffee": "citrus_coffee",
-      "strawberry_milkshake": "strawberry_milkshake",
-      "morning_light": "morning_light",
-      "wake_up_call": "wake_up_call",
-      "fruity_fruitier": "fruity_fruitier"
+      "iced_coffee": "Iced Coffee",
+      "omelette": "Omelette",
+      "cheese": "Cheese",
+      "latte": "Latte",
+      "citrus_coffee": "Citrus Coffee",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
+      "fruity_fruitier": "Fruity Fruitier"
     }
   },
   "WoodProcessing": {
     "_info": {
-      "name": "WoodProcessing._info.name",
-      "help": "WoodProcessing._info.help"
+      "name": "Wood Processing",
+      "help": "Only crafts filing cabinets."
     },
     "Positions": {
-      "name": "WoodProcessing.Positions.name",
-      "help": "WoodProcessing.Positions.help",
+      "name": "Position Count",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2"
@@ -4521,12 +4525,12 @@
   },
   "ElectronicProcessing": {
     "_info": {
-      "name": "ElectronicProcessing._info.name",
-      "help": "ElectronicProcessing._info.help"
+      "name": "Electronic Processing",
+      "help": "Only crafts filter cartridges."
     },
     "Positions": {
-      "name": "ElectronicProcessing.Positions.name",
-      "help": "ElectronicProcessing.Positions.help",
+      "name": "Position Count",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2"
@@ -4534,12 +4538,12 @@
   },
   "Industrial": {
     "_info": {
-      "name": "Industrial._info.name",
-      "help": "Industrial._info.help"
+      "name": "Industrial Processing",
+      "help": "Starts making cutlery when nails exceed 20. Manual operation needed if not unlocked."
     },
     "Positions": {
-      "name": "Industrial.Positions.name",
-      "help": "Industrial.Positions.help",
+      "name": "Position Count",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2"
@@ -4547,12 +4551,12 @@
   },
   "Handmade": {
     "_info": {
-      "name": "Handmade._info.name",
-      "help": "Handmade._info.help"
+      "name": "Handcraft",
+      "help": "Starts making footwear when leather exceeds 10. Manual operation needed if not unlocked."
     },
     "Positions": {
-      "name": "Handmade.Positions.name",
-      "help": "Handmade.Positions.help",
+      "name": "Position Count",
+      "help": "",
       "0": "0",
       "1": "1",
       "2": "2"
@@ -4560,65 +4564,135 @@
   },
   "IslandAirDrop": {
     "_info": {
-      "name": "IslandAirDrop._info.name",
-      "help": "IslandAirDrop._info.help"
+      "name": "Daily Supply",
+      "help": ""
     },
     "LastSteal": {
-      "name": "IslandAirDrop.LastSteal.name",
-      "help": "IslandAirDrop.LastSteal.help"
+      "name": "Last Run Time",
+      "help": ""
+    },
+    "VisitOtherIsland": {
+      "name": "Visit other players' islands",
+      "help": "When disabled, only collect air drops on your own island and no longer visit other players' islands."
     }
   },
   "IslandDailyOrder": {
     "_info": {
-      "name": "Daily Order",
-      "help": "Enter the daily order interface from the island phone page, automatically detect order types and deliver or reject based on item conditions."
+      "name": "Daily Orders",
+      "help": "Enter the daily order interface from the island phone page, automatically detect order types (Urgent/Challenge/Easy, Normal orders are not currently supported and likely won't be), deliver or reject based on item conditions.\n\nDaily Orders is still in testing. If you encounter issues with daily orders or urgent commissions being unable to deliver, please report with screenshots (ensure screenshots are 1280x720 in-game screenshots)."
     },
     "RejectCount": {
-      "name": "Reject Count",
-      "help": "Current accumulated order reject count. Resets to 0 at 00:00 daily. Can be manually modified."
+      "name": "Current Reject Count",
+      "help": "Current cumulative order reject count. Auto-resets to 0 daily at 0:00. Can be manually modified."
     },
     "RejectFilter": {
-      "name": "Reject Filter",
-      "help": "Set items to reject. Supports Cheese and Tofu, separated by '>'. E.g. \"Cheese > Tofu\" means reject if cheese or tofu is detected."
+      "name": "Reject Item Filter",
+      "help": "Set items to reject. Supports Cheese and Tofu, separated by >. E.g. \"Cheese > Tofu\" means reject when Cheese or Tofu is detected."
     },
     "UrgentDetectRefreshTime": {
-      "name": "Urgent Detect Refresh Time",
-      "help": "Cooldown time for urgent order detection. Skip urgent order detection before this time. Format: YYYY-MM-DD HH:mm:ss"
+      "name": "Urgent Commission Detect Refresh Time",
+      "help": "Cooldown time for urgent commission detection. Skips urgent commission detection before this time. Format: YYYY-MM-DD HH:mm:ss"
+    }
+  },
+  "IslandPearlSell": {
+    "_info": {
+      "name": "Weekly Pearl Trade",
+      "help": "Every Tuesday at 01:00, automatically handle pearls: first purchase this week's pearls at the highest purchase price, then sell existing pearls at the lowest selling price. Other incomplete processes will be delayed to 01:00 the next day for retry. Only supports minitouch. Make sure you have enough coins to purchase 200x220 units, which is the minimum requirement to buy out all pearls for the week, otherwise errors may occur."
+    },
+    "BuyPrice": {
+      "name": "Max Purchase Price",
+      "help": "Maximum allowable equivalent price during pearl purchase phase, range 200~1000."
+    },
+    "SellPrice": {
+      "name": "Min Selling Price",
+      "help": "Minimum required price during pearl selling phase, range 200~1000."
+    },
+    "BuyNextRun": {
+      "name": "Purchase next run time",
+      "help": ""
+    },
+    "DailyPriceRefresh": {
+      "name": "Daily 03:00 Price Refresh",
+      "help": "When enabled, enters the pearl shop at 03:00 daily to refresh price display without performing purchase or sale operations. Enabling this changes the overall task scheduling logic."
+    },
+    "NextPearlTradeTime": {
+      "name": "Next Pearl Trade Time",
+      "help": "Records the next scheduled pearl trade time. Only price refresh is performed before this time (if enabled)."
     }
   },
   "IslandCargoPreparation": {
     "_info": {
-      "name": "IslandCargoPreparation._info.name",
-      "help": "IslandCargoPreparation._info.help"
+      "name": "Cargo Preparation",
+      "help": "Automatically manage island cargo commission collection, replacement, and loading processes."
     },
     "Blacklist": {
-      "name": "IslandCargoPreparation.Blacklist.name",
-      "help": "IslandCargoPreparation.Blacklist.help"
+      "name": "Cargo Blacklist",
+      "help": "Replace commission when blacklisted cargo is detected. Currently only supports Milk."
+    }
+  },
+  "IslandBusiness": {
+    "_info": {
+      "name": "Business",
+      "help": "Manage island shop business operations"
+    },
+    "BatchEnabled": {
+      "name": "Enable Batch",
+      "help": "Split 5 shops into 2 batches to avoid staff conflicts",
+      "True": "Enabled",
+      "False": "Disabled"
+    },
+    "Batch1Shops": {
+      "name": "Batch 1 Shops",
+      "help": "Select shops for the first batch",
+      "1": "Fish Restaurant",
+      "2": "Teahouse",
+      "3": "Juu Eatery",
+      "4": "Grill",
+      "5": "Juu Coffee"
+    },
+    "Batch2Shops": {
+      "name": "Batch 2 Shops",
+      "help": "Select shops for the second batch",
+      "1": "Fish Restaurant",
+      "2": "Teahouse",
+      "3": "Juu Eatery",
+      "4": "Grill",
+      "5": "Juu Coffee"
+    },
+    "SeasonalReplaceEnabled": {
+      "name": "Seasonal Replace",
+      "help": "Auto-replace seasonal dishes when stock is low",
+      "True": "Enabled",
+      "False": "Disabled"
+    },
+    "SeasonalThreshold": {
+      "name": "Seasonal Threshold",
+      "help": "Replace seasonal dish when stock is below this number"
     }
   },
   "IslandBusinessShop1": {
     "_info": {
-      "name": "IslandBusinessShop1._info.name",
-      "help": "IslandBusinessShop1._info.help"
+      "name": "Fish Restaurant",
+      "help": ""
     },
     "Char1": {
-      "name": "IslandBusinessShop1.Char1.name",
-      "help": "IslandBusinessShop1.Char1.help",
+      "name": "Character 1",
+      "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -4630,28 +4704,28 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Char2": {
-      "name": "IslandBusinessShop1.Char2.name",
-      "help": "IslandBusinessShop1.Char2.help",
+      "name": "Character 2",
+      "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -4663,89 +4737,104 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Product1": {
-      "name": "IslandBusinessShop1.Product1.name",
-      "help": "IslandBusinessShop1.Product1.help",
+      "name": "Product 1",
+      "help": "",
       "None": "None",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "fo_tiao": "fo_tiao",
-      "amaranth_rice_ball": "amaranth_rice_ball"
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "amaranth_rice_ball": "Amaranth Rice Ball"
     },
     "Product2": {
-      "name": "IslandBusinessShop1.Product2.name",
-      "help": "IslandBusinessShop1.Product2.help",
+      "name": "Product 2",
+      "help": "",
       "None": "None",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "fo_tiao": "fo_tiao",
-      "amaranth_rice_ball": "amaranth_rice_ball"
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "amaranth_rice_ball": "Amaranth Rice Ball"
     },
     "Product3": {
-      "name": "IslandBusinessShop1.Product3.name",
-      "help": "IslandBusinessShop1.Product3.help",
+      "name": "Product 3",
+      "help": "",
       "None": "None",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "fo_tiao": "fo_tiao",
-      "amaranth_rice_ball": "amaranth_rice_ball"
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "amaranth_rice_ball": "Amaranth Rice Ball"
     },
     "Product4": {
-      "name": "IslandBusinessShop1.Product4.name",
-      "help": "IslandBusinessShop1.Product4.help",
+      "name": "Product 4",
+      "help": "",
       "None": "None",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "fo_tiao": "fo_tiao",
-      "amaranth_rice_ball": "amaranth_rice_ball"
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "amaranth_rice_ball": "Amaranth Rice Ball"
     },
     "Product5": {
-      "name": "IslandBusinessShop1.Product5.name",
-      "help": "IslandBusinessShop1.Product5.help",
+      "name": "Product 5",
+      "help": "",
       "None": "None",
-      "double_bamboo_shoots": "double_bamboo_shoots",
-      "tofu_meat": "tofu_meat",
-      "tofu_combo": "tofu_combo",
-      "hearty_meal": "hearty_meal",
-      "fo_tiao": "fo_tiao",
-      "amaranth_rice_ball": "amaranth_rice_ball"
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "amaranth_rice_ball": "Amaranth Rice Ball"
+    },
+    "SeasonalFallback": {
+      "name": "Seasonal Fallback",
+      "help": "Fallback dish when seasonal dish stock is low",
+      "None": "None",
+      "double_bamboo_shoots": "Cold Bamboo Shoots",
+      "tofu_meat": "Mapo Tofu",
+      "tofu_combo": "Classic Tofu Combo",
+      "hearty_meal": "Hearty Meal Set",
+      "fo_tiao": "Buddha Jumps Over the Wall",
+      "amaranth_rice_ball": "Amaranth Rice Ball"
+    },
+    "BoostReplaceFilter": {
+      "name": "Boost Replace Filter",
+      "help": "When multiple boosted products are detected, the first one in filter order is prioritized for replacement; the replacement slot is the last non-empty slot searched from Product5→1"
     }
   },
   "IslandBusinessShop2": {
     "_info": {
-      "name": "IslandBusinessShop2._info.name",
-      "help": "IslandBusinessShop2._info.help"
+      "name": "Polar Bear Drinks",
+      "help": ""
     },
     "Char1": {
-      "name": "IslandBusinessShop2.Char1.name",
-      "help": "IslandBusinessShop2.Char1.help",
+      "name": "Character 1",
+      "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -4757,28 +4846,28 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Char2": {
-      "name": "IslandBusinessShop2.Char2.name",
-      "help": "IslandBusinessShop2.Char2.help",
+      "name": "Character 2",
+      "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -4790,99 +4879,103 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Product1": {
-      "name": "IslandBusinessShop2.Product1.name",
-      "help": "IslandBusinessShop2.Product1.help",
+      "name": "Product 1",
+      "help": "",
       "None": "None",
-      "spring_flower_tea": "spring_flower_tea",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "watermelon_juice": "watermelon_juice"
+      "spring_flower_tea": "Spring Flower Tea",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "watermelon_juice": "Watermelon Juice"
     },
     "Product2": {
-      "name": "IslandBusinessShop2.Product2.name",
-      "help": "IslandBusinessShop2.Product2.help",
+      "name": "Product 2",
+      "help": "",
       "None": "None",
-      "spring_flower_tea": "spring_flower_tea",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "watermelon_juice": "watermelon_juice"
+      "spring_flower_tea": "Spring Flower Tea",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "watermelon_juice": "Watermelon Juice"
     },
     "Product3": {
-      "name": "IslandBusinessShop2.Product3.name",
-      "help": "IslandBusinessShop2.Product3.help",
+      "name": "Product 3",
+      "help": "",
       "None": "None",
-      "spring_flower_tea": "spring_flower_tea",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "watermelon_juice": "watermelon_juice"
+      "spring_flower_tea": "Spring Flower Tea",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "watermelon_juice": "Watermelon Juice"
     },
     "Product4": {
-      "name": "IslandBusinessShop2.Product4.name",
-      "help": "IslandBusinessShop2.Product4.help",
+      "name": "Product 4",
+      "help": "",
       "None": "None",
-      "spring_flower_tea": "spring_flower_tea",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "watermelon_juice": "watermelon_juice"
+      "spring_flower_tea": "Spring Flower Tea",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "watermelon_juice": "Watermelon Juice"
     },
     "Product5": {
-      "name": "IslandBusinessShop2.Product5.name",
-      "help": "IslandBusinessShop2.Product5.help",
+      "name": "Product 5",
+      "help": "",
       "None": "None",
-      "spring_flower_tea": "spring_flower_tea",
-      "strawberry_lemon": "strawberry_lemon",
-      "strawberry_honey": "strawberry_honey",
-      "floral_fruity": "floral_fruity",
-      "fruit_paradise": "fruit_paradise",
-      "lavender_tea": "lavender_tea",
-      "sunny_honey": "sunny_honey",
-      "watermelon_juice": "watermelon_juice"
+      "spring_flower_tea": "Spring Flower Tea",
+      "strawberry_lemon": "Strawberry Lemonade",
+      "strawberry_honey": "Strawberry Honey Smoothie",
+      "floral_fruity": "Floral Fruity",
+      "fruit_paradise": "Fruit Paradise",
+      "lavender_tea": "Lavender Tea",
+      "sunny_honey": "Sunny Honey",
+      "watermelon_juice": "Watermelon Juice"
+    },
+    "BoostReplaceFilter": {
+      "name": "Boost Replace Filter",
+      "help": "When multiple boosted products are detected, the first one in filter order is prioritized for replacement; the replacement slot is the last non-empty slot searched from Product5→1"
     }
   },
   "IslandBusinessShop3": {
     "_info": {
-      "name": "IslandBusinessShop3._info.name",
-      "help": "IslandBusinessShop3._info.help"
+      "name": "Juu Eatery",
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime."
     },
     "Char1": {
-      "name": "IslandBusinessShop3.Char1.name",
-      "help": "IslandBusinessShop3.Char1.help",
+      "name": "Character 1",
+      "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -4894,28 +4987,28 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Char2": {
-      "name": "IslandBusinessShop3.Char2.name",
-      "help": "IslandBusinessShop3.Char2.help",
+      "name": "Character 2",
+      "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -4927,84 +5020,88 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Product1": {
-      "name": "IslandBusinessShop3.Product1.name",
-      "help": "IslandBusinessShop3.Product1.help",
+      "name": "Product 1",
+      "help": "",
       "None": "None",
-      "orchard_duo": "orchard_duo",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "orchard_duo": "Orchard Duo",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "Product2": {
-      "name": "IslandBusinessShop3.Product2.name",
-      "help": "IslandBusinessShop3.Product2.help",
+      "name": "Product 2",
+      "help": "",
       "None": "None",
-      "orchard_duo": "orchard_duo",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "orchard_duo": "Orchard Duo",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "Product3": {
-      "name": "IslandBusinessShop3.Product3.name",
-      "help": "IslandBusinessShop3.Product3.help",
+      "name": "Product 3",
+      "help": "",
       "None": "None",
-      "orchard_duo": "orchard_duo",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "orchard_duo": "Orchard Duo",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "Product4": {
-      "name": "IslandBusinessShop3.Product4.name",
-      "help": "IslandBusinessShop3.Product4.help",
+      "name": "Product 4",
+      "help": "",
       "None": "None",
-      "orchard_duo": "orchard_duo",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "orchard_duo": "Orchard Duo",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
     },
     "Product5": {
-      "name": "IslandBusinessShop3.Product5.name",
-      "help": "IslandBusinessShop3.Product5.help",
+      "name": "Product 5",
+      "help": "",
       "None": "None",
-      "orchard_duo": "orchard_duo",
-      "succulently_sweet": "succulently_sweet",
-      "berry_orange": "berry_orange",
-      "strawberry_charlotte": "strawberry_charlotte",
-      "seafood_rice": "seafood_rice"
+      "orchard_duo": "Orchard Duo",
+      "succulently_sweet": "Sweet Combo",
+      "berry_orange": "Berry Orange Dessert Set",
+      "strawberry_charlotte": "Strawberry Charlotte",
+      "seafood_rice": "Seafood Rice"
+    },
+    "BoostReplaceFilter": {
+      "name": "Boost Replace Filter",
+      "help": "When multiple boosted products are detected, the first one in filter order is prioritized for replacement; the replacement slot is the last non-empty slot searched from Product5→1"
     }
   },
   "IslandBusinessShop4": {
     "_info": {
       "name": "Squid BBQ",
-      "help": ""
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime."
     },
     "Char1": {
       "name": "Character 1",
       "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -5016,28 +5113,28 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Char2": {
       "name": "Character 2",
       "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -5049,84 +5146,88 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Product1": {
       "name": "Product 1",
       "help": "",
       "None": "None",
-      "roasted_skewer": "Roasted Skewer",
-      "stir_fried_chicken": "Stir-fried Chicken",
+      "roasted_skewer": "Grilled Skewers",
+      "stir_fried_chicken": "Stir-Fried Chicken",
       "steak_bowl": "Steak Bowl",
-      "carnival": "Carnival",
-      "double_energy": "Double Energy"
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "Product2": {
       "name": "Product 2",
       "help": "",
       "None": "None",
-      "roasted_skewer": "Roasted Skewer",
-      "stir_fried_chicken": "Stir-fried Chicken",
+      "roasted_skewer": "Grilled Skewers",
+      "stir_fried_chicken": "Stir-Fried Chicken",
       "steak_bowl": "Steak Bowl",
-      "carnival": "Carnival",
-      "double_energy": "Double Energy"
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "Product3": {
       "name": "Product 3",
       "help": "",
       "None": "None",
-      "roasted_skewer": "Roasted Skewer",
-      "stir_fried_chicken": "Stir-fried Chicken",
+      "roasted_skewer": "Grilled Skewers",
+      "stir_fried_chicken": "Stir-Fried Chicken",
       "steak_bowl": "Steak Bowl",
-      "carnival": "Carnival",
-      "double_energy": "Double Energy"
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "Product4": {
       "name": "Product 4",
       "help": "",
       "None": "None",
-      "roasted_skewer": "Roasted Skewer",
-      "stir_fried_chicken": "Stir-fried Chicken",
+      "roasted_skewer": "Grilled Skewers",
+      "stir_fried_chicken": "Stir-Fried Chicken",
       "steak_bowl": "Steak Bowl",
-      "carnival": "Carnival",
-      "double_energy": "Double Energy"
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
     },
     "Product5": {
       "name": "Product 5",
       "help": "",
       "None": "None",
-      "roasted_skewer": "Roasted Skewer",
-      "stir_fried_chicken": "Stir-fried Chicken",
+      "roasted_skewer": "Grilled Skewers",
+      "stir_fried_chicken": "Stir-Fried Chicken",
       "steak_bowl": "Steak Bowl",
-      "carnival": "Carnival",
-      "double_energy": "Double Energy"
+      "carnival": "BBQ Carnival",
+      "double_energy": "Double Energy Combo"
+    },
+    "BoostReplaceFilter": {
+      "name": "Boost Replace Filter",
+      "help": "When multiple boosted products are detected, the first one in filter order is prioritized for replacement; the replacement slot is the last non-empty slot searched from Product5→1"
     }
   },
   "IslandBusinessShop5": {
     "_info": {
       "name": "Juu Coffee",
-      "help": ""
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime."
     },
     "Char1": {
       "name": "Character 1",
       "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -5138,28 +5239,28 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Char2": {
       "name": "Character 2",
       "help": "",
       "None": "None",
-      "WorkerJuu": "WorkerJuu",
+      "WorkerJuu": "Worker Juu",
       "Cheshire": "Cheshire",
-      "YingSwei": "YingSwei",
+      "YingSwei": "Ying Swei",
       "Saratoga": "Saratoga",
       "Akashi": "Akashi",
-      "NewJersey": "NewJersey",
+      "NewJersey": "New Jersey",
       "Tashkent": "Tashkent",
-      "LeMalin": "LeMalin",
+      "LeMalin": "Le Malin",
       "Shimakaze": "Shimakaze",
-      "Amagi_chan": "Amagi_chan",
+      "Amagi_chan": "Amagi-chan",
       "Unicorn": "Unicorn",
-      "ChaoHo": "ChaoHo",
-      "ChenHai": "ChenHai",
-      "WilliamDPorter": "WilliamDPorter",
+      "ChaoHo": "Chao Ho",
+      "ChenHai": "Chen Hai",
+      "WilliamDPorter": "William D. Porter",
       "Helena": "Helena",
       "Friedrich": "Friedrich",
       "Atago": "Atago",
@@ -5171,8 +5272,8 @@
       "Laffey": "Laffey",
       "Explorer": "Explorer",
       "Navigator": "Navigator",
-      "OceanCrosser": "OceanCrosser",
-      "FeiYun": "FeiYun",
+      "OceanCrosser": "Ocean Crosser",
+      "FeiYun": "Fei Yun",
       "Takao": "Takao"
     },
     "Product1": {
@@ -5180,9 +5281,9 @@
       "help": "",
       "None": "None",
       "cheese": "Cheese",
-      "strawberry_milkshake": "Strawberry Milkshake",
-      "morning_light": "Morning Light",
-      "wake_up_call": "Wake-up Call",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
       "fruity_fruitier": "Fruity Fruitier"
     },
     "Product2": {
@@ -5190,9 +5291,9 @@
       "help": "",
       "None": "None",
       "cheese": "Cheese",
-      "strawberry_milkshake": "Strawberry Milkshake",
-      "morning_light": "Morning Light",
-      "wake_up_call": "Wake-up Call",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
       "fruity_fruitier": "Fruity Fruitier"
     },
     "Product3": {
@@ -5200,9 +5301,9 @@
       "help": "",
       "None": "None",
       "cheese": "Cheese",
-      "strawberry_milkshake": "Strawberry Milkshake",
-      "morning_light": "Morning Light",
-      "wake_up_call": "Wake-up Call",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
       "fruity_fruitier": "Fruity Fruitier"
     },
     "Product4": {
@@ -5210,9 +5311,9 @@
       "help": "",
       "None": "None",
       "cheese": "Cheese",
-      "strawberry_milkshake": "Strawberry Milkshake",
-      "morning_light": "Morning Light",
-      "wake_up_call": "Wake-up Call",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
       "fruity_fruitier": "Fruity Fruitier"
     },
     "Product5": {
@@ -5220,10 +5321,14 @@
       "help": "",
       "None": "None",
       "cheese": "Cheese",
-      "strawberry_milkshake": "Strawberry Milkshake",
-      "morning_light": "Morning Light",
-      "wake_up_call": "Wake-up Call",
+      "strawberry_milkshake": "Strawberry Milk Tea",
+      "morning_light": "Morning Light Combo",
+      "wake_up_call": "Wake-Up Call Set",
       "fruity_fruitier": "Fruity Fruitier"
+    },
+    "BoostReplaceFilter": {
+      "name": "Boost Replace Filter",
+      "help": "When multiple boosted products are detected, the first one in filter order is prioritized for replacement; the replacement slot is the last non-empty slot searched from Product5→1"
     }
   },
   "Daemon": {
@@ -5354,8 +5459,8 @@
       "help": "Provides manual emulator restart entry"
     },
     "EnableRemoteSSH": {
-      "name": "EmulatorManager.EnableRemoteSSH.name",
-      "help": "EmulatorManager.EnableRemoteSSH.help",
+      "name": "Enable Remote SSH Management",
+      "help": "Execute specific commands (e.g., restart Docker containers) on a remote server via SSH before restarting the emulator.",
       "True": "True",
       "False": "False"
     },
@@ -5376,91 +5481,91 @@
       "help": "Public key content for SSH login (if needed)"
     },
     "RemoteStartCommand": {
-      "name": "EmulatorManager.RemoteStartCommand.name",
-      "help": "EmulatorManager.RemoteStartCommand.help"
+      "name": "Remote Start Command",
+      "help": "SSH command to start the emulator/service (e.g., docker start)."
     },
     "RemoteStopCommand": {
-      "name": "EmulatorManager.RemoteStopCommand.name",
-      "help": "EmulatorManager.RemoteStopCommand.help"
+      "name": "Remote Stop Command",
+      "help": "SSH command to stop the emulator/service (e.g., docker stop)."
     }
   },
   "OpsiSimulatorParameters": {
     "_info": {
-      "name": "OpsiSimulatorParameters._info.name",
-      "help": "OpsiSimulatorParameters._info.help"
+      "name": "Parameter Settings",
+      "help": ""
     },
     "Samples": {
-      "name": "OpsiSimulatorParameters.Samples.name",
-      "help": "OpsiSimulatorParameters.Samples.help"
+      "name": "Sample Count",
+      "help": "Theoretically larger values give more accurate simulation but consume more performance."
     },
     "Draw": {
-      "name": "OpsiSimulatorParameters.Draw.name",
-      "help": "OpsiSimulatorParameters.Draw.help",
-      "do_not": "do_not",
-      "single_sample": "single_sample",
-      "multi_sample": "multi_sample"
+      "name": "Drawing Settings",
+      "help": "Single sample trajectory: plots the trajectory of one sample.\nMulti-sample average trend: plots overall trend and probability.",
+      "do_not": "No Drawing",
+      "single_sample": "Single Sample Trajectory",
+      "multi_sample": "Multi-Sample Average Trend"
     },
     "TotalTime": {
-      "name": "OpsiSimulatorParameters.TotalTime.name",
-      "help": "OpsiSimulatorParameters.TotalTime.help"
+      "name": "Total Simulation Time",
+      "help": "How long to simulate (unit: seconds).\nIf 0, uses the remaining time of the current month from now."
     },
     "TimeUseRatio": {
-      "name": "OpsiSimulatorParameters.TimeUseRatio.name",
-      "help": "OpsiSimulatorParameters.TimeUseRatio.help"
+      "name": "Time Utilization Ratio",
+      "help": "What proportion of total simulation time is spent on corrosion cycles."
     },
     "InitialAp": {
-      "name": "OpsiSimulatorParameters.InitialAp.name",
-      "help": "OpsiSimulatorParameters.InitialAp.help"
+      "name": "Initial Action Points",
+      "help": "Set to 0 for auto-detect. Not recommended to modify."
     },
     "InitialCoin": {
-      "name": "OpsiSimulatorParameters.InitialCoin.name",
-      "help": "OpsiSimulatorParameters.InitialCoin.help"
+      "name": "Initial Coins",
+      "help": "Set to 0 for auto-detect. Not recommended to modify."
     },
     "MeowHazardLevel": {
-      "name": "OpsiSimulatorParameters.MeowHazardLevel.name",
-      "help": "OpsiSimulatorParameters.MeowHazardLevel.help",
+      "name": "Meowfficer Hazard Level",
+      "help": "Select the execution level for Meowfficer tasks (Level 3 or Level 5).",
       "level3": "level3",
       "level5": "level5"
     },
     "CrossWeek": {
-      "name": "OpsiSimulatorParameters.CrossWeek.name",
-      "help": "OpsiSimulatorParameters.CrossWeek.help"
+      "name": "Calculate Cross-Week",
+      "help": "Whether to calculate weekly action point purchase and fortress events."
     },
     "BuyAp": {
-      "name": "OpsiSimulatorParameters.BuyAp.name",
-      "help": "OpsiSimulatorParameters.BuyAp.help"
+      "name": "Weekly AP Purchase",
+      "help": "Whether to purchase 1000 action points weekly. Fortress will still be fought even without purchasing."
     },
     "Cl1Coin": {
-      "name": "OpsiSimulatorParameters.Cl1Coin.name",
-      "help": "OpsiSimulatorParameters.Cl1Coin.help"
+      "name": "Corrosion 1 Coin Expectation",
+      "help": "Average coins per corrosion 1 cycle. Recommended: 145."
     },
     "Meow3Coin": {
-      "name": "OpsiSimulatorParameters.Meow3Coin.name",
-      "help": "OpsiSimulatorParameters.Meow3Coin.help"
+      "name": "Meow 3 Coin Expectation",
+      "help": "Average coins per corrosion 3 Meowfficer task. Recommended: 600."
     },
     "Meow5Coin": {
-      "name": "OpsiSimulatorParameters.Meow5Coin.name",
-      "help": "OpsiSimulatorParameters.Meow5Coin.help"
+      "name": "Meow 5 Coin Expectation",
+      "help": "Average coins per corrosion 5 Meowfficer task. Recommended: 1700."
     },
     "AkashiProbability": {
-      "name": "OpsiSimulatorParameters.AkashiProbability.name",
-      "help": "OpsiSimulatorParameters.AkashiProbability.help"
+      "name": "Akashi Encounter Probability",
+      "help": "Probability of encountering Akashi shop during corrosion cycles. Recommended: 0.05."
     },
     "Cl1Time": {
-      "name": "OpsiSimulatorParameters.Cl1Time.name",
-      "help": "OpsiSimulatorParameters.Cl1Time.help"
+      "name": "Corrosion 1 Cycle Time",
+      "help": "Unit: seconds. Set to 0 to auto-detect from historical statistics."
     },
     "Meow3Time": {
-      "name": "OpsiSimulatorParameters.Meow3Time.name",
-      "help": "OpsiSimulatorParameters.Meow3Time.help"
+      "name": "Meow 3 Cycle Time",
+      "help": "Unit: seconds. Average time for corrosion 3 Meowfficer task. Set to 0 for historical statistics."
     },
     "Meow5Time": {
-      "name": "OpsiSimulatorParameters.Meow5Time.name",
-      "help": "OpsiSimulatorParameters.Meow5Time.help"
+      "name": "Meow 5 Cycle Time",
+      "help": "Unit: seconds. Average time for corrosion 5 Meowfficer task. Set to 0 for historical statistics."
     },
     "Deterministic": {
-      "name": "OpsiSimulatorParameters.Deterministic.name",
-      "help": "OpsiSimulatorParameters.Deterministic.help"
+      "name": "Disable Randomness",
+      "help": "For debugging. Generally should be off."
     }
   },
   "Storage": {
@@ -5543,7 +5648,7 @@
       "Medal": "Gui.Overview.Medal",
       "Core": "Gui.Overview.Core",
       "GuildCoin": "Gui.Overview.GuildCoin",
-      "Log": "log",
+      "Log": "Log",
       "Running": "Running",
       "Pending": "in queue",
       "Waiting": "Waiting",
@@ -5552,7 +5657,7 @@
     },
     "Dashboard": {
       "TimeError": "time error",
-      "JustNow": "just",
+      "JustNow": "Just Now",
       "SecondsAgo": "seconds ago",
       "MinutesAgo": "minutes ago",
       "HoursAgo": "hours ago",
