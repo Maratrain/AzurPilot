@@ -16,6 +16,7 @@ from module.dorm.dorm import RewardDorm
 from module.exception import GameStuckError, OilMaxed, RequestHumanTakeover
 from module.handler.info_handler import InfoHandler
 from module.logger import logger
+from module.notify.notify import handle_notify, notify_webui
 from module.map.map_grids import SelectedGrids
 from module.retire.assets import DOCK_CHECK
 from module.ui.assets import BACK_ARROW, REWARD_GOTO_COMMISSION
@@ -26,6 +27,7 @@ from module.ui.switch import Switch
 from module.ui.ui import UI
 from module.ui_white.assets import REWARD_1_WHITE, REWARD_GOTO_COMMISSION_WHITE
 from datetime import timedelta
+
 
 COMMISSION_SWITCH = Switch('Commission_switch', is_selector=True)
 COMMISSION_SWITCH.add_state('daily', COMMISSION_DAILY)
@@ -613,6 +615,23 @@ class RewardCommission(UI, InfoHandler):
                 cl1_db.add_commission_income(instance, merged_items, commission_count=1)
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
+                tracked = []
+                if merged_items.get('Gem', 0) > 0:
+                    tracked.append(f'💎钻石 * {merged_items["Gem"]}')
+                if merged_items.get('Cube', 0) > 0:
+                    tracked.append(f'🧊魔方 * {merged_items["Cube"]}')
+                if tracked:
+                    msg = '\n'.join(tracked)
+                    handle_notify(
+                        self.config.Error_OnePushConfig,
+                        title=f"AzurPilot <{instance}> 委托获得高级奖励喵！",
+                        content=msg,
+                    )
+                    notify_webui(
+                        instance,
+                        title="委托获得高级奖励喵！",
+                        content=msg,
+                    )
             else:
                 logger.info('Commission income: no known items recognized from all screenshots')
 

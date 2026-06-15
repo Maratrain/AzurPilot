@@ -5,62 +5,11 @@ from onepush.core import Provider
 from onepush.exceptions import OnePushException
 from onepush.providers.custom import Custom
 from requests import Response
-from datetime import datetime, timedelta
+
 from module.logger import logger
 
 onepush.core.log = logger
 
-CRASH_COOLDOWN = timedelta(minutes=30)
-
-def crash_notify(config, send_func, *args, **kwargs):
-    """
-    坠机类通知统一入口（即将坠机 + 已坠机）
-    """
-    # 逻辑：检查冷却期 -> 调用具体的 send_func 发送 -> 成功则记录时间
-    if not can_send_crash_notify(config):
-        logger.info("[Notify] crash notify skipped (30min cooldown)")
-        return False
-
-    try:
-        result = send_func(*args, **kwargs)
-    except Exception as e:
-        # 不打印敏感变量，仅记录错误信息
-        logger.error("Error while sending crash notify")
-        logger.debug(e)
-        return False
-
-    # 只有成功发送才记录时间
-    if result:
-        _set_last_time(config)
-
-    return result
-
-def _get_last_time(config):
-    t = getattr(config, "OpsiGeneral_LastCrashNotifyTime", None)
-    if isinstance(t, str):
-        try:
-            return datetime.fromisoformat(t)
-        except Exception:
-            return None
-    return t
-
-
-def _set_last_time(config):
-    config.OpsiGeneral_LastCrashNotifyTime = datetime.now()
-    try:
-        config.save()
-    except Exception:
-        pass
-
-
-def can_send_crash_notify(config) -> bool:
-    last = _get_last_time(config)
-    now = datetime.now()
-
-    if last is None:
-        return True
-
-    return (now - last) >= CRASH_COOLDOWN
 
 def handle_notify(_config: str, **kwargs) -> bool:
     """处理推送通知请求。
@@ -101,7 +50,7 @@ def handle_notify(_config: str, **kwargs) -> bool:
         if isinstance(notifier, Custom):
             if "method" not in config or config["method"] == "post":
                 config["datatype"] = "json"
-            if "data" not in config or not isinstance(config.get("data"), dict):
+            if not ("data" in config or isinstance(config["data"], dict)):
                 config["data"] = {}
             if "title" in kwargs:
                 config["data"]["title"] = kwargs["title"]
@@ -123,14 +72,11 @@ def handle_notify(_config: str, **kwargs) -> bool:
                 return False
             else:
                 if provider_name.lower() == "gocqhttp":
-                    try:
-                        return_data: dict = resp.json()
-                    except Exception:
-                        logger.warning("Failed to parse gocqhttp response JSON")
-                        return False
-                    if return_data.get("status") == "failed":
+                    return_data: dict = resp.json()
+                    if return_data["status"] == "failed":
                         logger.warning("Push notify failed!")
-                        logger.warning(f"Return message:{return_data.get('wording')}")
+                        logger.warning(
+                            f"Return message:{return_data['wording']}")
                         return False
     except OnePushException:
         logger.error("Push notify failed")
@@ -161,11 +107,7 @@ def notify_webui(instance: str, title: str, content: str, **kwargs) -> bool:
     """
     try:
         from module.webui.setting import State
-        wp = getattr(State.deploy_config, "WebuiPort", None)
-        if wp is None or str(wp).strip() == "":
-            port = 22267
-        else:
-            port = int(wp)
+        port = int(State.deploy_config.WebuiPort) or 22267
     except Exception:
         port = 22267
     try:
@@ -180,86 +122,3 @@ def notify_webui(instance: str, title: str, content: str, **kwargs) -> bool:
         return True
     except Exception:
         return False
-
-
-def send_crash_messages(config_obj, config_name: str, total_ap: int, onepush_config: str = None, notify_push_func=None, webui_instance: str = "AzurPilot", send_crashed: bool = True, send_warning: bool = True) -> None:
-    """格式化并发送坠机类通知给多个渠道。
-
-    Args:
-        config_obj: 用于冷却时间记录的配置对象（需要支持属性保存）。
-        config_name: 实例名，用于标题中显示。
-        total_ap: 当前总行动力，用于内容中显示。
-        onepush_config: 可选，onepush 的 YAML 配置字符串，若提供则会调用 `handle_notify` 发送。
-        webui_instance: 可选，WebUI 实例名，默认 `AzurPilot`。
-
-    此函数会发送两条通知：
-      1) 使用 onepush（若提供 `onepush_config`）发送坠机已发生的通知；
-      2) 使用本地 WebUI 发送即将坠机提醒（总行动力提示）。
-    函数内部使用 `crash_notify` 做 30 分钟冷却检查，避免频繁推送。
-    """
-    title = f"AzurPilot <{config_name}> 新消息♥♥♥"
-    # 保持原有字符串拼接与换行
-    content_crashed = (
-        f'当前总行动力：{total_ap}\n'
-        f'很遗憾，71已坠机，请下次再来Nanoda！！！'
-    )
-    content_warning = (
-        f'当前总行动力：{total_ap}\n'
-        f'雪风大人提醒您，71即将坠机，请及时加仓'
-    )
-
-    # 发送两条通知：已坠机（crashed）和即将坠机（warning）
-    # 每条通知都会尝试通过 OnePush（若提供）和本地启动器（notify_push_func 或 notify_webui）发送，
-    # 并且都受 crash_notify 冷却控制（30 分钟）。
-
-    # 1) 已坠机消息（content_crashed）
-    if send_crashed:
-        if onepush_config:
-            crash_notify(
-                config_obj,
-                handle_notify,
-                onepush_config,
-                title=title,
-                content=content_crashed,
-            )
-
-        if notify_push_func is not None:
-            crash_notify(
-                config_obj,
-                notify_push_func,
-                title=title,
-                content=content_crashed,
-            )
-        else:
-            crash_notify(
-                config_obj,
-                lambda *a, **kw: notify_webui(webui_instance, kw.get("title", ""), kw.get("content", "")),
-                title=title,
-                content=content_crashed,
-            )
-
-    # 2) 即将坠机消息（content_warning）
-    if send_warning:
-        if onepush_config:
-            crash_notify(
-                config_obj,
-                handle_notify,
-                onepush_config,
-                title=title,
-                content=content_warning,
-            )
-
-        if notify_push_func is not None:
-            crash_notify(
-                config_obj,
-                notify_push_func,
-                title=title,
-                content=content_warning,
-            )
-        else:
-            crash_notify(
-                config_obj,
-                lambda *a, **kw: notify_webui(webui_instance, kw.get("title", ""), kw.get("content", "")),
-                title=title,
-                content=content_warning,
-            )
