@@ -15,7 +15,6 @@ class StrategicSearchHandler(MapEventHandler):
             # End
             if self.appear(STRATEGIC_SEARCH_POPUP_CHECK, offset=(20, 20)):
                 return True
-
             if self.handle_map_event():
                 continue
             if self.appear(AUTO_SEARCH_REWARD, offset=(50, 50)):

@@ -13252,6 +13252,35 @@
         "valuetype": "ignore",
         "display": "disabled"
       }
+    },
+    "OpsiNotification": {
+      "LowapNotification": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "Setklowapgoal": {
+        "type": "input",
+        "value": 500
+      },
+      "DailyReportEnable": {
+        "type": "checkbox",
+        "value": true,
+        "option": [ true, false ]
+      },
+
+      "DailyReportTime": {
+        "type": "input",
+        "value": "23:59"
+      },
+      "LastRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      }
     }
   },
   "OpsiScheduling": {
