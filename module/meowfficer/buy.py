@@ -118,3 +118,71 @@ class MeowfficerBuy(MeowfficerBase):
 
         logger.warning('Too many trial in meowfficer buy, stopped.')
         return False
+
+    def meow_overflow_buy(self, overflow_coins):
+        """金币溢出时购买猫箱，直到金币降至阈值以下。
+
+        根据当前金币与溢出阈值的差值计算需要购买的猫箱数量，
+        考虑每日15个购买限制和首抽免费机制。
+        不依赖金币OCR判断是否触发购买（由调用方判断），
+        仅负责在指挥喵界面执行购买操作。
+
+        Args:
+            overflow_coins (int): 金币溢出阈值，金币超过此值时购买猫箱
+
+        Pages:
+            in: page_meowfficer
+            out: page_meowfficer
+        """
+        logger.hr('Meowfficer overflow buy', level=1)
+
+        # OCR识别剩余购买次数
+        remain, bought, total = MEOWFFICER.ocr(self.device.image)
+        logger.attr('Meowfficer_remain', remain)
+        logger.attr('Meowfficer_bought', bought)
+
+        # 每日限制检查
+        if total != BUY_MAX:
+            logger.warning(f'Invalid meowfficer buy limit: {total}, revise to {BUY_MAX}')
+            total = BUY_MAX
+            bought = total - remain
+
+        if bought >= BUY_MAX:
+            logger.info(f'Already bought {bought} today, reached daily limit, skip')
+            return
+
+        # OCR识别金币
+        coins = MEOWFFICER_COINS.ocr(self.device.image)
+        logger.attr('Meowfficer_coins', coins)
+
+        if coins <= overflow_coins:
+            logger.info(f'Coins {coins} <= threshold {overflow_coins}, skip')
+            return
+
+        # 计算溢出购买数量
+        today_left = total - bought
+        # 向上取整：需要购买多少个猫箱才能将金币降到阈值以下
+        overflow_count = -(-(coins - overflow_coins) // BUY_PRIZE)
+        # 限制在今日剩余数量内
+        count = min(overflow_count, today_left)
+
+        # 考虑首抽免费：如果剩余=总数（一个都没买），第一个免费
+        free = 1 if remain == total else 0
+        # 检查金币是否足够
+        affordable = coins // BUY_PRIZE + free
+        if count > affordable:
+            count = affordable
+            logger.info(f'Coins only enough for {count} meowfficers')
+
+        if count <= 0:
+            logger.info('No meowfficer to buy, skip')
+            return
+
+        logger.info(f'Overflow buy count: {count} (overflow_count={overflow_count}, today_left={today_left})')
+
+        # 执行购买
+        # 传入总共需要达到的数量（已买 + 还需买），meow_choose 会自动计算差额
+        if self.meow_choose(count=count + bought):
+            self.meow_confirm()
+        else:
+            logger.info('Meowfficer overflow buy skipped by meow_choose')

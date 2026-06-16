@@ -902,7 +902,7 @@
     },
     "TaskPriorityAdjustment": {
       "name": "任务优先级调整",
-      "help": "格式：每行只写任务名，用 `>` 连接优先级（越靠前优先级越高）。\n不要写 `#` 注释，注释会导致任务名匹配失败。\n\n示例：\nRestart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> ...\n\n留空可使用内置默认优先级。"
+      "help": "Restart    # 重启游戏\n> OpsiCrossMonth    # 大世界跨月每日\n> Commission > Tactical > Research    # 委托 > 战术学院 > 科研\n> Exercise    # 演习\n> Dorm > Meowfficer > Guild > Gacha    # 后宅 > 指挥喵 > 大舰队 > 每日抽卡\n> Reward    # 收获\n> ShopFrequent > ShopOnce > Shipyard > Freebies > Island    # 通用商店 > 其他商店 > 开发船坞 > 白嫖奖励 > 岛屿计划\n> PrivateQuarters    # 宿舍计划\n> OpsiExplore    # 每月开荒\n> Minigame > Awaken    # 小游戏 > 认知觉醒\n> OpsiAshBeacon    # meta作战\n> OpsiDaily > OpsiShop > OpsiVoucher    # 大世界日常 > 港口商店 > 兑换商店 > 兑换商店\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive > EventShop   # 深渊海域 > 塞壬要塞 > 隐秘海域 > 档案坐标\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss     # 每日挑战 > 困难图 > meta作战 > meta支援 > 月度boss\n> Sos > EventSp > EventA > EventB > EventC > EventD    # Sos > 活动每日SP > 活动每日A > 活动每日B > 活动每日C > 活动每日D\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort    # 共斗活动每日 > 共斗活动sp > 作战档案 > 商船护航\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3    # 活动图 > 活动图2 > 活动图3 > 共斗活动 > 医院活动 > 共斗活动 > 共斗沉船 > 主线 > 主线2 > 主线3\n> OpsiMeowfficerFarming    # 短猫相接\n> GemsFarming    # 刷紧急委托\n> OpsiHazard1Leveling    # 侵蚀一练级\n> ThreeOilLowCost    # 三油低耗  \n\n 格式：每行只写任务名，用 `>` 连接优先级（越靠前优先级越高）。\n不要写 `#` 注释，注释会导致任务名匹配失败。\n\n不知道任务名是什么就调成英文界面查看任务名字\n\n示例：\nRestart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> ...\n\n留空可使用内置默认优先级。"
     }
   },
   "OneClickRetire": {
@@ -2140,7 +2140,11 @@
     },
     "ConsumeCoins": {
       "name": "消耗溢出物资",
-      "help": "物资超过550000时购买所有消耗物资的物品"
+      "help": "物资超过指定阈值时购买所有消耗物资的物品，0表示关闭，范围1-600000"
+    },
+    "OverflowCoins": {
+      "name": "物资溢出购买猫箱",
+      "help": "物资超过指定阈值时自动购买猫箱消耗物资，0表示关闭，范围1-600000"
     },
     "Filter": {
       "name": "商店过滤器",

@@ -4,6 +4,7 @@ from module.shop.base import ShopItemGrid, ShopItemGrid_250814
 from module.shop.clerk import ShopClerk
 from module.shop.shop_status import ShopStatus
 from module.shop.ui import ShopUI
+from module.ui.page import page_meowfficer
 
 
 class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
@@ -107,8 +108,8 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
     def shop_check_custom_item(self, item):
         """检查自定义商品是否满足特定购买条件。
 
-        处理需要特殊判断的商品，如金币余额超过 550000 时
-        自动购买金币商品，或购买装备外观箱。
+        处理需要特殊判断的商品，如物资超过 ConsumeCoins 阈值时
+        自动购买消耗物资的商品，或购买装备外观箱。
 
         Args:
             item: 待检查的商品对象
@@ -116,9 +117,12 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         Returns:
             bool: 是否为满足条件的自定义商品
         """
-        if self.config.GeneralShop_ConsumeCoins and self._currency >= 550000:
-            if item.cost == 'Coins':
-                return True
+        consume_coins = self.config.GeneralShop_ConsumeCoins
+        # 阈值验证：必须 > 0 且 <= 600000
+        if consume_coins > 0 and consume_coins <= 600000:
+            if self._currency >= consume_coins:
+                if item.cost == 'Coins':
+                    return True
 
         if self.config.GeneralShop_BuySkinBox:
             if (not item.is_known_item()) and item.amount == 1 and item.cost == 'Coins' and item.price == 7000:
@@ -129,13 +133,77 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
 
         return False
 
+    def _meowfficer_overflow_buy(self):
+        """金币溢出时自动购买猫箱。
+
+        当金币超过 OverflowCoins 阈值时，导航到指挥喵界面购买猫箱，
+        直到金币降至阈值以下或达到每日15个购买限制。
+        阈值范围 1-600000，超出范围视为无效并跳过功能。
+
+        Pages: in: page_shop, out: page_main
+        """
+        overflow_coins = self.config.GeneralShop_OverflowCoins
+
+        # 阈值检查：<= 0 表示功能关闭
+        if overflow_coins <= 0:
+            return
+
+        # 重新OCR识别金币（购买消耗物资后金币可能已变化）
+        self.shop_currency()
+        if self._currency <= overflow_coins:
+            logger.info(f'Gold coins {self._currency} <= OverflowCoins {overflow_coins}, skip meowfficer overflow buy')
+            return
+
+        logger.hr('Meowfficer overflow buy', level=1)
+        logger.info(f'Gold coins {self._currency} > OverflowCoins {overflow_coins}, trigger meowfficer overflow buy')
+
+        # 导航到指挥喵界面
+        self.ui_goto(page_meowfficer)
+
+        # 等待界面加载完成
+        from module.meowfficer.buy import MeowfficerBuy
+        meow = MeowfficerBuy(config=self.config, device=self.device)
+        meow.wait_meowfficer_buttons()
+
+        # 执行猫箱溢出购买
+        meow.meow_overflow_buy(overflow_coins=overflow_coins)
+
+        # 返回主界面
+        self.ui_goto_main()
+
+    def _validate_config_values(self):
+        """验证并修正配置值。
+
+        检测 ConsumeCoins 和 OverflowCoins 的异常值（不在 0-600000 范围内），
+        并将异常值强制设置为零。
+
+        有效范围：0 表示关闭功能，1-600000 表示启用功能并设置阈值。
+        """
+        # 验证 ConsumeCoins
+        consume_coins = self.config.GeneralShop_ConsumeCoins
+        if consume_coins < 0 or consume_coins > 600000:
+            logger.warning(f'ConsumeCoins={consume_coins}, invalid range (0-600000), '
+                           f'set to 0 to disable feature')
+            self.config.GeneralShop_ConsumeCoins = 0
+
+        # 验证 OverflowCoins
+        overflow_coins = self.config.GeneralShop_OverflowCoins
+        if overflow_coins < 0 or overflow_coins > 600000:
+            logger.warning(f'OverflowCoins={overflow_coins}, invalid range (0-600000), '
+                           f'set to 0 to disable feature')
+            self.config.GeneralShop_OverflowCoins = 0
+
     def run(self):
         """运行通用商店购买流程。
 
         Pages: in: page_shop (general shop tab)
 
         按照过滤器配置购买通用商店商品，支持刷新。
+        购买完成后，若金币超过溢出阈值则自动购买猫箱。
         """
+        # 配置值验证：检测并修正异常值
+        self._validate_config_values()
+
         if not self.shop_filter:
             return
 
@@ -150,3 +218,6 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
             if refresh and self.shop_refresh():
                 continue
             break
+
+        # 金币溢出购买猫箱
+        self._meowfficer_overflow_buy()

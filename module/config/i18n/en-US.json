@@ -2140,7 +2140,11 @@
     },
     "ConsumeCoins": {
       "name": "Consumption of overflow supplies",
-      "help": "When the supplies exceed 550,000, purchase all items that consume supplies."
+      "help": "When supplies exceed the threshold, purchase all items that consume supplies. 0 means disabled. Range: 1-600000"
+    },
+    "OverflowCoins": {
+      "name": "Buy Meowfficer Boxes on Coin Overflow",
+      "help": "Automatically buy meowfficer boxes when coins exceed the threshold. 0 means disabled. Range: 1-600000"
     },
     "Filter": {
       "name": "Shop Filter",

@@ -11104,8 +11104,12 @@
         "value": false
       },
       "ConsumeCoins": {
-        "type": "checkbox",
-        "value": false
+        "type": "input",
+        "value": 0
+      },
+      "OverflowCoins": {
+        "type": "input",
+        "value": 0
       },
       "Filter": {
         "type": "textarea",

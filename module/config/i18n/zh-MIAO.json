@@ -2142,6 +2142,10 @@
       "name": "消耗溢出物资 (｡•̀ᴗ-)✧",
       "help": "物资超550000时购买所有消耗物资物品喵。"
     },
+    "OverflowCoins": {
+      "name": "GeneralShop.OverflowCoins.name",
+      "help": "GeneralShop.OverflowCoins.help"
+    },
     "Filter": {
       "name": "商店过滤器喵",
       "help": ""
