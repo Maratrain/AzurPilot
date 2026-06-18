@@ -862,8 +862,8 @@ class AlasGUI(Frame):
                     a_max = max(valid_asset)
                     a_min = min(valid_asset)
 
-                    coins_stats_html += f'<div style="display:grid; grid-template-columns:150px 100px 90px 90px 90px; gap:8px; margin-bottom:2px; font-size:12px; color:#aaa;"><span>资产: <b style="color:#22d3ee">{a_cur:.1f}</b></span><span>变化: <b style="color:{a_change_color}">{a_change_sign}{a_change:.1f}</b></span><span>最高: <b style="color:#ef5350">{a_max:.1f}</b></span><span>最低: <b style="color:#26a69a">{a_min:.1f}</b></span><span></span></div>'
-                    coins_legend_html += '<span class="ap-legend-item" data-series="4" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:2px; background:#22d3ee; border-radius:1px;"></span>资产</span>'
+                    coins_stats_html += f'<div style="display:grid; grid-template-columns:150px 100px 90px 90px 90px; gap:8px; margin-bottom:2px; font-size:12px; color:#aaa;"><span>资产: <b style="color:#65996D">{a_cur:.1f}</b></span><span>变化: <b style="color:{a_change_color}">{a_change_sign}{a_change:.1f}</b></span><span>最高: <b style="color:#ef5350">{a_max:.1f}</b></span><span>最低: <b style="color:#26a69a">{a_min:.1f}</b></span><span></span></div>'
+                    coins_legend_html += '<span class="ap-legend-item" data-series="4" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:2px; background:#65996D; border-radius:1px;"></span>资产</span>'
 
             # 确保 show_coins 在资产/虚拟资产存在时也为 True，以启用右轴绘制
             if not show_coins and (
