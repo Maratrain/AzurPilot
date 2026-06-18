@@ -132,11 +132,14 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             # NemuPlayer.exe -m nemu-12.0-x64-default
             self.execute(f'"{exe}" -m {instance.name}')
         elif instance == Emulator.MuMuPlayer12:
-            # MuMuPlayer.exe -v 0
-            # MuMuNxMain.exe -v 0
+            # MuMuManager.exe api -v 0 launch_player
+            # Launch via MuMuManager instead of MuMuPlayer.exe/MuMuNxMain.exe.
+            # MuMuNxMain.exe is a GUI singleton, if two instances get launched at the same time,
+            # the second launch request is handed over to a MuMuNxMain.exe that is still initializing
+            # and gets silently dropped, while MuMuManager queues requests in backend service.
             if instance.MuMuPlayer12_id is None:
                 logger.warning(f'Cannot get MuMu instance index from name {instance.name}')
-            self.execute(f'"{exe}" -v {instance.MuMuPlayer12_id}')
+            self.execute(f'"{Emulator.single_to_console(exe)}" api -v {instance.MuMuPlayer12_id} launch_player')
         elif instance == Emulator.LDPlayerFamily:
             # ldconsole.exe launch --index 0
             self.execute(f'"{Emulator.single_to_console(exe)}" launch --index {instance.LDPlayer_id}')

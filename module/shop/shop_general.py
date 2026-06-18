@@ -119,6 +119,7 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         """
         consume_coins = self.config.GeneralShop_ConsumeCoins
         # 阈值验证：必须 > 0 且 <= 600000
+        # 类型安全由 run() → _validate_config_values() 中的规范化保证
         if consume_coins > 0 and consume_coins <= 600000:
             if self._currency >= consume_coins:
                 if item.cost == 'Coins':
@@ -133,6 +134,26 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
 
         return False
 
+    @staticmethod
+    def _normalize_threshold(value, name):
+        """验证并修正阈值配置值。
+
+        检测值是否为有效的 int 类型（排除 bool）且在 0-600000 范围内，
+        无效则返回 0 并记录警告。有效范围：0 表示关闭功能，1-600000 表示启用。
+
+        Args:
+            value: 待验证的阈值。
+            name: 配置项名称（用于日志）。
+
+        Returns:
+            int: 规范化后的阈值（0 或有效范围内的 int）。
+        """
+        if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 600000:
+            return value
+        logger.warning(f'{name}={value}, invalid value (expected int in 0-600000), '
+                       f'set to 0 to disable feature')
+        return 0
+
     def _meowfficer_overflow_buy(self):
         """金币溢出时自动购买猫箱。
 
@@ -145,6 +166,7 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         overflow_coins = self.config.GeneralShop_OverflowCoins
 
         # 阈值检查：<= 0 表示功能关闭
+        # 类型安全由 run() → _validate_config_values() 中的规范化保证
         if overflow_coins <= 0:
             return
 
@@ -174,24 +196,17 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
     def _validate_config_values(self):
         """验证并修正配置值。
 
-        检测 ConsumeCoins 和 OverflowCoins 的异常值（不在 0-600000 范围内），
-        并将异常值强制设置为零。
+        检测 ConsumeCoins 和 OverflowCoins 的异常值（不在 0-600000 范围内，
+        或类型非 int（如旧数据中的 bool）），并将异常值强制设置为零。
 
         有效范围：0 表示关闭功能，1-600000 表示启用功能并设置阈值。
+        必须为 int 类型：Python 中 bool 是 int 的子类，True > 0 恒为 True，
+        旧数据中的布尔值会导致消费溢出逻辑永远触发。
         """
-        # 验证 ConsumeCoins
-        consume_coins = self.config.GeneralShop_ConsumeCoins
-        if consume_coins < 0 or consume_coins > 600000:
-            logger.warning(f'ConsumeCoins={consume_coins}, invalid range (0-600000), '
-                           f'set to 0 to disable feature')
-            self.config.GeneralShop_ConsumeCoins = 0
-
-        # 验证 OverflowCoins
-        overflow_coins = self.config.GeneralShop_OverflowCoins
-        if overflow_coins < 0 or overflow_coins > 600000:
-            logger.warning(f'OverflowCoins={overflow_coins}, invalid range (0-600000), '
-                           f'set to 0 to disable feature')
-            self.config.GeneralShop_OverflowCoins = 0
+        self.config.GeneralShop_ConsumeCoins = self._normalize_threshold(
+            self.config.GeneralShop_ConsumeCoins, 'ConsumeCoins')
+        self.config.GeneralShop_OverflowCoins = self._normalize_threshold(
+            self.config.GeneralShop_OverflowCoins, 'OverflowCoins')
 
     def run(self):
         """运行通用商店购买流程。

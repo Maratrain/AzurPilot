@@ -204,18 +204,12 @@ class InfoHandler(ModuleBase):
             return False
 
         if self.appear(USE_DATA_KEY, offset=(20, 20)):
-            skip_first_screenshot = True
-            while 1:
-                if skip_first_screenshot:
-                    skip_first_screenshot = False
-                else:
-                    self.device.screenshot()
-
+            # enable USE_DATA_KEY_NOTIFIED
+            for _ in self.loop():
                 enabled = self.image_color_count(
                     USE_DATA_KEY_NOTIFIED, color=(140, 207, 66), threshold=180, count=10)
                 if enabled:
                     break
-
                 if self.appear(USE_DATA_KEY, offset=(20, 20), interval=5):
                     self.device.click(USE_DATA_KEY_NOTIFIED)
                     continue
