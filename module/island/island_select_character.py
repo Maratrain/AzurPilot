@@ -1,5 +1,8 @@
 from module.island_select_character.assets import *
 from module.base.button import *
+from module.base.utils import color_similar, color_similarity_2d, crop, get_color
+import numpy as np
+from module.ocr.ocr import DigitCounter
 from module.ui.ui import UI
 from module.logger import logger
 
@@ -18,11 +21,8 @@ class SelectCharacter(UI):
         # 定义状态检测区域（相对于每个角色按钮）
         self.character_area_relative = (25, 10, 125, 72)
         self.working_area_relative = (15, 65, 105, 95)
-        self.stamina_area_relative = (26, 139, 27, 140)
-        # (18, 139, 19, 140)>25
-        # (22, 139, 23, 140)>30
-        # (26, 139, 27, 140)>35
-        # (56, 139, 58, 152) 约75
+        self.stamina_area_relative = (18, 139, 58, 152)
+        self.stamina_ocr_area_relative = (0, 136, 80, 155)
         self.selected_area_relative = (86, 1, 119, 12)
 
         # 角色模板映射
@@ -129,8 +129,9 @@ class SelectCharacter(UI):
         # 2. 识别是否工作中
         is_working = self._check_working_status(screenshot, button)
 
-        # 3. 识别体力是否充沛
-        has_stamina = self._check_stamina_status(screenshot, button)
+        # 3. 识别当前体力值
+        stamina = self._get_stamina_value(screenshot, button)
+        has_stamina = stamina >= 35
 
         # 4. 识别是否已选中
         is_selected = self._check_selected_status(screenshot, button)
@@ -138,6 +139,7 @@ class SelectCharacter(UI):
         return {
             "character_name": character_name,
             "is_working": is_working,
+            "stamina": stamina,
             "has_stamina": has_stamina,
             "is_selected": is_selected
         }
@@ -181,9 +183,34 @@ class SelectCharacter(UI):
 
     def _check_stamina_status(self, screenshot, button):
         """检查体力是否充沛"""
-        stamina_area = self._get_absolute_area(button, self.stamina_area_relative)
+        stamina_area = self._get_absolute_area(button, (26, 139, 27, 140))
         stamina_color = get_color(screenshot, stamina_area)
         return color_similar(stamina_color, (18.0, 211.0, 186.0), 80)
+
+    def _get_stamina_value(self, screenshot, button):
+        """识别角色当前体力值。"""
+        stamina_area = self._get_absolute_area(button, self.stamina_ocr_area_relative)
+        ocr = DigitCounter(
+            stamina_area,
+            letter=(255, 255, 255),
+            threshold=128,
+            name='OCR_CHARACTER_STAMINA',
+        )
+        current, _, total = ocr.ocr(screenshot)
+        if total:
+            return current
+
+        return self._get_stamina_percentage_fallback(screenshot, button)
+
+    def _get_stamina_percentage_fallback(self, screenshot, button):
+        """OCR 失败时用体力条绿色长度估算体力。"""
+        stamina_area = self._get_absolute_area(button, self.stamina_area_relative)
+        stamina_image = crop(screenshot, stamina_area, copy=False)
+        similarity = color_similarity_2d(stamina_image, color=(18.0, 211.0, 186.0))
+        columns = np.where(np.any(similarity > 175, axis=0))[0]
+        if not columns.size:
+            return 0
+        return min(100, int(round((columns[-1] + 1) / stamina_image.shape[1] * 100)))
 
     def _check_selected_status(self, screenshot, button):
         """检查是否已选中"""

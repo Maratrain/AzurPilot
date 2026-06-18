@@ -424,6 +424,9 @@ Island:
     IslandDailyOrder:
       - Scheduler
       - IslandDailyOrder
+    IslandDailyInteract:
+      - Scheduler
+      - IslandDailyInteract
     IslandPearlSell:
       - Scheduler
       - IslandPearlSell

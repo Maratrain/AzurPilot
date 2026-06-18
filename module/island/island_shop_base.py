@@ -9,6 +9,7 @@ from module.island.island_season import get_global_season_config
 
 class IslandShopBase(Island, WarehouseOCR):
     _MAX_FILL_LOOP = 10  # while 循环填岗最大迭代次数
+    POST_PRODUCE_LIMIT = 7  # 餐馆每个岗位单次最多生产数量
 
     def __init__(self, config, device=None, task=None):
         # 分别初始化每个父类
@@ -341,7 +342,9 @@ class IslandShopBase(Island, WarehouseOCR):
                     continue
                 deficit = target - current
                 # check_materials=True 时严格检查零库存，用于跳过无法生产的缺口
-                if self.get_max_producible(name, min(6, deficit), skip_zero_materials=not check_materials) <= 0:
+                if self.get_max_producible(
+                        name, min(self.POST_PRODUCE_LIMIT, deficit),
+                        skip_zero_materials=not check_materials) <= 0:
                     logger.info(f"槽位{idx + 1} {name} 材料完全不足，本轮跳过")
                     continue
                 self.to_post_products[name] = deficit
@@ -497,7 +500,7 @@ class IslandShopBase(Island, WarehouseOCR):
                         result = self.post_produce(
                             post_id,
                             product=special_food,
-                            number=6,  # 最大6个
+                            number=self.POST_PRODUCE_LIMIT,
                             time_var_name=time_var_name,
                             product2=away_cook
                         )
@@ -516,7 +519,7 @@ class IslandShopBase(Island, WarehouseOCR):
                         result = self.post_produce(
                             post_id,
                             product=special_food,
-                            number=6,  # 最大6个
+                            number=self.POST_PRODUCE_LIMIT,
                             time_var_name=time_var_name
                         )
 
@@ -532,7 +535,7 @@ class IslandShopBase(Island, WarehouseOCR):
                         logger.info(f"只有常驻餐品 {away_cook}，没有特殊餐品")
 
                         # 检查材料限制
-                        batch_size = min(6, 9999)  # 最大6个
+                        batch_size = self.POST_PRODUCE_LIMIT
                         batch_size = self.get_max_producible(away_cook, batch_size)
 
                         if batch_size > 0:
@@ -712,9 +715,9 @@ class IslandShopBase(Island, WarehouseOCR):
                 max_producible = min(max_producible, max_by_material)
                 logger.info(f"  {product} 原材料 {material}: 库存 {material_stock}，每个需要 {quantity_per}，最大生产 {max_by_material}")
 
-        # 2. 检查岗位数量限制（每个岗位最多6个）
-        max_producible = min(max_producible, 6)
-        logger.info(f"岗位限制: 最多生产6个，当前限制后: {max_producible}")
+        # 2. 检查岗位数量限制
+        max_producible = min(max_producible, self.POST_PRODUCE_LIMIT)
+        logger.info(f"岗位限制: 最多生产{self.POST_PRODUCE_LIMIT}个，当前限制后: {max_producible}")
 
         # 3. 检查特殊材料（被子类覆盖）
         max_producible = self.check_special_materials(product, max_producible)
@@ -774,7 +777,7 @@ class IslandShopBase(Island, WarehouseOCR):
             # 为每个空闲岗位安排生产
             for post_id in idle_posts:
                 # 检查材料限制
-                batch_size = min(6, 9999)  # 最大6个
+                batch_size = self.POST_PRODUCE_LIMIT
                 batch_size = self.get_max_producible(away_cook_product, batch_size)
 
                 if batch_size <= 0:
@@ -848,7 +851,8 @@ class IslandShopBase(Island, WarehouseOCR):
                 post_id = idle_posts[post_index]
 
                 # 计算最大可生产数量
-                max_producible = self.get_max_producible(product, min(6, remaining_need))
+                max_producible = self.get_max_producible(
+                    product, min(self.POST_PRODUCE_LIMIT, remaining_need))
 
                 if max_producible <= 0:
                     logger.info(f"生产 {product} 的材料暂时不足，保留在计划中等待下一轮")

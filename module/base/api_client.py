@@ -123,7 +123,7 @@ class ApiClient:
     def _submit_bug_log(content: str, log_type: str):
         """
         内部方法：提交Bug日志
-        
+        注：此方法基本没用了 服务端API废弃
         Args:
             content: 日志内容
             log_type: 日志类型
@@ -202,7 +202,8 @@ class ApiClient:
     def submit_cl1_data(cls, data: Dict[str, Any], timeout: int = 10):
         """
         提交CL1统计数据（异步）
-        
+        只包含哈希化的设备ID 不TM包含原始硬件信息 如果你是傻逼，可以认为服务端收集了你的设备信息
+        不喜欢自己关 我TM又没留后门
         Args:
             data: 包含device_id和统计数据的字典
             timeout: 请求超时时间（秒），默认10秒

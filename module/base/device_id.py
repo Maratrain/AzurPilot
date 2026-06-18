@@ -84,6 +84,9 @@ def generate_device_id() -> str:
     基于硬件指纹生成唯一设备ID
     """
     fingerprint = _collect_hardware_fingerprint()
+    # 傻逼玩意们 这他妈hash化了 传你妈的设备信息 弱智
+    # hash都TM不知道 你们是傻逼吗？
+    # sha256 怎么逆向出原始信息 你用的是领先几百年的超算吗？
     device_id = hashlib.sha256(fingerprint.encode('utf-8')).hexdigest()[:32]
     return device_id
 

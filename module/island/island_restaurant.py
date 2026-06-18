@@ -336,7 +336,7 @@ class IslandRestaurant(IslandShopBase):
                 logger.info(f"阶段：高优先级季节菜品 — {dish_cn}")
 
                 # 从生产计划中提取，单独安排生产
-                slot1_qty = 6
+                slot1_qty = self.POST_PRODUCE_LIMIT
                 if dish_name in self.to_post_products:
                     slot1_qty += self.to_post_products.pop(dish_name)
 
@@ -420,7 +420,7 @@ class IslandRestaurant(IslandShopBase):
                     logger.info(f"尝试生产常驻餐品 {away_cook}")
 
                     # 检查材料限制
-                    batch_size = min(6, 9999)
+                    batch_size = self.POST_PRODUCE_LIMIT
                     batch_size = self.get_max_producible(away_cook, batch_size)
 
                     if batch_size > 0:

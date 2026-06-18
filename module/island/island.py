@@ -201,6 +201,8 @@ class Island(SelectCharacter):
                 return ISLAND_MAP_ASSEMBLY, ISLAND_MAP_ASSEMBLY_CHECK
             if name == 'port':
                 return ISLAND_MAP_PORT, ISLAND_MAP_PORT_CHECK
+            if name == 'port_business':
+                return ISLAND_MAP_PORT_BUSINESS, ISLAND_MAP_PORT_BUSINESS_CHECK
             raise ValueError(f"未知的岛屿地图目的地: {name}")
 
         destination_button, check_button = get_destination_buttons(destination)
@@ -476,4 +478,3 @@ class Island(SelectCharacter):
                     break
         logger.info(f"尝试{max_attempts}次后仍然失败")
         return False
-

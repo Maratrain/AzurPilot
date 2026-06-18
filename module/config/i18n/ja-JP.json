@@ -346,6 +346,10 @@
       "name": "デイリーオーダー",
       "help": "アイランドの携帯ページからデイリーオーダー画面に入り、オーダータイプ（緊急/チャレンジ/イージー）を自動検出し、アイテム条件に基づいて納品または却下します。"
     },
+    "IslandDailyInteract": {
+      "name": "デイリー/週間任務",
+      "help": "島のふれあい、JUU速達、商区外送サービス、週間写真タスクを処理します。関連ボタンリソース生成後に有効化できます。"
+    },
     "IslandPearlSell": {
       "name": "週間パール取引",
       "help": "毎週火曜日01:00にパールを自動処理：まず今週のパールを購入し、次に既存のパールを販売します。minitouchのみ対応。コインが200x220個分の購入に十分であることを確認してください。これが今週のパールを一括購入するための最低要件です。不足するとエラーが発生する可能性があります。"
@@ -903,7 +907,7 @@
     },
     "TaskPriorityAdjustment": {
       "name": "タスクの優先度の調整",
-      "help": "再起動 # ゲームを再起動します\n> OpsiCrossMonth # セイレーン作戦月跨ぎ\n> 委託 > 戦術 > 研究 # 委託 > 戦術学院 > 研究\n> 演習 # 演習\n> 後宅 > 指揮ニャ > 大艦隊 > ガチャ # 後宅 > 指揮ニャ > 大艦隊 > デイリー建造\n> 報酬 # 収穫\n> ShopFrequent > ShopOnce > 造船所 > 景品 > アイランド # よく使うショップ > その他のショップ > 開発ドック > 景品特典 > アイランドプラン\n> PrivateQuarters # ルームプラン\n> OpsiExplore # 毎月の探索\n> ミニゲーム > 覚醒 # ミニゲーム > 認知覚醒\n> OpsiAshBeacon # META戦闘\n> OpsiDaily > OpsiShop > OpsiVoucher # セイレーン作戦デイリー > 港湾ショップ > 引換ショップ\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive # 深淵 > セイレーン要塞 > 隠された海域 > アーカイブ座標\n> デイリー > ハード > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss # デイリー > ハードマップ > META戦闘 > METAサポート > マンスリーボス\n> Sos > EventSp > EventA > EventB > EventC > EventD # Sos > イベントデイリーSP > イベントデイリーA > イベントデイリーB > イベントデイリーC > イベントデイリーD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort # 共闘デイリー > 共闘SP > 作戦アーカイブ > 商船護衛\n> イベント > イベント2 > 共闘 > Hospital > HospitalEvent > Coalition > RaidScuttle > メイン > メイン2 > メイン3 # イベントマップ > イベントマップ2 > 共闘 > 病院イベント > 共闘イベント > 連合 > 共闘沈船 > メインステージ > メインステージ2 > メインステージ3\n> OpsiMeowfficerFarming # 指揮ニャ収集\n> GemsFarming # 緊急委託周回\n> OpsiHazard1Leveling # 侵蝕1レベリング\n> ThreeOilLowCost # 3燃料低コスト"
+      "help": "既定の優先度参考（# 以降は説明です。実際の設定にはコメントをコピーしないでください）：\nRestart    # ゲーム再起動\n> OpsiCrossMonth    # セイレーン作戦の月跨ぎデイリー\n> Commission > Tactical > Research    # 委託 > 戦術学院 > 研究\n> Exercise    # 演習\n> Dorm > Meowfficer > Guild > Gacha    # 寮舎 > 指揮ニャ > 大艦隊 > デイリー建造\n> Reward    # 報酬受取\n> ShopFrequent > ShopOnce > Shipyard > Freebies    # 通常ショップ > 一回限りショップ > 開発ドック > 無料報酬\n> PrivateQuarters    # プライベートルーム\n> OpsiExplore    # セイレーン作戦の月次開拓\n> Minigame > Awaken    # ミニゲーム > 認知覚醒\n> OpsiAshBeacon    # METAビーコン戦\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop    # セイレーン作戦デイリー > 港ショップ > 交換ショップ > イベントショップ\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive    # 深淵海域 > セイレーン要塞 > 隠された海域 > アーカイブ座標\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss    # デイリーチャレンジ > ハード海域 > META戦 > META支援 > 月度ボス\n> Sos > EventSp > EventA > EventB > EventC > EventD    # SOS > イベントデイリーSP > イベントデイリーA > イベントデイリーB > イベントデイリーC > イベントデイリーD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort    # 共闘デイリー > 共闘SP > 作戦アーカイブ > 商船護衛\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant    # 島ジュウ簡餐 > ジュウコーヒー > イカ焼き > 白熊ドリンク > 有魚レストラン\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture    # 島農地 > 牧場 > 鉱山＆林場 > デイリー採集 > 製造業\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation    # 島デイリー補給 > 経営モジュール > デイリーオーダー > デイリー/週間任務 > 週間パール取引 > 貨物準備\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3    # イベントマップ1 > イベントマップ2 > イベントマップ3 > 共闘 > 病院 > 病院イベント > 連合 > 共闘沈船 > メイン > メイン2 > メイン3\n> OpsiMeowfficerFarming    # セイレーン作戦指揮ニャ収集\n> GemsFarming    # 緊急委託周回\n> Ambush11    # 1-1伏撃周回\n> OpsiHazard1Leveling    # 侵蝕1レベリング\n> ThreeOilLowCost    # 3燃料低コスト\n\n形式: 1 行にはタスク名だけを書き、`>` で優先度をつなぎます（左側ほど優先度が高い）。\n上記の `#` コメントは説明用です。実際の設定値にコメントを残すとタスク名の照合に失敗します。\nタスク名は英語の設定タスク名を使ってください。分からない場合は UI を英語に切り替えて確認してください。\n空欄にすると内蔵の既定優先度を使用します。"
     }
   },
   "OneClickRetire": {
@@ -4597,6 +4601,18 @@
     "UrgentDetectRefreshTime": {
       "name": "緊急委託検出更新時間",
       "help": "緊急委託検出のクールダウン時間。この時間前は緊急委託検出をスキップします。形式：YYYY-MM-DD HH:mm:ss"
+    }
+  },
+  "IslandDailyInteract": {
+    "_info": {
+      "name": "デイリー/週間任務",
+      "help": "朝露農場のふれあい、開発計画の JUU 速達、商区外送サービス、週間写真タスクを含む島のデイリー・週間交流を制御します。"
+    },
+    "WeeklyPhoto": {
+      "name": "週間写真タスク",
+      "help": "開発計画から週間写真タスクを開始し、写真撮影と待機選択を3回繰り返し、タスクアイコンが消えるまで処理します。",
+      "True": "True",
+      "False": "False"
     }
   },
   "IslandPearlSell": {

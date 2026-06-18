@@ -169,7 +169,7 @@
       "FleetOnsen": false
     },
     "YukikazeTaskManager": {
-      "TaskPriorityAdjustment": "Restart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost"
+      "TaskPriorityAdjustment": "Restart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost"
     },
     "Storage": {
       "Storage": {}
@@ -2901,11 +2901,11 @@
       "ChefFilter": "WorkerJuu",
       "DoubleBambooShoots": false,
       "Meal1": "tofu_meat",
-      "MealNumber1": 6,
+      "MealNumber1": 7,
       "Meal2": "hearty_meal",
-      "MealNumber2": 6,
+      "MealNumber2": 7,
       "Meal3": "omurice",
-      "MealNumber3": 6,
+      "MealNumber3": 7,
       "Meal4": "None",
       "MealNumber4": 0,
       "Meal5": "None",
@@ -2940,11 +2940,11 @@
       "ChefFilter": "WorkerJuu",
       "Seasonal": false,
       "Meal1": "floral_fruity",
-      "MealNumber1": 6,
+      "MealNumber1": 7,
       "Meal2": "lavender_tea",
-      "MealNumber2": 6,
+      "MealNumber2": 7,
       "Meal3": "strawberry_lemon",
-      "MealNumber3": 6,
+      "MealNumber3": 7,
       "Meal4": "None",
       "MealNumber4": 0,
       "Meal5": "None",
@@ -2978,11 +2978,11 @@
       "PostNumber": 1,
       "ChefFilter": "WorkerJuu",
       "Meal1": "double_energy",
-      "MealNumber1": 6,
+      "MealNumber1": 7,
       "Meal2": "steak_bowl",
-      "MealNumber2": 6,
+      "MealNumber2": 7,
       "Meal3": "stir_fried_chicken",
-      "MealNumber3": 6,
+      "MealNumber3": 7,
       "Meal4": "None",
       "MealNumber4": 0,
       "Meal5": "None",
@@ -3016,11 +3016,11 @@
       "PostNumber": 1,
       "ChefFilter": "WorkerJuu",
       "Meal1": "berry_orange",
-      "MealNumber1": 6,
+      "MealNumber1": 7,
       "Meal2": "succulently_sweet",
-      "MealNumber2": 6,
+      "MealNumber2": 7,
       "Meal3": "rice_mango",
-      "MealNumber3": 6,
+      "MealNumber3": 7,
       "Meal4": "None",
       "MealNumber4": 0,
       "Meal5": "None",
@@ -3055,11 +3055,11 @@
       "ChefFilter": "WorkerJuu",
       "Friedrich": false,
       "Meal1": "wake_up_call",
-      "MealNumber1": 6,
+      "MealNumber1": 7,
       "Meal2": "cheese",
-      "MealNumber2": 6,
+      "MealNumber2": 7,
       "Meal3": "fruity_fruitier",
-      "MealNumber3": 6,
+      "MealNumber3": 7,
       "Meal4": "None",
       "MealNumber4": 0,
       "Meal5": "None",
@@ -3172,6 +3172,24 @@
       "RejectCount": 0,
       "RejectFilter": "Cheese > Tofu",
       "UrgentDetectRefreshTime": "2020-01-01 00:00:00"
+    },
+    "Storage": {
+      "Storage": {}
+    }
+  },
+  "IslandDailyInteract": {
+    "Scheduler": {
+      "Enable": false,
+      "PushNotification": false,
+      "NextRun": "2020-01-01 00:00:00",
+      "Command": "IslandDailyInteract",
+      "SuccessInterval": 0,
+      "FailureInterval": 120,
+      "ServerUpdate": "00:00",
+      "Sensitive": false
+    },
+    "IslandDailyInteract": {
+      "WeeklyPhoto": true
     },
     "Storage": {
       "Storage": {}

@@ -17,7 +17,8 @@ from module.ocr.ocr import Ocr
 from module.os_handler.assets import (AUTO_SEARCH_REWARD, EXCHANGE_CHECK, RESET_FLEET_PREPARATION, RESET_TICKET_POPUP)
 from module.raid.assets import *
 from module.ui.assets import *
-from module.ui.page import Page, page_academy, page_campaign, page_event, page_main, page_main_white, page_sp
+from module.ui.page import (Page, page_academy, page_campaign, page_event, page_island_shop, page_main,
+                            page_main_white, page_shop, page_sp)
 from module.ui_white.assets import *
 
 
@@ -39,6 +40,12 @@ class UI(InfoHandler):
             if self.appear(page_main.check_button, offset=(5, 5), interval=interval):
                 return True
             return False
+        if page == page_island_shop:
+            return self.appear(page.check_button, interval=interval)
+        if page == page_shop:
+            if self.ui_page_appear(page_island_shop):
+                return False
+            return self.appear(page.check_button, offset=offset, interval=interval)
         # 英文本地化导致学院标题字体宽度变化，需要额外检查其他按钮
         if self.config.SERVER == 'en' and page == page_academy:
             if self.appear(ACADEMY_GOTO_MUNITIONS, offset=offset, interval=interval):
@@ -280,7 +287,7 @@ class UI(InfoHandler):
             for page in Page.iter_pages():
                 if page.parent is None or page.check_button is None:
                     continue
-                if self.appear(page.check_button, offset=offset, interval=5):
+                if self.ui_page_appear(page=page, offset=offset, interval=5):
                     logger.info(f'Page switch: {page} -> {page.parent}')
                     button = page.links[page.parent]
                     self.device.click(button)

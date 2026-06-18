@@ -284,7 +284,7 @@ YukikazeTaskManager:
       > RaidDaily > CoalitionSp > WarArchives > MaritimeEscort
       > IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant
       > IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture
-      > IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandPearlSell > IslandCargoPreparation
+      > IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation
       > Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3
       > OpsiMeowfficerFarming
       > GemsFarming
@@ -1207,17 +1207,17 @@ IslandRestaurant:
     value: tofu_meat
     option: [ None, tofu, omurice, cabbage_tofu, salad, tofu_meat, tofu_combo, hearty_meal , double_bamboo_shoots, asparagus_shrimp, fish_chip, fo_tiao, onion_fish]
   MealNumber1:
-    value: 6
+    value: 7
   Meal2:
     value: hearty_meal
     option: [ None, tofu, omurice, cabbage_tofu, salad, tofu_meat, tofu_combo, hearty_meal , double_bamboo_shoots, asparagus_shrimp, fish_chip, fo_tiao, onion_fish]
   MealNumber2:
-    value: 6
+    value: 7
   Meal3:
     value: omurice
     option: [ None, tofu, omurice, cabbage_tofu, salad, tofu_meat, tofu_combo, hearty_meal , double_bamboo_shoots, asparagus_shrimp, fish_chip, fo_tiao, onion_fish]
   MealNumber3:
-    value: 6
+    value: 7
   Meal4:
     value: None
     option: [ None, tofu, omurice, cabbage_tofu, salad, tofu_meat, tofu_combo, hearty_meal , double_bamboo_shoots, asparagus_shrimp, fish_chip, fo_tiao, onion_fish]
@@ -1258,17 +1258,17 @@ IslandTeahouse:
     value: floral_fruity
     option: [ None, apple_juice, banana_mango, honey_lemon, strawberry_lemon, strawberry_honey, floral_fruity, fruit_paradise, lavender_tea, sunny_honey, spring_flower_tea]
   MealNumber1:
-    value: 6
+    value: 7
   Meal2:
     value: lavender_tea
     option: [ None, apple_juice, banana_mango, honey_lemon, strawberry_lemon, strawberry_honey, floral_fruity, fruit_paradise, lavender_tea, sunny_honey, spring_flower_tea]
   MealNumber2:
-    value: 6
+    value: 7
   Meal3:
     value: strawberry_lemon
     option: [ None, apple_juice, banana_mango, honey_lemon, strawberry_lemon, strawberry_honey, floral_fruity, fruit_paradise, lavender_tea, sunny_honey, spring_flower_tea]
   MealNumber3:
-    value: 6
+    value: 7
   Meal4:
     value: None
     option: [ None, apple_juice, banana_mango, honey_lemon, strawberry_lemon, strawberry_honey, floral_fruity, fruit_paradise, lavender_tea, sunny_honey, spring_flower_tea]
@@ -1308,17 +1308,17 @@ IslandGrill:
     value: double_energy
     option: [ None, roasted_skewer, chicken_potato, carrot_omelette, stir_fried_chicken, steak_bowl, carnival, double_energy  ]
   MealNumber1:
-    value: 6
+    value: 7
   Meal2:
     value: steak_bowl
     option: [ None, roasted_skewer, chicken_potato, carrot_omelette, stir_fried_chicken, steak_bowl, carnival, double_energy ]
   MealNumber2:
-    value: 6
+    value: 7
   Meal3:
     value: stir_fried_chicken
     option: [ None, roasted_skewer, chicken_potato, carrot_omelette, stir_fried_chicken, steak_bowl, carnival, double_energy ]
   MealNumber3:
-    value: 6
+    value: 7
   Meal4:
     value: None
     option: [ None, roasted_skewer, chicken_potato, carrot_omelette, stir_fried_chicken, steak_bowl, carnival, double_energy ]
@@ -1358,17 +1358,17 @@ IslandJuuEatery:
     value: berry_orange
     option: [ None, apple_pie, corn_cup, orange_pie, banana_crepe, orchard_duo, rice_mango, succulently_sweet, berry_orange, strawberry_charlotte, seafood_rice ]
   MealNumber1:
-    value: 6
+    value: 7
   Meal2:
     value: succulently_sweet
     option: [ None, apple_pie, corn_cup, orange_pie, banana_crepe, orchard_duo, rice_mango, succulently_sweet, berry_orange, strawberry_charlotte, seafood_rice ]
   MealNumber2:
-    value: 6
+    value: 7
   Meal3:
     value: rice_mango
     option: [ None, apple_pie, corn_cup, orange_pie, banana_crepe, orchard_duo, rice_mango, succulently_sweet, berry_orange, strawberry_charlotte, seafood_rice ]
   MealNumber3:
-    value: 6
+    value: 7
   Meal4:
     value: None
     option: [ None, apple_pie, corn_cup, orange_pie, banana_crepe, orchard_duo, rice_mango, succulently_sweet, berry_orange, strawberry_charlotte, seafood_rice ]
@@ -1409,17 +1409,17 @@ IslandJuuCoffee:
     value: wake_up_call
     option: [ None, iced_coffee, omelette, cheese, latte, citrus_coffee, strawberry_milkshake, morning_light, wake_up_call, fruity_fruitier ]
   MealNumber1:
-    value: 6
+    value: 7
   Meal2:
     value: cheese
     option: [ None, iced_coffee, omelette, cheese, latte, citrus_coffee, strawberry_milkshake, morning_light, wake_up_call, fruity_fruitier ]
   MealNumber2:
-    value: 6
+    value: 7
   Meal3:
     value: fruity_fruitier
     option: [ None, iced_coffee, omelette, cheese, latte, citrus_coffee, strawberry_milkshake, morning_light, wake_up_call, fruity_fruitier ]
   MealNumber3:
-    value: 6
+    value: 7
   Meal4:
     value: None
     option: [ None, iced_coffee, omelette, cheese, latte, citrus_coffee, strawberry_milkshake, morning_light, wake_up_call, fruity_fruitier ]
@@ -1476,6 +1476,12 @@ IslandDailyOrder:
     value: "Cheese > Tofu"
   UrgentDetectRefreshTime:
     value: "2020-01-01 00:00:00"
+
+IslandDailyInteract:
+  WeeklyPhoto:
+    type: checkbox
+    value: true
+    option: [ true, false ]
 
 IslandPearlSell:
   BuyPrice:

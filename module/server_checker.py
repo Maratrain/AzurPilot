@@ -10,6 +10,7 @@ from module.logger import logger
 
 
 class ServerChecker:
+    # 震惊 ALAS 竟然公然收集用户IP地址
     def __init__(self, server: str) -> None:
         self._base: str = 'http://sc.shiratama.cn'
         self._api: dict = {

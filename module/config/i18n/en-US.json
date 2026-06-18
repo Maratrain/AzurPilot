@@ -346,6 +346,10 @@
       "name": "Daily Order",
       "help": "Enter the daily order interface from the island phone page, automatically detect order types (Urgent/Challenge/Easy), deliver or reject based on item conditions. \"Standard\" type orders are not supported."
     },
+    "IslandDailyInteract": {
+      "name": "Daily/Weekly Tasks",
+      "help": "Handles island petting, JUU Express, Business Delivery, and weekly photo tasks. Enable after related button assets are generated."
+    },
     "IslandPearlSell": {
       "name": "Weekly Pearl Trade",
       "help": "Process pearls every Tuesday at 01:00."
@@ -903,7 +907,7 @@
     },
     "TaskPriorityAdjustment": {
       "name": "Task priority adjustment",
-      "help": "Format: task names only, connected with `>` (left = higher priority).\nDo not use `#` comments, because comments will break task-name matching.\n\nExample:\nRestart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> ...\n\nLeave empty to use the built-in default priority."
+      "help": "Default priority reference (`#` text is explanatory; do not copy comments into the config):\nRestart    # Restart the game\n> OpsiCrossMonth    # Operation Siren cross-month daily task\n> Commission > Tactical > Research    # Commission > Tactical Class > Research\n> Exercise    # Exercise\n> Dorm > Meowfficer > Guild > Gacha    # Dorm > Meowfficer > Guild > Daily build\n> Reward    # Rewards\n> ShopFrequent > ShopOnce > Shipyard > Freebies    # Frequent shop > One-time shop > Shipyard > Freebies\n> PrivateQuarters    # Private Quarters\n> OpsiExplore    # Monthly Operation Siren exploration\n> Minigame > Awaken    # Minigame > Cognitive Awakening\n> OpsiAshBeacon    # META beacon battle\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop    # Operation Siren daily > Port shop > Voucher shop > Event shop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive    # Abyssal zone > Siren stronghold > Obscure zone > Archive coordinate\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss    # Daily challenge > Hard mode > META battle > META assist > Monthly boss\n> Sos > EventSp > EventA > EventB > EventC > EventD    # SOS > Event daily SP > Event daily A > Event daily B > Event daily C > Event daily D\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort    # Raid daily > Coalition SP > War Archives > Maritime Escort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant    # Island Juu Eatery > Juu Coffee > Squid Grill > Polar Bear Drinks > Fish Restaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture    # Island farm > Ranch > Mine & Forest > Daily gathering > Manufacturing\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation    # Island daily supply > Business module > Daily order > Daily/weekly tasks > Weekly pearl trade > Cargo preparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3    # Event map 1 > Event map 2 > Event map 3 > Raid > Hospital > Hospital event > Coalition > Raid scuttle > Main campaign > Main campaign 2 > Main campaign 3\n> OpsiMeowfficerFarming    # Operation Siren Meowfficer farming\n> GemsFarming    # Urgent commission farming\n> Ambush11    # 1-1 ambush farming\n> OpsiHazard1Leveling    # Corrosion 1 leveling\n> ThreeOilLowCost    # 3-oil low-cost farming\n\nFormat: task names only, connected with `>` (left = higher priority).\nThe `#` comments above are explanatory only. Do not keep comments in the config value, because comments will break task-name matching.\nUse English config task names. If you are unsure about a task name, switch the UI to English and check it.\nLeave empty to use the built-in default priority."
     }
   },
   "OneClickRetire": {
@@ -4597,6 +4601,18 @@
     "UrgentDetectRefreshTime": {
       "name": "Urgent Commission Detect Refresh Time",
       "help": "Cooldown time for urgent commission detection. Skips urgent commission detection before this time. Format: YYYY-MM-DD HH:mm:ss"
+    }
+  },
+  "IslandDailyInteract": {
+    "_info": {
+      "name": "Daily/Weekly Tasks",
+      "help": "Controls island daily and weekly interactions, including Morningdew Farm petting, JUU Express, Business Delivery, and weekly photo tasks in Development Plan."
+    },
+    "WeeklyPhoto": {
+      "name": "Weekly Photo Task",
+      "help": "Start the weekly photo task from Development Plan, loop through three camera and idle selections, until the task icon disappears.",
+      "True": "True",
+      "False": "False"
     }
   },
   "IslandPearlSell": {

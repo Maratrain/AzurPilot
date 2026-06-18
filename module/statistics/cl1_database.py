@@ -2,7 +2,7 @@
 import sqlite3
 import json
 import os
-from contextlib import suppress
+from contextlib import closing, suppress
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
@@ -102,11 +102,12 @@ class Cl1Database:
         self.save_stats(instance, month, data)
 
     """
-    CL1 数据加密 SQLite 数据库管理类。
-    所有实例共享一个数据库文件，但数据经过 AES-GCM 加密，并由 device_id 保护。
+    CL1 明文 SQLite 数据库管理类。
+    所有实例共享一个数据库文件；旧版 encrypted_blob 仅用于自动解密迁移。
     """
 
     def __init__(self, db_path: Optional[Path] = None):
+        self._manage_legacy_db_path = db_path is None
         if db_path is None:
             project_root = Path(__file__).resolve().parents[2]
             self.db_dir = project_root / "config"
@@ -116,35 +117,43 @@ class Cl1Database:
             self.db_dir = self.db_path.parent
 
         self._ensure_dir()
+        if self._manage_legacy_db_path:
+            self._move_legacy_db()
         self._init_db()
-        self._encryption_key = self._derive_key(get_device_id())
-        self._check_key_migration()
-        self._auto_migrate()
+        self._legacy_decryption_keys = self._get_legacy_decryption_keys()
+        self._migrate_encrypted_rows()
+        if self._manage_legacy_db_path:
+            self._auto_migrate()
 
     def _ensure_dir(self):
         try:
             self.db_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            logger.error(f"Failed to create database directory: {e}")
+            logger.error(f"创建数据库目录失败: {e}")
 
     def _init_db(self):
-        """初始化数据库表"""
+        """初始化数据库表，并兼容旧版 encrypted_blob 结构。"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn:
                 cursor = conn.cursor()
-                # 存储各实例、月份的加密数据
-                # encrypted_blob 包含 nonce + tag + ciphertext
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS cl1_data (
                         instance TEXT,
                         month TEXT,
+                        data_json TEXT,
                         encrypted_blob BLOB,
                         PRIMARY KEY (instance, month)
                     )
                 """)
+                cursor.execute("PRAGMA table_info(cl1_data)")
+                columns = {row[1] for row in cursor.fetchall()}
+                if "data_json" not in columns:
+                    cursor.execute("ALTER TABLE cl1_data ADD COLUMN data_json TEXT")
+                if "encrypted_blob" not in columns:
+                    cursor.execute("ALTER TABLE cl1_data ADD COLUMN encrypted_blob BLOB")
                 conn.commit()
         except Exception as e:
-            logger.exception(f"Failed to initialize CL1 database: {e}")
+            logger.exception(f"初始化 CL1 数据库失败: {e}")
 
     def _derive_key(self, device_id: str) -> bytes:
         """基于 device_id 派生 256 位 AES 密钥"""
@@ -153,45 +162,119 @@ class Cl1Database:
             device_id.encode(), salt, dkLen=32, count=1000, hmac_hash_module=SHA256
         )
 
-    def _check_key_migration(self):
-        """
-        探测 device_id 变更并进行全库重加密迁移
-        """
+    def _get_legacy_decryption_keys(self) -> List[bytes]:
+        """生成旧密文迁移时可尝试的解密密钥。"""
+        device_ids = []
+        with suppress(Exception):
+            device_ids.append(get_device_id())
         old_id = get_old_device_id()
-        if not old_id:
-            return
+        if old_id:
+            device_ids.append(old_id)
 
-        logger.info("Starting local database migration (Device ID changed)...")
-        old_key = self._derive_key(old_id)
+        keys = []
+        seen = set()
+        for device_id in device_ids:
+            if not device_id or device_id in seen:
+                continue
+            seen.add(device_id)
+            keys.append(self._derive_key(device_id))
+        return keys
 
+    def _migrate_encrypted_rows(self):
+        """将旧版 AES-GCM 密文行迁移为明文 JSON。"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT instance, month, encrypted_blob FROM cl1_data")
+                cursor.execute(
+                    """
+                    SELECT instance, month, data_json, encrypted_blob
+                    FROM cl1_data
+                    WHERE encrypted_blob IS NOT NULL
+                      AND length(encrypted_blob) > 0
+                    """
+                )
                 rows = cursor.fetchall()
 
                 if not rows:
                     return
 
-                logger.info(f"Re-encrypting {len(rows)} entries with new key...")
+                logger.info(f"开始解密旧版 CL1 数据库，条目数: {len(rows)}")
                 updated_rows = []
-                for instance, month, blob in rows:
-                    # 1. 用旧密钥解密
-                    if data := self._decrypt_with_key(blob, old_key):
-                        # 2. 用新密钥重加密 (self._encrypt 使用的是当前 self._encryption_key)
-                        new_blob = self._encrypt(data)
-                        updated_rows.append((new_blob, instance, month))
+                clear_rows = []
+                failed_rows = []
+                for instance, month, data_json, blob in rows:
+                    if self._deserialize_data(data_json) is not None:
+                        clear_rows.append((instance, month))
+                        continue
 
-                # 批量写回
+                    data = self._decrypt(blob)
+                    if data is None:
+                        failed_rows.append((instance, month))
+                        continue
+
+                    updated_rows.append((self._serialize_data(data), instance, month))
+
                 if updated_rows:
                     cursor.executemany(
-                        "UPDATE cl1_data SET encrypted_blob = ? WHERE instance = ? AND month = ?",
+                        """
+                        UPDATE cl1_data
+                        SET data_json = ?, encrypted_blob = NULL
+                        WHERE instance = ? AND month = ?
+                        """,
                         updated_rows,
                     )
-                    conn.commit()
-                    logger.info("Local database migration completed successfully.")
+                if clear_rows:
+                    cursor.executemany(
+                        """
+                        UPDATE cl1_data
+                        SET encrypted_blob = NULL
+                        WHERE instance = ? AND month = ?
+                        """,
+                        clear_rows,
+                    )
+                conn.commit()
+
+                migrated = len(updated_rows) + len(clear_rows)
+                if migrated:
+                    logger.info(f"旧版 CL1 数据库解密迁移完成，条目数: {migrated}")
+                if failed_rows:
+                    logger.warning(
+                        f"旧版 CL1 数据库有 {len(failed_rows)} 条记录解密失败"
+                    )
         except Exception as e:
-            logger.error(f"Failed to migrate database to new device_id: {e}")
+            logger.error(f"解密旧版 CL1 数据库失败: {e}")
+
+    def _move_legacy_db(self):
+        """将旧位置的 CL1 数据库移动到 config 目录后再初始化表结构。"""
+        project_root = Path(__file__).resolve().parents[2]
+        old_db_dir = project_root / "log" / "cl1"
+        old_db_path = old_db_dir / "cl1_data.db"
+
+        if old_db_path.exists() and not self.db_path.exists():
+            import shutil
+
+            try:
+                shutil.move(str(old_db_path), str(self.db_path))
+                logger.info(
+                    f"已移动旧版 CL1 数据库: {old_db_path} -> {self.db_path}"
+                )
+            except Exception as e:
+                logger.error(f"移动旧版 CL1 数据库失败: {e}")
+
+    def _serialize_data(self, data: Dict[str, Any]) -> str:
+        """将统计数据序列化为明文 JSON。"""
+        return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+
+    def _deserialize_data(self, data_json: Optional[str]) -> Optional[Dict[str, Any]]:
+        """从明文 JSON 读取统计数据。"""
+        if not data_json:
+            return None
+        try:
+            data = json.loads(data_json)
+        except Exception as e:
+            logger.warning(f"读取 CL1 明文 JSON 失败: {e}")
+            return None
+        return data if isinstance(data, dict) else None
 
     def _decrypt_payload(self, blob: bytes, key: bytes) -> Dict[str, Any]:
         nonce = blob[:16]
@@ -210,46 +293,35 @@ class Cl1Database:
         except Exception:
             return None
 
-    def _encrypt(self, data: Dict[str, Any]) -> bytes:
-        """使用 AES-GCM 加密数据"""
-        try:
-            cipher = AES.new(self._encryption_key, AES.MODE_GCM)
-            ciphertext, tag = cipher.encrypt_and_digest(
-                json.dumps(data).encode("utf-8")
-            )
-            # 拼接: nonce (16) + tag (16) + ciphertext
-            return cipher.nonce + tag + ciphertext
-        except Exception as e:
-            logger.error(f"Encryption failed: {e}")
-            return b""
-
     def _decrypt(self, blob: bytes) -> Optional[Dict[str, Any]]:
-        """使用 AES-GCM 解密数据，并验证完整性"""
+        """尝试解密旧版 AES-GCM 数据。"""
         if not blob or len(blob) < 32:
             return None
-        try:
-            return self._decrypt_payload(blob, self._encryption_key)
-        except (ValueError, KeyError) as e:
-            logger.error(f"Decryption failed (Tamper detected or Wrong key): {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected decryption error: {e}")
-            return None
+        for key in self._legacy_decryption_keys:
+            data = self._decrypt_with_key(blob, key)
+            if data is not None:
+                return data
+        return None
 
     def get_stats(self, instance: str, month: str) -> Dict[str, Any]:
         """获取指定实例和月份的统计数据"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT encrypted_blob FROM cl1_data WHERE instance = ? AND month = ?",
+                    "SELECT data_json, encrypted_blob FROM cl1_data WHERE instance = ? AND month = ?",
                     (instance, month),
                 )
                 row = cursor.fetchone()
-                if row and (data := self._decrypt(row[0])):
-                    return data
+                if row:
+                    data = self._deserialize_data(row[0])
+                    if data is not None:
+                        return data
+                    if row[1] and (data := self._decrypt(row[1])):
+                        self.save_stats(instance, month, data)
+                        return data
         except Exception as e:
-            logger.error(f"Failed to query stats for {instance} {month}: {e}")
+            logger.error(f"查询统计数据失败 {instance} {month}: {e}")
 
         return self._empty_data(month)
 
@@ -480,7 +552,7 @@ class Cl1Database:
     def _list_stats_rows(self, instance: Optional[str] = None) -> List[Tuple[str, str]]:
         """列出数据库中已有的实例与月份。"""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn:
                 cursor = conn.cursor()
                 if instance:
                     cursor.execute(
@@ -493,7 +565,7 @@ class Cl1Database:
                     )
                 return [(row[0], row[1]) for row in cursor.fetchall()]
         except Exception as e:
-            logger.error(f"Failed to list stats rows: {e}")
+            logger.error(f"列出统计数据失败: {e}")
             return []
 
     def backfill_meow_stats(
@@ -549,22 +621,22 @@ class Cl1Database:
     def save_stats(self, instance: str, month: str, data: Dict[str, Any]):
         """保存统计数据"""
         try:
-            blob = self._encrypt(data)
-            if not blob:
-                return
-            with sqlite3.connect(self.db_path) as conn:
+            data_json = self._serialize_data(data)
+            with closing(sqlite3.connect(self.db_path)) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    INSERT INTO cl1_data (instance, month, encrypted_blob) 
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(instance, month) DO UPDATE SET encrypted_blob = excluded.encrypted_blob
+                    INSERT INTO cl1_data (instance, month, data_json, encrypted_blob)
+                    VALUES (?, ?, ?, NULL)
+                    ON CONFLICT(instance, month) DO UPDATE SET
+                        data_json = excluded.data_json,
+                        encrypted_blob = NULL
                 """,
-                    (instance, month, blob),
+                    (instance, month, data_json),
                 )
                 conn.commit()
         except Exception as e:
-            logger.error(f"Failed to save stats for {instance} {month}: {e}")
+            logger.error(f"保存统计数据失败 {instance} {month}: {e}")
 
     def increment_battle_count(self, instance: str, delta: int = 1):
         """增加战斗次数"""
@@ -787,7 +859,7 @@ class Cl1Database:
         if not json_path.exists():
             return
 
-        logger.info(f"Migrating CL1 data from {json_path} for instance {instance}")
+        logger.info(f"开始从 JSON 迁移 CL1 数据: {json_path}, instance={instance}")
         try:
             with json_path.open("r", encoding="utf-8") as f:
                 old_data = json.load(f)
@@ -805,7 +877,7 @@ class Cl1Database:
 
             for month in months:
                 # 首先检查数据库是否已有数据，避免覆盖
-                with sqlite3.connect(self.db_path) as conn:
+                with closing(sqlite3.connect(self.db_path)) as conn:
                     c = conn.cursor()
                     c.execute(
                         "SELECT 1 FROM cl1_data WHERE instance = ? AND month = ?",
@@ -813,7 +885,7 @@ class Cl1Database:
                     )
                     if c.fetchone():
                         logger.info(
-                            f"Data for {instance} {month} already exists in DB, skipping migration"
+                            f"数据库中已存在 {instance} {month}，跳过迁移"
                         )
                         continue
 
@@ -826,15 +898,15 @@ class Cl1Database:
                 )
 
                 self.save_stats(instance, month, new_stats)
-                logger.info(f"Successfully migrated {instance} {month}")
+                logger.info(f"已迁移 {instance} {month}")
 
             # 迁移成功后可以删除 JSON 或重命名 (此处建议重命名为 .bak 以防万一)
             bak_path = json_path.with_suffix(".json.bak")
             json_path.replace(bak_path)
-            logger.info(f"Retired old JSON to {bak_path}")
+            logger.info(f"已将旧 JSON 重命名为 {bak_path}")
 
         except Exception as e:
-            logger.exception(f"Failed to migrate CL1 data from JSON: {e}")
+            logger.exception(f"从 JSON 迁移 CL1 数据失败: {e}")
 
     def _auto_migrate(self):
         """
