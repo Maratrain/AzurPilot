@@ -237,6 +237,8 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
                 self.device.click(STORY_SKIP)  # 多个订单时快进
                 confirm_timer.reset()
                 continue
+            if self.handle_get_items_ship():
+                continue
 
             if self.appear(BUILD_FINISH_RESULTS, offset=(20, 150), interval=3):
                 self.device.click(BUILD_FINISH_ORDERS)  # 安全区域

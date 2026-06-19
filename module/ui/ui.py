@@ -35,11 +35,7 @@ class UI(InfoHandler):
             interval: 检测间隔。
         """
         if page == page_main:
-            if self.appear(page_main_white.check_button, offset=offset, interval=interval):
-                return True
-            if self.appear(page_main.check_button, offset=(5, 5), interval=interval):
-                return True
-            return False
+            return self.appear(page_main.check_button, offset=(5, 5), interval=interval)
         if page == page_island_shop:
             return self.appear(page.check_button, interval=interval)
         if page == page_shop:
@@ -53,7 +49,8 @@ class UI(InfoHandler):
         return self.appear(page.check_button, offset=offset, interval=interval)
 
     def is_in_main(self, offset=(30, 30), interval=0):
-        return self.ui_page_appear(page_main, offset=offset, interval=interval)
+        return (self.ui_page_appear(page_main, offset=offset, interval=interval)
+                or self.ui_page_appear(page_main_white, offset=offset, interval=interval))
 
     def ui_main_appear_then_click(self, page, offset=(30, 30), interval=3):
         """
@@ -281,6 +278,11 @@ class UI(InfoHandler):
             if self.ui_page_appear(page=destination, offset=offset):
                 logger.info(f'Page arrive: {destination}')
                 break
+            # 主界面新旧主题互为等价：目标为任一主界面时，
+            # 检测到另一主题也视为到达
+            if destination in (page_main, page_main_white) and self.is_in_main():
+                logger.info(f'Page arrive: {destination}')
+                break
 
             # 其他页面：按 A* 路径点击导航
             clicked = False
@@ -319,6 +321,10 @@ class UI(InfoHandler):
         self.ui_get_current_page(skip_first_screenshot=skip_first_screenshot)
         if self.ui_current == destination:
             logger.info("Already at %s" % destination)
+            return False
+        # 主界面新旧主题互为等价
+        if {self.ui_current, destination} == {page_main, page_main_white}:
+            logger.info("Already at %s (equivalent main page)" % destination)
             return False
         else:
             logger.info("Goto %s" % destination)

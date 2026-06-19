@@ -107,8 +107,8 @@ class MailWhite(UI):
                 self.device.screenshot()
 
             # End
-            if self.ui_page_appear(page_main):
-                logger.info('Mail quit to page_main')
+            if self.is_in_main():
+                logger.info('Mail quit to main')
                 break
 
             # Click
