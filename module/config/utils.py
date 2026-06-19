@@ -221,6 +221,10 @@ def parse_value(value, data):
     Returns:
         转换后的值，无法转换时返回原值。
     """
+    if data.get('type') == 'checkbox' and isinstance(value, list):
+        # PyWebIO checkbox 关闭时返回 []，打开时返回 [True]。
+        return any(bool(v) for v in value)
+
     if 'option' in data:
         if value not in data['option']:
             return data['value']

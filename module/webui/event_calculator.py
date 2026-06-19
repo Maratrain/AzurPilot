@@ -16,6 +16,7 @@ WIKI_RAW_URL = (
     "%E6%B4%BB%E5%8A%A8%E8%AE%A1%E7%AE%97%E5%99%A8?action=raw"
 )
 CACHE_FILE = "./cache/wiki_event_calculator.json"
+CACHE_VERSION = 2
 
 EVENT_SHOP_FILTER_MAP = [
     ("深潜许可", "URpt"),
@@ -79,6 +80,8 @@ def _parse_table_rows(table: str) -> List[List[str]]:
         for raw_line in block.splitlines():
             line = raw_line.strip()
             if not line or line.startswith("!") or line.startswith("|}"):
+                continue
+            if line.startswith("|-"):
                 continue
             if line.startswith("||"):
                 cell_line = line[2:]
@@ -204,6 +207,7 @@ def _read_cache() -> Dict[str, Any]:
 def _write_cache(data: Dict[str, Any]) -> None:
     try:
         os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+        data["cache_version"] = CACHE_VERSION
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
@@ -213,7 +217,8 @@ def _write_cache(data: Dict[str, Any]) -> None:
 def load_event_calculator(force_refresh: bool = False) -> Dict[str, Any]:
     """读取 Wiki 活动计算器数据，失败时回退到缓存。"""
     cache = _read_cache()
-    if cache and not force_refresh:
+    cache_valid = cache.get("cache_version") == CACHE_VERSION
+    if cache and cache_valid and not force_refresh:
         return {**cache, "from_cache": True}
 
     try:
