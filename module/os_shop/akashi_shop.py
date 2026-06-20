@@ -7,9 +7,9 @@ from module.os_handler.os_status import OSStatus
 from module.os_shop.selector import Selector
 from module.os_shop.ui import OSShopUI
 from module.os_shop.item import OSShopItem as Item, OSShopItemGrid as ItemGrid
-from pathlib import Path
+import os
 from datetime import datetime
-import cv2
+from module.base.utils import save_image
 
 class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
     @cached_property
@@ -53,29 +53,48 @@ class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
 
     def save_akashi_ap_box_screenshot(self, items):
         """
-        商店内存在任意行动力箱时截图一次
+        商店内存在行动力箱时截图
         """
 
-        has_ap_box = any(
-            item.name.startswith('ActionPoint')
-            for item in items
-        )
+        ap_boxes = [
+            item.name for item in items
+            if item.name.startswith('ActionPoint')
+        ]
 
-        if not has_ap_box:
+        if not ap_boxes:
             return
 
-        save_dir = Path('.screenshots/shop')
-        save_dir.mkdir(parents=True, exist_ok=True)
+        def get_ap_value(name):
+            try:
+                return int(name.replace('ActionPoint', '').split('_')[0])
+            except Exception:
+                return 0
+
+        box_name = max(ap_boxes, key=get_ap_value)
 
         filename = datetime.now().strftime(
-            'akashi_%Y%m%d_%H%M%S.png'
+            f'{box_name}_%Y%m%d_%H%M%S.png'
         )
 
-        path = save_dir / filename
+        # 使用 ALAS 原生截图保存逻辑
+        try:
+            folder = os.path.join(
+                str(self.config.DropRecord_SaveFolder),
+                'opsi_shop'
+            )
 
-        cv2.imwrite(str(path), self.device.image)
+            os.makedirs(folder, exist_ok=True)
 
-        logger.info(f'Action point box found, screenshot saved: {path}')
+            file = os.path.join(folder, filename)
+
+            save_image(self.device.image, file)
+
+            logger.info(
+                f'Action point box found, screenshot saved: {file}'
+            )
+
+        except Exception as e:
+            logger.exception(e)
     def os_akashi_shop_items(self) -> ItemGrid:
         """获取明石商店物品网格（默认/国服）。
 
