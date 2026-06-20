@@ -794,6 +794,14 @@
       "upload": "Upload",
       "save_and_upload": "Save and Upload"
     },
+    "OpsiShopRecord": {
+      "name": "DropRecord.OpsiShopRecord.name",
+      "help": "DropRecord.OpsiShopRecord.help",
+      "do_not": "do_not",
+      "save": "save",
+      "upload": "upload",
+      "save_and_upload": "save_and_upload"
+    },
     "MeowfficerBuy": {
       "name": "Meowfficer Purchase Screenshot",
       "help": "",

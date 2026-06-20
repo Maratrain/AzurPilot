@@ -7,7 +7,9 @@ from module.os_handler.os_status import OSStatus
 from module.os_shop.selector import Selector
 from module.os_shop.ui import OSShopUI
 from module.os_shop.item import OSShopItem as Item, OSShopItemGrid as ItemGrid
-
+from pathlib import Path
+from datetime import datetime
+import cv2
 
 class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
     @cached_property
@@ -48,6 +50,32 @@ class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
 
     @cached_property
     @Config.when(SERVER=None)
+
+    def save_akashi_ap_box_screenshot(self, items):
+        """
+        商店内存在任意行动力箱时截图一次
+        """
+
+        has_ap_box = any(
+            item.name.startswith('ActionPoint')
+            for item in items
+        )
+
+        if not has_ap_box:
+            return
+
+        save_dir = Path('.screenshots/shop')
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        filename = datetime.now().strftime(
+            'akashi_%Y%m%d_%H%M%S.png'
+        )
+
+        path = save_dir / filename
+
+        cv2.imwrite(str(path), self.device.image)
+
+        logger.info(f'Action point box found, screenshot saved: {path}')
     def os_akashi_shop_items(self) -> ItemGrid:
         """获取明石商店物品网格（默认/国服）。
 
@@ -108,6 +136,7 @@ class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
                 items = self.os_shop_get_items_in_akashi()
                 continue
             else:
+                self.save_akashi_ap_box_screenshot(items)
                 items = self.items_filter_in_akashi_shop(items)
                 if not len(items):
                     return None

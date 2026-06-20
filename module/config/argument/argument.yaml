@@ -219,6 +219,9 @@ DropRecord:
   OpsiRecord:
     value: upload
     option: [do_not, save, upload, save_and_upload]
+  OpsiShopRecord:
+    value: upload
+    option: [do_not, save, upload, save_and_upload]
   MeowfficerBuy:
     value: do_not
     option: [do_not, save]

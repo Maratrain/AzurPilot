@@ -592,6 +592,16 @@
           "save_and_upload"
         ]
       },
+      "OpsiShopRecord": {
+        "type": "select",
+        "value": "upload",
+        "option": [
+          "do_not",
+          "save",
+          "upload",
+          "save_and_upload"
+        ]
+      },
       "MeowfficerBuy": {
         "type": "select",
         "value": "do_not",
@@ -13209,35 +13219,6 @@
         "value": {},
         "valuetype": "ignore",
         "display": "disabled"
-      }
-    },
-    "OpsiNotification": {
-      "LowapNotification": {
-        "type": "checkbox",
-        "value": true,
-        "option": [
-          true,
-          false
-        ]
-      },
-      "Setklowapgoal": {
-        "type": "input",
-        "value": 500
-      },
-      "DailyReportEnable": {
-        "type": "checkbox",
-        "value": true,
-        "option": [ true, false ]
-      },
-
-      "DailyReportTime": {
-        "type": "input",
-        "value": "23:59"
-      },
-      "LastRun": {
-        "type": "datetime",
-        "value": "2020-01-01 00:00:00",
-        "validate": "datetime"
       }
     }
   },

@@ -794,6 +794,14 @@
       "upload": "上传",
       "save_and_upload": "保存并上传"
     },
+    "OpsiShopRecord": {
+      "name": "行动力箱子掉落截图",
+      "help": "",
+      "do_not": "无操作",
+      "save": "保存",
+      "upload": "上传",
+      "save_and_upload": "保存并上传"
+    },
     "MeowfficerBuy": {
       "name": "指挥喵购买截图",
       "help": "",
@@ -5510,33 +5518,6 @@
     "RemoteStopCommand": {
       "name": "EmulatorManager.RemoteStopCommand.name",
       "help": "EmulatorManager.RemoteStopCommand.help"
-    }
-  },
-  "OpsiNotification": {
-    "LowapNotification": {
-      "name": "坠机提醒",
-      "help": "当行动点低于设定值时发送坠机提醒"
-    },
-    "Setklowapgoal": {
-      "name": "低行动力目标",
-      "help": "不建议设置太高，低于该值触发通知"
-    },
-    "DailyReportEnable": {
-      "name": "启用日报",
-      "help": "开启每日运行统计报告"
-    },
-
-    "DailyReportTime": {
-      "name": "发送日报时间",
-      "help": "每天发送日报的时间（24小时制）"
-    },
-    "LastRun": {
-      "name": "上次运行时间",
-      "help": "记录上一次自动配队的时间以防止任务重复运行。这个数值是自动记录的，一般不需要手动修改"
-    },
-    "_info": {
-      "name": "通知管理",
-      "help": ""
     }
   },
   "OpsiSimulatorParameters": {

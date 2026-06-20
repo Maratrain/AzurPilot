@@ -29,7 +29,7 @@ class DummyConfig:
     """
 
     def __init__(self):
-        self.OpsiGeneral_LastCrashNotifyTime = None
+        self.OpsiGeneral_LastCrashNotifyTime = None,
 
     def save(self):
         # emulate a save method; in real config this persists to disk
@@ -59,7 +59,7 @@ def main():
     )
 
     # 清除冷却以验证实际发送
-    cfg.OpsiGeneral_LastCrashNotifyTime = None
+    cfg.OpsiGeneral_LastCrashNotifyTime = None,
     print("\n已清除冷却时间，下面将实际发送两条通知（会调用 dummy_send_func）:")
     send_crash_messages(
         cfg,

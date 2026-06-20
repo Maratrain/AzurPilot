@@ -137,6 +137,7 @@ class GeneratedConfig:
     DropRecord_CommissionRecord = 'do_not'  # do_not, save, upload, save_and_upload
     DropRecord_CombatRecord = 'do_not'  # do_not, save
     DropRecord_OpsiRecord = 'upload'  # do_not, save, upload, save_and_upload
+    DropRecord_OpsiShopRecord = 'upload'  # do_not, save, upload, save_and_upload
     DropRecord_MeowfficerBuy = 'do_not'  # do_not, save
     DropRecord_MeowfficerTalent = 'do_not'  # do_not, save, upload, save_and_upload
     DropRecord_TelemetryReport = True

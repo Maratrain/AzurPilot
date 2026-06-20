@@ -121,6 +121,7 @@
       "CommissionRecord": "do_not",
       "CombatRecord": "do_not",
       "OpsiRecord": "upload",
+      "OpsiShopRecord": "upload",
       "MeowfficerBuy": "do_not",
       "MeowfficerTalent": "do_not",
       "TelemetryReport": true,
@@ -2430,7 +2431,6 @@
       "MissionZones": null,
       "CollectTargetReward": false
     },
-    "OpsiGeneral_LastCrashNotifyTime": null
     "OpsiFleet": {
       "Fleet": 1,
       "Submarine": false
