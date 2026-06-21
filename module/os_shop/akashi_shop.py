@@ -7,25 +7,36 @@ from module.os_handler.os_status import OSStatus
 from module.os_shop.selector import Selector
 from module.os_shop.ui import OSShopUI
 from module.os_shop.item import OSShopItem as Item, OSShopItemGrid as ItemGrid
-import os
 from datetime import datetime
 from module.base.utils import save_image
+import os
+
 
 class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
+
+    # =========================================================
+    # 商店格子配置
+    # =========================================================
+
     @cached_property
     @Config.when(SERVER='tw')
     def os_akashi_shop_items(self) -> ItemGrid:
-        """获取明石商店物品网格（台服）。
-
-        Returns:
-            ItemGrid: 台服明石商店的物品网格配置。
-        """
         shop_grid = ButtonGrid(
-            origin=(233, 224), delta=(193, 228), button_shape=(98, 98), grid_shape=(4, 2), name='SHOP_GRID')
-        shop_items = ItemGrid(
-            shop_grid, templates={}, amount_area=(60, 74, 96, 95),
-            counter_area=(85, 170, 134, 186), price_area=(52, 132, 132, 165)
+            origin=(233, 224),
+            delta=(193, 228),
+            button_shape=(98, 98),
+            grid_shape=(4, 2),
+            name='SHOP_GRID'
         )
+
+        shop_items = ItemGrid(
+            shop_grid,
+            templates={},
+            amount_area=(60, 74, 96, 95),
+            counter_area=(85, 170, 134, 186),
+            price_area=(52, 132, 132, 165)
+        )
+
         shop_items.load_template_folder('./assets/shop/os')
         shop_items.load_cost_template_folder('./assets/shop/os_cost')
         return shop_items
@@ -33,133 +44,155 @@ class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
     @cached_property
     @Config.when(SERVER='en')
     def os_akashi_shop_items(self) -> ItemGrid:
-        """获取明石商店物品网格（国际服）。
-
-        Returns:
-            ItemGrid: 国际服明石商店的物品网格配置。
-        """
         shop_grid = ButtonGrid(
-            origin=(231, 222), delta=(190, 224), button_shape=(98, 98), grid_shape=(4, 2), name='SHOP_GRID')
-        shop_items = ItemGrid(
-            shop_grid, templates={}, amount_area=(60, 74, 96, 95),
-            counter_area=(85, 170, 134, 186), price_area=(52, 132, 132, 165)
+            origin=(231, 222),
+            delta=(190, 224),
+            button_shape=(98, 98),
+            grid_shape=(4, 2),
+            name='SHOP_GRID'
         )
+
+        shop_items = ItemGrid(
+            shop_grid,
+            templates={},
+            amount_area=(60, 74, 96, 95),
+            counter_area=(85, 170, 134, 186),
+            price_area=(52, 132, 132, 165)
+        )
+
         shop_items.load_template_folder('./assets/shop/os')
         shop_items.load_cost_template_folder('./assets/shop/os_cost')
         return shop_items
 
     @cached_property
     @Config.when(SERVER=None)
+    def os_akashi_shop_items(self) -> ItemGrid:
+        shop_grid = ButtonGrid(
+            origin=(233, 224),
+            delta=(193.2, 228),
+            button_shape=(98, 98),
+            grid_shape=(4, 2),
+            name='SHOP_GRID'
+        )
 
-    def save_akashi_ap_box_screenshot(self, items):
-        """
-        商店内存在行动力箱时截图
-        """
+        shop_items = ItemGrid(
+            shop_grid,
+            templates={},
+            amount_area=(60, 74, 96, 95),
+            counter_area=(85, 170, 134, 186),
+            price_area=(52, 132, 132, 165)
+        )
 
-        ap_boxes = [
-            item.name for item in items
-            if item.name.startswith('ActionPoint')
-        ]
+        shop_items.load_template_folder('./assets/shop/os')
+        shop_items.load_cost_template_folder('./assets/shop/os_cost')
+        return shop_items
 
+    # =========================================================
+    # AP Box 截图（只触发一次，不影响流程）
+    # =========================================================
+
+    def save_akashi_ap_box_screenshot(self, snapshot):
+        items = snapshot["items"]
+        image = snapshot["image"]
+
+        # 只筛 AP box
+        ap_boxes = [i.name for i in items if i.name.startswith("ActionPoint")]
         if not ap_boxes:
             return
 
-        def get_ap_value(name):
+        def get_ap_value(name: str) -> int:
             try:
-                return int(name.replace('ActionPoint', '').split('_')[0])
+                return int(name.replace("ActionPoint", "").split("_")[0])
             except Exception:
                 return 0
 
         box_name = max(ap_boxes, key=get_ap_value)
 
+        folder = os.path.join(
+            str(self.config.DropRecord_SaveFolder),
+            "opsi_shop"
+        )
+        os.makedirs(folder, exist_ok=True)
+
         filename = datetime.now().strftime(
-            f'{box_name}_%Y%m%d_%H%M%S.png'
+            f"{box_name}_%Y%m%d_%H%M%S.png"
         )
+        file_path = os.path.join(folder, filename)
 
-        # 使用 ALAS 原生截图保存逻辑
-        try:
-            folder = os.path.join(
-                str(self.config.DropRecord_SaveFolder),
-                'opsi_shop'
-            )
+        # ✅ 只保存一次，不递归、不上传逻辑干扰主流程
+        save_image(image, file_path)
+        logger.info(f"[AP BOX] screenshot saved -> {file_path}")
 
-            os.makedirs(folder, exist_ok=True)
-
-            file = os.path.join(folder, filename)
-
-            save_image(self.device.image, file)
-
-            logger.info(
-                f'Action point box found, screenshot saved: {file}'
-            )
-
-        except Exception as e:
-            logger.exception(e)
-    def os_akashi_shop_items(self) -> ItemGrid:
-        """获取明石商店物品网格（默认/国服）。
-
-        Returns:
-            ItemGrid: 默认明石商店的物品网格配置。
-        """
-        shop_grid = ButtonGrid(
-            origin=(233, 224), delta=(193.2, 228), button_shape=(98, 98), grid_shape=(4, 2), name='SHOP_GRID')
-        shop_items = ItemGrid(
-            shop_grid, templates={}, amount_area=(60, 74, 96, 95),
-            counter_area=(85, 170, 134, 186), price_area=(52, 132, 132, 165)
-        )
-        shop_items.load_template_folder('./assets/shop/os')
-        shop_items.load_cost_template_folder('./assets/shop/os_cost')
-        return shop_items
+    # =========================================================
+    # 商品识别
+    # =========================================================
 
     def os_shop_get_items_in_akashi(self) -> List[Item]:
-        """识别明石商店中的所有物品。
-
-        通过模板匹配识别当前屏幕上的商店物品，记录每行物品信息。
-
-        Returns:
-            list[Item]: 识别到的物品列表，无物品时返回空列表。
-        """
         if self.config.SHOP_EXTRACT_TEMPLATE:
-            self.os_akashi_shop_items.extract_template(self.device.image, './assets/shop/os')
-        self.os_akashi_shop_items.predict(self.device.image)
+            self.os_akashi_shop_items.extract_template(
+                self.device.image,
+                './assets/shop/os'
+            )
 
+        self.os_akashi_shop_items.predict(self.device.image)
         items = self.os_akashi_shop_items.items
-        if len(items):
+
+        if items:
             min_row = self.os_akashi_shop_items.grids[0, 0].area[1]
-            row = [str(item) for item in items if item.button[1] == min_row]
-            logger.info(f'Shop row 1: {row}')
-            row = [str(item) for item in items if item.button[1] != min_row]
-            logger.info(f'Shop row 2: {row}')
+
+            logger.info(
+                f"Shop row 1: {[str(i) for i in items if i.button[1] == min_row]}"
+            )
+            logger.info(
+                f"Shop row 2: {[str(i) for i in items if i.button[1] != min_row]}"
+            )
+
             return items
-        else:
-            logger.info('No shop items found')
-            return []
+
+        logger.info("No shop items found")
+        return []
+
+    # =========================================================
+    # 主流程
+    # =========================================================
 
     def os_shop_get_item_to_buy_in_akashi(self) -> Item:
-        """获取明石商店中待购买的物品。
 
-        获取金币信息后识别商店物品，处理商店加载延迟的情况，
-        应用过滤器筛选可购买物品。
-
-        Returns:
-            Item: 待购买的物品，无可购买物品时返回 None。
-        """
         self.os_shop_get_coins()
+
         items = self.os_shop_get_items_in_akashi()
-        # 商店物品不会立即出现，需要确认商店是否为空
+
+        snapshot = {
+            "image": self.device.image,
+            "items": items
+        }
+        ap_box_captured = False
+        # retry保证稳定
         for _ in range(2):
-            if not len(items) or any(not item.is_known_item() for item in items):
-                logger.warning('Empty akashi shop or empty items, confirming')
+
+            if not items or any(not i.is_known_item() for i in items):
+                logger.warning("Empty shop or unstable recognition")
+
                 self.device.sleep((0.3, 0.5))
                 self.device.screenshot()
+
                 items = self.os_shop_get_items_in_akashi()
+                snapshot = {
+                    "image": self.device.image,
+                    "items": items
+                }
                 continue
-            else:
-                self.save_akashi_ap_box_screenshot(items)
-                items = self.items_filter_in_akashi_shop(items)
-                if not len(items):
-                    return None
-                else:
-                    return items.pop()
+            # -------------------------------------------------
+            # ✅ 只允许执行一次 AP box 截图
+            # -------------------------------------------------
+            if not ap_box_captured:
+                self.save_akashi_ap_box_screenshot(snapshot)
+                ap_box_captured = True
+            items = self.items_filter_in_akashi_shop(items)
+
+            if not items:
+                return None
+
+            return items.pop()
 
         return None
