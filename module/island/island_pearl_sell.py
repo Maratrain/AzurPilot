@@ -4,17 +4,7 @@ from datetime import datetime, timedelta
 from module.base.button import Button
 from module.base.timer import Timer
 from module.island.island import Island
-from module.island.assets import (
-    ADD_TEN_A,
-    ADD_TEN_B,
-    ADD_TEN_C,
-    AIR_DROP_RUN_AWAY,
-    CANT_ACCESS,
-    ISLAND_ACCESS_MAP,
-    ISLAND_BACK,
-    ISLAND_SHOP_CONFIRM,
-    ISLAND_JUMP,
-)
+from module.island.assets import *
 from module.island_pearl_sell.assets import *
 from module.logger import logger
 from module.ocr.ocr import Digit, Ocr
@@ -36,11 +26,13 @@ class IslandPearlSell(Island):
     DAILY_REFRESH_MINUTE = 0
     PRICE_RETRY = 3
     TRADE_COUNT_RETRY = 4
-    TRADE_COUNT_MAX_CLICKS = 25
+    TRADE_COUNT_MAX_CLICKS = 40
     BUY_MAX_ATTEMPTS = 2
     RANK_FIXED_SWIPE_COUNT = 10
     RANK_FIXED_SWIPE_DISTANCE = 450
     RANK_FIXED_SWIPE_AREA = (785, 210, 918, 529)
+    RANK_PRICE_STABILIZE_WAIT = 1
+    RANK_PRICE_STABILIZE_CLICK_AREA = (835, 204, 890, 534)
     RANK_TAB_WAIT = 3
     RANK_VISIT_SEARCH_AREA = (1030, 204, 1105, 534)
     RANK_VISIT_PRICE_OFFSET = (-192, 4, -220, -2)
@@ -287,7 +279,8 @@ class IslandPearlSell(Island):
     def _goto_pearl_shop_at(self, destination, use_map=True):
         """前往地图目的地并移动到珍珠商店 NPC 身旁。"""
         if use_map:
-            self.island_map_goto(destination)
+            if not self.island_map_goto(destination):
+                return False
         if destination == "assembly":
             self.move_to_assembly_role_a()
         elif destination == "port":
@@ -295,7 +288,9 @@ class IslandPearlSell(Island):
         else:
             raise ValueError(f"未知珍珠商店地点: {destination}")
         enter_button = self.pearl_shop_enter_button(destination)
-        if not self.enter_pearl_shop(enter_button):
+        check_button = self.pearl_shop_check_button(destination)
+        self._pearl_shop_check_button = check_button
+        if not self.enter_pearl_shop(enter_button, check_button):
             return False
         return True
 
@@ -311,19 +306,33 @@ class IslandPearlSell(Island):
         self.island_left(3000)
         self.island_down(1000)
 
-    @staticmethod
-    def pearl_shop_enter_button(destination):
+    def pearl_shop_enter_button(self, destination):
+        if getattr(self, "_island_expect_friend", False):
+            if destination in ("assembly", "port"):
+                return ISLAND_PEARL_SHOP_FRIEND_ENTER
+            raise ValueError(f"好友岛珍珠商店不支持地点: {destination}")
         if destination == "assembly":
             return ISLAND_PEARL_SHOP_SELL_ENTER
         if destination == "port":
             return ISLAND_PEARL_SHOP_BUY_ENTER
         raise ValueError(f"未知珍珠商店入口地点: {destination}")
 
-    def enter_pearl_shop(self, enter_button):
+    @staticmethod
+    def pearl_shop_check_button(destination):
+        if destination == "assembly":
+            return ISLAND_PEARL_SHOP_SELL_CHECK
+        if destination == "port":
+            return ISLAND_PEARL_SHOP_BUY_CHECK
+        raise ValueError(f"未知珍珠商店检查地点: {destination}")
+
+    def current_pearl_shop_check_button(self):
+        return getattr(self, "_pearl_shop_check_button", ISLAND_PEARL_SHOP_SELL_CHECK)
+
+    def enter_pearl_shop(self, enter_button, check_button):
         """进入珍珠商店。"""
-        logger.info("进入珍珠商店")
+        logger.info(f"进入珍珠商店: {check_button.name}")
         for _ in self.loop(timeout=15):
-            if self.appear(ISLAND_PEARL_SHOP_CHECK, offset=(20, 20)):
+            if self.appear(check_button, offset=(20, 20)):
                 return True
             if self.appear_then_click(enter_button, offset=(20, 20), interval=2):
                 continue
@@ -335,8 +344,9 @@ class IslandPearlSell(Island):
     def back_to_pearl_shop_or_map(self):
         """从购买/售卖弹窗或珍珠商店返回到上级页面。"""
         logger.info("退出珍珠交易界面")
+        check_button = self.current_pearl_shop_check_button()
         for _ in self.loop(timeout=10):
-            if not self.appear(ISLAND_PEARL_SHOP_CHECK, offset=(20, 20)):
+            if not self.appear(check_button, offset=(20, 20)):
                 return True
             if self.appear_then_click(ISLAND_BACK, interval=2):
                 continue
@@ -347,6 +357,7 @@ class IslandPearlSell(Island):
     def exit_friend_island(self):
         """退出好友岛屿。"""
         logger.info("退出好友岛屿")
+        self._island_expect_friend = False
         for _ in self.loop(timeout=20):
             if self.appear_then_click(AIR_DROP_RUN_AWAY, offset=(20, 20), interval=2):
                 continue
@@ -421,7 +432,24 @@ class IslandPearlSell(Island):
                 name="PearlRankSwipe",
             )
             self.device.click_record_clear()
+        self.stabilize_friend_rank_price_area()
         return True
+
+    def stabilize_friend_rank_price_area(self):
+        """等待滑动惯性停止，并点击价格区域稳定好友排名列表。"""
+        logger.info(
+            f"等待好友排名滑动惯性停止 {self.RANK_PRICE_STABILIZE_WAIT}s，"
+            "点击价格区域后再检测"
+        )
+        self.device.sleep(self.RANK_PRICE_STABILIZE_WAIT)
+        self.device.click(
+            self._area_button(
+                self.RANK_PRICE_STABILIZE_CLICK_AREA,
+                "ISLAND_PEARL_RANK_PRICE_STABILIZE",
+            ),
+            control_check=False,
+        )
+        self.device.click_record_clear()
 
     def find_rank_visit_target(self, mode, threshold):
         """通过拜访按钮模板匹配查找满足价格条件的好友。"""
@@ -501,6 +529,7 @@ class IslandPearlSell(Island):
         self.device.click(visit_button)
         for _ in self.loop(timeout=30, skip_first=False):
             if self.appear(ISLAND_ACCESS_MAP, offset=(20, 20)):
+                self._island_expect_friend = True
                 return True
             if self.appear(CANT_ACCESS, offset=(20, 20)):
                 logger.info("好友不可访问")
@@ -529,17 +558,52 @@ class IslandPearlSell(Island):
 
     def ocr_weekly_purchase_count(self):
         """OCR 本周可采购数量，识别“本周可采购数量xxx/200”中的 xxx。"""
-        self.device.screenshot()
-        text = self._ocr_text(
-            OCR_ISLAND_PEARL_WEEKLY_PURCHASE, name="pearl_weekly_purchase"
-        )
-        result = re.search(r"(\d+)\s*/\s*\d+", text)
-        if result:
-            count = int(result.group(1))
-            logger.info(f"本周可采购数量: {count}/200")
-            return count
-        logger.warning(f"本周可采购数量 OCR 无效: {text}")
+        for _ in range(self.PRICE_RETRY):
+            self.device.screenshot()
+            text = self._ocr_counter_text(
+                OCR_ISLAND_PEARL_WEEKLY_PURCHASE,
+                name="pearl_weekly_purchase",
+                letter=(156, 163, 177),
+                threshold=128,
+            )
+            count = self.parse_weekly_purchase_count(text)
+            if count is not None:
+                logger.info(f"本周可采购数量: {count}/200")
+                return count
+            logger.warning(f"本周可采购数量 OCR 无效: {text}")
         return None
+
+    @staticmethod
+    def parse_weekly_purchase_count(text):
+        digits = re.sub(r"\D", "", text)
+        if not digits.endswith("200") or len(digits) <= 3:
+            return None
+        count = int(digits[:-3] or "0")
+        if 0 <= count <= 200:
+            if "/" not in text:
+                logger.info(f"本周可采购数量 OCR 缺少斜杠，按 {count}/200 处理")
+            return count
+        return None
+
+    def _ocr_counter_text(self, button, name, letter=(255, 255, 255), threshold=128):
+        ocr = Ocr(
+            button,
+            lang="cnocr",
+            letter=letter,
+            threshold=threshold,
+            alphabet="0123456789/IDSB",
+            name=name,
+        )
+        try:
+            text = str(ocr.ocr(self.device.image, direct_ocr=False))
+            return (
+                text.replace("I", "1")
+                .replace("D", "0")
+                .replace("S", "5")
+                .replace("B", "8")
+            )
+        except (ValueError, TypeError):
+            return ""
 
     def ocr_current_pearl_count(self):
         """OCR 当前持有珍珠数量。"""
@@ -590,17 +654,15 @@ class IslandPearlSell(Island):
             logger.warning(f"打开珍珠{self._action_name(action)}弹窗超时")
             return False
 
-        self.add_ten_until_trade_count(count)
-        if not self.confirm_trade():
+        if not self.adjust_trade_count(count):
+            logger.warning(f"珍珠{self._action_name(action)}数量未调整到目标: {count}")
+            return False
+        if not self.confirm_trade(action=action):
             return False
         return True
 
-    def add_ten_until_trade_count(self, target):
-        """
-        只使用 +10 调整数量。
-
-        OCR 到目标即停止；如果点过头或多次 OCR 不变化，直接进入确认。
-        """
+    def adjust_trade_count(self, target):
+        """调整交易数量，严格等于目标后才允许确认。"""
         target = int(target)
         last_count = -1
         stable_count = 0
@@ -608,30 +670,68 @@ class IslandPearlSell(Island):
             self.device.screenshot()
             current = self.ocr_trade_count()
             logger.info(f"珍珠交易数量: {current}/{target}")
-            if current >= target:
-                return current
+            if current == target:
+                return True
             if current == last_count:
                 stable_count += 1
             else:
                 stable_count = 0
             if stable_count >= self.TRADE_COUNT_RETRY:
-                logger.warning("交易数量 OCR 多次未变化，直接确认")
-                return current
+                logger.warning("交易数量 OCR 多次未变化，停止调整")
+                return False
             last_count = current
 
-            for button in (ADD_TEN_A, ADD_TEN_B, ADD_TEN_C):
+            for button in self.trade_count_adjust_buttons(current, target):
                 self.device.click(button)
-        logger.warning("交易数量 +10 超出最大点击次数，直接确认")
-        return last_count
+        logger.warning("交易数量调整超出最大点击次数")
+        return False
 
-    def confirm_trade(self):
+    @staticmethod
+    def trade_count_adjust_buttons(current, target):
+        diff = target - current
+        if diff >= 10:
+            return IslandPearlSell._repeat_buttons(
+                (ADD_TEN_A, ADD_TEN_B, ADD_TEN_C), diff // 10
+            )
+        if diff > 0:
+            return IslandPearlSell._repeat_buttons(
+                (ADD_ONE_A, ADD_ONE_B, ADD_ONE_C), diff
+            )
+        if diff <= -10:
+            return IslandPearlSell._repeat_buttons(
+                (MINUS_TEN_A, MINUS_TEN_B, MINUS_TEN_C), abs(diff) // 10
+            )
+        return IslandPearlSell._repeat_buttons(
+            (MINUS_ONE_A, MINUS_ONE_B, MINUS_ONE_C), abs(diff)
+        )
+
+    @staticmethod
+    def _repeat_buttons(buttons, count):
+        return tuple(buttons[index % len(buttons)] for index in range(count))
+
+    @staticmethod
+    def pearl_trade_confirm_button(action):
+        if action == "buy":
+            return ISLAND_PEARL_TRADE_BUY_CONFIRM
+        if action == "sell":
+            return ISLAND_PEARL_TRADE_SELL_CONFIRM
+        raise ValueError(f"未知珍珠交易类型: {action}")
+
+    def confirm_trade(self, action):
         """确认购买/售卖。"""
+        confirm_button = self.pearl_trade_confirm_button(action)
         confirm_timer = Timer(1, count=2).start()
+        check_button = self.current_pearl_shop_check_button()
+        confirmed = False
         for _ in self.loop(timeout=15):
-            if self.appear_then_click(ISLAND_SHOP_CONFIRM, offset=(20, 20), interval=2):
+            if self.appear_then_click(confirm_button, offset=(20, 20), interval=1):
+                confirmed = True
                 confirm_timer.reset()
                 continue
-            if self.appear(ISLAND_PEARL_SHOP_CHECK, offset=(20, 20)):
+            if self.handle_pearl_get_items():
+                confirm_timer.reset()
+                continue
+            if confirmed and self.appear(check_button, offset=(20, 20)):
                 if confirm_timer.reached():
                     return True
             else:
@@ -640,6 +740,11 @@ class IslandPearlSell(Island):
                 confirm_timer.reset()
                 continue
         logger.warning("确认珍珠交易超时")
+        return False
+
+    def handle_pearl_get_items(self):
+        if self.appear_then_click(GET_ITEMS_ISLAND, offset=(20, 20), interval=2):
+            return True
         return False
 
     @staticmethod

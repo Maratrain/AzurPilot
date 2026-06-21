@@ -25,6 +25,7 @@ class IslandTeahouse(IslandShopBase):
         self.shop_type = "teahouse"
         self.time_prefix = "time_tea"
         self.chef_config = self.config.IslandTeahouse_ChefFilter
+        self.post_open_retry_swipe = True
 
         # === 初始化全局季节配置 ===
         self._init_season_config()
@@ -257,8 +258,7 @@ class IslandTeahouse(IslandShopBase):
                 self.device.sleep(0.5)
                 return 0
             else:
-                for _ in range(number - 1):
-                    self.device.click(POST_ADD_ONE)
+                self.post_add_one(number - 1)
                 self.device.sleep(0.5)
                 self.device.click(POST_ADD_ORDER)
                 self.device.sleep(0.5)

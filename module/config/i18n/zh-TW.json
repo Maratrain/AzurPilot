@@ -348,11 +348,11 @@
     },
     "IslandDailyInteract": {
       "name": "每日/週任務",
-      "help": "處理島嶼摸貓、JUU速運、商區外送服務與每週照相任務。相關按鈕資源生成後可啟用。"
+      "help": "僅支援minitouch。處理島嶼摸貓、JUU速運、商區外送服務與每週照相任務。相關按鈕資源生成後可啟用。"
     },
     "IslandPearlSell": {
       "name": "每週珍珠採購與售賣",
-      "help": "每週二 01:00 自動處理珍珠：先採購本週珍珠，再售賣已有珍珠。僅支援minitouch。金幣一定要夠購買200x220個這是最低要求能一次買光本週珍珠, 否則可能會報錯."
+      "help": "僅支援minitouch。每週二 01:00 自動處理珍珠：先採購本週珍珠，再售賣已有珍珠。金幣一定要夠購買200x220個這是最低要求能一次買光本週珍珠, 否則可能會報錯."
     },
     "Daemon": {
       "name": "半自動點選",
@@ -1171,8 +1171,11 @@
       "help": "使用遊戲內建的推薦陣容自動完成困難圖配隊"
     },
     "DefeatWithdraw": {
-      "name": "道中戰鬥失敗撤退",
-      "help": "道中戰鬥戰敗時的處理方式。開啟時直接退出海域，關閉時嘗試由另一隊接管後續戰鬥。"
+      "name": "道中失敗處理",
+      "help": "道中戰鬥戰敗時的處理方式",
+      "withdraw_continue": "撤退後繼續任務",
+      "switch_fleet": "切換隊伍繼續出擊",
+      "withdraw_stop": "撤退後關閉任務"
     }
   },
   "StopCondition": {
@@ -3357,6 +3360,10 @@
       "3": "3",
       "4": "4"
     },
+    "WorkerFilter": {
+      "name": "農田使用角色",
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
+    },
     "MinFarm": {
       "name": "農田作物底線",
       "help": "建議660及以上"
@@ -3383,6 +3390,10 @@
       "2": "2",
       "3": "3",
       "4": "4"
+    },
+    "WorkerFilter": {
+      "name": "果園使用角色",
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "MinOrchard": {
       "name": "水果底線",
@@ -3416,6 +3427,10 @@
       "help": "",
       "1": "1",
       "2": "2"
+    },
+    "WorkerFilter": {
+      "name": "苗圃使用角色",
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "MinNursery": {
       "name": "苗圃作物底線",
@@ -3452,11 +3467,15 @@
     },
     "RancherFilter": {
       "name": "使用角色",
-      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao"
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "Wool": {
       "name": "養羊",
       "help": ""
+    },
+    "WoolWorkerFilter": {
+      "name": "養羊使用角色",
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     }
   },
   "IslandFishery": {
@@ -3487,6 +3506,10 @@
       "name": "小河蝦底線",
       "help": ""
     },
+    "MinCrayfish": {
+      "name": "小龍蝦底線",
+      "help": ""
+    },
     "MinCrab": {
       "name": "螃蟹底線",
       "help": ""
@@ -3500,7 +3523,7 @@
       "help": ""
     },
     "PlantYellowfinTuna": {
-      "name": "種黃鰭鮪魚",
+      "name": "養黃鰭鮪魚",
       "help": "",
       "0": "0",
       "1": "1",
@@ -3509,7 +3532,7 @@
     },
     "RancherFilter": {
       "name": "使用角色",
-      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao"
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     }
   },
   "IslandMine": {
@@ -3533,6 +3556,10 @@
       "2": "2",
       "3": "3",
       "4": "4"
+    },
+    "WorkerFilter": {
+      "name": "礦山使用角色",
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "MinCopper": {
       "name": "銅礦最低庫存",
@@ -3577,6 +3604,10 @@
       "3": "3",
       "4": "4"
     },
+    "WorkerFilter": {
+      "name": "林場使用角色",
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
+    },
     "MinElegant": {
       "name": "優雅木材最低庫存",
       "help": "倉庫中優雅木材數量低於此值時，林場崗位才會生產"
@@ -3588,6 +3619,16 @@
     "MinSelected": {
       "name": "精選木材最低庫存",
       "help": "倉庫中精選木材數量低於此值時，林場崗位才會生產"
+    }
+  },
+  "IslandDailyGather": {
+    "_info": {
+      "name": "每日採集",
+      "help": "透過管理介面採集分頁，UI模擬點擊完成每日採集。執行時間：凌晨3:10、下午6:00。流程：選擇採集目標→切換開關→分配角色→出發"
+    },
+    "WorkerFilter": {
+      "name": "採集角色",
+      "help": "以>連接，最多填寫3個角色，分別對應第1~3個採集槽位。\n以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n每日採集不能選擇 WorkerJuu，填寫後會自動忽略。\n僅識別預設排序前兩排；指定角色不可用時該槽位回退現有採集邏輯。"
     }
   },
   "IslandRestaurant": {
@@ -3603,7 +3644,7 @@
     },
     "ChefFilter": {
       "name": "廚師",
-      "help": "以>連接"
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "DoubleBambooShoots": {
       "name": "涼拌雙筍",
@@ -3814,7 +3855,7 @@
     },
     "ChefFilter": {
       "name": "廚師",
-      "help": "以>連接"
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "Seasonal": {
       "name": "迎春花茶",
@@ -4007,7 +4048,7 @@
     },
     "ChefFilter": {
       "name": "廚師",
-      "help": "以>連接"
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "Meal1": {
       "name": "餐品1",
@@ -4018,6 +4059,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4034,6 +4076,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4050,6 +4093,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4066,6 +4110,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4082,6 +4127,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4098,6 +4144,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4114,6 +4161,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4130,6 +4178,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -4152,6 +4201,7 @@
       "carrot_omelette": "胡蘿蔔厚蛋燒",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     }
@@ -4169,7 +4219,7 @@
     },
     "ChefFilter": {
       "name": "廚師",
-      "help": "以>連接"
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "Meal1": {
       "name": "餐品1",
@@ -4358,7 +4408,7 @@
     },
     "ChefFilter": {
       "name": "廚師",
-      "help": "以>連接"
+      "help": "以>連接，例如肇和 新澤西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 應瑞：YingSwei\n惡毒：LeMalin > 獨角獸：Unicorn > 島風：Shimakaze > 柴郡：Cheshire\n鎮海：ChenHai > 威廉D波特：WilliamDPorter\n海倫娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奧古斯特：August > 歐根親王：Eugen > 胡德：Hood > 標槍：Javelin > 拉菲：Laffey > 探索者：Explorer > 領航員：Navigator > 領洋者：OceanCrosser > 飛雲：FeiYun > 高雄：Takao\n僅識別預設排序前兩排；指定艦娘不可用時回退 WorkerJuu。"
     },
     "Friedrich": {
       "name": "大帝",
@@ -4616,7 +4666,7 @@
   "IslandDailyInteract": {
     "_info": {
       "name": "每日/週任務",
-      "help": "控制島嶼每日與每週互動任務，包含晨露農場摸貓、開發計畫中的 JUU 速運、商區外送服務和每週照相任務。"
+      "help": "僅支援minitouch。控制島嶼每日與每週互動任務，包含晨露農場摸貓、開發計畫中的 JUU 速運、商區外送服務和每週照相任務。"
     },
     "WeeklyPhoto": {
       "name": "每週照相任務",
@@ -4628,7 +4678,7 @@
   "IslandPearlSell": {
     "_info": {
       "name": "每週珍珠採購與售賣",
-      "help": "每週二 01:00 自動處理珍珠：先按最高採購價採購本週珍珠，再按最低售賣價售賣已有珍珠。其他未完成流程會延遲到次日 01:00 重試。僅支援minitouch。金幣一定要夠購買200x220個這是最低要求能一次買光本週珍珠, 否則可能會報錯."
+      "help": "僅支援minitouch。每週二 01:00 自動處理珍珠：先按最高採購價採購本週珍珠，再按最低售賣價售賣已有珍珠。其他未完成流程會延遲到次日 01:00 重試。金幣一定要夠購買200x220個這是最低要求能一次買光本週珍珠, 否則可能會報錯."
     },
     "BuyPrice": {
       "name": "最高採購價格",
@@ -5188,6 +5238,7 @@
       "roasted_skewer": "碳烤肉串",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -5198,6 +5249,7 @@
       "roasted_skewer": "碳烤肉串",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -5208,6 +5260,7 @@
       "roasted_skewer": "碳烤肉串",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -5218,6 +5271,7 @@
       "roasted_skewer": "碳烤肉串",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
@@ -5228,12 +5282,13 @@
       "roasted_skewer": "碳烤肉串",
       "stir_fried_chicken": "爆炒禽肉",
       "steak_bowl": "漢堡肉飯",
+      "crayfish_stir_fry": "爆炒小龍蝦",
       "carnival": "烤肉狂歡",
       "double_energy": "能量雙拼套餐"
     },
     "BoostReplaceFilter": {
       "name": "烏魚烤肉加成替換過濾",
-      "help": "多個加成餐品時按過濾順序優先替換第一個；替換槽位從餐品5→1倒查替換最後一個非空餐品\n可用餐品key對照：roasted_skewer:碳烤肉串, stir_fried_chicken:爆炒禽肉, steak_bowl:漢堡肉飯, carnival:烤肉狂歡, double_energy:能量雙拼套餐\n示例：30 > 20 > 10"
+      "help": "多個加成餐品時按過濾順序優先替換第一個；替換槽位從餐品5→1倒查替換最後一個非空餐品\n可用餐品key對照：roasted_skewer:碳烤肉串, stir_fried_chicken:爆炒禽肉, steak_bowl:漢堡肉飯, crayfish_stir_fry:爆炒小龍蝦, carnival:烤肉狂歡, double_energy:能量雙拼套餐\n示例：30 > 20 > crayfish_stir_fry > 10"
     }
   },
   "IslandBusinessShop5": {

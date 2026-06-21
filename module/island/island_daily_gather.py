@@ -94,11 +94,12 @@ class IslandDailyGather(Island):
         #    如果所有采集物已采集完毕，确定时会弹出提示弹窗
         logger.info("步骤4: 处理选择采集目标确认")
         if self._handle_target_selection():
+            worker_list = self._daily_gather_worker_list()
             # 如果成功选择了采集目标，继续后续流程
             # 5. 依次点击三个"+"按钮并选择角色
             for i in range(3):
                 logger.info(f"步骤5-{i+1}: 点击第{i+1}个+按钮并选择角色")
-                self._click_plus_and_select_character(i)
+                self._click_plus_and_select_character(i, worker_list)
 
             # 6. 点击"出发"按钮
             logger.info("步骤6: 点击出发按钮")
@@ -232,15 +233,46 @@ class IslandDailyGather(Island):
             self.device.sleep(0.3)
         return False
 
-    def _click_plus_and_select_character(self, index):
+    def _daily_gather_worker_list(self):
+        """
+        解析每日采集自定义角色配置。
+
+        每日采集界面没有 WorkerJuu，配置中出现时必须忽略。
+        """
+        config = self.config.IslandDailyGather_WorkerFilter
+        characters = self.parse_character_filter(config)
+        if not characters:
+            return []
+
+        filtered = []
+        ignored_worker = False
+        for character in characters:
+            if character == "WorkerJuu":
+                ignored_worker = True
+                continue
+            filtered.append(character)
+
+        if ignored_worker:
+            logger.warning("每日采集不能选择 WorkerJuu，已自动忽略")
+
+        if len(filtered) > 3:
+            logger.warning(f"每日采集最多指定 3 个有效角色，已忽略后续角色: {filtered[3:]}")
+            filtered = filtered[:3]
+
+        logger.info(f"每日采集自定义角色: {filtered}")
+        return filtered
+
+    def _click_plus_and_select_character(self, index, worker_list=None):
         """
         点击第index个"+"按钮并选择角色
 
         Args:
             index: 槽位索引 (0, 1, 2)
+            worker_list: 每日采集自定义角色列表。
         """
         plus_buttons = [ISLAND_GATHER_PLUS_A, ISLAND_GATHER_PLUS_B, ISLAND_GATHER_PLUS_C]
         plus_button = plus_buttons[index]
+        worker_list = worker_list or []
 
         # 点击"+"按钮
         logger.info(f"点击第{index + 1}个+按钮")
@@ -254,7 +286,15 @@ class IslandDailyGather(Island):
         self._sort_by_life_level()
 
         # 选择体力达标且非工作中的角色
-        if not self._select_character_with_stamina_check():
+        selected = False
+        if index < len(worker_list):
+            character = worker_list[index]
+            logger.info(f"第{index + 1}个槽位尝试选择指定角色: {character}")
+            selected = self.select_specific_character(character, min_stamina=GATHER_STAMINA_THRESHOLD)
+            if not selected:
+                logger.warning(f"第{index + 1}个槽位指定角色不可用，回退旧逻辑: {character}")
+
+        if not selected and not self._select_character_with_stamina_check():
             logger.warning(f"第{index + 1}个槽位未找到可用角色，跳过")
 
         # 点击确认按钮完成选择
@@ -315,24 +355,35 @@ class IslandDailyGather(Island):
             bool: 是否成功选择角色
         """
         screenshot = self.device.screenshot()
-        characters = self.recognize_all_characters(screenshot)
+        detected = False
+        available = []
 
-        if not characters:
+        for row, col, button in self.select_character_grid.generate():
+            character_status = self._recognize_character_status(screenshot, button)
+            if not character_status:
+                continue
+
+            detected = True
+            char_info = {
+                "grid_position": (row, col),
+                "button_area": button.area,
+                **character_status,
+            }
+            if char_info["is_working"] or char_info["is_selected"]:
+                continue
+
+            if char_info.get("stamina", 0) >= GATHER_STAMINA_THRESHOLD:
+                return self._click_character(char_info, f"体力达标 >= {GATHER_STAMINA_THRESHOLD}")
+
+            available.append(char_info)
+
+        if not detected:
             logger.warning("未检测到任何角色")
             return False
 
-        available = [
-            char_info
-            for char_info in characters
-            if not char_info["is_working"] and not char_info["is_selected"]
-        ]
         if not available:
             logger.warning("所有角色均在工作中或已被选中，无法选择空闲角色")
             return False
-
-        for char_info in available:
-            if char_info.get("stamina", 0) >= GATHER_STAMINA_THRESHOLD:
-                return self._click_character(char_info, f"体力达标 >= {GATHER_STAMINA_THRESHOLD}")
 
         best_char = max(available, key=lambda item: item.get("stamina", 0))
         logger.warning(

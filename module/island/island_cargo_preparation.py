@@ -527,13 +527,13 @@ class IslandCargoPreparation(IslandUI):
             self.config.task_delay(target=target)
             return
 
-        future_finish = sorted([
-            finish for finish in commissions.get('finish_time')
+        future_finish = [
+            finish for finish in commissions.get('finish_time') or []
             if finish is not None and finish > datetime.now()
-        ])
+        ]
         if future_finish:
-            target = future_finish[0]
-            logger.info(f'下次货物筹备检测: {target}')
+            target = max(future_finish)
+            logger.info(f'下次货物筹备检测（最晚完成）: {target}')
             self.config.task_delay(target=target)
             return
 

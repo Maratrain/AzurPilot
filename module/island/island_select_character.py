@@ -97,16 +97,20 @@ class SelectCharacter(UI):
         if not target_templates:
             return results
 
+        remaining_templates = target_templates.copy()
         for row, col, button in self.select_character_grid.generate():
             character_status = self._recognize_character_status(
-                screenshot, button, character_targets=target_templates
+                screenshot, button, character_targets=remaining_templates
             )
             if character_status:
+                remaining_templates.pop(character_status["character_name"], None)
                 results.append({
                     "grid_position": (row, col),
                     "button_area": button.area,
                     **character_status
                 })
+                if not remaining_templates:
+                    break
 
         return results
 
@@ -265,6 +269,23 @@ class SelectCharacter(UI):
             return True
         return False
 
+    @staticmethod
+    def parse_character_filter(character_list):
+        """
+        解析角色优先级配置。
+
+        Args:
+            character_list: 使用 > 分隔的字符串，或角色名列表。
+
+        Returns:
+            list[str]: 去除空项后的角色名列表，保留原始顺序。
+        """
+        if isinstance(character_list, str):
+            return [char.strip() for char in character_list.split(">") if char.strip()]
+        if character_list is None:
+            return []
+        return [str(char).strip() for char in character_list if str(char).strip()]
+
     def _select_first_available_character(self, character_list):
         """
         从指定角色列表中选择第一个空闲且体力充沛的角色
@@ -283,6 +304,13 @@ class SelectCharacter(UI):
                         char_info["has_stamina"]):
                     return char_info["grid_position"]
             return None
+
+        if character_list == ["WorkerJuu"]:
+            logger.info("仅选择 WorkerJuu，先应用体力排序")
+            if not self.select_character_filter():
+                return None
+            screenshot = self.device.screenshot()
+            return self.find_specific_character(screenshot, "WorkerJuu")
 
         # 计算需要识别的角色集合（包含列表角色+最终回退的WorkerJuu）
         target_names = list(character_list)
@@ -335,6 +363,58 @@ class SelectCharacter(UI):
 
         return None
 
+    def find_strict_available_character(self, character_list, min_stamina=35):
+        """
+        只从指定角色中寻找可选角色，不回退 WorkerJuu。
+
+        Args:
+            character_list: 使用 > 分隔的字符串，或角色名列表。
+            min_stamina: 最低体力阈值。
+
+        Returns:
+            dict | None: 可点击角色状态，找不到则返回 None。
+        """
+        characters = self.parse_character_filter(character_list)
+        if not characters:
+            return None
+
+        screenshot = self.device.screenshot()
+        target_characters = self.recognize_target_characters(screenshot, characters)
+        character_dict = {
+            char_info["character_name"]: char_info
+            for char_info in target_characters
+        }
+        logger.info(f"指定角色状态: {character_dict}")
+
+        for char_name in characters:
+            char_info = character_dict.get(char_name)
+            if not char_info:
+                continue
+            if char_info["is_working"] or char_info["is_selected"]:
+                continue
+            if char_info.get("stamina", 0) < min_stamina:
+                continue
+            return char_info
+
+        return None
+
+    def select_specific_character(self, character_list, min_stamina=35):
+        """
+        只尝试选择指定角色，不回退 WorkerJuu。
+
+        Returns:
+            bool: 成功选择角色返回 True，否则返回 False。
+        """
+        char_info = self.find_strict_available_character(character_list, min_stamina=min_stamina)
+        if not char_info:
+            return False
+
+        row, col = char_info["grid_position"]
+        button = self.select_character_grid[row, col]
+        self.device.click(button)
+        self.device.sleep(0.3)
+        return True
+
     def find_specific_character(self, screenshot, character_name="WorkerJuu"):
         """查找指定角色的位置信息，只检查目标角色的模板，不做全量匹配"""
         target_characters = self.recognize_target_characters(screenshot, [character_name])
@@ -356,12 +436,9 @@ class SelectCharacter(UI):
             bool: 成功选择角色返回True，无角色可选返回False
         """
         # 解析角色列表
-        if isinstance(character_list, str):
-            # 处理 "Cheshire > YingSwei" 格式
-            characters = [char.strip() for char in character_list.split(">")]
-        else:
-            # 假设传入的是列表
-            characters = character_list
+        characters = self.parse_character_filter(character_list)
+        if not characters:
+            characters = ["WorkerJuu"]
 
         position = self._select_first_available_character(characters)
 

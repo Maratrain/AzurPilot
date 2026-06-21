@@ -4,7 +4,6 @@ from datetime import datetime
 from module.handler.login import LoginHandler
 from module.island.warehouse import *
 from module.logger import logger
-from module.base.timer import Timer
 
 
 class IslandFarm(Island, WarehouseOCR, LoginHandler):
@@ -24,6 +23,11 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         self.farm_threshold = self.config.IslandFarm_MinFarm
         self.orchard_threshold = self.config.IslandOrchard_MinOrchard
         self.nursery_threshold = self.config.IslandNursery_MinNursery
+        self.worker_filters = {
+            'farm': self.config.IslandFarm_WorkerFilter,
+            'orchard': self.config.IslandOrchard_WorkerFilter,
+            'nursery': self.config.IslandNursery_WorkerFilter,
+        }
 
         self.ignore_avocado = self.config.IslandOrchard_IgnoreAvocado
         self.ignore_pineapple = self.config.IslandNursery_IgnorePineapple
@@ -292,18 +296,25 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                     if self.select_character(character_list="Amagi_chan"):
                         self.device.click(SELECT_UI_CONFIRM)
                 else:
-                    if self.select_character():
+                    if self.select_character(character_list=self.worker_filters.get(category, "WorkerJuu")):
                         self.device.sleep(0.5)
                         self.device.click(SELECT_UI_CONFIRM)
                         self.device.sleep(0.5)
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 if self.select_product(selection, selection_check):
+                    seed_config = self.name_to_config[product]
+                    if self.ensure_select_product_material(
+                            item_button=seed_config['shop'],
+                            required_quantity=seed_config['seed_number'],
+                            shop_check=ISLAND_SHOP_SEED_TAB_CHECK,
+                            item_name=f"{product}种子",
+                    ):
+                        continue
                     self.device.sleep(0.3)
-                    self.device.click(POST_MAX)
-                    self.device.sleep(0.3)
-                    self.device.click(POST_ADD_ORDER)
-                    self.device.sleep(0.5)
+                    if not self.confirm_post_add_order(f"{product}种植派遣"):
+                        self.back_to_postmanage_from_dispatch()
+                        return False
                     break
                 else:
                     return self._handle_select_product_failure(product)
@@ -323,67 +334,6 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         # 关闭详情弹窗，防止后续操作被弹窗遮挡
         self.post_close()
         return True
-
-    def buy_seeds(self, seed, category):
-        category_map = {
-            'farm': (SHOP_FARM_CHECK, SHOP_FARM),
-            'orchard': (SHOP_ORCHARD_CHECK, SHOP_ORCHARD),
-            'nursery': (SHOP_NURSERY_CHECK, SHOP_NURSERY)
-        }
-        check_const, click_const = category_map[category]
-        seed_config = self.name_to_config[seed]
-        target = seed_config['seed_number']
-        seed_button = seed_config['shop']
-        while 1:
-            self.device.screenshot()
-            if self.appear(check_const):
-                break
-            if self.appear_then_click(click_const, interval=0.3):
-                pass
-        while 1:
-            self.device.screenshot()
-            if self.appear(ISLAND_SHOPPING_CHECK):
-                break
-            if self.appear_then_click(seed_button, interval=1.2):
-                pass
-        if self.appear(ISLAND_SHOPPING_CHECK):
-            self.set_buy_number(target)
-        while 1:
-            self.device.screenshot()
-            if self.appear(ISLAND_SHOP_CHECK, offset=1):
-                break
-            if self.appear_then_click(ISLAND_SHOP_CONFIRM):
-                self.device.sleep(0.5)
-                self.device.click(ISLAND_SHOP_CONFIRM)
-                self.device.sleep(0.5)
-                continue
-            if self.appear(ISLAND_SHOP_GET):
-                self.device.click(ISLAND_SHOP_CONFIRM)
-                continue
-        if self.appear(ISLAND_SHOP_GET):
-            self.device.click(ISLAND_SHOP_CONFIRM)
-
-    def _back_to_island_after_seed_purchase(self):
-        """从种子商店返回岛屿页，避免商店页误判导致漏点返回。"""
-        logger.info('返回岛屿页')
-        confirm_timer = Timer(1, count=2).start()
-        self.interval_clear([ISLAND_BACK, ISLAND_SHOP_GOTO_ISLAND])
-        self.device.click(ISLAND_BACK)
-        self.device.sleep(0.5)
-        for _ in self.loop(timeout=12, skip_first=False):
-            if self.appear(ISLAND_CHECK):
-                if confirm_timer.reached():
-                    return True
-                continue
-            confirm_timer.reset()
-
-            if self.appear_then_click(ISLAND_BACK, offset=(20, 20), interval=2):
-                continue
-            if self.appear_then_click(ISLAND_SHOP_GOTO_ISLAND, offset=(20, 20), interval=2):
-                continue
-
-        logger.warning('返回岛屿页超时，继续尝试后续导航')
-        return False
 
     def run(self):
         self.island_error = False
@@ -478,7 +428,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         for category in ['farm', 'orchard', 'nursery']:
             logger.info(f"{category}: {len(idle_posts[category])}个空闲岗位")
 
-        all_plants_to_buy = {'farm': [], 'orchard': [], 'nursery': []}
+        all_plants_to_plant = {'farm': [], 'orchard': [], 'nursery': []}
 
         for category in ['farm', 'orchard', 'nursery']:
             if not idle_posts[category]:
@@ -505,75 +455,31 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
 
             for i in range(num_from_list):
                 crop_name = to_plant_list[i]
-                all_plants_to_buy[category].append(crop_name)
+                all_plants_to_plant[category].append(crop_name)
 
             remaining_idle = idle_count - num_from_list
 
             if remaining_idle > 0 and need_default > 0:
                 actual_default = min(remaining_idle, need_default)
                 for _ in range(actual_default):
-                    all_plants_to_buy[category].append(default_crop)
+                    all_plants_to_plant[category].append(default_crop)
 
-            if all_plants_to_buy[category]:
-                logger.info(f"\n{category}需要购买的作物: {all_plants_to_buy[category]}")
+            if all_plants_to_plant[category]:
+                logger.info(f"\n{category}需要种植的作物: {all_plants_to_plant[category]}")
 
-        need_to_buy_seeds = any(all_plants_to_buy.values())
+        need_to_plant = any(all_plants_to_plant.values())
 
-        if need_to_buy_seeds:
-            self.ui_goto(page_island_shop, get_ship=False)
-            self.device.sleep(0.5)
-            self.device.click(ISLAND_SHOP_GOTO_SEED_SHOP)
-            while 1:
-                self.device.screenshot()
-                if self.appear(ISLAND_SEED_SHOP_CHECK):
-                    break
-                self.device.click(ISLAND_SHOP_GOTO_SEED_SHOP)
-                self.device.sleep(0.5)
-
-            for category in ['farm', 'orchard', 'nursery']:
-                if not all_plants_to_buy[category]:
-                    continue
-
-                crop_counts = {}
-                for crop_name in all_plants_to_buy[category]:
-                    crop_counts[crop_name] = crop_counts.get(crop_name, 0) + 1
-
-                category_map = {
-                    'farm': (SHOP_FARM_CHECK, SHOP_FARM),
-                    'orchard': (SHOP_ORCHARD_CHECK, SHOP_ORCHARD),
-                    'nursery': (SHOP_NURSERY_CHECK, SHOP_NURSERY)
-                }
-                check_const, click_const = category_map[category]
-
-                while 1:
-                    self.device.screenshot()
-                    if self.appear(check_const):
-                        break
-                    if self.appear_then_click(click_const, interval=0.3):
-                        pass
-
-                for crop, count in crop_counts.items():
-                    logger.info(f"购买{category}类别的{crop}种子，{count}份")
-                    for _ in range(count):
-                        self.buy_seeds(crop, category)
-            self._back_to_island_after_seed_purchase()
-
-            self.goto_management()
-            self.ui_goto(page_island_postmanage, get_ship=False)
-            self.post_manage_mode(POST_MANAGE_PRODUCTION)
-            self.post_close()
+        if need_to_plant:
+            self.post_manage_swipe(0)
             self.device.sleep(1)
-            self.post_manage_down_swipe(450)
-            self.device.sleep(1)
-            self.post_manage_down_swipe(450)
-            self.device.sleep(1)
-            # 先处理农田和果园的播种
+
+            # 先处理农田和果园的播种，种子不足时在产品选择页即时补买。
             for category in ['farm', 'orchard']:
                 if not idle_posts[category]:
                     continue
 
                 idle_posts_list = idle_posts[category]
-                crops_to_plant = all_plants_to_buy[category]
+                crops_to_plant = all_plants_to_plant[category]
 
                 for i, post_info in enumerate(idle_posts_list):
                     if i >= len(crops_to_plant):
@@ -589,19 +495,14 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                         logger.info(f"播种{category}岗位{post_info['post_id']}成功: {crop_to_plant}")
                         if crop_to_plant in self.to_plant_lists[category]:
                             self.to_plant_lists[category].remove(crop_to_plant)
-            self.device.sleep(1)
-            self.post_manage_down_swipe(450)
-            self.device.sleep(1)
-            self.post_manage_down_swipe(450)
-            self.device.sleep(1)
+
             # 然后处理苗圃的播种
             category = 'nursery'
             if idle_posts[category]:
-                self.device.sleep(1)
                 self.post_manage_up_swipe(450)
                 self.device.sleep(0.5)
                 idle_posts_list = idle_posts[category]
-                crops_to_plant = all_plants_to_buy[category]
+                crops_to_plant = all_plants_to_plant[category]
 
                 for i, post_info in enumerate(idle_posts_list):
                     if i >= len(crops_to_plant):

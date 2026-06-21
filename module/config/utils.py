@@ -221,15 +221,10 @@ def parse_value(value, data):
     Returns:
         转换后的值，无法转换时返回原值。
     """
-    if data.get('type') == 'checkbox' and isinstance(value, list):
-        # PyWebIO checkbox 关闭时返回 []，打开时返回 [True]。
-        return any(bool(v) for v in value)
-
-    if 'option' in data:
-        if value not in data['option']:
-            return data['value']
-    if isinstance(value, str):
-        if value == '':
+    def parse_single(value):
+        if not isinstance(value, str):
+            return value
+        if value == '' and not data.get('preserve_empty'):
             return None
         if value == 'true' or value == 'True':
             return True
@@ -250,6 +245,26 @@ def parse_value(value, data):
         except ValueError:
             pass
 
+        return value
+
+    if data.get('type') == 'checkbox' and isinstance(value, list):
+        # PyWebIO checkbox 关闭时返回 []，打开时返回 [True]。
+        return any(bool(v) for v in value)
+
+    if data.get('type') == 'multiselect':
+        if value is None or value == '':
+            return data['value']
+        if not isinstance(value, list):
+            value = [value]
+        value = [parse_single(item) for item in value]
+        if 'option' in data and any(item not in data['option'] for item in value):
+            return data['value']
+        return value
+
+    if 'option' in data:
+        if value not in data['option']:
+            return data['value']
+    value = parse_single(value)
     return value
 
 

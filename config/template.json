@@ -212,7 +212,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -293,7 +293,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -374,7 +374,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -472,7 +472,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -557,7 +557,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -642,7 +642,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -724,7 +724,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -805,7 +805,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -886,7 +886,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -971,7 +971,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1029,7 +1029,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1139,7 +1139,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "Coalition": {
       "Mode": "hard",
@@ -1233,7 +1233,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1318,7 +1318,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1403,7 +1403,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1488,7 +1488,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1573,7 +1573,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1654,7 +1654,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1738,7 +1738,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "StopCondition": {
       "OilLimit": 1000,
@@ -1789,7 +1789,7 @@
       "Use2xBook": false,
       "AmbushEvade": true,
       "UseRecommendFleet": false,
-      "DefeatWithdraw": true
+      "DefeatWithdraw": "withdraw_stop"
     },
     "Coalition": {
       "Mode": "hard",
@@ -2800,11 +2800,13 @@
     },
     "IslandFarm": {
       "Positions": 3,
+      "WorkerFilter": "WorkerJuu",
       "MinFarm": 660,
       "PlantPotatoes": 4
     },
     "IslandOrchard": {
       "Positions": 4,
+      "WorkerFilter": "WorkerJuu",
       "MinOrchard": 300,
       "IgnoreAvocado": true,
       "PlantRubber": 0,
@@ -2812,6 +2814,7 @@
     },
     "IslandNursery": {
       "Positions": 2,
+      "WorkerFilter": "WorkerJuu",
       "MinNursery": 0,
       "IgnorePineapple": true,
       "PlantLavender": 2
@@ -2836,7 +2839,8 @@
       "MinPork": 300,
       "Milk": true,
       "RancherFilter": "WorkerJuu",
-      "Wool": true
+      "Wool": true,
+      "WoolWorkerFilter": "WorkerJuu"
     },
     "IslandFishery": {
       "Positions": 3,
@@ -2844,6 +2848,7 @@
       "MinYellowfinTuna": 50,
       "MinShell": 50,
       "MinShrimp": 50,
+      "MinCrayfish": 50,
       "MinCrab": 50,
       "MinSquid": 50,
       "MinSeaCucumber": 50,
@@ -2868,6 +2873,7 @@
     "IslandMine": {
       "Positions": 1,
       "MineSilver": 1,
+      "WorkerFilter": "WorkerJuu",
       "MinCopper": 50,
       "MinAluminium": 50,
       "MinIron": 50,
@@ -2877,6 +2883,7 @@
     "IslandForest": {
       "Positions": 1,
       "CutElegant": 1,
+      "WorkerFilter": "WorkerJuu",
       "MinElegant": 50,
       "MinPractical": 50,
       "MinSelected": 50
@@ -3115,6 +3122,9 @@
       "FailureInterval": 120,
       "ServerUpdate": "00:00",
       "Sensitive": false
+    },
+    "IslandDailyGather": {
+      "WorkerFilter": ""
     },
     "Storage": {
       "Storage": {}

@@ -563,7 +563,7 @@ def put_arg_multiselect(kwargs: T_Output_Kwargs) -> Output:
         f"arg_container-multiselect-{name}",
         [
             get_title_help(kwargs),
-            put_checkbox(**kwargs, options=checkbox_options).style("--input--"),
+            put_checkbox(**kwargs, options=checkbox_options, value=value).style("--input--"),
         ],
     )
 

@@ -12,10 +12,11 @@ def _click_area(device, area):
 from module.island_fishery.assets import (
     ISLAND_FISH_FRY_SHOP_FRESHWATER,
     ISLAND_FISH_FRY_SHOP_FRESHWATER_CHECK,
+    ISLAND_FISH_FRY_SHOP_OTHER,
+    ISLAND_FISH_FRY_SHOP_OTHER_CHECK,
     ISLAND_FISH_FRY_SHOP_SEAWATER,
     ISLAND_FISH_FRY_SHOP_SEAWATER_CHECK,
     ISLAND_FRY_SHOP_CHECK,
-    ISLAND_SHOP_GOTO_FISHERY_GEAR,
     SHOP_FRY_BASS,
     SHOP_FRY_YELLOWFIN_TUNA,
     SHOP_FRY_SHELL,
@@ -41,6 +42,7 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
             'shell': self.config.IslandFishery_MinShell,
             'shrimp': self.config.IslandFishery_MinShrimp,
             'crab': self.config.IslandFishery_MinCrab,
+            'crayfish': self.config.IslandFishery_MinCrayfish,
             'squid': self.config.IslandFishery_MinSquid,
             'sea_cucumber': self.config.IslandFishery_MinSeaCucumber,
         }
@@ -65,6 +67,10 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
              'selection': SELECT_SHRIMP, 'selection_check': SELECT_SHRIMP_CHECK,
              'post_action': POST_SHRIMP, 'category': 'fishery',
              'shop': SHOP_FRY_SHRIMP, 'tab': 'other', 'yield': 12, 'buy_max': 7},
+            {'name': 'crayfish', 'template': TEMPLATE_CRAYFISH, 'var_name': 'crayfish',
+             'selection': SELECT_CRAYFISH, 'selection_check': SELECT_CRAYFISH_CHECK,
+             'post_action': POST_CRAYFISH, 'category': 'fishery',
+             'shop': SHOP_FRY_CRAYFISH, 'tab': 'other', 'yield': 8, 'buy_max': 4},
             {'name': 'crab', 'template': TEMPLATE_CRAB, 'var_name': 'crab',
              'selection': SELECT_CRAB, 'selection_check': SELECT_CRAB_CHECK,
              'post_action': POST_CRAB, 'category': 'fishery',
@@ -85,9 +91,9 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
 
         # 岗位信息
         self.posts = {
-            'ISLAND_FISHERY_POST1': {'button': ISLAND_FISHERY_POST1, 'crop': None},
-            'ISLAND_FISHERY_POST2': {'button': ISLAND_FISHERY_POST2, 'crop': None},
-            'ISLAND_FISHERY_POST3': {'button': ISLAND_FISHERY_POST3, 'crop': None},
+            'ISLAND_FISHERY_POST1': {'button': ISLAND_FISHERY_POST1, 'crop': None, 'runs': 0, 'state': 'unknown'},
+            'ISLAND_FISHERY_POST2': {'button': ISLAND_FISHERY_POST2, 'crop': None, 'runs': 0, 'state': 'unknown'},
+            'ISLAND_FISHERY_POST3': {'button': ISLAND_FISHERY_POST3, 'crop': None, 'runs': 0, 'state': 'unknown'},
         }
 
         self.to_plant_list = []
@@ -113,6 +119,79 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
                 for _ in range(fry_needed):
                     self.to_plant_list.append(item_name)
 
+    def _remove_plant_demand(self, product, quantity):
+        """从补种需求中扣除已在岗位中的鱼苗数量。"""
+        removed = 0
+        for _ in range(max(0, quantity)):
+            try:
+                self.to_plant_list.remove(product)
+                removed += 1
+            except ValueError:
+                break
+        return removed
+
+    def _build_supply_plant_products(self, idle_count):
+        """按岗位容量把鱼苗需求压缩成待养殖产品列表。"""
+        products_to_plant = []
+        supply_post_counts = {}
+        remaining_idle = idle_count
+
+        for item_config in self.FISHERY_ITEMS:
+            product = item_config['name']
+            fry_needed = self.to_plant_list.count(product)
+            if fry_needed <= 0:
+                continue
+
+            buy_max = item_config.get('buy_max', 4)
+            post_capacity = buy_max + 1
+            post_needed = (fry_needed + post_capacity - 1) // post_capacity
+            post_to_use = min(post_needed, remaining_idle)
+
+            if post_to_use <= 0:
+                break
+
+            products_to_plant.extend([product] * post_to_use)
+            supply_post_counts[product] = supply_post_counts.get(product, 0) + post_to_use
+            remaining_idle -= post_to_use
+            logger.info(
+                f"{product}: 需养殖{fry_needed}个鱼苗，每岗容量{post_capacity}，"
+                f"本轮占用{post_to_use}个岗位"
+            )
+
+            if remaining_idle <= 0:
+                break
+
+        return products_to_plant, remaining_idle, supply_post_counts
+
+    def _remove_working_fishery_demand(self):
+        """从补养殖需求中扣除首轮岗位扫描发现的工作中鱼苗数量。"""
+        for post_id, post_info in self.posts.items():
+            product_name = post_info.get('crop')
+            if product_name not in self.name_to_config:
+                continue
+            post_number = post_info.get('runs') or 1
+            removed = self._remove_plant_demand(product_name, post_number)
+            if removed:
+                logger.info(f"已在养殖中的{product_name}扣除补种需求: {removed}/{post_number} ({post_id})")
+
+    @staticmethod
+    def _post_available_for_dispatch(post_info):
+        """只有检测后处于空闲状态的岗位才可在本轮派遣。"""
+        return post_info.get('state') == 'idle'
+
+    def _planned_fry_purchase_quantity(self, product, post_count, supply_post_counts, default_post_counts):
+        """计算本轮需要购买的鱼苗数量，保证每个同类岗位至少能下单。"""
+        buy_max = self.name_to_config[product].get('buy_max', 4)
+        post_capacity = buy_max + 1
+        supply_posts = supply_post_counts.get(product, 0)
+        default_posts = default_post_counts.get(product, 0)
+        supply_demand = len([p for p in self.to_plant_list if p == product])
+        max_purchase = post_count * buy_max
+        base_purchase = min(supply_demand, supply_posts * buy_max) + default_posts * buy_max
+        min_purchase_for_posts = min(max_purchase, post_capacity * (post_count - 1) + 1)
+        total_purchase = min(max_purchase, max(base_purchase, min_purchase_for_posts))
+        return total_purchase, supply_demand, buy_max
+
     def warehouse_inventory(self):
         """获取仓库库存信息"""
         self.warehouse_filter('fishery')
@@ -132,42 +211,37 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
                 return item['name']
         return None
 
-    def switch_tab(self, target_tab):
-        """切换到指定页签（freshwater/seawater/other）"""
+    def _fishery_tab_buttons(self, target_tab):
         if target_tab == 'freshwater':
-            target_tab_check = ISLAND_FISH_FRY_SHOP_FRESHWATER_CHECK
-            target_tab_button = ISLAND_FISH_FRY_SHOP_FRESHWATER
-        elif target_tab == 'seawater':
-            target_tab_check = ISLAND_FISH_FRY_SHOP_SEAWATER_CHECK
-            target_tab_button = ISLAND_FISH_FRY_SHOP_SEAWATER
-        elif target_tab == 'other':
-            target_tab_check = ISLAND_FISH_FRY_SHOP_OTHER_CHECK
-            target_tab_button = ISLAND_FISH_FRY_SHOP_OTHER
-        else:
-            logger.warning(f"未知页签: {target_tab}")
-            return
-
-        while 1:
-            self.device.screenshot()
-            if self.appear(target_tab_check):
-                break
-            if self.appear_then_click(target_tab_button, interval=0.3):
-                pass
+            return ISLAND_FISH_FRY_SHOP_FRESHWATER_CHECK, ISLAND_FISH_FRY_SHOP_FRESHWATER
+        if target_tab == 'seawater':
+            return ISLAND_FISH_FRY_SHOP_SEAWATER_CHECK, ISLAND_FISH_FRY_SHOP_SEAWATER
+        if target_tab == 'other':
+            return ISLAND_FISH_FRY_SHOP_OTHER_CHECK, ISLAND_FISH_FRY_SHOP_OTHER
+        logger.warning(f"未知页签: {target_tab}")
+        return None, None
 
     def decided_lists(self, post_button, post_id, post_index):
         """检查岗位状态并更新列表，同时记录完成时间"""
+        collected = False
+        was_complete = False
         self.post_close()
         self.post_open(post_button)
         self.device.screenshot()
-        if self.appear(ISLAND_WORK_COMPLETE, offset=1):
-            self.posts[post_id]['crop'] = None
-            if post_index < len(self.fishery_times):
-                self.fishery_times[post_index] = None
-        elif self.appear(ISLAND_WORKING):
+        was_complete = self.appear(ISLAND_WORK_COMPLETE, offset=1)
+        if was_complete or self.appear(POST_GET, offset=(50, 0)):
+            collected = True
+            self.post_get_stay()
+            self.device.screenshot()
+
+        if self.appear(ISLAND_WORKING):
             product_name = self.post_plant_check()
-            if product_name in self.to_plant_list:
-                self.to_plant_list.remove(product_name)
+            ocr_post_number = Digit(OCR_POST_NUMBER, letter=(57, 58, 60), threshold=100,
+                                    alphabet='0123456789')
+            post_number = ocr_post_number.ocr(self.device.image) or 1
             self.posts[post_id]['crop'] = product_name or 'unknown'
+            self.posts[post_id]['runs'] = post_number
+            self.posts[post_id]['state'] = 'working'
             # 记录正在工作中的岗位的完成时间
             time_work = Duration(ISLAND_WORKING_TIME)
             time_value = time_work.ocr(self.device.image)
@@ -176,35 +250,61 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
                 self.fishery_times[post_index] = finish_time
         elif self.appear(ISLAND_POST_SELECT, offset=1):
             self.posts[post_id]['crop'] = None
+            self.posts[post_id]['runs'] = 0
+            self.posts[post_id]['state'] = 'idle'
             if post_index < len(self.fishery_times):
                 self.fishery_times[post_index] = None
-        self.post_get_and_close()
+        else:
+            if was_complete:
+                self.posts[post_id]['crop'] = None
+                self.posts[post_id]['runs'] = 0
+                self.posts[post_id]['state'] = 'idle'
+                if post_index < len(self.fishery_times):
+                    self.fishery_times[post_index] = None
+                logger.warning(f"{post_id}: 收取后状态未识别，按收取前完成态视为空闲")
+            else:
+                self.posts[post_id]['crop'] = 'unknown'
+                self.posts[post_id]['runs'] = 0
+                self.posts[post_id]['state'] = 'working'
+                logger.warning(f"{post_id}: 岗位状态未识别，按工作中处理")
+        self.post_close()
+        return collected
 
-    def post_plant(self, post_button, product, post_index):
+    def post_plant(self, post_button, product, post_index, required_quantity=1):
         """在指定岗位种植指定产品，并记录完成时间"""
         self.post_close()
         self.post_open(post_button)
         self.device.screenshot()
-        selection = self.name_to_config[product]['selection']
-        selection_check = self.name_to_config[product]['selection_check']
+        item_config = self.name_to_config[product]
+        selection = item_config['selection']
+        selection_check = item_config['selection_check']
+        tab_check, tab_button = self._fishery_tab_buttons(item_config['tab'])
         while 1:
             self.device.screenshot()
             if self.appear_then_click(ISLAND_POST_SELECT, offset=1):
                 self.device.sleep(0.5)
                 continue
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
-                if self.select_character():
+                if self.select_character(character_list=self.rancher_filter):
                     self.device.sleep(0.5)
                     self.device.click(SELECT_UI_CONFIRM)
                     self.device.sleep(0.5)
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 if self.select_product(selection, selection_check):
+                    if self.ensure_select_product_material(
+                            item_button=item_config['shop'],
+                            required_quantity=required_quantity,
+                            shop_check=ISLAND_FRY_SHOP_CHECK,
+                            item_name=f"{product}鱼苗",
+                            tab_check=tab_check,
+                            tab_button=tab_button,
+                    ):
+                        continue
                     self.device.sleep(0.3)
-                    self.device.click(POST_MAX)
-                    self.device.sleep(0.3)
-                    self.device.click(POST_ADD_ORDER)
-                    self.device.sleep(0.5)
+                    if not self.confirm_post_add_order(f"{product}养殖派遣"):
+                        self.back_to_postmanage_from_dispatch()
+                        return False
                     break
                 else:
                     return self._handle_select_product_failure(product)
@@ -216,6 +316,9 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
         time_work = Duration(ISLAND_WORKING_TIME)
         time_value = time_work.ocr(self.device.image)
         finish_time = datetime.now() + time_value
+        ocr_post_number = Digit(OCR_POST_NUMBER, letter=(57, 58, 60), threshold=100,
+                                alphabet='0123456789')
+        post_number = ocr_post_number.ocr(self.device.image) or 1
         if post_index < len(self.fishery_times):
             self.fishery_times[post_index] = finish_time
 
@@ -223,85 +326,55 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
         for post_id, post_info in self.posts.items():
             if post_info['button'] == post_button:
                 post_info['crop'] = product
+                post_info['runs'] = post_number
+                post_info['state'] = 'working'
                 break
+        if product in self.to_plant_list:
+            removed = self._remove_plant_demand(product, post_number)
+            logger.info(f"已安排养殖{product}扣除补种需求: {removed}/{post_number}")
 
         # 关闭详情弹窗，防止后续操作被弹窗遮挡
         self.post_close()
         return True
 
-    def goto_fishery_gear_shop(self):
-        """
-        导航到渔具商店页签。
-        渔具商店是渔场独有的左侧栏页签，入口在商店页面的左侧边栏（鱼苗图标按钮，y~467）。
-        """
-        self.ui_goto(page_island_shop, get_ship=False)
-        self.device.sleep(0.5)
-        self.device.click(ISLAND_SHOP_GOTO_FISHERY_GEAR)
-        while 1:
-            self.device.screenshot()
-            # 等待渔具商店页面加载完成（此处可用特定检测按钮替换）
-            if self.appear(ISLAND_SHOP_GOTO_FISHERY_GEAR, offset=(5, 5, 5, 5)):
-                # 简单检测：点击后按钮颜色可能会变化表示已选中
-                self.device.sleep(0.5)
-                break
-            self.device.click(ISLAND_SHOP_GOTO_FISHERY_GEAR)
-            self.device.sleep(0.5)
-        logger.info("已进入渔具商店页签")
+    def _build_fry_quantity_queue(self, products_to_plant, supply_post_counts, default_post_counts):
+        """按岗位顺序分配本轮每个渔场岗位需要补足的鱼苗数量。"""
+        product_counts = {}
+        for product_name in products_to_plant:
+            product_counts[product_name] = product_counts.get(product_name, 0) + 1
 
-    def buy_fry(self, product, quantity=1):
-        """购买鱼苗，一次购买 quantity 个（不超过 buy_max 上限）
+        product_quantities = {}
+        for product, count in product_counts.items():
+            total_purchase, supply_demand, buy_max = self._planned_fry_purchase_quantity(
+                product, count, supply_post_counts, default_post_counts
+            )
+            logger.info(
+                f"{product}鱼苗补货计划，补种需求{supply_demand}个，排产{count}岗，"
+                f"本轮目标{total_purchase}个，每岗上限{buy_max}个"
+            )
+            remaining = total_purchase
+            quantities = []
+            for _ in range(count):
+                buy_qty = min(buy_max, remaining) if remaining > 0 else 1
+                quantities.append(max(1, buy_qty))
+                remaining -= buy_qty
+            product_quantities[product] = quantities
 
-        对齐种子商店 buy_seeds 的简洁风格。
-        """
-        item_config = self.name_to_config[product]
-        target_tab = item_config['tab']
-        shop_button = item_config['shop']
-        buy_max = item_config.get('buy_max', 4)
-        buy_qty = min(quantity, buy_max)
-
-        # 切换到对应页签（淡水/海水/其他）
-        self.switch_tab(target_tab)
-
-        logger.info(f"购买 {product} x{buy_qty}")
-
-        # 点击商品，等待购物弹窗出现
-        while 1:
-            self.device.screenshot()
-            if self.appear(ISLAND_SHOPPING_CHECK):
-                break
-            if self.appear_then_click(shop_button, interval=1.2):
-                pass
-
-        # 设置购买数量
-        if self.appear(ISLAND_SHOPPING_CHECK):
-            self.set_buy_number(buy_qty)
-
-        # 确认购买
-        while 1:
-            self.device.screenshot()
-            if self.appear(ISLAND_FRY_SHOP_CHECK, offset=1):
-                break
-            if self.appear_then_click(ISLAND_SHOP_CONFIRM):
-                self.device.sleep(0.5)
-                self.device.click(ISLAND_SHOP_CONFIRM)
-                self.device.sleep(0.5)
-                continue
-            if self.appear(ISLAND_SHOP_GET):
-                self.device.click(ISLAND_SHOP_CONFIRM)
-                continue
-        if self.appear(ISLAND_SHOP_GET):
-            self.device.click(ISLAND_SHOP_CONFIRM)
+        quantity_queue = []
+        used_counts = {}
+        for product in products_to_plant:
+            used_index = used_counts.get(product, 0)
+            used_counts[product] = used_index + 1
+            quantity_queue.append(product_quantities[product][used_index])
+        return quantity_queue
 
     def run(self, ranch_finish_times=None):
         self.island_error = False
-        self.check_inventory_and_prepare_list()
-
-        logger.info("\n当前库存统计:")
-        logger.info(f"渔场库存: {self.inventory_counts}")
 
         # 重置渔场时间追踪列表
         self.fishery_times = [None] * self.fishery_positions
 
+        # 首轮先检查岗位并收取已完成鱼获，确保随后读取的仓库库存包含本轮收获。
         self.goto_postmanage()
         self.post_manage_mode(POST_MANAGE_PRODUCTION)
         self.post_close()
@@ -320,20 +393,37 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
             post_id_to_button[post_id] = button
 
         idle_posts = []
+        collected_posts = []
 
-        # 检查所有岗位
+        logger.info("首轮检查渔场岗位，收取已完成鱼获并记录工作中岗位")
         for i in range(self.fishery_positions):
             post_id = f'ISLAND_FISHERY_POST{i + 1}'
             button = post_id_to_button[post_id]
 
-            self.decided_lists(button, post_id, i)
+            if self.decided_lists(button, post_id, i):
+                collected_posts.append(post_id)
 
-            if self.posts[post_id]['crop'] is None:
+            if self._post_available_for_dispatch(self.posts[post_id]):
                 idle_posts.append({
                     'post_id': post_id,
                     'button': button,
                     'index': i,
                 })
+
+        if collected_posts:
+            logger.info(f"首轮渔场岗位检查已收取完成鱼获: {collected_posts}")
+        else:
+            logger.info("首轮渔场岗位检查没有发现可收取鱼获")
+
+        self.check_inventory_and_prepare_list()
+        self._remove_working_fishery_demand()
+
+        logger.info("\n当前库存统计:")
+        logger.info(f"渔场库存: {self.inventory_counts}")
+
+        self.goto_postmanage()
+        self.post_manage_mode(POST_MANAGE_PRODUCTION)
+        self.post_close()
 
         logger.info(f"\n空闲岗位统计: {len(idle_posts)}个空闲岗位")
 
@@ -341,17 +431,10 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
             logger.info("没有空闲岗位，跳过养殖")
         else:
             # 确定需要养殖的产品
-            products_to_buy = []
+            products_to_plant, remaining_idle, supply_post_counts = self._build_supply_plant_products(len(idle_posts))
+            default_post_counts = {}
 
-            # 1. 从补种列表中选取
-            num_from_list = min(len(self.to_plant_list), len(idle_posts))
-            for i in range(num_from_list):
-                products_to_buy.append(self.to_plant_list[i])
-
-            # 2. 空闲岗位剩余数
-            remaining_idle = len(idle_posts) - num_from_list
-
-            # 3. 计算已种植黄鳍金枪鱼的数量
+            # 继续用剩余空闲岗位满足默认黄鳍金枪鱼岗位数
             already_planted_default = 0
             for i in range(self.fishery_positions):
                 post_id = f'ISLAND_FISHERY_POST{i + 1}'
@@ -365,74 +448,36 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
             if remaining_idle > 0 and need_default > 0:
                 actual_default = min(remaining_idle, need_default)
                 for _ in range(actual_default):
-                    products_to_buy.append('yellowfin_tuna')
+                    products_to_plant.append('yellowfin_tuna')
+                    default_post_counts['yellowfin_tuna'] = default_post_counts.get('yellowfin_tuna', 0) + 1
 
-            if products_to_buy:
-                logger.info(f"\n需要购买的产品: {products_to_buy}")
-
-                # 前往鱼苗商店（不是种子商店），鱼苗商店有独立的页签
-                self.ui_goto(page_island_shop, get_ship=False)
-                self.device.sleep(0.5)
-                self.device.click(ISLAND_SHOP_GOTO_FISHERY_GEAR)
-                while 1:
-                    self.device.screenshot()
-                    if self.appear(ISLAND_FISH_FRY_SHOP_FRESHWATER_CHECK, offset=1):
-                        break
-                    if self.appear_then_click(ISLAND_SHOP_GOTO_FISHERY_GEAR, interval=0.3):
-                        pass
-                    self.device.click(ISLAND_SHOP_GOTO_FISHERY_GEAR)
-                    self.device.sleep(0.5)
-
-                # 计算每种产品需要购买的数量
-                product_counts = {}
-                for product_name in products_to_buy:
-                    product_counts[product_name] = product_counts.get(product_name, 0) + 1
-
-                for product, count in product_counts.items():
-                    buy_max = self.name_to_config[product].get('buy_max', 4)
-                    # 计算需求量：优先使用补种列表中的数量（库存短缺计算所得），
-                    # 若产品不在补种列表中（如由配置强制种植），则按每岗上限填满
-                    total_demand = len([p for p in self.to_plant_list if p == product])
-                    if total_demand == 0:
-                        total_demand = count * buy_max
-                    logger.info(f"购买{product}鱼苗，需求{total_demand}个，空闲{count}岗，每岗上限{buy_max}个")
-                    remaining = total_demand
-                    for _ in range(count):
-                        if remaining <= 0:
-                            break
-                        buy_qty = min(buy_max, remaining)
-                        self.buy_fry(product, quantity=buy_qty)
-                        remaining -= buy_qty
-
-                while 1:
-                    self.device.screenshot()
-                    if self.appear(ISLAND_CHECK):
-                        break
-                    self.device.click(ISLAND_BACK)
-                    self.device.sleep(0.5)
-
-                # 返回岗位管理页面进行养殖
-                self.goto_management()
-                self.ui_goto(page_island_postmanage, get_ship=False)
-                self.post_manage_mode(POST_MANAGE_PRODUCTION)
-                self.post_close()
-                self.device.sleep(1)
+            if products_to_plant:
+                logger.info(f"\n需要养殖的产品: {products_to_plant}")
+                fry_quantity_queue = self._build_fry_quantity_queue(
+                    products_to_plant,
+                    supply_post_counts,
+                    default_post_counts,
+                )
 
                 # 养殖
                 for i, post_info in enumerate(idle_posts):
-                    if i >= len(products_to_buy):
+                    if i >= len(products_to_plant):
                         logger.info(f"跳过渔场岗位{post_info['post_id']}: 没有需要养殖的产品")
                         continue
 
-                    product_to_plant = products_to_buy[i]
+                    product_to_plant = products_to_plant[i]
+                    required_quantity = fry_quantity_queue[i]
                     logger.info(f"尝试养殖渔场岗位{post_info['post_id']}: {product_to_plant}")
 
-                    success = self.post_plant(post_info['button'], product_to_plant, post_info['index'])
+                    success = self.post_plant(
+                        post_info['button'],
+                        product_to_plant,
+                        post_info['index'],
+                        required_quantity=required_quantity,
+                    )
 
                     if success:
                         logger.info(f"养殖渔场岗位{post_info['post_id']}成功: {product_to_plant}")
-                        if product_to_plant in self.to_plant_list:
-                            self.to_plant_list.remove(product_to_plant)
 
         logger.info("\n渔场管理完成！")
 

@@ -9,6 +9,10 @@ from module.island.warehouse import *
 class IslandMineForest(Island,LoginHandler):
     def __init__(self, *args, **kwargs):
         Island.__init__(self, *args, **kwargs)
+        self.worker_filters = {
+            'mine': self.config.IslandMine_WorkerFilter,
+            'forest': self.config.IslandForest_WorkerFilter,
+        }
 
         # 矿山和林场的库存配置（模仿农田模块的 INVENTORY_CONFIG）
         self.inventory_config = {
@@ -75,6 +79,11 @@ class IslandMineForest(Island,LoginHandler):
         elif product_name in forest_products:
             return getattr(self.config, f'IslandForest_Min{product_name}', 0)
         return 0
+
+    @staticmethod
+    def _post_available_for_dispatch(post_info):
+        """只有检测后处于空闲状态的岗位才可在本轮派遣。"""
+        return post_info.get('state') == 'idle'
 
     # ==================== 仓库检测（OCR 文字识别物品，再用 Digit 读数量） ====================
     # 所有可识别物品的中文名映射（矿山 + 林场）
@@ -208,26 +217,35 @@ class IslandMineForest(Island,LoginHandler):
         一次打开完成收获+检测，避免重复开岗。
         对工作中岗位，读取生产次数用于后续计算防止多产。
         """
+        collected = False
         self.post_close()
         self.post_open(post_button)
         self.device.screenshot()
+        was_complete = self.appear(ISLAND_WORK_COMPLETE, offset=1)
 
-        if self.appear(ISLAND_WORK_COMPLETE, offset=1):
+        if was_complete or self.appear(POST_GET, offset=(50, 0)):
             # 已完成 → 先收获，再标记为空
-            self.post_get_and_close()
-            # 重新打开以检测状态
-            self.post_open(post_button)
+            self.post_get_stay()
+            collected = True
             self.device.screenshot()
             if self.appear(ISLAND_POST_SELECT, offset=1):
                 self.posts[post_id]['crop'] = None
                 self.posts[post_id]['runs'] = 0
+                self.posts[post_id]['state'] = 'idle'
                 setattr(self, time_var_name, None)
                 logger.info(f"  {post_id}: 收获完成，空闲")
             else:
-                self.posts[post_id]['crop'] = None
-                self.posts[post_id]['runs'] = 0
-                setattr(self, time_var_name, None)
-                logger.info(f"  {post_id}: 收获完成")
+                if was_complete:
+                    self.posts[post_id]['crop'] = None
+                    self.posts[post_id]['runs'] = 0
+                    self.posts[post_id]['state'] = 'idle'
+                    setattr(self, time_var_name, None)
+                    logger.warning(f"  {post_id}: 收取后状态未识别，按收取前完成态视为空闲")
+                else:
+                    self.posts[post_id]['crop'] = 'unknown'
+                    self.posts[post_id]['runs'] = 0
+                    self.posts[post_id]['state'] = 'working'
+                    logger.warning(f"  {post_id}: 岗位状态未识别，按工作中处理")
 
         elif self.appear(ISLAND_WORKING):
             # 正在工作 → 检测产物
@@ -236,6 +254,7 @@ class IslandMineForest(Island,LoginHandler):
                 self.posts[post_id]['crop'] = product_name
             else:
                 self.posts[post_id]['crop'] = None
+            self.posts[post_id]['state'] = 'working'
             # 读取生产次数
             ocr_post_number = Digit(OCR_POST_NUMBER, letter=(57, 58, 60), threshold=100,
                                     alphabet='0123456789')
@@ -252,10 +271,12 @@ class IslandMineForest(Island,LoginHandler):
             # 空闲
             self.posts[post_id]['crop'] = None
             self.posts[post_id]['runs'] = 0
+            self.posts[post_id]['state'] = 'idle'
             setattr(self, time_var_name, None)
             logger.info(f"  {post_id}: 空闲")
 
         self.post_close()
+        return collected
 
     # ==================== 设置生产（模仿农田 post_plant，去掉选种） ====================
     def post_plant(self, post_button, product, category, time_var_name, need_count=None):
@@ -295,7 +316,7 @@ class IslandMineForest(Island,LoginHandler):
                 continue
 
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
-                if self.select_character():
+                if self.select_character(character_list=self.worker_filters.get(category, "WorkerJuu")):
                     self.device.sleep(0.3)
                     self.appear_then_click(SELECT_UI_CONFIRM)
                     self.device.sleep(0.3)
@@ -322,10 +343,8 @@ class IslandMineForest(Island,LoginHandler):
                     self.device.click(POST_MAX)
                     self.device.sleep(0.3)
                 elif runs > 1:
-                    # 默认1次，用 POST_ADD_ONE 增加次数
-                    for _ in range(runs - 1):
-                        self.device.click(POST_ADD_ONE)
-                        self.device.sleep(0.1)
+                    # 默认1次，用 POST_ADD_ONE_A/B/C 轮转增加次数
+                    self.post_add_one(runs - 1, interval=0.1)
                 # runs == 1 时默认就是1次，不用操作
                 self.device.click(POST_ADD_ORDER)
                 self.device.sleep(0.5)
@@ -344,6 +363,7 @@ class IslandMineForest(Island,LoginHandler):
         for pid, pinfo in self.posts.items():
             if pinfo['button'] == post_button:
                 pinfo['crop'] = product
+                pinfo['state'] = 'working'
                 break
 
         # 关闭详情弹窗，防止后续滑动/操作被弹窗遮挡
@@ -375,13 +395,13 @@ class IslandMineForest(Island,LoginHandler):
         for i in range(mine_positions):
             pid = f'ISLAND_MINE_POST{i + 1}'
             self.mine_post_ids.append(pid)
-            self.posts[pid] = {'button': MINE_POST_BUTTONS[i], 'crop': None, 'runs': 0}
+            self.posts[pid] = {'button': MINE_POST_BUTTONS[i], 'crop': None, 'runs': 0, 'state': 'unknown'}
 
         self.forest_post_ids = []
         for i in range(forest_positions):
             pid = f'ISLAND_FOREST_POST{i + 1}'
             self.forest_post_ids.append(pid)
-            self.posts[pid] = {'button': FOREST_POST_BUTTONS[i], 'crop': None, 'runs': 0}
+            self.posts[pid] = {'button': FOREST_POST_BUTTONS[i], 'crop': None, 'runs': 0, 'state': 'unknown'}
 
         # ===== 步骤1：进入管理 → 收获 + 检测所有岗位 =====
         logger.info("进入管理页面，收获已完成产物并检测岗位状态")
@@ -392,11 +412,13 @@ class IslandMineForest(Island,LoginHandler):
         self.post_manage_down_swipe(450)
 
         # 矿山（在上方可见）
+        collected_posts = []
         for pid in self.mine_post_ids:
             info = self.posts[pid]
             time_var = f'time_{pid}'
             setattr(self, time_var, None)
-            self.collect_and_detect_post(info['button'], pid, 'mine', time_var)
+            if self.collect_and_detect_post(info['button'], pid, 'mine', time_var):
+                collected_posts.append(pid)
 
         # 滑动到林场
         self.device.sleep(1)
@@ -408,7 +430,13 @@ class IslandMineForest(Island,LoginHandler):
             info = self.posts[pid]
             time_var = f'time_{pid}'
             setattr(self, time_var, None)
-            self.collect_and_detect_post(info['button'], pid, 'forest', time_var)
+            if self.collect_and_detect_post(info['button'], pid, 'forest', time_var):
+                collected_posts.append(pid)
+
+        if collected_posts:
+            logger.info(f"首轮岗位检查已收取完成产物: {collected_posts}")
+        else:
+            logger.info("首轮岗位检查没有发现可收取产物")
 
         # ===== 步骤2：退出管理 → 去仓库检查库存 =====
         logger.info("退出管理，检查仓库库存")
@@ -424,7 +452,7 @@ class IslandMineForest(Island,LoginHandler):
         idle_posts = {'mine': [], 'forest': []}
         for category, post_ids in [('mine', self.mine_post_ids), ('forest', self.forest_post_ids)]:
             for pid in post_ids:
-                if self.posts[pid]['crop'] is None:
+                if self._post_available_for_dispatch(self.posts[pid]):
                     idle_posts[category].append(pid)
 
         logger.info(f"空闲岗位: 矿山 {len(idle_posts['mine'])} 个, 林场 {len(idle_posts['forest'])} 个")

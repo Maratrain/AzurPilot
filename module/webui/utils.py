@@ -438,7 +438,23 @@ str2type = {
 }
 
 
-def parse_pin_value(val, valuetype: str = None):
+def _parse_single_pin_value(val, valuetype: str = None):
+    if valuetype:
+        return str2type[valuetype](val)
+    elif isinstance(val, (int, float)):
+        return val
+    else:
+        try:
+            v = float(val)
+        except (TypeError, ValueError):
+            return val
+        if v.is_integer():
+            return int(v)
+        else:
+            return v
+
+
+def parse_pin_value(val, valuetype: str = None, widget_type: str = None, options=None):
     """
     解析 pin 组件的值。
 
@@ -449,11 +465,19 @@ def parse_pin_value(val, valuetype: str = None):
     # 处理 dict 类型 - 提取 'value' 字段并递归解析
     if isinstance(val, dict):
         if 'value' in val:
-            return parse_pin_value(val['value'], valuetype)
+            return parse_pin_value(val['value'], valuetype, widget_type, options)
         else:
             # 无 'value' 键时原样返回 dict
             return val
     elif isinstance(val, list):
+        if widget_type == 'multiselect':
+            parsed = [_parse_single_pin_value(item, valuetype) for item in val]
+            if not options:
+                return parsed
+            option_map = {str(option): option for option in options}
+            return [option_map.get(str(item), item) for item in parsed]
+        if widget_type == 'checkbox':
+            return True in val
         if valuetype == 'ignore':
             if len(val) == 0:
                 return False
@@ -465,19 +489,8 @@ def parse_pin_value(val, valuetype: str = None):
         if all(isinstance(x, bool) for x in val):
             return True
         return val
-    elif valuetype:
-        return str2type[valuetype](val)
-    elif isinstance(val, (int, float)):
-        return val
     else:
-        try:
-            v = float(val)
-        except ValueError:
-            return val
-        if v.is_integer():
-            return int(v)
-        else:
-            return v
+        return _parse_single_pin_value(val, valuetype)
 
 
 def to_pin_value(val):

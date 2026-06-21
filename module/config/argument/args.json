@@ -966,8 +966,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -1382,8 +1387,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -1798,8 +1808,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -2333,8 +2348,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -2835,8 +2855,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -3323,8 +3348,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -3758,8 +3788,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -4192,8 +4227,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -4625,8 +4665,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -5078,8 +5123,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -5364,8 +5414,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -5960,8 +6015,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "Coalition": {
@@ -6675,8 +6735,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -7121,8 +7186,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -7572,8 +7642,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -8023,8 +8098,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -8474,8 +8554,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -8915,8 +9000,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -9364,8 +9454,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "StopCondition": {
@@ -9629,8 +9724,13 @@
         "value": false
       },
       "DefeatWithdraw": {
-        "type": "checkbox",
-        "value": true
+        "type": "select",
+        "value": "withdraw_stop",
+        "option": [
+          "withdraw_continue",
+          "switch_fleet",
+          "withdraw_stop"
+        ]
       }
     },
     "Coalition": {
@@ -14154,6 +14254,7 @@
           "roasted_skewer",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -14166,6 +14267,7 @@
           "roasted_skewer",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -14178,6 +14280,7 @@
           "roasted_skewer",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -14190,6 +14293,7 @@
           "roasted_skewer",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -14202,6 +14306,7 @@
           "roasted_skewer",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -14419,6 +14524,10 @@
           4
         ]
       },
+      "WorkerFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
+      },
       "MinFarm": {
         "type": "input",
         "value": 660
@@ -14445,6 +14554,10 @@
           3,
           4
         ]
+      },
+      "WorkerFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
       },
       "MinOrchard": {
         "type": "input",
@@ -14478,6 +14591,10 @@
           1,
           2
         ]
+      },
+      "WorkerFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
       },
       "MinNursery": {
         "type": "input",
@@ -14578,6 +14695,10 @@
       "Wool": {
         "type": "checkbox",
         "value": true
+      },
+      "WoolWorkerFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
       }
     },
     "IslandFishery": {
@@ -14603,6 +14724,10 @@
         "value": 50
       },
       "MinShrimp": {
+        "type": "input",
+        "value": 50
+      },
+      "MinCrayfish": {
         "type": "input",
         "value": 50
       },
@@ -14716,6 +14841,10 @@
           4
         ]
       },
+      "WorkerFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
+      },
       "MinCopper": {
         "type": "input",
         "value": 50
@@ -14758,6 +14887,10 @@
           3,
           4
         ]
+      },
+      "WorkerFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
       },
       "MinElegant": {
         "type": "input",
@@ -15406,6 +15539,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15424,6 +15558,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15442,6 +15577,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15460,6 +15596,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15478,6 +15615,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15496,6 +15634,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15514,6 +15653,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15532,6 +15672,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -15552,6 +15693,7 @@
           "carrot_omelette",
           "stir_fried_chicken",
           "steak_bowl",
+          "crayfish_stir_fry",
           "carnival",
           "double_energy"
         ]
@@ -16240,6 +16382,13 @@
           true,
           false
         ]
+      }
+    },
+    "IslandDailyGather": {
+      "WorkerFilter": {
+        "type": "textarea",
+        "value": "",
+        "preserve_empty": true
       }
     },
     "Storage": {

@@ -3305,8 +3305,11 @@ class AlasGUI(Frame):
                     if (v - n).days >= 31:
                         deep_set(config, p, "")
             for k, v in modified.copy().items():
-                valuetype = deep_get(self.ALAS_ARGS, k + ".valuetype")
-                v = parse_pin_value(v, valuetype)
+                arg_def = deep_get(self.ALAS_ARGS, k, {})
+                valuetype = arg_def.get("valuetype") if isinstance(arg_def, dict) else None
+                widget_type = arg_def.get("type") if isinstance(arg_def, dict) else None
+                options = arg_def.get("option") if isinstance(arg_def, dict) else None
+                v = parse_pin_value(v, valuetype, widget_type, options)
                 validate = deep_get(self.ALAS_ARGS, k + ".validate")
                 if not len(str(v)):
                     default = deep_get(self.ALAS_ARGS, k + ".value")

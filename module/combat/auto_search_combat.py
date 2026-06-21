@@ -2,7 +2,7 @@ from module.base.timer import Timer
 from module.campaign.campaign_status import CampaignStatus
 from module.combat.assets import *
 from module.combat.combat import Combat
-from module.exception import CampaignEnd
+from module.exception import CampaignEnd, ScriptEnd
 from module.handler.assets import AUTO_SEARCH_MAP_OPTION_ON, GET_MISSION
 from module.logger import logger
 from module.map.assets import WITHDRAW, SWITCH_OVER, FLEET_WITHDRAW, FLEET_SWITCH_CONFIRM, FLEET_WITHDRAW_BOSS
@@ -13,6 +13,7 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
     _auto_search_in_stage_timer = Timer(3, count=6)
     _auto_search_status_confirm = False
     _withdraw = False
+    _defeat_count = 0
     auto_search_oil_limit_triggered = False
     auto_search_coin_limit_triggered = False
 
@@ -289,6 +290,12 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                     self.emotion.reduce(fleet_index, shipwreck=True)
                 self._withdraw = True
                 break
+            # 沉船D评价结算界面，作为OPTS_INFO_D未检测到的兜底
+            if self.appear(BATTLE_STATUS_D) or self.appear(EXP_INFO_D):
+                self._withdraw = True
+                if emotion_reduce:
+                    self.emotion.reduce(fleet_index, shipwreck=True)
+                break
             if confirm_timer.reached():
                 self._withdraw = True
                 self.device.click(OPTS_INFO_D)
@@ -311,6 +318,51 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                     break
             
 
+    def _wait_withdraw_stable(self, withdraw_stable_timer):
+        """
+        等待WITHDRAW按钮稳定出现，防止界面过渡动画导致误判。
+
+        Args:
+            withdraw_stable_timer (Timer): WITHDRAW按钮稳定计时器
+
+        Returns:
+            bool: True表示WITHDRAW按钮已稳定出现，可以点击；
+                  False表示按钮尚未出现或不稳定，需要继续等待。
+        """
+        withdraw_appear = self.appear(WITHDRAW, offset=(30, 30))
+        if withdraw_appear:
+            if not withdraw_stable_timer.reached():
+                return False
+            return True
+        else:
+            withdraw_stable_timer.reset()
+            return False
+
+    def _handle_fleet_switch_over(self):
+        """
+        处理舰队切换操作：仅撤退当前战败舰队，切换到另一队继续战斗。
+        包含超时保护，避免UI异常时无限循环。
+
+        Returns:
+            bool: True表示切换成功，False表示超时。
+        """
+        timeout = Timer(10, count=20).start()
+        while 1:
+            self.device.screenshot()
+            if self.appear_then_click(FLEET_WITHDRAW, offset=(30, 30)):
+                break
+            if self.appear(FLEET_WITHDRAW_BOSS, offset=(30, 30)):
+                self.withdraw()
+                break
+            if self.appear_then_click(SWITCH_OVER, interval=2):
+                continue
+            if timeout.reached():
+                logger.warning('Fleet switch over timeout, withdraw instead')
+                self.withdraw()
+                break
+        self.fleet_alive_multiple = False
+        return True
+
     def auto_search_combat_status(self):
         """
         Pages:
@@ -328,40 +380,79 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
             # End
             if self.is_auto_search_running():
                 self._auto_search_status_confirm = False
+                # 战斗正常结束（非战败），重置连续战败计数
+                if self._defeat_count > 0:
+                    logger.info('Battle won, reset defeat count')
+                    self._defeat_count = 0
                 break
             if self.is_in_auto_search_menu() or self._handle_auto_search_menu_missing():
                 raise CampaignEnd
 
             # Withdraw
             if self._withdraw:
-                if self.appear_then_click(FLEET_SWITCH_CONFIRM, offset=(30, 30)):
-                    self.fleet_alive_multiple = False
-                    self._withdraw = False
+                # 先处理战斗结算界面（D评价、经验信息、获得舰船等），
+                # 结算完成后才会出现FLEET_SWITCH_CONFIRM或WITHDRAW按钮
+                # 沉船D评价流程：OPTS_INFO_D → BATTLE_STATUS_D → EXP_INFO_D → OPTS_INFO_D(再次出现) → FLEET_SWITCH_CONFIRM
+                if self.appear_then_click(OPTS_INFO_D, offset=(30, 30), interval=2):
                     continue
-                
-                if self.appear(WITHDRAW, offset=(30, 30)):
-                    if not withdraw_stable_timer.reached():
-                        continue
-                if not self.appear(WITHDRAW, offset=(30, 30)):
-                    withdraw_stable_timer.reset()
+                if self.handle_battle_status():
+                    continue
+                if self.handle_exp_info():
+                    continue
+                if self.handle_get_ship():
+                    continue
+                if self.handle_get_items():
+                    continue
+                if self.handle_popup_confirm('combat_status'):
                     continue
 
-                self._withdraw = False
-                if self.config.Campaign_DefeatWithdraw or not self.fleet_alive_multiple:
-                    self.withdraw()
-                    break
-                else:
-                    while True:
-                        self.device.screenshot()
-                        if self.appear_then_click(FLEET_WITHDRAW, offset=(30, 30)):
-                            break
-                        if self.appear(FLEET_WITHDRAW_BOSS, offset=(30, 30)):
+                defeat_withdraw = self.config.Campaign_DefeatWithdraw
+                if defeat_withdraw == 'withdraw_continue' or defeat_withdraw == 'withdraw_stop':
+                    # 撤退后继续任务 / 撤退后关闭任务：
+                    # 点击FLEET_SWITCH_CONFIRM仅关闭弹窗，不取消撤退
+                    # 游戏在舰队战败后弹出FLEET_SWITCH_CONFIRM，点击后才能看到WITHDRAW按钮
+                    if self.appear_then_click(FLEET_SWITCH_CONFIRM, offset=(30, 30)):
+                        continue
+                    if self.handle_popup_confirm('WITHDRAW'):
+                        continue
+                    if not self._wait_withdraw_stable(withdraw_stable_timer):
+                        continue
+                    self._withdraw = False
+                    if defeat_withdraw == 'withdraw_stop':
+                        # 撤退后关闭任务：连续3次战败才关闭任务
+                        self._defeat_count += 1
+                        logger.attr('Defeat_count', f'{self._defeat_count}/3')
+                        if self._defeat_count >= 3:
+                            # 连续3次战败，关闭任务
+                            # withdraw()内部抛出CampaignEnd，
+                            # 需要捕获后转换为ScriptEnd以终止任务
+                            try:
+                                self.withdraw()
+                            except CampaignEnd:
+                                raise ScriptEnd('DefeatWithdraw=withdraw_stop')
+                        else:
+                            # 未满3次，撤退后继续任务
                             self.withdraw()
                             break
-                        if self.appear_then_click(SWITCH_OVER, interval=2):
-                            continue
-                    self.fleet_alive_multiple = False
-                    continue
+                    else:
+                        self.withdraw()
+                    break
+                elif defeat_withdraw == 'switch_fleet':
+                    # 切换队伍继续出击：尝试切换另一队继续战斗
+                    if self.appear_then_click(FLEET_SWITCH_CONFIRM, offset=(30, 30)):
+                        self.fleet_alive_multiple = False
+                        self._withdraw = False
+                        continue
+                    if not self._wait_withdraw_stable(withdraw_stable_timer):
+                        continue
+
+                    self._withdraw = False
+                    if not self.fleet_alive_multiple:
+                        self.withdraw()
+                        break
+                    else:
+                        self._handle_fleet_switch_over()
+                        continue
 
             # Combat status
             if self.handle_get_ship():
