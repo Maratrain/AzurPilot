@@ -279,6 +279,22 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
             setattr(self, time_var_name, None)
         self.post_get_and_close()
 
+    def get_orchard_character_filter(self, product):
+        """根据小天城橡胶树开关生成果园派遣角色优先级。"""
+        character_filter = self.worker_filters.get('orchard', "WorkerJuu")
+        characters = self.parse_character_filter(character_filter)
+        if not self.config.IslandOrchard_AmagiChanRubber:
+            return characters
+
+        characters = [
+            character
+            for character in characters
+            if character != "Amagi_chan"
+        ]
+        if product == 'rubber':
+            return ["Amagi_chan", *characters]
+        return characters
+
     def post_plant(self, post_button, product, category, time_var_name):
         self.post_close()
         self.post_open(post_button)
@@ -286,20 +302,22 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         time_work = Duration(ISLAND_WORKING_TIME)
         selection = self.name_to_config[product]['selection']
         selection_check = self.name_to_config[product]['selection_check']
-        while 1:
-            self.device.screenshot()
+        for _ in self.loop(timeout=120, skip_first=False):
             if self.appear_then_click(ISLAND_POST_SELECT, offset=1):
                 self.device.sleep(0.5)
                 continue
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
-                if product == 'rubber' and self.config.IslandOrchard_AmagiChanRubber:
-                    if self.select_character(character_list="Amagi_chan"):
-                        self.device.click(SELECT_UI_CONFIRM)
+                character_filter = self.worker_filters.get(category, "WorkerJuu")
+                if category == 'orchard':
+                    character_filter = self.get_orchard_character_filter(product)
+                if self.select_character(character_list=character_filter):
+                    if not self.confirm_selected_character(f"{product}种植派遣"):
+                        self.back_to_postmanage_from_dispatch()
+                        return False
                 else:
-                    if self.select_character(character_list=self.worker_filters.get(category, "WorkerJuu")):
-                        self.device.sleep(0.5)
-                        self.device.click(SELECT_UI_CONFIRM)
-                        self.device.sleep(0.5)
+                    logger.warning(f"{product}种植派遣无可用角色: {character_filter}")
+                    self.back_to_postmanage_from_dispatch()
+                    return False
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 if self.select_product(selection, selection_check):
@@ -318,6 +336,11 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                     break
                 else:
                     return self._handle_select_product_failure(product)
+        else:
+            logger.warning(f"{product}种植派遣超时")
+            self.back_to_postmanage_from_dispatch()
+            return False
+
         self.post_open(post_button)
         self.device.sleep(0.5)
         self.device.screenshot()

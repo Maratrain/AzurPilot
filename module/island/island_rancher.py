@@ -304,9 +304,9 @@ class IslandRancher(Island, WarehouseOCR, LoginHandler):
                     logger.warning(f"牧场岗位{post_id}无法选择补饲料用角色")
                     self.device.click(SELECT_UI_BACK)
                     return False
-                self.device.sleep(0.5)
-                self.appear_then_click(SELECT_UI_CONFIRM)
-                self.device.sleep(0.5)
+                if not self.confirm_selected_character(f"牧场岗位{post_id}补饲料派遣"):
+                    self.back_to_postmanage_from_dispatch()
+                    return False
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 return self.goto_shop_from_select_product(shop_check=ISLAND_MILL_CHECK)
@@ -342,9 +342,13 @@ class IslandRancher(Island, WarehouseOCR, LoginHandler):
                 continue
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
                 if self.select_character(character):
-                    self.device.sleep(0.5)
-                    self.appear_then_click(SELECT_UI_CONFIRM)
-                    self.device.sleep(0.5)
+                    if not self.confirm_selected_character(f"牧场岗位{post_id}派遣"):
+                        self.back_to_postmanage_from_dispatch()
+                        return False
+                else:
+                    logger.warning(f"牧场岗位{post_id}派遣无可用角色: {character}")
+                    self.back_to_postmanage_from_dispatch()
+                    return False
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 feed_item = self.ranch_feed_map.get(post_id)
@@ -388,17 +392,39 @@ class IslandRancher(Island, WarehouseOCR, LoginHandler):
 
     def ranch_ocr_finish_time(self, post_id):
         """读取当前牧场岗位详情页的剩余时间并换算为完成时间。"""
+        if (
+                self.appear(ISLAND_POST_VACANT_CHECK, offset=1)
+                or self.appear(ISLAND_WORK_COMPLETE, offset=1)
+                or self.appear(POST_GET, offset=(50, 0))
+        ):
+            logger.info(f"牧场岗位{post_id}当前为空闲或可收取状态，不记录完成时间")
+            return None
+
+        if not self.appear(ISLAND_WORKING):
+            logger.info(f"牧场岗位{post_id}当前未确认处于工作状态，不记录完成时间")
+            return None
+
         time_work = Duration(ISLAND_WORKING_TIME)
         for retry in range(2):
             if retry:
                 self.device.screenshot()
+            if (
+                    self.appear(ISLAND_POST_VACANT_CHECK, offset=1)
+                    or self.appear(ISLAND_WORK_COMPLETE, offset=1)
+                    or self.appear(POST_GET, offset=(50, 0))
+            ):
+                logger.info(f"牧场岗位{post_id}复检为空闲或可收取状态，不记录完成时间")
+                return None
+            if not self.appear(ISLAND_WORKING):
+                logger.info(f"牧场岗位{post_id}复检后未处于工作状态，不记录完成时间")
+                return None
             time_value = time_work.ocr(self.device.image)
             if time_value.total_seconds() > 0:
                 finish_time = datetime.now() + time_value
-                logger.info(f"牧场岗位{post_id}已满，当前队列最早剩余时间: {time_value}")
+                logger.info(f"牧场岗位{post_id}当前队列最早剩余时间: {time_value}")
                 return finish_time
 
-        logger.warning(f"牧场岗位{post_id}已满，但未识别到剩余时间")
+        logger.warning(f"牧场岗位{post_id}疑似工作中，但未识别到有效剩余时间")
         return None
 
     def post_mode_check(self, post_id):
@@ -431,23 +457,31 @@ class IslandRancher(Island, WarehouseOCR, LoginHandler):
         self.device.sleep(0.5)
         self.device.screenshot()
         if self.appear(ISLAND_WORKING) and self.post_mode_check(post_id):
-            time_work = Duration(ISLAND_WORKING_TIME)
-            time_value = time_work.ocr(self.device.image)
-            setattr(self, time_var_name, datetime.now() + time_value)
-        else:
-            self.ranch_last_finish_time = None
-            if not self.ranch_post_get_and_add(post_id, config_str):
+            finish_time = self.ranch_ocr_finish_time(post_id)
+            if finish_time is not None:
+                setattr(self, time_var_name, finish_time)
                 self.post_close()
-                return False
-            if self.ranch_last_finish_time is not None:
-                setattr(self, time_var_name, self.ranch_last_finish_time)
                 return True
-            self.post_open(post_button)
-            self.device.sleep(0.5)
-            self.device.screenshot()
-            time_work = Duration(ISLAND_WORKING_TIME)
-            time_value = time_work.ocr(self.device.image)
-            setattr(self, time_var_name, datetime.now() + time_value)
+
+            logger.warning(f"牧场岗位{post_id}工作状态疑似误判，继续尝试收取或追加派遣")
+
+        self.ranch_last_finish_time = None
+        if not self.ranch_post_get_and_add(post_id, config_str):
+            self.post_close()
+            return False
+        if self.ranch_last_finish_time is not None:
+            setattr(self, time_var_name, self.ranch_last_finish_time)
+            return True
+
+        self.post_open(post_button)
+        self.device.sleep(0.5)
+        self.device.screenshot()
+        finish_time = self.ranch_ocr_finish_time(post_id)
+        if finish_time is None:
+            self.post_close()
+            logger.warning(f"牧场岗位{post_id}未取得有效完成时间，本次不写入岗位计时器")
+            return False
+        setattr(self, time_var_name, finish_time)
         self.post_close()
         return True
 

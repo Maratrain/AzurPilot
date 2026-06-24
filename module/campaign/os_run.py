@@ -19,6 +19,16 @@ class OSCampaignRun(OSMapOperation):
             logger.info(f'Delay OpSi AP tasks for {delay_minutes} minutes until action points recover')
         self.config.opsi_task_delay(ap_limit=True, ap_limit_minutes=delay_minutes)
 
+    def adjust_scheduling_after_ap_limit(self, error):
+        """行动力不足结束大世界任务后，按自然行动力校准智能调度。"""
+        try:
+            from module.os.tasks.scheduling import CoinTaskMixin
+            helper = CoinTaskMixin()
+            helper.config = self.config
+            helper._schedule_by_natural_ap(getattr(error, 'current', 0))
+        except Exception:
+            logger.debug('行动力不足后校准智能调度失败', exc_info=True)
+
     def opsi_explore(self):
         try:
             campaign = self.load_campaign()
@@ -51,7 +61,8 @@ class OSCampaignRun(OSMapOperation):
         try:
             campaign = self.load_campaign()
             campaign.os_meowfficer_farming()
-        except ActionPointLimit:
+        except ActionPointLimit as e:
+            self.adjust_scheduling_after_ap_limit(e)
             if get_os_reset_remain() > 0:
                 self.config.task_delay(server_update=True)
                 self.config.task_call('Reward', force_call=False)
@@ -65,7 +76,8 @@ class OSCampaignRun(OSMapOperation):
             campaign = self.load_campaign()
             campaign.os_check_leveling()
             campaign.os_hazard1_leveling()
-        except ActionPointLimit:
+        except ActionPointLimit as e:
+            self.adjust_scheduling_after_ap_limit(e)
             self.config.task_delay(server_update=True)
 
     def opsi_obscure(self):
@@ -73,6 +85,7 @@ class OSCampaignRun(OSMapOperation):
             campaign = self.load_campaign()
             campaign.os_obscure()
         except ActionPointLimit as e:
+            self.adjust_scheduling_after_ap_limit(e)
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_month_boss(self):
@@ -93,6 +106,7 @@ class OSCampaignRun(OSMapOperation):
             campaign = self.load_campaign()
             campaign.os_abyssal()
         except ActionPointLimit as e:
+            self.adjust_scheduling_after_ap_limit(e)
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_archive(self):
@@ -107,6 +121,7 @@ class OSCampaignRun(OSMapOperation):
             campaign = self.load_campaign()
             campaign.os_stronghold()
         except ActionPointLimit as e:
+            self.adjust_scheduling_after_ap_limit(e)
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_scheduling(self):

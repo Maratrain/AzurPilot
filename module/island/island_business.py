@@ -1249,7 +1249,8 @@ class IslandBusiness(Island):
         """
         self._has_seen_blue = False
         total_darkblue_count = 0  # 本批次内深蓝商店计数
-        processed_shop_names = set()  # 已处理过的商店（进入或领取过）
+        processed_shop_names = set()  # 已启动过经营的商店，避免界面刷新延迟导致重复进入
+        claimed_shop_names = set()  # 已领取过奖励的商店，仍需在后续扫描中复检是否变为可经营
         started_shop_names = set()  # 本批次实际开始经营的商店
         seen_shop_names = set()  # 跨滚动位置累积看到过的商店（用于判断是否已遍历全部）
         max_scrolls = 8  # 最大滑动次数
@@ -1286,7 +1287,11 @@ class IslandBusiness(Island):
                 button_rect = shop_info['button_rect']
 
                 if shop_name in processed_shop_names:
-                    continue  # 这个商店已经处理过了
+                    continue  # 这个商店已经启动过经营
+
+                if shop_name in claimed_shop_names and status == 'yellow':
+                    logger.info(f"{shop_name}: 收获后仍显示可领取，跳过重复领取")
+                    continue
 
                 if status == 'blue':
                     self._has_seen_blue = True
@@ -1335,7 +1340,7 @@ class IslandBusiness(Island):
                     self.post_manage_mode(POST_MANAGE_BUSINESS)
                     self.device.sleep(0.5)
 
-                    processed_shop_names.add(shop_name)
+                    claimed_shop_names.add(shop_name)
 
                     # 返回后重新扫描
                     self._scroll_business_to_top()
@@ -1714,11 +1719,13 @@ class IslandBusiness(Island):
             if result:
                 selected_name = result
                 logger.info(f"第{slot_idx + 1}个角色选择成功: {selected_name}")
+                if not self.confirm_selected_character_closed(f"经营第{slot_idx + 1}个角色"):
+                    self.device.click(SELECT_UI_BACK)
+                    self.device.sleep(0.5)
+                    continue
                 # 已选角色从优先级中移除，防止下个槽位重复选择
                 if selected_name in self.character_priority:
                     self.character_priority.remove(selected_name)
-                self.device.click(SELECT_UI_CONFIRM)
-                self.device.sleep(0.5)
                 # 确认后等待界面刷新，再检测第二个"+"按钮
                 self.device.screenshot()
                 self.device.sleep(1)

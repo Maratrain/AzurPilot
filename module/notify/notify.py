@@ -94,7 +94,7 @@ def notify_webui(instance: str, title: str, content: str, **kwargs) -> bool:
     """推送通知到 WebUI 本地端口，供启动器接收。
 
     向本地 WebUI 服务发送 HTTP POST 请求，传递实例名、标题和内容。
-    默认端口为 22267，可通过配置自定义。
+    默认端口为 25548，可通过配置自定义。
 
     Args:
         instance: 触发通知的实例名称。
@@ -107,9 +107,9 @@ def notify_webui(instance: str, title: str, content: str, **kwargs) -> bool:
     """
     try:
         from module.webui.setting import State
-        port = int(State.deploy_config.WebuiPort) or 22267
+        port = int(State.deploy_config.WebuiPort) or 25548
     except Exception:
-        port = 22267
+        port = 25548
     try:
         import requests
         payload = {"instance": instance, "title": title, "content": content}

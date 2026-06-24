@@ -371,6 +371,10 @@ class CampaignRun(CampaignEvent, ShopStatus):
 
         return self.run_count > 0 and self.campaign.map_is_auto_search
 
+    def after_campaign_run(self):
+        """单次战役完成后的扩展钩子。"""
+        pass
+
     def handle_commission_notice(self):
         """
         检查委托通知。如果发现委托完成，停止当前任务并调用委托处理。
@@ -479,6 +483,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
             self.run_count += 1
             if self.config.StopCondition_RunCount:
                 self.config.StopCondition_RunCount -= 1
+            self.after_campaign_run()
             # 结束条件
             if self.triggered_stop_condition(oil_check=False):
                 break

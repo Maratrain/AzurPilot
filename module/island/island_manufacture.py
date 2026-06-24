@@ -177,9 +177,13 @@ class IslandManufacture(IslandShopBase):
                 continue
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
                 if self.select_character():
-                    self.device.sleep(0.5)
-                    self.appear_then_click(SELECT_UI_CONFIRM)
-                    self.device.sleep(0.5)
+                    if not self.confirm_selected_character(f"{post_id}制造派遣"):
+                        self.back_to_postmanage_from_dispatch()
+                        return None
+                else:
+                    logger.warning(f"{post_id}制造派遣无可用角色")
+                    self.back_to_postmanage_from_dispatch()
+                    return None
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 selected_product = None

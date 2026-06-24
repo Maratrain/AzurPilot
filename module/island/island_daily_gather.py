@@ -97,17 +97,22 @@ class IslandDailyGather(Island):
             worker_list = self._daily_gather_worker_list()
             # 如果成功选择了采集目标，继续后续流程
             # 5. 依次点击三个"+"按钮并选择角色
+            character_selected = True
             for i in range(3):
                 logger.info(f"步骤5-{i+1}: 点击第{i+1}个+按钮并选择角色")
-                self._click_plus_and_select_character(i, worker_list)
+                if not self._click_plus_and_select_character(i, worker_list):
+                    logger.warning(f"第{i + 1}个槽位角色选择失败，终止本次采集派遣")
+                    character_selected = False
+                    break
 
-            # 6. 点击"出发"按钮
-            logger.info("步骤6: 点击出发按钮")
-            self._click_depart()
+            if character_selected:
+                # 6. 点击"出发"按钮
+                logger.info("步骤6: 点击出发按钮")
+                self._click_depart()
 
-            # 7. 处理采集完成页面
-            logger.info("步骤7: 等待采集完成并关闭完成页面")
-            self._handle_collection_complete()
+                # 7. 处理采集完成页面
+                logger.info("步骤7: 等待采集完成并关闭完成页面")
+                self._handle_collection_complete()
         else:
             logger.info("所有采集物已采集完毕，跳过后续步骤")
 
@@ -274,13 +279,16 @@ class IslandDailyGather(Island):
         plus_button = plus_buttons[index]
         worker_list = worker_list or []
 
-        # 点击"+"按钮
-        logger.info(f"点击第{index + 1}个+按钮")
-        self.device.click(plus_button)
-        self.device.sleep(0.5)
-
-        # 等待角色选择界面出现
-        self._wait_for_character_select()
+        # 点击"+"按钮，若页面动画或点击未生效则重试，避免无限等待。
+        for attempt in range(3):
+            logger.info(f"点击第{index + 1}个+按钮")
+            self.device.click(plus_button)
+            if self._wait_for_character_select(timeout=6):
+                break
+            logger.warning(f"第{index + 1}个槽位角色选择界面未出现，重试 {attempt + 1}/3")
+        else:
+            logger.warning(f"第{index + 1}个槽位无法打开角色选择界面")
+            return False
 
         # 按"生活等级"进行升序排序
         self._sort_by_life_level()
@@ -296,23 +304,29 @@ class IslandDailyGather(Island):
 
         if not selected and not self._select_character_with_stamina_check():
             logger.warning(f"第{index + 1}个槽位未找到可用角色，跳过")
+            self.device.click(SELECT_UI_BACK)
+            self.device.sleep(0.3)
+            return False
 
         # 点击确认按钮完成选择
         self.device.sleep(0.3)
-        self.appear_then_click(SELECT_UI_CONFIRM)
-        self.device.sleep(0.5)
+        if not self.confirm_selected_character_closed(f"每日采集第{index + 1}个槽位"):
+            self.device.click(SELECT_UI_BACK)
+            self.device.sleep(0.3)
+            return False
         logger.info(f"第{index + 1}个槽位角色选择完成")
+        return True
 
-    def _wait_for_character_select(self):
+    def _wait_for_character_select(self, timeout=8):
         """
         等待角色选择界面出现
         """
-        while True:
-            self.device.screenshot()
+        for _ in self.loop(timeout=timeout, skip_first=False):
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
                 logger.info("角色选择界面已出现")
-                break
-            self.device.sleep(0.3)
+                return True
+
+        return False
 
     def _sort_by_life_level(self):
         """

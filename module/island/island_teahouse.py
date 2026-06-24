@@ -237,9 +237,13 @@ class IslandTeahouse(IslandShopBase):
                 if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
                     # 选择厨师
                     if self.select_character(character_list=self.chef_config):
-                        self.device.sleep(0.5)
-                        self.appear_then_click(SELECT_UI_CONFIRM)
-                        self.device.sleep(0.5)
+                        if not self.confirm_selected_character(f"{product}生产派遣"):
+                            self.back_to_postmanage_from_dispatch()
+                            return 0
+                    else:
+                        logger.warning(f"{product}生产派遣无可用角色: {self.chef_config}")
+                        self.back_to_postmanage_from_dispatch()
+                        return 0
                     continue
                 if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                     # 在商品列表界面，点击固定位置，不检测图标

@@ -19,6 +19,7 @@ dev_tools/debug_tools
 *.lock
 config/reloadflag
 config/reloadalas
+/password.txt
 test.py
 test/
 !test/

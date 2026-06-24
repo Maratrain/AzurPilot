@@ -56,7 +56,7 @@ class ConfigModel:
 
     # WebUI 配置
     WebuiHost: str = "0.0.0.0"
-    WebuiPort: int = 22267
+    WebuiPort: int = 25548
     WebuiSSLKey: Optional[str] = None
     WebuiSSLCert: Optional[str] = None
     Language: str = "en-US"

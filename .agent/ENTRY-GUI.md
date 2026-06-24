@@ -105,7 +105,7 @@ parser = argparse.ArgumentParser(description="AzurPilot web service")
 | 参数 | 短参数 | 类型 | 说明 | 默认值来源 |
 |---|---|---|---|---|
 | `--host` | - | `str` | 监听主机 | `State.deploy_config.WebuiHost` -> `"0.0.0.0"` |
-| `--port` | `-p` | `int` | 监听端口 | `State.deploy_config.WebuiPort` -> `22267` |
+| `--port` | `-p` | `int` | 监听端口 | `State.deploy_config.WebuiPort` -> `25548` |
 | `--key` | `-k` | `str` | AzurPilot 密码 | 无密码 |
 | `--cdn` | - | `flag` | 使用 jsdelivr CDN | `False` |
 | `--electron` | - | `flag` | Electron 客户端模式 | `False` |
@@ -119,7 +119,7 @@ parser = argparse.ArgumentParser(description="AzurPilot web service")
 
 ```python
 host = args.host or State.deploy_config.WebuiHost or "0.0.0.0"
-port = args.port or int(State.deploy_config.WebuiPort) or 22267
+port = args.port or int(State.deploy_config.WebuiPort) or 25548
 ssl_key = args.ssl_key or State.deploy_config.WebuiSSLKey
 ssl_cert = args.ssl_cert or State.deploy_config.WebuiSSLCert
 ssl = ssl_key is not None and ssl_cert is not None
@@ -334,7 +334,7 @@ class ConfigModel:
 
     # WebUI 配置
     WebuiHost: str = "0.0.0.0"
-    WebuiPort: int = 22267
+    WebuiPort: int = 25548
     WebuiSSLKey: Optional[str] = None
     WebuiSSLCert: Optional[str] = None
     Language: str = "en-US"
@@ -471,7 +471,7 @@ gui.py (__main__)
 
 ### 12.1 潜在 Bug
 
-1. **端口 0 问题**: `args.port or int(State.deploy_config.WebuiPort) or 22267` 中，端口 0 会回退到配置文件
+1. **端口 0 问题**: `args.port or int(State.deploy_config.WebuiPort) or 25548` 中，端口 0 会回退到配置文件
 2. **Event 泄漏**: 如果子进程异常退出且未正确清理 Event，可能导致资源泄漏
 3. **`set_start_method("spawn", force=True)`**: 在多线程环境中调用可能引发 `RuntimeError`
 
@@ -487,7 +487,7 @@ gui.py (__main__)
 2. **使用配置常量**:
    ```python
    DEFAULT_HOST = "0.0.0.0"
-   DEFAULT_PORT = 22267
+   DEFAULT_PORT = 25548
    PROCESS_STOP_TIMEOUT = 5
    PROCESS_KILL_TIMEOUT = 3
    ```

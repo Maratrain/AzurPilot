@@ -2,9 +2,11 @@
 Copy from pywebio.platform.fastapi
 """
 import asyncio
+import logging
 import os
 
 import uvicorn
+import pywebio.platform.fastapi as pywebio_fastapi
 from pywebio.platform.fastapi import (STATIC_PATH, Session, cdn_validation,
                                       get_free_port,
                                       open_webbrowser_on_server_started,
@@ -13,15 +15,82 @@ from pywebio.platform.fastapi import (STATIC_PATH, Session, cdn_validation,
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.routing import Mount
+from starlette.responses import PlainTextResponse
+from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
+from starlette.websockets import WebSocketDisconnect
+
+ROBOTS_TXT = """\
+User-agent: *
+Disallow: /
+"""
+
+logger = logging.getLogger(__name__)
 
 
 class HeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-cache"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
         return response
+
+
+async def robots_txt(request):
+    return PlainTextResponse(
+        ROBOTS_TXT,
+        media_type="text/plain",
+        headers={"X-Robots-Tag": "noindex, nofollow, noarchive"},
+    )
+
+
+class SafeWebSocketConnection(pywebio_fastapi.WebSocketConnection):
+    """
+    Starlette/websockets 不允许同一连接并发 send。
+
+    PyWebIO 默认实现会为每条消息创建独立 task，页面一次触发多条输出时，
+    底层 drain 可能断言失败并打印 "Task exception was never retrieved"。
+    """
+
+    def __init__(self, websocket, ioloop):
+        super().__init__(websocket, ioloop)
+        self._send_lock = asyncio.Lock()
+
+    async def _safe_send_json(self, message):
+        async with self._send_lock:
+            if self.closed():
+                return
+            try:
+                await self.ws.send_json(message)
+            except TypeError:
+                logger.exception(
+                    "PyWebIO 消息序列化失败，消息内容: %s", message
+                )
+            except (AssertionError, RuntimeError, WebSocketDisconnect):
+                logger.debug("WebSocket 已断开，跳过 PyWebIO 消息发送")
+            except Exception as e:
+                logger.debug("PyWebIO WebSocket 消息发送失败: %s", e)
+
+    async def _safe_close(self):
+        async with self._send_lock:
+            if self.closed():
+                return
+            try:
+                await self.ws.close()
+            except (AssertionError, RuntimeError, WebSocketDisconnect):
+                logger.debug("WebSocket 已断开，跳过 PyWebIO 连接关闭")
+            except Exception as e:
+                logger.debug("PyWebIO WebSocket 连接关闭失败: %s", e)
+
+    def write_message(self, message: dict):
+        self.ioloop.create_task(self._safe_send_json(message))
+
+    def close(self):
+        self.ioloop.create_task(self._safe_close())
+
+
+def patch_pywebio_websocket_connection():
+    pywebio_fastapi.WebSocketConnection = SafeWebSocketConnection
 
 
 def asgi_app(
@@ -37,12 +106,14 @@ def asgi_app(
     cdn = cdn_validation(cdn, "warn")
     if cdn is False:
         cdn = "pywebio_static"
+    patch_pywebio_websocket_connection()
     routes = webio_routes(
         applications,
         cdn=cdn,
         allowed_origins=allowed_origins,
         check_origin=check_origin,
     )
+    routes.insert(0, Route("/robots.txt", robots_txt, methods=["GET", "HEAD"]))
     if static_dir:
         routes.append(
             Mount("/static", app=StaticFiles(directory=static_dir), name="static")

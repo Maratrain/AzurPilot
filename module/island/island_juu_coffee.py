@@ -182,9 +182,9 @@ class IslandJuuCoffee(IslandShopBase):
 
     def select_special_character(self,product):
         if product in ['cheese','wake_up_call',]:
-            self.select_character("Friedrich")
+            return self.select_character("Friedrich")
         else:
-            self.select_character(self.chef_config)
+            return self.select_character(self.chef_config)
     def deduct_materials(self, product, number):
         """覆盖：扣除前置材料，包括牛奶和套餐原材料"""
         # 先调用父类方法扣除套餐原材料

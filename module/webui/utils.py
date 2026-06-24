@@ -14,8 +14,8 @@ from queue import Queue
 from typing import Callable, Generator, List
 
 import pywebio
-from pywebio.input import PASSWORD, input
-from pywebio.output import PopupSize, popup, put_html, toast
+from pywebio.input import PASSWORD, actions, input, input_group
+from pywebio.output import PopupSize, popup, put_html, put_text, toast
 from pywebio.session import eval_js, info as session_info, register_thread, run_js
 from rich.console import Console
 from rich.terminal_theme import TerminalTheme
@@ -87,6 +87,11 @@ LIGHT_TERMINAL_THEME = TerminalTheme(
         (165, 165, 165),  # 白
     ],
 )
+
+WEBUI_LOGIN_MAX_FAILURES = 5
+_webui_login_failure_count = 0
+_webui_login_forbidden = False
+_webui_login_lock = threading.Lock()
 
 
 class QueueHandler:
@@ -505,15 +510,80 @@ def to_pin_value(val):
         return val
 
 
+def is_login_forbidden():
+    with _webui_login_lock:
+        return _webui_login_forbidden
+
+
+def _record_login_failure():
+    global _webui_login_failure_count, _webui_login_forbidden
+    with _webui_login_lock:
+        _webui_login_failure_count += 1
+        if (
+            not _webui_login_forbidden
+            and _webui_login_failure_count >= WEBUI_LOGIN_MAX_FAILURES
+        ):
+            _webui_login_forbidden = True
+            logger.warning(
+                "密码错误次数过多，已禁止所有登录，重启后恢复。"
+            )
+        return _webui_login_failure_count
+
+
+def _show_password_help(action):
+    if action == "new":
+        popup(
+            "没设置过密码？",
+            put_text("系统已自动生成密码，请到项目根目录 password.txt 查看。"),
+        )
+    elif action == "forgot":
+        popup(
+            "忘记密码？",
+            put_text("请到 config/deploy.yaml 的 Password 字段查看当前密码。"),
+        )
+
+
+def _input_webui_password():
+    while True:
+        data = input_group(inputs=[
+            input(
+                name="password",
+                label="请输入 WebUI 密码",
+                type=PASSWORD,
+                placeholder="PASSWORD",
+            ),
+            actions(name="action", buttons=[
+                {"label": "登录", "value": "login", "type": "submit", "color": "primary"},
+                {"label": "没设置过密码？", "value": "new", "type": "submit", "color": "secondary"},
+                {"label": "忘记密码？", "value": "forgot", "type": "submit", "color": "secondary"},
+            ]),
+        ])
+        action = data["action"]
+        if action == "login":
+            return data["password"]
+        _show_password_help(action)
+
+
 def login(password):
+    if is_login_forbidden():
+        toast("密码错误次数过多，请重启后再试。", color="error")
+        return False
     if get_localstorage("password") == str(password):
         return True
-    pwd = input(label="Please login below.", type=PASSWORD, placeholder="PASSWORD")
+    pwd = _input_webui_password()
+    if is_login_forbidden():
+        toast("密码错误次数过多，请重启后再试。", color="error")
+        return False
     if str(pwd) == str(password):
         set_localstorage("password", str(pwd))
         return True
     else:
-        toast("Wrong password!", color="error")
+        count = _record_login_failure()
+        remaining = WEBUI_LOGIN_MAX_FAILURES - count
+        if remaining > 0:
+            toast(f"密码错误，还剩 {remaining} 次机会。", color="error")
+        else:
+            toast("密码错误次数过多，请重启后再试。", color="error")
         return False
 
 

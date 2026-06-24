@@ -116,8 +116,8 @@ Deploy:
     WebuiHost: 0.0.0.0
     # --port. Port to listen
     # You will be able to access webui via `http://{host}:{port}`
-    # [In most cases] Default to 22367
-    WebuiPort: 22367
+    # [In most cases] Default to 25548
+    WebuiPort: 25548
     # Language to use on web ui
     # 'zh-CN' for Chinese simplified
     # 'en-US' for English
@@ -135,6 +135,7 @@ Deploy:
     DpiScaling: true
     # --key. Password of web ui
     # Useful when expose AzurPilot to the public network
+    # WebuiHost 为 0.0.0.0 或 :: 时必须设置密码
     Password: null
     # --cdn. Use jsdelivr cdn for pywebio static files (css, js).
     # 'true' for jsdelivr cdn

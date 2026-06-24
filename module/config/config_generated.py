@@ -162,7 +162,7 @@ class GeneratedConfig:
     PublicEmotion_FleetOnsen = False
 
     # 配置组 `YukikazeTaskManager`
-    YukikazeTaskManager_TaskPriorityAdjustment = 'Restart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost'
+    YukikazeTaskManager_TaskPriorityAdjustment = 'Restart\n> OpsiCrossMonth\n> OpsiScheduling\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost'
 
     # 配置组 `OneClickRetire`
     OneClickRetire_KeepLimitBreak = 'keep_limit_break'  # keep_limit_break, do_not_keep
@@ -199,6 +199,12 @@ class GeneratedConfig:
     StopCondition_StageIncrease = False
     StopCondition_GetNewShip = False
     StopCondition_ReachLevel = 0
+
+    # 配置组 `WarArchives`
+    WarArchives_DailyRunCount = 0
+    WarArchives_DailyRunCountRemain = 0
+    WarArchives_DailyRunCountRecord = datetime.datetime(2020, 1, 1, 0, 0)
+    WarArchives_DailyRunCountLimit = 0
 
     # 配置组 `Fleet`
     Fleet_Fleet1 = 1  # 1, 2, 3, 4, 5, 6
@@ -594,6 +600,7 @@ class GeneratedConfig:
 
     # 配置组 `OpsiMeowfficerFarming`
     OpsiMeowfficerFarming_ActionPointPreserve = 1000
+    OpsiMeowfficerFarming_SmartNaturalAPCleanup = False
     OpsiMeowfficerFarming_HazardLevel = 5  # 2, 3, 4, 5, 6, 10
     OpsiMeowfficerFarming_TargetZone = 0
     OpsiMeowfficerFarming_StayInZone = False
@@ -637,6 +644,8 @@ class GeneratedConfig:
     OpsiScheduling_UseSmartSchedulingOperationCoinsPreserve = True  # True, False
     OpsiScheduling_OperationCoinsPreserve = 40000
     OpsiScheduling_ActionPointPreserve = 200
+    OpsiScheduling_ActionPointEarlyTriggerEnable = True  # True, False
+    OpsiScheduling_ActionPointEarlyTriggerThreshold = 200
     OpsiScheduling_OperationCoinsReturnThreshold = 20000
     OpsiScheduling_EnableMeowfficerFarming = True  # True, False
     OpsiScheduling_EnableObscure = False  # True, False

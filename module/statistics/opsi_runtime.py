@@ -65,6 +65,18 @@ def finish_battle_timer(config: Any, source: str | None) -> float | None:
         return None
 
 
+def refresh_action_point(main: Any) -> bool:
+    """刷新大世界行动力缓存。"""
+    if hasattr(main, "get_current_ap"):
+        main.get_current_ap()
+        return True
+
+    main.action_point_enter()
+    main.action_point_safe_get()
+    main.action_point_quit()
+    return True
+
+
 def record_ap_snapshot(config: Any, ap_current: int, source: str, distance: int = None, ap_total: int = None) -> None:
     """按来源记录行动力快照。"""
     try:
@@ -78,7 +90,16 @@ def record_ap_snapshot(config: Any, ap_current: int, source: str, distance: int 
             ap_total=ap_total,
         )
     except Exception:
-        logger.exception("Failed to save AP snapshot")
+        logger.exception("保存行动力快照失败")
+
+    try:
+        if source == "meow":
+            from module.os.tasks.scheduling import CoinTaskMixin
+            helper = CoinTaskMixin()
+            helper.config = config
+            helper._schedule_by_natural_ap(ap_current)
+    except Exception:
+        logger.debug("校准智能调度行动力恢复时间失败", exc_info=True)
 
 
 def record_cl1_auto_search_battle(
@@ -180,7 +201,7 @@ def record_meow_auto_search_battle(
 def start_meow_search_timer(main: Any) -> tuple[float, int | None]:
     """记录短猫开始搜索当前海域时的时间与行动力。"""
     try:
-        main.get_current_ap()
+        refresh_action_point(main)
         start_ap = main._action_point_total
         logger.debug(f"Meow search started, AP: {start_ap}")
     except Exception:
@@ -198,9 +219,19 @@ def finish_meow_search_timer(
 ) -> float | None:
     """按完成的海域搜索记录短猫单轮耗时。"""
     try:
-        main.get_current_ap()
+        refresh_action_point(main)
     except Exception:
         logger.debug("Failed to get end action point")
+    else:
+        try:
+            record_ap_snapshot(
+                main.config,
+                ap_current=main._action_point_current,
+                ap_total=main._action_point_total,
+                source="meow",
+            )
+        except Exception:
+            logger.debug("记录短猫行动力快照失败", exc_info=True)
 
     duration = time.time() - search_started_at
     hazard_level = meow_hazard_level_from_runtime(main)

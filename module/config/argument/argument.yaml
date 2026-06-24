@@ -271,6 +271,7 @@ YukikazeTaskManager:
     value: |-
       Restart
       > OpsiCrossMonth
+      > OpsiScheduling
       > Commission > Tactical > Research
       > Exercise
       > Dorm > Meowfficer > Guild > Gacha
@@ -342,6 +343,20 @@ StopCondition:
   StageIncrease: false
   GetNewShip: false
   ReachLevel: 0
+WarArchives:
+  DailyRunCount: 0
+  DailyRunCountRemain:
+    type: stored
+    value: 0
+    display: hide
+  DailyRunCountRecord:
+    type: stored
+    value: 2020-01-01 00:00:00
+    display: hide
+  DailyRunCountLimit:
+    type: stored
+    value: 0
+    display: hide
 Fleet:
   Fleet1:
     value: 1
@@ -1012,6 +1027,10 @@ OpsiMonthBoss:
   ForceRun: false
 OpsiMeowfficerFarming:
   ActionPointPreserve: 1000
+  SmartNaturalAPCleanup:
+    type: stored
+    value: false
+    display: hide
   HazardLevel:
     value: 5
     option: [ 2, 3, 4, 5, 6, 10 ]
@@ -1081,6 +1100,12 @@ OpsiScheduling:
   OperationCoinsPreserve:
     value: 40000
   ActionPointPreserve:
+    value: 200
+  ActionPointEarlyTriggerEnable:
+    value: true
+    type: checkbox
+    option: [true, false]
+  ActionPointEarlyTriggerThreshold:
     value: 200
 
   OperationCoinsReturnThreshold:

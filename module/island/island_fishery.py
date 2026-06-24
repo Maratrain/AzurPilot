@@ -286,9 +286,13 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
                 continue
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
                 if self.select_character(character_list=self.rancher_filter):
-                    self.device.sleep(0.5)
-                    self.device.click(SELECT_UI_CONFIRM)
-                    self.device.sleep(0.5)
+                    if not self.confirm_selected_character(f"{product}养殖派遣"):
+                        self.back_to_postmanage_from_dispatch()
+                        return False
+                else:
+                    logger.warning(f"{product}养殖派遣无可用角色: {self.rancher_filter}")
+                    self.back_to_postmanage_from_dispatch()
+                    return False
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 if self.select_product(selection, selection_check):

@@ -1,6 +1,6 @@
 # ARM64 Dockerfile for AzurLaneAutoScript
 # Build: docker build -t alas-arm64 -f dev_tools/arm64/Dockerfile .
-# Run:   docker run -v ${PWD}:/app/AzurLaneAutoScript -p 22267:22267 --name alas -it --rm alas-arm64
+# Run:   docker run -v ${PWD}:/app/AzurLaneAutoScript -p 25548:25548 --name alas -it --rm alas-arm64
 
 FROM python:3.14-slim-bookworm
 

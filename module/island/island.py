@@ -496,9 +496,13 @@ class Island(SelectCharacter):
                 continue
             if self.appear(ISLAND_SELECT_CHARACTER_CHECK,offset=1):
                 if self.select_character():
-                    self.device.sleep(0.5)
-                    self.appear_then_click(SELECT_UI_CONFIRM)
-                    self.device.sleep(0.5)
+                    if not self.confirm_selected_character("岗位追加派遣"):
+                        self.back_to_postmanage_from_dispatch()
+                        return False
+                else:
+                    logger.warning("岗位追加派遣无可用角色")
+                    self.back_to_postmanage_from_dispatch()
+                    return False
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK,offset=1):
                 if self.select_product(product_selection,product_selection_check):
@@ -573,6 +577,59 @@ class Island(SelectCharacter):
         else:
             logger.warning(f"{context}材料已确认足够，但确认按钮不可用，可能角色体力不足")
         return False
+
+    def confirm_selected_character(self, context="岗位派遣"):
+        """确认角色选择，并等待角色选择页切换到下一步。"""
+        if not self.click_selected_character_confirm(context=context):
+            return False
+
+        for _ in self.loop(timeout=8, skip_first=False):
+            if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
+                return True
+            if (
+                    (self.appear(ISLAND_POST_CHECK, offset=1) or self.appear(ISLAND_POST_VACANT_CHECK, offset=1))
+                    and not self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1)
+            ):
+                return True
+            if (
+                    self.ui_page_appear(page_island_postmanage)
+                    and not self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1)
+            ):
+                return True
+            if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
+                if self.appear_then_click(SELECT_UI_CONFIRM, interval=1):
+                    continue
+
+        logger.warning(f"{context}确认后未进入下一步")
+        return False
+
+    def confirm_selected_character_closed(self, context="角色选择", timeout=8):
+        """确认角色选择，并等待角色选择页关闭。"""
+        if not self.click_selected_character_confirm(context=context):
+            return False
+
+        for _ in self.loop(timeout=timeout, skip_first=False):
+            if not self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
+                return True
+            if self.appear_then_click(SELECT_UI_CONFIRM, interval=1):
+                continue
+
+        logger.warning(f"{context}确认后仍停留在角色选择页")
+        return False
+
+    def click_selected_character_confirm(self, context="角色选择", timeout=5):
+        """等待角色确认按钮出现并点击。"""
+        self.interval_clear([SELECT_UI_CONFIRM])
+        for _ in self.loop(timeout=timeout, skip_first=False):
+            if not self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
+                return True
+            if self.appear_then_click(SELECT_UI_CONFIRM, interval=1):
+                return True
+
+        if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
+            logger.warning(f"{context}确认按钮未出现")
+            return False
+        return True
 
     def post_open(self,post):
         template = TEMPLATE_POST_LOCK

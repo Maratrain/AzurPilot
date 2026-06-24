@@ -451,12 +451,12 @@ Guild:
   Scheduler:
     SuccessInterval: 30
     FailureInterval: 30
-    ServerUpdate: 00:00, 06:00, 12:00, 18:00, 21:00
+    ServerUpdate: 00:00, 06:00, 12:00, 18:00
 Reward:
   Scheduler:
     SuccessInterval: 120-240
     FailureInterval: 120-240
-    ServerUpdate: 00:00
+    ServerUpdate: 00:00, 06:00, 12:00, 18:00
 ShopFrequent:
   Scheduler:
     SuccessInterval: 30
@@ -581,12 +581,16 @@ OpsiHazard1Leveling:
 OpsiScheduling:
   Scheduler:
     NextRun:
+      type: stored
       display: hide
     SuccessInterval:
+      value: 1440
       display: hide
     FailureInterval:
+      value: 1440
       display: hide
     ServerUpdate:
+      value: 00:00
       display: hide
 
 # ==================== Tool ====================

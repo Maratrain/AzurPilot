@@ -6,6 +6,8 @@ import argparse
 import json
 import queue
 import requests
+import secrets
+import string
 import threading
 import time
 import re
@@ -133,6 +135,96 @@ patch_executor()
 patch_mimetype()
 fix_py37_subprocess_communicate()
 task_handler = TaskHandler()
+RESTRICTED_DEVICE_IDS = {
+    "1",
+    "2",
+}
+RESTRICTED_DEVICE_MESSAGE = (
+    "你的公网IP已泄露 请加群https://join.nanoda.work/#/join联系我们解除安全限制"
+)
+PUBLIC_WEBUI_WITHOUT_PASSWORD_MESSAGE = "当前配置允许所有设备访问，请添加密码\n\n设置方法:\n在config/deploy.yaml中添加:\nWebUI:\n  Password: 你的密码\n然后重启\n\n温馨提示：密码推荐大小写字母+数字不小于六位\n\n目前配置允許所有裝置存取，請新增密碼。\n\n設定方法:\n在config/deploy.yaml中添加:\nWebUI:\n  Password: 你的密碼\n然後重新啟動\n\n溫馨提示：密碼建議包含大小寫英文字母與數字，且不少於六位。\n\nThe current configuration allows access from all devices. Please set a password.\n\nHow to configure:\nAdd the following to config/deploy.yaml:\nWebUI:\n  Password: your_password\nThen restart the application.\n\nTip: It is recommended to use a password containing uppercase and lowercase letters as well as numbers, with a minimum length of 6 characters.\n\n現在の設定では、すべてのデバイスからアクセスできます。パスワードを設定してください。\n\n設定方法:\nconfig/deploy.yaml に以下を追加してください:\nWebUI:\n  Password: あなたのパスワード\nその後、アプリケーションを再起動してください。\n\nヒント：パスワードは英大文字・英小文字・数字を含み、6文字以上にすることを推奨します。"
+PUBLIC_WEBUI_PASSWORD_GENERATE_FAILED_MESSAGE = (
+    "当前配置允许所有设备访问，但自动生成密码失败，请手动在 config/deploy.yaml 设置 Password 后重启。"
+)
+WEBUI_AUTO_PASSWORD_FILE = "password.txt"
+
+
+def is_public_webui_host(host):
+    """
+    判断 WebUI 是否监听所有网络接口。
+
+    Args:
+        host (str): WebUI 监听地址。
+
+    Returns:
+        bool: True 表示 WebUI 允许所有设备访问。
+    """
+    host = str(host or "").strip().lower()
+    return host in ("0.0.0.0", "::", "[::]")
+
+
+def is_webui_password_set(password):
+    """
+    判断 WebUI 密码是否有效设置。
+
+    Args:
+        password: WebUI 密码配置。
+
+    Returns:
+        bool: True 表示密码包含非空白字符。
+    """
+    return bool(str(password or "").strip())
+
+
+def generate_webui_password(length=32):
+    """
+    生成包含大小写字母和数字的 WebUI 密码。
+
+    Args:
+        length (int): 密码长度。
+
+    Returns:
+        str: 随机密码。
+    """
+    letters_upper = string.ascii_uppercase
+    letters_lower = string.ascii_lowercase
+    digits = string.digits
+    alphabet = letters_upper + letters_lower + digits
+    password = [
+        secrets.choice(letters_upper),
+        secrets.choice(letters_lower),
+        secrets.choice(digits),
+    ]
+    password.extend(secrets.choice(alphabet) for _ in range(length - len(password)))
+    secrets.SystemRandom().shuffle(password)
+    return "".join(password)
+
+
+def ensure_public_webui_password(key):
+    """
+    公网监听且未设置密码时自动生成密码。
+
+    Args:
+        key: 命令行或部署配置中的 WebUI 密码。
+
+    Returns:
+        tuple[str | None, str | None]: 有效密码和失败原因。
+    """
+    host = State.webui_host or State.deploy_config.WebuiHost
+    if not is_public_webui_host(host) or is_webui_password_set(key):
+        return key, None
+
+    try:
+        password = generate_webui_password()
+        from deploy.atomic import atomic_write
+
+        atomic_write(WEBUI_AUTO_PASSWORD_FILE, f"{password}\n")
+        State.deploy_config.Password = password
+        logger.warning(f"WebUI 已自动生成密码，请在根目录 {WEBUI_AUTO_PASSWORD_FILE} 查看。")
+        return password, None
+    except Exception as e:
+        logger.exception(f"WebUI 自动生成密码失败: {e}")
+        return None, str(e)
 
 
 def timedelta_to_text(delta=None):
@@ -258,6 +350,83 @@ class AlasGUI(Frame):
         self._simulator_logger_pm = None
         self._overview_log = None
         self._overview_log_config_name = None
+
+    def _close_update_notice(self) -> None:
+        run_js(
+            r"""
+            (function () {
+                var el = document.getElementById('alas-update-notice');
+                if (!el) return;
+                el.classList.add('is-leaving');
+                setTimeout(function () {
+                    if (el && el.parentNode) {
+                        el.parentNode.removeChild(el);
+                    }
+                }, 180);
+            })();
+            """
+        )
+
+    def _remove_update_notice(self) -> None:
+        run_js(
+            r"""
+            (function () {
+                var el = document.getElementById('alas-update-notice');
+                if (el && el.parentNode) {
+                    el.parentNode.removeChild(el);
+                }
+            })();
+            """
+        )
+
+    def _show_update_notice(self, onclick) -> None:
+        self._remove_update_notice()
+        scope = f"update_notice_{int(time.time() * 1000)}"
+
+        def handle_later():
+            self._close_update_notice()
+
+        with use_scope("ROOT"):
+            put_html(
+                f"""
+                <div id="alas-update-notice" class="alas-update-notice" role="status" aria-live="polite">
+                    <div class="alas-update-notice__halo"></div>
+                    <div class="alas-update-notice__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <path d="M7 10l5 5 5-5"></path>
+                            <path d="M12 15V3"></path>
+                        </svg>
+                    </div>
+                    <div class="alas-update-notice__body">
+                        <div class="alas-update-notice__eyebrow">发现新版本</div>
+                        <div class="alas-update-notice__title">有可用更新！</div>
+                        <div class="alas-update-notice__text">
+                            建议及时更新，以获得更稳定的脚本运行体验。
+                        </div>
+                        <div id="pywebio-scope-{scope}" class="alas-update-notice__actions"></div>
+                    </div>
+                </div>
+                """
+            )
+            put_buttons(
+                [
+                    {
+                        "label": "立即更新",
+                        "value": "update",
+                        "color": "danger",
+                    },
+                    {
+                        "label": "稍后再说",
+                        "value": "later",
+                        "color": "secondary",
+                    },
+                ],
+                onclick=[onclick, handle_later],
+                small=True,
+                scope=scope,
+            )
 
     @use_scope("aside", clear=True)
     def set_aside(self) -> None:
@@ -3930,7 +4099,7 @@ class AlasGUI(Frame):
         self.init_menu(name="Utils")
         self.set_title(t("Gui.MenuDevelop.Utils"))
         put_button(label=t("GUI测试 抛出异常事件"), onclick=raise_exception)
-        put_button(label=t("预览更新弹窗"), onclick=self._preview_update_popup)
+        put_button(label=t("预览更新提示"), onclick=self._preview_update_notice)
 
         def _get_debug_target_instance() -> Optional[str]:
             if getattr(self, "alas_name", ""):
@@ -4119,51 +4288,12 @@ class AlasGUI(Frame):
 
         self.task_handler.add(remote_switch.g(), delay=1, pending_delete=True)
 
-    def _preview_update_popup(self) -> None:
-        from pywebio.output import toast, close_popup
-
+    def _preview_update_notice(self) -> None:
         def handle_preview_click():
-            close_popup()
+            self._close_update_notice()
             toast("success", color="success")
 
-        with use_scope("ROOT"):
-            popup(
-                "更新提醒",
-                [
-                    put_html(f"""
-                    <div style="text-align: center; padding: 15px 0; font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif;">
-                        <div style="margin-bottom: 20px;">
-                            <div style="width: 50px; height: 50px; background: rgba(240, 62, 62, 0.1); border-radius: 25px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e03131" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            </div>
-                        </div>
-                        <div style="font-size: 1.8rem; font-weight: 800; color: inherit; margin-bottom: 10px;">有可用更新！</div>
-                        <div style="font-size: 0.95rem; opacity: 0.8; margin-bottom: 25px; line-height: 1.5;">发现新版本，建议立即更新以<br>获得最佳的脚本运行体验。</div>
-                        
-                        <div style="background: rgba(128, 128, 128, 0.05); border-radius: 10px; padding: 15px; margin: 0 15px 25px; text-align: left; border: 1px solid rgba(128, 128, 128, 0.15);">
-                            <div style="font-weight: 700; color: inherit; margin-bottom: 5px;">✨ 温馨提示:</div>
-                            <div style="font-size: 0.85rem; color: inherit;">
-                                • 为确保脚本稳定性和安全性，请及时进行更新。<br>
-                            </div>
-                        </div>
-                    </div>
-                """),
-                    put_buttons(
-                        [
-                            {
-                                "label": "立即更新 / Update Now",
-                                "value": "update",
-                                "color": "danger",
-                            }
-                        ],
-                        onclick=[handle_preview_click],
-                    ).style(
-                        "text-align: center; width: 100%; padding-bottom: 20px; border-top: none;"
-                    ),
-                ],
-                size="large",
-                implicit_close=True,
-            )
+        self._show_update_notice(handle_preview_click)
 
     def ui_develop(self) -> None:
         if not self.is_mobile:
@@ -4711,6 +4841,7 @@ class AlasGUI(Frame):
         def goto_update():
             self.ui_develop()
             self.dev_update()
+            self._close_update_notice()
 
         def show_update_toast():
             if self._update_notified:
@@ -4726,42 +4857,7 @@ class AlasGUI(Frame):
                 updata=True,
             )
 
-            gradient = "linear-gradient(90deg, #00b894, #0984e3)"
-            toast(
-                t("Gui.Toast.ClickToUpdate"),
-                duration=0,
-                position="right",
-                color=gradient,
-                onclick=goto_update,
-            )
-
-            run_js(r"""
-                setTimeout(function(){
-                    var el = document.querySelector('.toastify.toastify-top.toastify-right') || document.querySelector('.toastify.toastify-top') || document.querySelector('.toastify');
-                    if (!el) return;
-                    el.classList.add('alas-force-text');
-                    el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.22)';
-                    el.style.zIndex = '2147483647';
-                    /* children inherit via .alas-force-text */
-                    try{
-                        if (el.classList && el.classList.contains('toastify-right')){
-                            el.style.position = 'fixed';
-                            el.style.top = '8px';
-                            el.style.right = '8px';
-                            el.style.left = 'auto';
-                            el.style.transform = 'none';
-                            el.style.margin = '0';
-                        } else {
-                            el.style.position = 'fixed';
-                            el.style.top = '8px';
-                            el.style.left = '50%';
-                            el.style.right = 'auto';
-                            el.style.transform = 'translateX(-50%)';
-                            el.style.margin = '0';
-                        }
-                    }catch(e){}
-                }, 80);
-            """)
+            self._show_update_notice(goto_update)
 
         update_switch = Switch(
             status={1: show_update_toast},
@@ -4773,61 +4869,6 @@ class AlasGUI(Frame):
         self.task_handler.add(self.set_aside_status, 2)
         self.task_handler.add(visibility_state_switch.g(), 15)
         self.task_handler.add(update_switch.g(), 1)
-
-        def handle_update_click():
-            close_popup()
-            goto_update()
-
-        def update_popup_checker():
-            th = yield
-            th._task.delay = 1
-            yield
-            while True:
-                if updater.state == 1:
-                    with use_scope("ROOT"):
-                        popup(
-                            t("Gui.Toast.ClickToUpdate"),
-                            [
-                                put_html("""
-                                <div style="text-align: center; padding: 15px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                                    <div style="margin-bottom: 20px;">
-                                        <div style="width: 50px; height: 50px; background: rgba(240, 62, 62, 0.1); border-radius: 25px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e03131" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                        </div>
-                                    </div>
-                                    <div style="font-size: 1.8rem; font-weight: 800; color: inherit; margin-bottom: 10px;">有可用更新！</div>
-                                    <div style="font-size: 0.95rem; opacity: 0.8; margin-bottom: 25px; line-height: 1.5;">发现新版本，建议立即更新以获得最佳的脚本运行体验。</div>
-                                    
-                                    <div style="background: rgba(128, 128, 128, 0.05); border-radius: 10px; padding: 15px; margin: 0 15px 25px; text-align: left; border: 1px solid rgba(128, 128, 128, 0.15);">
-                                        <div style="font-weight: 700; color: inherit; margin-bottom: 5px;">✨ 温馨提示:</div>
-                                        <div style="font-size: 0.85rem; color: inherit;">
-                                            • 为确保脚本稳定性和安全性，请及时进行更新。<br>
-                                        </div>
-                                    </div>
-                                </div>
-                            """),
-                                put_buttons(
-                                    [
-                                        {
-                                            "label": "立即更新 / Update Now",
-                                            "value": "update",
-                                            "color": "danger",
-                                        }
-                                    ],
-                                    onclick=[handle_update_click],
-                                ).style(
-                                    "text-align: center; width: 100%; padding-bottom: 20px; border-top: none;"
-                                ),
-                            ],
-                            size="large",
-                            implicit_close=True,
-                        )
-                    th._task.delay = 60
-                else:
-                    th._task.delay = 2
-                yield
-
-        self.task_handler.add(update_popup_checker(), delay=5)
 
         # 公告检查功能（非阻塞）
         def announcement_checker():
@@ -5090,7 +5131,8 @@ def app():
 
     AlasGUI.set_theme(theme=theme)
     lang.LANG = State.deploy_config.Language
-    key = args.key or State.deploy_config.Password
+    key = args.key if is_webui_password_set(args.key) else State.deploy_config.Password
+    key, password_error = ensure_public_webui_password(key)
     cdn = args.cdn if args.cdn else State.deploy_config.CDN
     runs = None
     if args.run:
@@ -5104,7 +5146,7 @@ def app():
     logger.hr("Webui configs")
     logger.attr("Theme", State.deploy_config.Theme)
     logger.attr("Language", lang.LANG)
-    logger.attr("Password", True if key else False)
+    logger.attr("Password", is_webui_password_set(key))
     logger.attr("CDN", cdn)
     logger.attr("IS_ON_PHONE_CLOUD", IS_ON_PHONE_CLOUD)
 
@@ -5114,8 +5156,34 @@ def app():
 
     static_path = os.getcwd()
 
+    def _block_restricted_device():
+        if get_device_id() not in RESTRICTED_DEVICE_IDS:
+            return False
+        popup(
+            "安全保护",
+            RESTRICTED_DEVICE_MESSAGE,
+            implicit_close=False,
+            closable=False,
+        )
+        return True
+
+    def _block_public_webui_password_error():
+        if password_error is None:
+            return False
+        popup(
+            "安全保护",
+            PUBLIC_WEBUI_PASSWORD_GENERATE_FAILED_MESSAGE,
+            implicit_close=False,
+            closable=False,
+        )
+        return True
+
     def index():
-        if key is not None and not login(key):
+        if _block_restricted_device():
+            return
+        if _block_public_webui_password_error():
+            return
+        if is_webui_password_set(key) and not login(key):
             logger.warning(f"{info.user_ip} login failed.")
             time.sleep(1.5)
             run_js("location.reload();")
@@ -5125,7 +5193,11 @@ def app():
         gui.run()
 
     def manage():
-        if key is not None and not login(key):
+        if _block_restricted_device():
+            return
+        if _block_public_webui_password_error():
+            return
+        if is_webui_password_set(key) and not login(key):
             logger.warning(f"{info.user_ip} login failed.")
             time.sleep(1.5)
             run_js("location.reload();")
@@ -5150,4 +5222,3 @@ def app():
     app.mount("/mcp", mcp_app)
 
     return app
-

@@ -793,7 +793,7 @@
     "YukikazeTaskManager": {
       "TaskPriorityAdjustment": {
         "type": "textarea",
-        "value": "Restart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost"
+        "value": "Restart\n> OpsiCrossMonth\n> OpsiScheduling\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost"
       }
     },
     "Storage": {
@@ -6782,6 +6782,28 @@
         "value": 0
       }
     },
+    "WarArchives": {
+      "DailyRunCount": {
+        "type": "input",
+        "value": 0
+      },
+      "DailyRunCountRemain": {
+        "type": "stored",
+        "value": 0,
+        "display": "hide"
+      },
+      "DailyRunCountRecord": {
+        "type": "stored",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime",
+        "display": "hide"
+      },
+      "DailyRunCountLimit": {
+        "type": "stored",
+        "value": 0,
+        "display": "hide"
+      }
+    },
     "Fleet": {
       "Fleet1": {
         "type": "select",
@@ -10481,7 +10503,7 @@
       },
       "ServerUpdate": {
         "type": "input",
-        "value": "00:00, 06:00, 12:00, 18:00, 21:00",
+        "value": "00:00, 06:00, 12:00, 18:00",
         "display": "hide"
       },
       "Sensitive": {
@@ -10582,7 +10604,7 @@
       },
       "ServerUpdate": {
         "type": "input",
-        "value": "00:00",
+        "value": "00:00, 06:00, 12:00, 18:00",
         "display": "hide"
       },
       "Sensitive": {
@@ -13022,6 +13044,11 @@
         "type": "input",
         "value": 1000
       },
+      "SmartNaturalAPCleanup": {
+        "type": "stored",
+        "value": false,
+        "display": "hide"
+      },
       "HazardLevel": {
         "type": "select",
         "value": 5,
@@ -13341,7 +13368,7 @@
         ]
       },
       "NextRun": {
-        "type": "datetime",
+        "type": "stored",
         "value": "2020-01-01 00:00:00",
         "validate": "datetime",
         "display": "hide"
@@ -13353,12 +13380,12 @@
       },
       "SuccessInterval": {
         "type": "input",
-        "value": 0,
+        "value": 1440,
         "display": "hide"
       },
       "FailureInterval": {
         "type": "input",
-        "value": 120,
+        "value": 1440,
         "display": "hide"
       },
       "ServerUpdate": {
@@ -13389,6 +13416,18 @@
         "value": 40000
       },
       "ActionPointPreserve": {
+        "type": "input",
+        "value": 200
+      },
+      "ActionPointEarlyTriggerEnable": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "ActionPointEarlyTriggerThreshold": {
         "type": "input",
         "value": 200
       },

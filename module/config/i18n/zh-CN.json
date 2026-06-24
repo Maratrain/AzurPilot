@@ -1218,6 +1218,28 @@
       "help": "任意等级低于 X 的舰船升级至 X 级后停止\n0 表示不限制等级"
     }
   },
+  "WarArchives": {
+    "_info": {
+      "name": "作战档案",
+      "help": ""
+    },
+    "DailyRunCount": {
+      "name": "每日出击次数",
+      "help": "每天最多运行作战档案多少次。\n0 表示不限制。\n达到次数后会延迟到下一次服务器刷新，不会关闭任务。"
+    },
+    "DailyRunCountRemain": {
+      "name": "今日剩余出击次数",
+      "help": "脚本自动维护的今日剩余额度。"
+    },
+    "DailyRunCountRecord": {
+      "name": "每日出击次数记录时间",
+      "help": "脚本自动维护的额度记录时间，用于服务器刷新后重置。"
+    },
+    "DailyRunCountLimit": {
+      "name": "上次每日出击次数",
+      "help": "脚本自动维护的上次每日次数设置，用于调整额度。"
+    }
+  },
   "Fleet": {
     "_info": {
       "name": "出击舰队",
@@ -3099,6 +3121,10 @@
       "name": "保留 X 点行动力",
       "help": "行动力低于 X 后停止，自动打开行动力箱子，X 包含箱子中的行动力，建议保留3000行动力给侵蚀1练级\n这个值将在大世界重置前3天自动减少至200点，如果启用侵蚀1练级则改为1000点，并在最后一天自动减少至0点"
     },
+    "SmartNaturalAPCleanup": {
+      "name": "智能调度自然行动力清理",
+      "help": "智能调度拉起短猫清理自然恢复行动力时使用的一次性隐藏标记。"
+    },
     "HazardLevel": {
       "name": "侵蚀等级",
       "help": "按顺时针出击特定侵蚀等级的海域\n建议选 5 或 3，有更高的 猫点/行动力 比",
@@ -3288,6 +3314,16 @@
     "ActionPointPreserve": {
       "name": "短猫相接 保留 X 点行动力",
       "help": "行动力低于 X 后停止，自动打开行动力箱子，X 包含箱子中的行动力，建议保留1000行动力给侵蚀1练级"
+    },
+    "ActionPointEarlyTriggerEnable": {
+      "name": "行动力提前调度",
+      "help": "启用后在侵蚀一或短猫结束时记录自然行动力，并按每 10 分钟回复 1 点行动力计算智能调度下次运行时间，避免自然行动力溢出。",
+      "True": "True",
+      "False": "False"
+    },
+    "ActionPointEarlyTriggerThreshold": {
+      "name": "提前调度行动力阈值",
+      "help": "自然行动力恢复到 X 时再次运行智能调度。默认 200，适合在行动力接近自然上限时重新决定执行侵蚀一或短猫。"
     },
     "OperationCoinsReturnThreshold": {
       "name": "获取 X 个作战补给凭证",
@@ -5952,6 +5988,8 @@
       "UseSmartSchedulingOperationCoinsPreserve": "Gui.OpsiScheduling.UseSmartSchedulingOperationCoinsPreserve",
       "OperationCoinsPreserve": "Gui.OpsiScheduling.OperationCoinsPreserve",
       "ActionPointPreserve": "Gui.OpsiScheduling.ActionPointPreserve",
+      "ActionPointEarlyTriggerEnable": "行动力提前调度",
+      "ActionPointEarlyTriggerThreshold": "提前调度行动力阈值",
       "OperationCoinsReturnThreshold": "Gui.OpsiScheduling.OperationCoinsReturnThreshold",
       "EnableMeowfficerFarming": "Gui.OpsiScheduling.EnableMeowfficerFarming",
       "EnableObscure": "Gui.OpsiScheduling.EnableObscure",

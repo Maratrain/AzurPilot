@@ -121,6 +121,23 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
             else:
                 logger.info("上次检查行动力不足，跳过推送通知")
 
+            if self._action_point_current > 0:
+                logger.info("[智能调度] 行动力不足以执行补黄币任务，先启动短猫清理自然行动力")
+                with self.config.multi_set():
+                    self.config.cross_set(keys="OpsiMeowfficerFarming.Scheduler.Enable", value=True)
+                    self.config.cross_set(
+                        keys=self.CONFIG_PATH_ENABLE_MEOWFFICER,
+                        value=True,
+                    )
+                    self.config.cross_set(
+                        keys=self.CONFIG_PATH_MEOW_NATURAL_AP_CLEANUP,
+                        value=True,
+                    )
+                    self.config.task_call("OpsiMeowfficerFarming")
+                self._delay_scheduling_after_dispatch()
+            else:
+                logger.info("[智能调度] 自然行动力不可清理，按恢复时间校准智能调度")
+                self._schedule_by_natural_ap(self._action_point_current)
             logger.info("推迟任务 50 分钟")
             self.config.task_delay(minute=50)
             self.config.OpsiHazard1_PreviousCoinsApInsufficient = (
@@ -256,6 +273,8 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
             else:
                 logger.info("上次检查行动力低于最低保留，跳过推送通知")
 
+            logger.info("[智能调度] 按自然行动力恢复时间校准智能调度")
+            self._schedule_by_natural_ap(self._action_point_current)
             logger.info("[智能调度] 推迟侵蚀 1 任务 50 分钟")
             self.config.task_delay(minute=50)
             self.config.OpsiHazard1_PreviousApInsufficient = _previous_ap_insufficient

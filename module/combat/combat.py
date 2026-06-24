@@ -649,7 +649,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             if self.handle_story_skip(drop=drop):
                 continue
             # 处理战斗结算画面
-            if not exp_info and self.handle_get_ship(drop=drop):
+            if self.handle_get_ship(drop=drop):
                 continue
             if self.handle_get_items(drop=drop):
                 continue

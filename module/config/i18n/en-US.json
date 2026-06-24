@@ -1218,6 +1218,28 @@
       "help": "Any ship below level X will stop after reaching level X\n0 means no level restriction"
     }
   },
+  "WarArchives": {
+    "_info": {
+      "name": "War Archives",
+      "help": ""
+    },
+    "DailyRunCount": {
+      "name": "Daily Sortie Count",
+      "help": "Maximum War Archives runs per day.\n0 means no limit.\nAfter reaching the limit, the task is delayed until the next server reset instead of being disabled."
+    },
+    "DailyRunCountRemain": {
+      "name": "Daily Sorties Remaining",
+      "help": "Today's remaining quota, maintained automatically by the script."
+    },
+    "DailyRunCountRecord": {
+      "name": "Daily Sortie Count Record Time",
+      "help": "Quota record time maintained automatically by the script, used to reset after server refresh."
+    },
+    "DailyRunCountLimit": {
+      "name": "Previous Daily Sortie Count",
+      "help": "Previous daily count setting maintained automatically by the script, used when adjusting the quota."
+    }
+  },
   "Fleet": {
     "_info": {
       "name": "Sortie Fleet",
@@ -3099,6 +3121,10 @@
       "name": "Preserve X Action Points",
       "help": "Stop when Action Points are lower than X, and automatically open Action Point boxes. X includes Action Points in boxes. It is recommended to preserve 3000 AP for Corrosion 1 Leveling.\nThis value will be automatically reduced to 200 points 3 days before Operation Siren reset. If Corrosion 1 Leveling is enabled, it will be changed to 1000 points, and will be automatically reduced to 0 points on the last day."
     },
+    "SmartNaturalAPCleanup": {
+      "name": "Smart Scheduling Natural AP Cleanup",
+      "help": "Hidden one-shot flag used when Smart Scheduling starts Meowfficer farming to spend naturally recovered Action Points."
+    },
     "HazardLevel": {
       "name": "Corrosion Level",
       "help": "Attack sea zones with specific Corrosion levels in clockwise order\nIt is recommended to choose 5 or 3, which has a higher cat point/AP ratio.",
@@ -3288,6 +3314,16 @@
     "ActionPointPreserve": {
       "name": "Meowfficer Farming: Preserve X Action Points",
       "help": "Stop when Action Points are lower than X, and automatically open AP boxes. X includes AP in boxes. It is recommended to preserve 1000 AP for Corrosion 1 Leveling."
+    },
+    "ActionPointEarlyTriggerEnable": {
+      "name": "Early AP Scheduling",
+      "help": "After Corrosion 1 or Meowfficer farming ends, record natural Action Points and schedule Smart Scheduling by the natural recovery rate of 1 AP per 10 minutes to avoid AP overflow.",
+      "True": "True",
+      "False": "False"
+    },
+    "ActionPointEarlyTriggerThreshold": {
+      "name": "Early Scheduling AP Threshold",
+      "help": "Run Smart Scheduling again when natural Action Points recover to X. Default is 200, suitable for deciding whether to run Corrosion 1 or Meowfficer farming near the natural cap."
     },
     "OperationCoinsReturnThreshold": {
       "name": "Obtain X Combat Supply Vouchers",
@@ -5952,6 +5988,8 @@
       "UseSmartSchedulingOperationCoinsPreserve": "Gui.OpsiScheduling.UseSmartSchedulingOperationCoinsPreserve",
       "OperationCoinsPreserve": "Gui.OpsiScheduling.OperationCoinsPreserve",
       "ActionPointPreserve": "Gui.OpsiScheduling.ActionPointPreserve",
+      "ActionPointEarlyTriggerEnable": "Early AP Scheduling",
+      "ActionPointEarlyTriggerThreshold": "Early Scheduling AP Threshold",
       "OperationCoinsReturnThreshold": "Gui.OpsiScheduling.OperationCoinsReturnThreshold",
       "EnableMeowfficerFarming": "Gui.OpsiScheduling.EnableMeowfficerFarming",
       "EnableObscure": "Gui.OpsiScheduling.EnableObscure",

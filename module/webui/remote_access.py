@@ -39,7 +39,7 @@ def am_i_the_only_thread() -> bool:
 
 def remote_access_service(
     local_host="127.0.0.1",
-    local_port=22267,
+    local_port=25548,
     server="app.pywebio.online",
     server_port=1022,
     remote_port="/",
@@ -53,7 +53,7 @@ def remote_access_service(
 
     Args:
         local_host: 本地监听地址，默认 127.0.0.1。
-        local_port: 本地监听端口，默认 22267。
+        local_port: 本地监听端口，默认 25548。
         server: SSH 服务器域名。
         server_port: SSH 服务器端口。
         remote_port: 远程端口，默认 '/'（由服务端分配）。

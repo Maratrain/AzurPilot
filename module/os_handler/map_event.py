@@ -116,7 +116,11 @@ class MapEventHandler(EnemySearchingHandler):
         Returns:
             str: 已处理的事件名称。
         """
-        # 优先处理阻塞性确认弹窗,避免卡住状态循环
+        # 优先处理余烬信标弹窗，避免被 handle_popup_confirm 误点击确认进入 META 界面
+        # 余烬弹窗也包含 POPUP_CONFIRM 和 POPUP_CANCEL，若先匹配 DEPART_CONFIRM
+        # 会点击确认进入 META 界面，导致 auto search 循环无法识别而卡死
+        if self.handle_ash_popup():
+            return 'ash_popup'
         # 处理指挥猫搜寻时退出海域的确认弹窗 (issue #100)
         # 这类弹窗会阻止其他操作,必须优先处理
         # handle_popup_confirm 的 name 参数仅用于日志记录,实际识别使用通用的 POPUP_CONFIRM 按钮
@@ -130,8 +134,6 @@ class MapEventHandler(EnemySearchingHandler):
             return 'map_archives'
         if self.handle_guild_popup_cancel():
             return 'guild_popup_cancel'
-        if self.handle_ash_popup():
-            return 'ash_popup'
         if self.handle_urgent_commission(drop=drop):
             return 'urgent_commission'
         if self.handle_story_skip(drop=drop):
