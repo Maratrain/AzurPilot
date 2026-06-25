@@ -612,24 +612,47 @@ class RewardCommission(UI, InfoHandler):
 
             if merged_items:
                 instance = self.config.config_name
-                cl1_db.add_commission_income(instance, merged_items, commission_count=1)
+                cl1_db.add_commission_income(instance, merged_items,commission_count=1)
+                reward_stats = cl1_db.get_commission_reward_stats(instance)
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
                 tracked = []
                 if merged_items.get('Gem', 0) > 0:
-                    tracked.append(f'💎钻石 * {merged_items["Gem"]}')
+                    tracked.append(
+                        f'💎钻石 * {merged_items["Gem"]}'
+                        f'今日累计获取💎钻石 * {reward_stats["today"]["Gem"]}\n'
+                        f'本周累计获取💎钻石 * {reward_stats["week"]["Gem"]}\n'
+                        f'本月累计获取💎钻石 * {reward_stats["month"]["Gem"]}'
+                    )
                 if merged_items.get('Cube', 0) > 0:
-                    tracked.append(f'🧊魔方 * {merged_items["Cube"]}')
+                    tracked.append(
+                        f'🧊魔方 * {merged_items["Cube"]}'
+                        f'今日累计获取🧊魔方 * {reward_stats["today"]["Cube"]}\n'
+                        f'本周累计获取🧊魔方 * {reward_stats["week"]["Cube"]}\n'
+                        f'本月累计获取🧊魔方 * {reward_stats["month"]["Cube"]}'
+                    )
                 if tracked:
                     msg = '\n'.join(tracked)
+
+                    gem_count = merged_items.get('Gem', 0)
+                    cube_count = merged_items.get('Cube', 0)
+
+                    if gem_count > 0:
+                        title = f"AzurPilot <{instance}> 委托获得顶级奖励喵！"
+                        webui_title = "委托获得顶级奖励喵！"
+                    elif cube_count > 0:
+                        title = f"AzurPilot <{instance}> 委托获得高级奖励喵！"
+                        webui_title = "委托获得高级奖励喵！"
+
                     handle_notify(
                         self.config.Error_OnePushConfig,
-                        title=f"AzurPilot <{instance}> 委托获得高级奖励喵！",
+                        title=title,
                         content=msg,
                     )
+
                     notify_webui(
                         instance,
-                        title="委托获得高级奖励喵！",
+                        title=webui_title,
                         content=msg,
                     )
             else:

@@ -4,7 +4,7 @@ import json
 import os
 from contextlib import closing, suppress
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
@@ -1412,6 +1412,65 @@ class Cl1Database:
         data = self.get_stats(instance, month_key)
         return data.get("commission_income_entries", [])
 
+    def get_commission_reward_stats(self, instance: str):
+        """
+        获取委托奖励统计
+
+        Returns:
+            {
+                "today": {"Gem": 0, "Cube": 0},
+                "week": {"Gem": 0, "Cube": 0},
+                "month": {"Gem": 0, "Cube": 0},
+            }
+        """
+        now = datetime.now()
+        today = now.date()
+        week_start = today - timedelta(days=today.weekday())
+        entries = []
+        entries.extend(
+            self.get_commission_income(
+                instance,
+                year=now.year,
+                month=now.month,
+            )
+        )
+        # 周跨月
+        if week_start.month != now.month or week_start.year != now.year:
+            prev_month_date = now.replace(day=1) - timedelta(days=1)
+
+            entries.extend(
+                self.get_commission_income(
+                    instance,
+                    year=prev_month_date.year,
+                    month=prev_month_date.month,
+                )
+            )
+        result = {
+            "today": {"Gem": 0, "Cube": 0},
+            "week": {"Gem": 0, "Cube": 0},
+            "month": {"Gem": 0, "Cube": 0},
+        }
+        for entry in entries:
+            try:
+                ts = datetime.fromisoformat(entry.get("ts", ""))
+                items = entry.get("items", {})
+                gem = self._coerce_int(items.get("Gem", 0))
+                cube = self._coerce_int(items.get("Cube", 0))
+                # 本月
+                if ts.year == now.year and ts.month == now.month:
+                    result["month"]["Gem"] += gem
+                    result["month"]["Cube"] += cube
+                # 今日
+                if ts.date() == today:
+                    result["today"]["Gem"] += gem
+                    result["today"]["Cube"] += cube
+                # 本周
+                if week_start <= ts.date() <= today:
+                    result["week"]["Gem"] += gem
+                    result["week"]["Cube"] += cube
+            except Exception:
+                continue
+        return result
     def async_add_commission_income(
         self, instance: str, items: Dict[str, int], commission_count: int = 1
     ):
