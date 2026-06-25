@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-import module.config.server as server
 from module.base.decorator import Config
 from module.base.filter import Filter
 from module.base.utils import *
@@ -23,36 +22,56 @@ COMMISSION_FILTER = Filter(
 )
 
 
-class SuffixOcr(Ocr):
-    """后缀 OCR 识别器，用于识别委托名称末尾的罗马数字后缀。
+def crop_suffix_image(image, area):
+    """裁剪委托名称右侧的罗马数字后缀图像。
 
-    预处理时裁剪掉图像右侧空白区域，只保留后缀部分以提高识别准确率。
+    Args:
+        image: 游戏截图。
+        area: 委托名称区域。
+
+    Returns:
+        后缀裁剪图，黑字白底；未检测到文字时返回 None。
     """
+    name_image = crop(image, area)
+    name_image = extract_letters(name_image, letter=(255, 255, 255), threshold=128).astype(np.uint8)
 
-    def pre_process(self, image):
-        """预处理图像，裁剪右侧空白区域以聚焦后缀字符。
+    line = cv2.reduce(name_image[5:-5, :], 0, cv2.REDUCE_AVG).flatten()
+    columns = np.where(line < 250)[0]
+    if not len(columns):
+        return None
 
-        通过检测每列像素最小值定位文本右边界，再向左回退若干像素
-        以确保完整保留后缀字符。日服字符较宽，需要更大的回退量。
+    # 从最右侧文字向左回看，尽量完整包含罗马数字后缀。
+    threshold = 250
+    look_back = 10
+    for i in range(columns[-1], 0, -1):
+        if line[i] > threshold:
+            if columns[-1] - i > look_back:
+                look_back = columns[-1] - i
+                break
 
-        Args:
-            image: 输入的灰度图像。
+    left = columns[-1] - look_back
+    right = columns[-1] + 1
+    x1, y1 = area[0:2]
+    suffix_area = area_offset((left - 3, -3, right + 3, name_image.shape[0] + 3), (x1, y1))
+    image = crop(image, suffix_area)
+    image = extract_letters(image, letter=(255, 255, 255), threshold=128).astype(np.uint8)
+    return image
 
-        Returns:
-            裁剪后的图像。
-        """
-        image = super().pre_process(image)
 
-        left = np.where(np.min(image[5:-5, :], axis=0) < 85)[0]
-        # 日服字符较宽，需要回退更多像素
-        if server.server in ['jp']:
-            look_back = 21
-        else:
-            look_back = 18
-        if len(left):
-            image = image[:, left[-1] - look_back:]
+def image_hash(image):
+    """计算图像哈希，用于日志输出。
 
-        return image
+    Args:
+        image: 输入图像。
+
+    Returns:
+        图像 MD5；图像为空时返回空字符串。
+    """
+    if image is None:
+        return ''
+
+    import hashlib
+    return hashlib.md5(image.tobytes()).hexdigest()
 
 
 class Commission:
@@ -68,9 +87,10 @@ class Commission:
     name: str
     # 委托名称是否解析成功
     valid: bool
-    # 罗马数字后缀，委托无后缀时可能识别错误
-    # 值: ⅠⅡⅢⅤⅣⅥ
-    suffix: str
+    # 裁剪出的后缀图像，黑字白底；无后缀时为 None
+    suffix_image: np.ndarray
+    # 后缀图像哈希，仅用于日志；无后缀时为空字符串
+    suffix_hash: str
     # 委托类型名称，定义在 project_data.py 中
     # 值: major_comm, daily_resource, urgent_cube, ...
     genre: str
@@ -146,9 +166,9 @@ class Commission:
         self.name = result
         self.genre = self.commission_name_parse(self.name)
 
-        # 后缀识别
-        ocr = SuffixOcr(button, lang='azur_lane', letter=(255, 255, 255), threshold=128, alphabet='IV')
-        self.suffix = self.beautify_name(ocr.ocr(self.image))
+        # 后缀图像识别
+        self.suffix_image = crop_suffix_image(self.image, self.button.area)
+        self.suffix_hash = image_hash(self.suffix_image)
 
         # 执行时长
         area = area_offset((290, 68, 390, 95), self.area[0:2])
@@ -198,9 +218,9 @@ class Commission:
         self.name = result
         self.genre = self.commission_name_parse(self.name)
 
-        # 后缀识别
-        ocr = SuffixOcr(button, lang='azur_lane', letter=(255, 255, 255), threshold=128, alphabet='IV')
-        self.suffix = self.beautify_name(ocr.ocr(self.image))
+        # 后缀图像识别
+        self.suffix_image = crop_suffix_image(self.image, self.button.area)
+        self.suffix_hash = image_hash(self.suffix_image)
 
         # 执行时长
         area = area_offset((290, 68, 390, 95), self.area[0:2])
@@ -254,9 +274,9 @@ class Commission:
         self.name = result
         self.genre = self.commission_name_parse(self.name)
 
-        # 后缀识别
-        ocr = SuffixOcr(button, lang='azur_lane', letter=(255, 255, 255), threshold=128, alphabet='IV')
-        self.suffix = self.beautify_name(ocr.ocr(self.image))
+        # 后缀图像识别
+        self.suffix_image = crop_suffix_image(self.image, self.button.area)
+        self.suffix_hash = image_hash(self.suffix_image)
 
         # 执行时长
         area = area_offset((290, 68, 390, 95), self.area[0:2])
@@ -292,7 +312,7 @@ class Commission:
     def commission_parse(self):
         """解析委托信息（CN 服务器，默认回退）。
 
-        CN 服后缀直接从名称末尾提取罗马数字，不使用独立 OCR。
+        CN 服同样裁剪名称右侧后缀图像，用于后续相似度匹配。
         解析内容：名称、后缀、时长、过期时间、状态。
         """
         # 名称识别
@@ -306,8 +326,9 @@ class Commission:
         self.name = result
         self.genre = self.commission_name_parse(self.name)
 
-        # 后缀——直接从名称末尾提取罗马数字
-        self.suffix = self.beautify_name(''.join(c for c in result[-4:] if c in 'IV'))
+        # 后缀图像识别
+        self.suffix_image = crop_suffix_image(self.image, self.button.area)
+        self.suffix_hash = image_hash(self.suffix_image)
 
         # 执行时长
         area = area_offset((290, 68, 390, 95), self.area[0:2])
@@ -341,7 +362,7 @@ class Commission:
 
     def __str__(self):
         """返回委托的可读字符串表示，包含名称、类型、状态和时长。"""
-        name = f'{self.name} | {self.suffix}'
+        name = f'{self.name} | {self.suffix_hash}' if self.suffix_hash else self.name
         if not self.valid:
             return f'{name} (Invalid)'
         info = {'Genre': self.genre, 'Status': self.status, 'Duration': self.duration}
@@ -372,7 +393,7 @@ class Commission:
         if self.genre != other.genre or self.status != other.status:
             return False
         if self.category_str == 'daily':
-            if self.suffix != other.suffix:
+            if not self.suffix_match(other):
                 return False
         if self.genre == 'urgent_box':
             for tag in ['NYB', 'BIW']:
@@ -389,7 +410,7 @@ class Commission:
                 return False
         if self.repeat_count != other.repeat_count:
             return False
-        if self.genre in ['extra_oil', 'night_oil'] and self.suffix != other.suffix:
+        if self.genre in ['extra_oil', 'night_oil'] and not self.suffix_match(other):
             return False
 
         return True
@@ -397,6 +418,36 @@ class Commission:
     def __hash__(self):
         """返回委托的哈希值，基于类型和名称。"""
         return hash(f'{self.genre}_{self.name}')
+
+    def suffix_match(self, other, similarity=0.75):
+        """判断两个委托的后缀图像是否匹配。
+
+        Args:
+            other: 要比较的委托对象。
+            similarity: 相似度阈值，范围 0-1。
+
+        Returns:
+            后缀是否匹配。
+        """
+        if self.suffix_image is None and other.suffix_image is None:
+            return True
+        if self.suffix_image is None or other.suffix_image is None:
+            return False
+
+        def match(image, template):
+            template = crop(template, (3, 3, template.shape[1] - 3, template.shape[0] - 3), copy=False)
+            if image.shape[0] < template.shape[0] or image.shape[1] < template.shape[1]:
+                return 0.0
+
+            res = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+            _, sim, _, _ = cv2.minMaxLoc(res)
+            return sim
+
+        sim = max(
+            match(self.suffix_image, other.suffix_image),
+            match(other.suffix_image, self.suffix_image)
+        )
+        return sim >= similarity
 
     def parse_time(self, string):
         """解析时间字符串为 timedelta 对象。

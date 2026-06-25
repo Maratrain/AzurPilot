@@ -320,8 +320,10 @@ async def _collect_ws_scrcpy_preroll(session, max_wait=3.0):
             data = await asyncio.wait_for(session.recv(), timeout=timeout)
         except asyncio.TimeoutError:
             continue
-        if not data:
+        if data is None:
             break
+        if data == b"":
+            continue
         parsed = _ws_scrcpy_parse_initial(data)
         if parsed:
             display = (parsed.get("displays") or [{}])[0]
@@ -359,6 +361,7 @@ WS_SCRCPY_FILEPATH_LOCAL = "./bin/scrcpy/ws-scrcpy-server-v1.19-ws7.jar"
 WS_SCRCPY_FILEPATH_REMOTE = "/data/local/tmp/ws-scrcpy-server-v1.19-ws7.jar"
 WS_SCRCPY_MAGIC_INITIAL = b"scrcpy_initial"
 WS_SCRCPY_DEVICE_NAME_LENGTH = 64
+WS_SCRCPY_PID_FILE_REMOTE = "/data/local/tmp/ws_scrcpy.pid"
 
 
 def _ws_scrcpy_int(data, offset):
@@ -523,14 +526,19 @@ class LiveWsScrcpySession:
         ]
         return f"CLASSPATH={WS_SCRCPY_FILEPATH_REMOTE} nohup app_process {' '.join(args)} >/dev/null 2>&1 &"
 
-    def _local_port_open(self):
-        if not self.local_port:
+    def _server_running(self):
+        try:
+            pid = self.connection.adb_shell(f"test -f {WS_SCRCPY_PID_FILE_REMOTE} && cat {WS_SCRCPY_PID_FILE_REMOTE}", timeout=2)
+            pid = str(pid or "").strip().split()[0]
+        except Exception:
+            pid = ""
+        if not pid:
             return False
         try:
-            with socket.create_connection(("127.0.0.1", int(self.local_port)), timeout=0.3):
-                return True
-        except OSError:
+            cmdline = self.connection.adb_shell(f"cat /proc/{int(pid)}/cmdline", timeout=2, rstrip=False)
+        except Exception:
             return False
+        return WS_SCRCPY_PACKAGE in str(cmdline) and WS_SCRCPY_VERSION in str(cmdline)
 
     def start_server(self):
         if not os.path.exists(WS_SCRCPY_FILEPATH_LOCAL):
@@ -539,7 +547,7 @@ class LiveWsScrcpySession:
         logger.hr("实时 ws-scrcpy 预览启动")
         self.connection.adb_push(WS_SCRCPY_FILEPATH_LOCAL, WS_SCRCPY_FILEPATH_REMOTE)
         self.local_port = self.connection.adb_forward(f"tcp:{WS_SCRCPY_PORT}")
-        if self._local_port_open():
+        if self._server_running():
             logger.info("ws-scrcpy server 已在运行，复用设备端服务")
             return
         output = self.connection.adb_shell(self._server_command(), timeout=2)
@@ -558,7 +566,7 @@ class LiveWsScrcpySession:
         last_error = None
         for _index in range(20):
             try:
-                self.remote_ws = await connect(url, max_size=None)
+                self.remote_ws = await connect(url, max_size=None, ping_interval=None, close_timeout=1)
                 self.alive = True
                 return
             except Exception as e:
@@ -1062,8 +1070,10 @@ async def _ws_live_ws_scrcpy(websocket, instance, fps, target_width, bitrate_sca
 
         while session.alive:
             data = await session.recv()
-            if not data:
+            if data is None:
                 break
+            if data == b"":
+                continue
             parsed = _ws_scrcpy_parse_initial(data)
             if parsed:
                 display = (parsed.get("displays") or [{}])[0]
