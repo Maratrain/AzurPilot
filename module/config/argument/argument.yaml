@@ -181,12 +181,12 @@ Error:
   LlmAnalysis: true
   LlmApiKey:
     type: textarea
-    value: "sk-O6ZQRe5T4NJVV8gdVTFHTZAI3Q8ZKtJMWdrrKeGljw3zUX4b"
+    value: ""
   LlmApiBase:
     type: textarea
-    value: "https://api.nanoda.work/v1"
+    value: "https://api.xiaomimimo.com/v1"
   LlmModel:
-    value: "Nvidia/qwen/qwen2.5-coder-32b-instruct"
+    value: "mimo-v2.5-pro"
     valuetype: str
 Optimization:
   OcrDevice:

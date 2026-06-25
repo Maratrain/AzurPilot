@@ -117,9 +117,9 @@ class GeneratedConfig:
     Error_AdbOfflineRestart = False
     Error_AdbOfflineThreshold = 3
     Error_LlmAnalysis = True
-    Error_LlmApiKey = 'sk-O6ZQRe5T4NJVV8gdVTFHTZAI3Q8ZKtJMWdrrKeGljw3zUX4b'
-    Error_LlmApiBase = 'https://api.nanoda.work/v1'
-    Error_LlmModel = 'Nvidia/qwen/qwen2.5-coder-32b-instruct'
+    Error_LlmApiKey = None
+    Error_LlmApiBase = 'https://api.xiaomimimo.com/v1'
+    Error_LlmModel = 'mimo-v2.5-pro'
 
     # 配置组 `Optimization`
     Optimization_OcrDevice = 'auto'  # auto, cpu, gpu, ane
