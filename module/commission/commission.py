@@ -619,14 +619,14 @@ class RewardCommission(UI, InfoHandler):
                 tracked = []
                 if merged_items.get('Gem', 0) > 0:
                     tracked.append(
-                        f'💎钻石 * {merged_items["Gem"]}'
+                        f'💎钻石 * {merged_items["Gem"]}\n\n'
                         f'今日累计获取💎钻石 * {reward_stats["today"]["Gem"]}\n'
                         f'本周累计获取💎钻石 * {reward_stats["week"]["Gem"]}\n'
                         f'本月累计获取💎钻石 * {reward_stats["month"]["Gem"]}'
                     )
                 if merged_items.get('Cube', 0) > 0:
                     tracked.append(
-                        f'🧊魔方 * {merged_items["Cube"]}'
+                        f'🧊魔方 * {merged_items["Cube"]}\n\n'
                         f'今日累计获取🧊魔方 * {reward_stats["today"]["Cube"]}\n'
                         f'本周累计获取🧊魔方 * {reward_stats["week"]["Cube"]}\n'
                         f'本月累计获取🧊魔方 * {reward_stats["month"]["Cube"]}'
