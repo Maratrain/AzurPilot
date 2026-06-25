@@ -187,6 +187,9 @@
       "ServerUpdate": "00:00",
       "Sensitive": false
     },
+    "Restart": {
+      "RandomDelay": "5, 50"
+    },
     "Storage": {
       "Storage": {}
     }

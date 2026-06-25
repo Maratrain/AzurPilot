@@ -8,6 +8,7 @@ SSH 进程的标准输出包含连接信息。
 """
 
 import json
+import os
 import shlex
 import threading
 import time
@@ -62,7 +63,15 @@ def remote_access_service(
     global _ssh_process, _ssh_notfound
 
     bin = State.deploy_config.SSHExecutable
-    cmd = f"{bin} -oStrictHostKeyChecking=no -R {remote_port}:{local_host}:{local_port} -p {server_port} {server} -- --output json"
+    known_hosts = os.devnull
+    cmd = (
+        f"{bin} -oStrictHostKeyChecking=no "
+        f"-oUserKnownHostsFile={known_hosts} "
+        f"-oGlobalKnownHostsFile={known_hosts} "
+        f"-oLogLevel=ERROR "
+        f"-R {remote_port}:{local_host}:{local_port} "
+        f"-p {server_port} {server} -- --output json"
+    )
     args = shlex.split(cmd)
     logger.debug(f"remote access service command: {cmd}")
 

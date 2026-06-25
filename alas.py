@@ -13,7 +13,14 @@ from module.base.decorator import del_cached_property
 from module.base.api_client import ApiClient
 from module.config.config import AzurLaneConfig, TaskEnd
 from module.config.deep import deep_get, deep_set
-from module.config.utils import DEFAULT_CONFIG_NAME, filepath_i18n, read_file
+from module.config.utils import (
+    DEFAULT_CONFIG_NAME,
+    ensure_time,
+    filepath_i18n,
+    get_server_last_update,
+    get_server_next_update,
+    read_file,
+)
 from module.exception import *
 from module.logger import logger
 from module.notify import handle_notify, notify_webui
@@ -455,8 +462,54 @@ class AzurLaneAutoScript:
 
     def restart(self):
         from module.handler.login import LoginHandler
+        if self.delay_due_restart():
+            return
         LoginHandler(self.config, device=self.device).app_restart()
-        self.config.task_delay(server_update=True)
+        self.delay_next_restart()
+
+    def restart_random_delay_minutes(self):
+        """获取每日重启的随机延后分钟数。"""
+        random_delay = getattr(self.config, 'Restart_RandomDelay', 0)
+        if isinstance(random_delay, list) and len(random_delay) == 2:
+            random_delay = tuple(random_delay)
+        try:
+            delay = int(ensure_time(random_delay, n=1, precision=0))
+        except (TypeError, ValueError):
+            logger.warning(f'无效的重启随机延后设置: {random_delay}, 使用 0 分钟')
+            delay = 0
+
+        return max(delay, 0)
+
+    def delay_due_restart(self):
+        """把已排在服务器刷新整点的每日重启改排到随机延后时间。"""
+        current = self.config.Scheduler_NextRun
+        if not isinstance(current, datetime):
+            return False
+
+        last_update = get_server_last_update(self.config.Scheduler_ServerUpdate).replace(microsecond=0)
+        if current.replace(microsecond=0) != last_update:
+            return False
+
+        delay = self.restart_random_delay_minutes()
+        if delay <= 0:
+            return False
+
+        next_run = last_update + timedelta(minutes=delay)
+        if next_run <= datetime.now().replace(microsecond=0):
+            logger.info(f'每日重启随机延后 {delay} 分钟已到达，继续重启')
+            return False
+
+        logger.info(f'每日重启命中服务器刷新时间，随机延后 {delay} 分钟至 {next_run}')
+        self.config.task_delay(target=next_run)
+        return True
+
+    def delay_next_restart(self):
+        """将下一次每日重启延后到服务器刷新后的随机时间。"""
+        delay = self.restart_random_delay_minutes()
+        next_run = get_server_next_update(self.config.Scheduler_ServerUpdate) + timedelta(minutes=delay)
+        if delay:
+            logger.info(f'每日重启随机延后 {delay} 分钟')
+        self.config.task_delay(target=next_run)
 
     def start(self):
         from module.handler.login import LoginHandler
@@ -1104,7 +1157,7 @@ class AzurLaneAutoScript:
                 # 跳过第一次重启
                 if self.is_first_task and task == 'Restart':
                     logger.info('调度器启动时跳过任务 `Restart`')
-                    self.config.task_delay(server_update=True)
+                    self.delay_next_restart()
                     del_cached_property(self, 'config')
                     continue
 

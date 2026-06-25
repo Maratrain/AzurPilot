@@ -81,6 +81,9 @@ Scheduler:
     type: checkbox
     value: false
     option: [true, false]
+Restart:
+  RandomDelay:
+    value: 5, 50
 Emulator:
   Serial:
     value: auto
