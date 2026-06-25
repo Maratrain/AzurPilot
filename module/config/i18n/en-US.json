@@ -400,7 +400,7 @@
       "name": "Enable this feature",
       "help": "Add this task to the scheduler\nCommissioning, scientific research, and harvest tasks are mandatory.",
       "True": "Enabled",
-      "False": "False"
+      "False": "Disabled"
     },
     "PushNotification": {
       "name": "Push Notification",
@@ -431,18 +431,18 @@
     "Sensitive": {
       "name": "Sensitive task",
       "help": "When an error occurs, prohibit restarting the game and stop AzurPilot immediately. Suitable for critical tasks like cross-month daily, obscure sea areas, and abyssal sea areas.",
-      "True": "True",
-      "False": "False"
+      "True": "Yes",
+      "False": "No"
     }
   },
   "Emulator": {
     "_info": {
-      "name": "Simulator settings",
+      "name": "Emulator Settings",
       "help": ""
     },
     "Serial": {
       "name": "Emulator Serial",
-      "help": "Common simulator Serial can be found in the list below\nFill in \"auto\" to automatically detect the simulator. \"auto\" cannot be used when multiple simulators are running or an simulator that does not support automatic detection is used and must be filled in manually.\n\nEmulator default Serial:\n- Bluestack Simulator 127.0.0.1:5555\n- Bluestacks Simulator 4 Hyper-v version, fill in \"bluestacks4-hyperv\" to automatically connect, fill in \"bluestacks4-hyperv-2\" for more options, and so on.\n- For Bluestacks Simulator 5 Hyper-v version, fill in \"bluestacks5-hyperv\" to automatically connect, fill in \"bluestacks5-hyperv-1\" for more options, and so on.\n- Night God Simulator 127.0.0.1:62001\n- Night God Simulator 64-bit 127.0.0.1:59865\n- MuMu Emulator/MuMu EmulatorX 127.0.0.1:7555\n- MuMu Emulator 12 127.0.0.1:16384\n- MuMu Pro (macOS) 127.0.0.1:16384, the order of opening is 127.0.0.1:16416, 127.0.0.1:16448...\n- MEmu 127.0.0.1:21503\n- Lightning emulator emulator-5554 or 127.0.0.1:5555\nIf you use the multi-open function of the simulator, their Serial will not be the default. You can execute `adb devices` query in console.bat, or fill it in according to the official tutorial of the simulator."
+      "help": "Common emulator Serial can be found in the list below\nFill in \"auto\" to automatically detect the emulator. \"auto\" cannot be used when multiple emulators are running or an emulator that does not support automatic detection is used and must be filled in manually.\n\nEmulator default Serial:\n- BlueStacks 127.0.0.1:5555\n- BlueStacks 4 Hyper-v version, fill in \"bluestacks4-hyperv\" to automatically connect, fill in \"bluestacks4-hyperv-2\" for more options, and so on.\n- BlueStacks 5 Hyper-v version, fill in \"bluestacks5-hyperv\" to automatically connect, fill in \"bluestacks5-hyperv-1\" for more options, and so on.\n- NoxPlayer 127.0.0.1:62001\n- NoxPlayer 64-bit 127.0.0.1:59865\n- MuMu Player/MuMu Player X 127.0.0.1:7555\n- MuMu Player 12 127.0.0.1:16384\n- MuMu Pro (macOS) 127.0.0.1:16384, the order of opening is 127.0.0.1:16416, 127.0.0.1:16448...\n- MEmu 127.0.0.1:21503\n- LDPlayer emulator-5554 or 127.0.0.1:5555\nIf you use the multi-instance function of the emulator, their Serial will not be the default. You can execute `adb devices` query in console.bat, or fill it in according to the official tutorial of the emulator."
     },
     "PackageName": {
       "name": "game server",
@@ -579,44 +579,44 @@
   },
   "EmulatorInfo": {
     "_info": {
-      "name": "Simulator settings",
-      "help": "The following values ​​​​are automatically filled in based on Serial. If you do not understand, please do not modify it at will. Modifying the port will automatically start the corresponding instance."
+      "name": "Emulator Settings",
+      "help": "The following values are automatically filled in based on Serial. If you do not understand, please do not modify it at will. Modifying the port will automatically start the corresponding instance."
     },
     "Emulator": {
       "name": "Emulator type",
       "help": "",
       "auto": "Automatic detection",
-      "NoxPlayer": "Night God Simulator",
-      "NoxPlayer64": "Night God Simulator 64-bit",
-      "BlueStacks4": "BlueStacks Simulator 4",
-      "BlueStacks5": "BlueStacks Simulator 5",
-      "BlueStacks4HyperV": "BlueStacks Emulator 4 Hyper-V",
-      "BlueStacks5HyperV": "Bluestack Emulator 5 Hyper-V",
-      "LDPlayer3": "Thunder Simulator 3",
-      "LDPlayer4": "Thunder Simulator 4",
-      "LDPlayer9": "Lightning Simulator 9",
-      "LDPlayer14": "LDPlayer14",
-      "MuMuPlayer": "MuMu emulator",
-      "MuMuPlayerX": "MuMu EmulatorX",
-      "MuMuPlayer12": "MuMu Emulator 12",
-      "MEmuPlayer": "MEmu emulator",
-      "BlueStacksAir": "BlueStacksAir",
-      "MuMuPro": "MuMuPro",
+      "NoxPlayer": "NoxPlayer",
+      "NoxPlayer64": "NoxPlayer 64-bit",
+      "BlueStacks4": "BlueStacks 4",
+      "BlueStacks5": "BlueStacks 5",
+      "BlueStacks4HyperV": "BlueStacks 4 Hyper-V",
+      "BlueStacks5HyperV": "BlueStacks 5 Hyper-V",
+      "LDPlayer3": "LDPlayer 3",
+      "LDPlayer4": "LDPlayer 4",
+      "LDPlayer9": "LDPlayer 9",
+      "LDPlayer14": "LDPlayer 14",
+      "MuMuPlayer": "MuMu Player",
+      "MuMuPlayerX": "MuMu Player X",
+      "MuMuPlayer12": "MuMu Player 12",
+      "MEmuPlayer": "MEmu Player",
+      "BlueStacksAir": "BlueStacks Air",
+      "MuMuPro": "MuMu Pro",
       "SSH": "SSH"
     },
     "name": {
-      "name": "Simulator instance name",
+      "name": "Emulator Instance Name",
       "help": ""
     },
     "path": {
-      "name": "Simulator installation path",
+      "name": "Emulator Installation Path",
       "help": ""
     },
     "EnableRemoteSSH": {
       "name": "Enable Remote SSH Management",
       "help": "Execute specific commands (e.g., restart Docker containers) on a remote server via SSH before restarting the emulator.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "RemoteSSHHost": {
       "name": "Remote Server Address",
@@ -865,27 +865,27 @@
   },
   "PublicEmotion": {
     "_info": {
-      "name": "shared mood",
+      "name": "Shared Morale",
       "help": "Can use the same team to complete multiple tasks\nWhen using this function, please ensure that the fleet function of the corresponding task is to clear all single teams, and the team is a shared team."
     },
     "Enable": {
-      "name": "Enable shared moods",
-      "help": "After enabling, the shared mood will be used, and the following mood configuration will replace the original configuration."
+      "name": "Enable Shared Morale",
+      "help": "After enabling, the shared morale will be used, and the following morale configuration will replace the original configuration."
     },
     "Tasks": {
-      "name": "Shared mood tasks",
-      "help": "Select tasks that use a shared mood, separated by half-width commas, such as \"Main, Event, EventA\"\nMain Line Diagram-1: Main, Main Line Diagram-2: Main2, Main Line Diagram-3: Main3\nActivity Diagram-1: Event, Activity Diagram-2: Event2, War Archives: WarArchives\nDaily A chart: EventA, Daily B chart: EventB, Daily C chart: EventC, Daily D chart: EventD, Daily SP chart: EventSp"
+      "name": "Shared Morale Tasks",
+      "help": "Select tasks that use shared morale, separated by half-width commas, such as \"Main, Event, EventA\"\nMain Line Diagram-1: Main, Main Line Diagram-2: Main2, Main Line Diagram-3: Main3\nActivity Diagram-1: Event, Activity Diagram-2: Event2, War Archives: WarArchives\nDaily A chart: EventA, Daily B chart: EventB, Daily C chart: EventC, Daily D chart: EventD, Daily SP chart: EventSp"
     },
     "FleetValue": {
-      "name": "mood value",
+      "name": "Morale Value",
       "help": ""
     },
     "FleetRecord": {
-      "name": "Mood recording time",
+      "name": "Morale Record Time",
       "help": ""
     },
     "FleetControl": {
-      "name": "mood control",
+      "name": "Morale Control",
       "help": "",
       "keep_exp_bonus": "Maintain experience bonus (>120)",
       "prevent_green_face": "Prevent green face (>40)",
@@ -952,30 +952,30 @@
   },
   "OldRetire": {
     "_info": {
-      "name": "Traditional decommissioning setup",
+      "name": "Legacy Retirement Settings",
       "help": "Only takes effect when \"Retirement Mode\" is set to \"Legacy Retirement\"\nNOTE: Traditional retirement based on character rarity, possible retirement of Bree"
     },
     "N": {
-      "name": "Retired White Skin ( N )",
+      "name": "Retire N (White)",
       "help": ""
     },
     "R": {
-      "name": "Retired blueskin ( R )",
+      "name": "Retire R (Blue)",
       "help": ""
     },
     "SR": {
-      "name": "Retired Purple Skin ( SR )",
+      "name": "Retire SR (Purple)",
       "help": ""
     },
     "SSR": {
-      "name": "Retired Gympie ( SSR )",
+      "name": "Retire SSR (Gold)",
       "help": ""
     },
     "RetireAmount": {
-      "name": "Retired quantity",
+      "name": "Retire Quantity",
       "help": "",
-      "retire_all": "Retire all",
-      "retire_10": "Retired 10"
+      "retire_all": "Retire All",
+      "retire_10": "Retire 10"
     }
   },
   "Campaign": {
@@ -1080,6 +1080,7 @@
       "event_20260326_cn": "The Vagabond’s Recruitment Plan",
       "event_20260417_cn": "Vacation Lane – Beachside Brilliance",
       "event_20260520_cn": "Alliance Before the Hagiobull",
+      "event_20260625_cn": "美梦巡演：奇妙夜",
       "raid_20200624": "Air Raid Drills with Essex Rerun",
       "raid_20210708": "Cross Wave rerun",
       "raid_20220127": "Mystery Investigation",
@@ -1597,7 +1598,7 @@
     },
     "EquipmentCode": {
       "name": "Equipment code",
-      "help": "Only takes effect when \"Change Ship + Equipment\" is selected.\nWhen changing a ship, if the current ship equipment code in the settings is null, it will be exported; when changing a ship, if the current ship equipment code in the settings is null, the equipment code exported from the previous ship will be used, otherwise the equipment code in the settings will be used.\nBluestacks simulator users need to enable the virtual keyboard first. For details, see https://support.bluestacks.com/hc/zh-tw/articles/360061968892-%E5%A6%82%E4%BD%95%E5%9C% A8-BlueStacks-5-%E4%B8%8A%E4%BD%BF%E7%94%A8%E5%B0%8F%E9%8D%B5%E7%9B%A4-%E8%99%9B%E6%93%AC%E9%8D%B5%E7%9B%A4\nDD: front row expulsion bogue: Borg hermes: athletic god langley: Langley ranger: raider"
+      "help": "Only takes effect when \"Change Ship + Equipment\" is selected.\nWhen changing a ship, if the current ship equipment code in the settings is null, it will be exported; when changing a ship, if the current ship equipment code in the settings is null, the equipment code exported from the previous ship will be used, otherwise the equipment code in the settings will be used.\nBlueStacks emulator users need to enable the virtual keyboard first. For details, see https://support.bluestacks.com/hc/zh-tw/articles/360061968892-%E5%A6%82%E4%BD%95%E5%9C% A8-BlueStacks-5-%E4%B8%8A%E4%BD%BF%E7%94%A8%E5%B0%8F%E9%8D%B5%E7%9B%A4-%E8%99%9B%E6%93%AC%E9%8D%B5%E7%9B%A4\nDD: front row expulsion bogue: Borg hermes: athletic god langley: Langley ranger: raider"
     },
     "UseEmotionFirst": {
       "name": "Prioritize Mood",
@@ -1862,8 +1863,8 @@
     "SkillAutoSwitch": {
       "name": "Auto Switch Skill",
       "help": "Automatically switch to the next unlearned skill for training",
-      "True": "On",
-      "False": "Off"
+      "True": "Enabled",
+      "False": "Disabled"
     }
   },
   "ControlExpOverflow": {
@@ -2901,7 +2902,7 @@
     },
     "OpsiOnePushConfig": {
       "name": "Operation Siren notifications push settings",
-      "help": "The settings will take effect only when the \"Siren Operation Information Independent Push\" function is enabled. Use Onepush to push a message about Erosion 1 and Short Cat. See the document for configuration method: https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
+      "help": "The settings will take effect only when the \"Siren Operation Information Independent Push\" function is enabled. Use Onepush to push a message about Corrosion 1 and Short Cat. See the document for configuration method: https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
     }
   },
   "OpsiAshBeacon": {
@@ -3193,8 +3194,8 @@
     "SkipHpCheck": {
       "name": "Sacrifice run: skip HP check",
       "help": "Skip HP check after combat. Fleet will continue even if ships are sunk.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "Cl1Filter": {
       "name": "Akashi Purchase Filter",
@@ -3260,8 +3261,8 @@
     "EnableCustomCheck": {
       "name": "Enable Custom Ship Check",
       "help": "Check only specified ships instead of all ships.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "CustomCheckPositions": {
       "name": "Custom Check Positions",
@@ -3280,8 +3281,8 @@
     "Enable": {
       "name": "Enable Auto-Compose",
       "help": "Automatically replace ships that have reached max level.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "CooldownHours": {
       "name": "Cooldown Hours",
@@ -3304,8 +3305,8 @@
     "UseSmartSchedulingOperationCoinsPreserve": {
       "name": "Obtain X Combat Supply Vouchers",
       "help": "When enabled, will use the 'Obtain X Combat Supply Vouchers' configuration below. When disabled, will use the Corrosion 1 Leveling yellow coin retention configuration.\nWhen disabled, Action Points are used for control.\nWhen enabled, yellow coins are used for control.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "OperationCoinsPreserve": {
       "name": "Corrosion 1 Leveling: Preserve X Combat Supply Vouchers",
@@ -3318,8 +3319,8 @@
     "ActionPointEarlyTriggerEnable": {
       "name": "Early AP Scheduling",
       "help": "After Corrosion 1 or Meowfficer farming ends, record natural Action Points and schedule Smart Scheduling by the natural recovery rate of 1 AP per 10 minutes to avoid AP overflow.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "ActionPointEarlyTriggerThreshold": {
       "name": "Early Scheduling AP Threshold",
@@ -3333,25 +3334,25 @@
       "name": "Enable Meowfficer Farming",
       "help": "Whether to enable Meowfficer Farming task for yellow coin replenishment in Smart Scheduling",
       "True": "Enabled",
-      "False": "Not enabled"
+      "False": "Disabled"
     },
     "EnableObscure": {
       "name": "Enable Obscured Zone",
       "help": "Whether to enable Obscured Zone task for yellow coin replenishment in Smart Scheduling",
       "True": "Enabled",
-      "False": "Not enabled"
+      "False": "Disabled"
     },
     "EnableAbyssal": {
       "name": "Enable Abyssal Zone",
       "help": "Whether to enable Abyssal Zone task for yellow coin replenishment in Smart Scheduling",
       "True": "Enabled",
-      "False": "Not enabled"
+      "False": "Disabled"
     },
     "EnableStronghold": {
       "name": "Enable Siren Stronghold",
       "help": "Whether to enable Siren Stronghold task for yellow coin replenishment in Smart Scheduling",
       "True": "Enabled",
-      "False": "Not enabled"
+      "False": "Disabled"
     },
     "MeowStartEarlyMode": {
       "name": "Month-End AP Auto-Cleanup Mode",
@@ -3365,7 +3366,7 @@
       "help": "Automatically decides whether to start Meowfficer Farming early for month-end AP cleanup based on historical Meow timing and current AP; the decision target is the next month Operation Siren reset time, not daily server refresh."
     },
     "VirtualAssetPreserve": {
-      "name": "Erosion 1 Leveling: Preserve X Virtual Asset",
+      "name": "Corrosion 1 Leveling: Preserve X Virtual Asset",
       "help": "Yellow coin replenishment runs when virtual asset drops below X. Virtual Asset = AP × 1700/30 + Yellow Coins + (Time to Month End / 10 min) × 1700/30"
     }
   },
@@ -4707,8 +4708,8 @@
     "WeeklyPhoto": {
       "name": "Weekly Photo Task",
       "help": "Start the weekly photo task from Development Plan, loop through three camera and idle selections, until the task icon disappears.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     }
   },
   "IslandPearlSell": {
@@ -5465,8 +5466,8 @@
   },
   "OpsiDaemon": {
     "_info": {
-      "name": "Big world semi-automatic",
-      "help": "It is useful when attacking the abyss of the big world (red treasure box map) or completing the main line of the big world, which can reduce a lot of manual operations.\nAzurPilot will help you click to prepare for the battle, click to settle the battle, skip the plot, and close various pop-up windows. You just need to manually select enemies and manually switch sea areas."
+      "name": "Operation Siren Semi-Automatic",
+      "help": "It is useful when attacking the abyssal zones of Operation Siren (red treasure box map) or completing the main storyline of Operation Siren, which can reduce a lot of manual operations.\nAzurPilot will help you click to prepare for the battle, click to settle the battle, skip the plot, and close various pop-up windows. You just need to manually select enemies and manually switch sea areas."
     },
     "RepairShip": {
       "name": "Automatically repair ships when approaching port",
@@ -5483,10 +5484,10 @@
       "help": "Complete the event plot. It is only applicable to activities on and after the launch time of 20241219. Please wait for about 3 minutes."
     },
     "SkipBattle": {
-      "name": "kill game skip combat",
+      "name": "Kill Game to Skip Battle",
       "help": "",
       "True": "Enabled",
-      "False": "False"
+      "False": "Disabled"
     }
   },
   "BoxDisassemble": {
@@ -5522,7 +5523,7 @@
   "Benchmark": {
     "_info": {
       "name": "Performance testing",
-      "help": "Test which screenshot scheme and control scheme is faster, speed varies based on emulator and computer configuration\nAfter the test is completed, select the fastest screenshot and control scheme in \"AzurPilot\" - \"Simulator Settings\""
+      "help": "Test which screenshot scheme and control scheme is faster, speed varies based on emulator and computer configuration\nAfter the test is completed, select the fastest screenshot and control scheme in \"AzurPilot\" - \"Emulator Settings\""
     },
     "DeviceType": {
       "name": "Device type",
@@ -5567,12 +5568,12 @@
       "help": ""
     },
     "ScheduledEmulatorRestart": {
-      "name": "Restart the simulator regularly",
+      "name": "Restart the emulator regularly",
       "help": "Once enabled, the emulator will automatically restart at specified intervals to avoid memory leaks or lagging caused by long-term running. The restart will wait until the current task is completed before executing it."
     },
     "RestartIntervalHours": {
       "name": "Restart interval (hours)",
-      "help": "Automatically restart the simulator every few hours."
+      "help": "Automatically restart the emulator every few hours."
     }
   },
   "EmulatorManager": {
@@ -5583,8 +5584,8 @@
     "EnableRemoteSSH": {
       "name": "Enable Remote SSH Management",
       "help": "Execute specific commands (e.g., restart Docker containers) on a remote server via SSH before restarting the emulator.",
-      "True": "True",
-      "False": "False"
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "RemoteSSHHost": {
       "name": "Remote Server Address",
@@ -5696,8 +5697,8 @@
       "help": "Stores the internal state of the task, which can be manually cleared when the task is abnormal."
     },
     "Storage": {
-      "name": "Storage.Storage.name",
-      "help": "Storage.Storage.help"
+      "name": "Storage",
+      "help": "Clear internal task state storage data"
     }
   },
   "Gui": {
@@ -5751,25 +5752,25 @@
     "Overview": {
       "Scheduler": "Scheduler",
       "Dashboard": "Dashboard",
-      "SecondsAgo": "Gui.Overview.SecondsAgo",
-      "MinutesAgo": "Gui.Overview.MinutesAgo",
-      "HoursAgo": "Gui.Overview.HoursAgo",
-      "DaysAgo": "Gui.Overview.DaysAgo",
-      "MonthsAgo": "Gui.Overview.MonthsAgo",
-      "YearsAgo": "Gui.Overview.YearsAgo",
-      "NoData": "Gui.Overview.NoData",
-      "Oil": "Gui.Overview.Oil",
-      "Coin": "Gui.Overview.Coin",
-      "Gem": "Gui.Overview.Gem",
-      "Cube": "Gui.Overview.Cube",
-      "Pt": "Gui.Overview.Pt",
-      "YellowCoin": "Gui.Overview.YellowCoin",
-      "PurpleCoin": "Gui.Overview.PurpleCoin",
-      "ActionPoint": "Gui.Overview.ActionPoint",
-      "Merit": "Gui.Overview.Merit",
-      "Medal": "Gui.Overview.Medal",
-      "Core": "Gui.Overview.Core",
-      "GuildCoin": "Gui.Overview.GuildCoin",
+      "SecondsAgo": "seconds ago",
+      "MinutesAgo": "minutes ago",
+      "HoursAgo": "hours ago",
+      "DaysAgo": "days ago",
+      "MonthsAgo": "months ago",
+      "YearsAgo": "years ago",
+      "NoData": "No data",
+      "Oil": "Oil",
+      "Coin": "Coins",
+      "Gem": "Gems",
+      "Cube": "Cubes",
+      "Pt": "Event PT",
+      "YellowCoin": "OpSi Coins",
+      "PurpleCoin": "OpSi Tokens",
+      "ActionPoint": "Action Points",
+      "Merit": "Merit",
+      "Medal": "Medals",
+      "Core": "Core Data",
+      "GuildCoin": "Guild Coins",
       "Log": "Log",
       "Running": "Running",
       "Pending": "in queue",
@@ -5982,20 +5983,20 @@
       "NoValidResourceData": "No valid resource data"
     },
     "Tactical": {
-      "SkillAutoSwitch": "Gui.Tactical.SkillAutoSwitch"
+      "SkillAutoSwitch": "Skill Auto Switch"
     },
     "OpsiScheduling": {
-      "UseSmartSchedulingOperationCoinsPreserve": "Gui.OpsiScheduling.UseSmartSchedulingOperationCoinsPreserve",
-      "OperationCoinsPreserve": "Gui.OpsiScheduling.OperationCoinsPreserve",
-      "ActionPointPreserve": "Gui.OpsiScheduling.ActionPointPreserve",
+      "UseSmartSchedulingOperationCoinsPreserve": "Smart Scheduling OpSi Coins Preserve",
+      "OperationCoinsPreserve": "OpSi Coins Preserve",
+      "ActionPointPreserve": "Action Points Preserve",
       "ActionPointEarlyTriggerEnable": "Early AP Scheduling",
       "ActionPointEarlyTriggerThreshold": "Early Scheduling AP Threshold",
-      "OperationCoinsReturnThreshold": "Gui.OpsiScheduling.OperationCoinsReturnThreshold",
-      "EnableMeowfficerFarming": "Gui.OpsiScheduling.EnableMeowfficerFarming",
-      "EnableObscure": "Gui.OpsiScheduling.EnableObscure",
-      "EnableAbyssal": "Gui.OpsiScheduling.EnableAbyssal",
-      "EnableStronghold": "Gui.OpsiScheduling.EnableStronghold",
-      "MeowStartEarlyMode": "Gui.OpsiScheduling.MeowStartEarlyMode"
+      "OperationCoinsReturnThreshold": "OpSi Coins Return Threshold",
+      "EnableMeowfficerFarming": "Enable Meowfficer Farming",
+      "EnableObscure": "Enable Obscure Zones",
+      "EnableAbyssal": "Enable Abyssal Zones",
+      "EnableStronghold": "Enable Siren Stronghold",
+      "MeowStartEarlyMode": "Meow Early Start Mode"
     },
     "Misc": {
       "Enabled": "Enabled",

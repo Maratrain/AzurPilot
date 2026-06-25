@@ -1,453 +1,453 @@
 {
   "Menu": {
     "Alas": {
-      "name": "智慧喵港区+ (｡>﹏<｡)",
-      "help": "欢迎来到雪风大人的秘密基地喵~ 一切尽在掌握之中 (=^･ω･^=)"
+      "name": "雪风的秘密基地",
+      "help": "欢迎来到雪风大人的指挥室喵~ 一切尽在掌握之中 (=^･ω･^=)"
     },
     "Farm": {
-      "name": "出击喵~！(=｀ω´=)",
-      "help": "指挥官，让我们一起出征喵！鼓起勇气上吧 (๑•̀ㅂ•́)و✧"
+      "name": "出击喵！",
+      "help": "指挥官，让我们一起出征喵！鼓起勇气上吧 (ง •̀_•́)ง"
     },
     "Event": {
-      "name": "活动狂欢喵！(ﾉ≧∀≦)ﾉ",
-      "help": "限时开放的活动海域，错过的话雪风会生气的喵 (｀へ´*)ノ"
+      "name": "活动狂欢喵！",
+      "help": "限时开放的活动海域，错过的话雪风会生气的喵！(｀へ´*)"
     },
     "EventDaily": {
-      "name": "活动-每日小任务喵 (・ω<)",
+      "name": "活动-每日小任务喵",
       "help": "每天都要记得完成，收集满奖励喵~ (＾▽＾)"
     },
     "Reward": {
-      "name": "自动收获果实喵 (๑¯◡¯๑)",
-      "help": "让雪风帮你把奖励统统叼回来~ 一根骨头都不剩 (ฅ´ω`ฅ)"
+      "name": "自动收获果实喵",
+      "help": "让雪风帮你把奖励统统叼回来~ 一根鱼骨头都不剩 (ฅ´ω`ฅ)"
     },
     "DailyMission": {
-      "name": "每日任务跳跳 (∩^o^)⊃━☆",
-      "help": "日常打杂，但也是变强的必经之路喵！"
+      "name": "每日任务跳跳喵",
+      "help": "日常打杂，但也是变强的必经之路喵！( •̀ ω •́ )✧"
     },
     "Opsi": {
-      "name": "大世界探索+ (•̀ᴗ•́)و ̑̑",
+      "name": "大世界探索喵",
       "help": "广袤的塞壬海域等我们去征服喵，坐稳啦 (つ´ω`)つ"
     },
     "Island": {
-      "name": "岛屿计划展开 (´・ω・`)",
-      "help": "在平静的小岛上建设家园喵，享受悠闲时光 (｡•ᴗ•｡)♡"
+      "name": "岛屿计划展开喵",
+      "help": "在平静的小岛上建设家园喵，享受悠闲时光 (｡•̀ᴗ-)✧"
     },
     "Tool": {
-      "name": "奇怪的工具箱+ (;ﾟ∇ﾟ)",
-      "help": "里面装满了雪风的私房道具喵，别乱翻！ (｀皿´＃)"
+      "name": "雪风的工具箱",
+      "help": "里面装满了雪风的私房道具喵，别乱翻！(｀皿´＃)"
     }
   },
   "Task": {
     "Alas": {
-      "name": "智慧喵港区设定 (。・ω・。)",
-      "help": "核心大脑的配置喵，谨慎调整哦~"
+      "name": "雪风的设定板",
+      "help": "核心大脑的配置喵，谨慎调整哦~ (・ω・)"
     },
     "General": {
-      "name": "通用设置板板 (´-ω-`)",
-      "help": "适用于大部分情况的通用法则喵，按需取用 (・ω・)ノ"
+      "name": "通用设置板",
+      "help": "适用于大部分情况的通用法则喵，按需取用 (´・ω・`)"
     },
     "Restart": {
-      "name": "重启喵装置 (╯°□°）╯︵ ┻━┻",
-      "help": "遇到问题？让雪风帮你掀桌重启！ (ノ ﾟДﾟ)ノ"
+      "name": "重启喵装置",
+      "help": "遇到问题？让雪风帮你重启！(╯°□°）╯"
     },
     "Main": {
-      "name": "主线图-1出击! (｀・ω・´)9",
+      "name": "主线图-1出击喵！",
       "help": "主线剧情第一章喵，新指挥官起步之地 (｀・ω・´)"
     },
     "Main2": {
-      "name": "主线图-2进发喵 (=｀ω´=)",
-      "help": "第二章海域，敌人有点点厉害了喵，注意安全 (；一_一)"
+      "name": "主线图-2进发喵",
+      "help": "第二章海域，敌人有点点厉害了喵，注意安全 (；・∀・)"
     },
     "Main3": {
-      "name": "主线图-3冲鸭 (๑•̀ㅂ•́)و✧",
-      "help": "第三章挑战，雪风会保护大家的喵！ (｀・ω・´)ゝ"
+      "name": "主线图-3冲锋喵！",
+      "help": "第三章挑战，雪风会保护大家的喵！( •̀ ω •́ )✧"
     },
     "GemsFarming": {
-      "name": "紧急委托喵赚！(>ω<)",
-      "help": "通过紧急委托攒点零花钱喵，钻石亮闪闪 (´⊙ω⊙`)"
+      "name": "紧急委托喵赚！",
+      "help": "通过紧急委托攒点零花钱喵，钻石亮闪闪 ✧٩(ˊωˋ*)و✧"
     },
     "ThreeOilLowCost": {
-      "name": "三油低耗散步 (・ω・｀) lazy",
-      "help": "三油低耗打法，旗舰32级自动更替然后退役喵，节能环保 (─‿‿─)"
+      "name": "三油低耗散步喵",
+      "help": "三油低耗打法，旗舰32级自动更替然后退役喵，节能环保"
     },
     "Ambush11": {
-      "name": "1-1刷伏击（开发中） (´；ω；｀)",
-      "help": "在1-1不碰boss刷伏击捞物资喵，还能自动换船~ 暂时不太完善 (ノ_<。)うぅ"
+      "name": "1-1刷伏击喵",
+      "help": "在1-1不碰boss刷伏击捞物资喵，还能自动换船~ 暂时不太完善"
     },
     "EventGeneral": {
-      "name": "活动通用守则 (=^･^=)",
-      "help": "适用于大多数活动的通用选项喵"
+      "name": "活动通用守则喵",
+      "help": "适用于大多数活动的通用选项喵 (=^･ω･^=)"
     },
     "Event": {
-      "name": "活动图-1 突入 (｀・ω・´)ゞ",
-      "help": "活动海域第一弹，全力全开喵！"
+      "name": "活动图-1突入喵！",
+      "help": "活动海域第一弹，全力全开喵！(｀・ω・´)ゞ"
     },
     "Event2": {
-      "name": "活动图-2 追击喵 (｀ω´)b",
-      "help": "活动海域第二弹，别让敌人跑了喵~"
+      "name": "活动图-2追击喵",
+      "help": "活动海域第二弹，别让敌人跑了喵~ (｀ω´)ノ"
     },
     "Event3": {
-      "name": "活动图-3 决胜 (。≖ˇｪˇ≖。)",
-      "help": "活动图压轴关，拿到所有奖励！"
+      "name": "活动图-3决胜喵！",
+      "help": "活动图压轴关，拿到所有奖励喵！٩(◕‿◕)۶"
     },
     "Raid": {
-      "name": "共斗活动出击喵 (≧∇≦)ﾉ",
+      "name": "共斗活动出击喵",
       "help": "和其他指挥官一起肝共斗喵，不要拖后腿 (；´Д`)"
     },
     "RaidScuttle": {
-      "name": "共斗沉船计划 (´；ω；｀) 沉",
+      "name": "共斗沉船计划喵",
       "help": "沉船战术，有时候牺牲在所难免喵…… (´;ω;`)"
     },
     "Hospital": {
-      "name": "深谷来信探索 (。・ω・。)",
-      "help": "通往深谷的特殊活动，小心迷路喵~"
+      "name": "深谷来信探索喵",
+      "help": "通往深谷的特殊活动，小心迷路喵~ (´・ω・`)"
     },
     "Coalition": {
-      "name": "光影风尚-拍摄进行时 (๑´ㅂ`๑)",
-      "help": "拿起相机拍下最美的瞬间喵，模特队的胜利！"
+      "name": "光影风尚拍摄进行时喵",
+      "help": "拿起相机拍下最美的瞬间喵，模特队的胜利！(ﾉ◕ヮ◕)ﾉ"
     },
     "MaritimeEscort": {
-      "name": "商船护航护送 (･ω･)ゞ",
-      "help": "保护商船，正义的雪风大人登场！"
+      "name": "商船护航护送喵",
+      "help": "保护商船，正义的雪风大人登场！ᕦ(ò_óˇ)ᕤ"
     },
     "EventShop": {
-      "name": "活动商店扫货喵 (・∀・)ノ",
-      "help": "活动兑换商店，把好东西全部搬空喵！"
+      "name": "活动商店扫货喵",
+      "help": "活动兑换商店，把好东西全部搬空喵！(★ω★)"
     },
     "WarArchives": {
-      "name": "作战档案查阅 (｡-_-｡)",
-      "help": "回顾过去的作战，开荒可能失效喵，手动打完再用自律吧~ (´・ω・｀)"
+      "name": "作战档案查阅喵",
+      "help": "回顾过去的作战，开荒可能失效喵，手动打完再用自律吧~"
     },
     "EventA": {
-      "name": "每日A图磨爪 (｀・ω・´)ｼｬｷｰﾝ",
-      "help": "每日活动A关卡，轻轻松松搞定喵~"
+      "name": "每日A图磨爪喵",
+      "help": "每日活动A关卡，轻轻松松搞定喵~ (￣ω￣)"
     },
     "EventB": {
-      "name": "每日B图小跑 (=｀ェ´=)",
-      "help": "每日B图，稍微来点难度提神喵！"
+      "name": "每日B图小跑喵",
+      "help": "每日B图，稍微来点难度提神喵！(｀・ω・´)"
     },
     "EventC": {
-      "name": "每日C图机敏 (・ω・｀)ﾁﾗｯ",
-      "help": "C图相当于热身运动喵，走起！"
+      "name": "每日C图机敏喵",
+      "help": "C图相当于热身运动喵，走起！(ง •̀_•́)ง"
     },
     "EventD": {
-      "name": "每日D图全力 (｀・ω・´)9",
-      "help": "D图要认真对待了喵，装备检查好~"
+      "name": "每日D图全力喵！",
+      "help": "D图要认真对待了喵，装备检查好~ (｀・ω・´)ゞ"
     },
     "EventSp": {
-      "name": "每日SP图巅峰 (≧∇≦)/",
-      "help": "SP高难度关卡，挑战自我的时刻喵！"
+      "name": "每日SP图巅峰喵！",
+      "help": "SP高难度关卡，挑战自我的时刻喵！( •̀ ω •́ )✧"
     },
     "RaidDaily": {
-      "name": "共斗活动每日 (๑•̀ㅂ•́)و✧",
-      "help": "共斗的每日任务，记得清掉喵~"
+      "name": "共斗活动每日喵",
+      "help": "共斗的每日任务，记得清掉喵~ (´・ω・`)"
     },
     "CoalitionSp": {
-      "name": "光影风尚-拍摄进行时SP (｡•̀ᴗ-)✧",
-      "help": "拍摄活动SP级别，需要精湛技巧喵！"
+      "name": "光影风尚拍摄进行时SP喵",
+      "help": "拍摄活动SP级别，需要精湛技巧喵！( •̀ᴗ-)✧"
     },
     "Commission": {
-      "name": "委托派遣 (･ω･)/",
-      "help": "让舰娘们出去打工喵，带回宝贵资源 (｀・ω・´)"
+      "name": "委托派遣喵",
+      "help": "让舰娘们出去打工喵，带回宝贵资源 (´・ω・`)"
     },
     "Tactical": {
-      "name": "战术学院进修 (・ω・。)",
-      "help": "学习新技能，提升舰娘实力喵！"
+      "name": "战术学院进修喵",
+      "help": "学习新技能，提升舰娘实力喵！( •̀ᴗ-)✧"
     },
     "Research": {
-      "name": "科研开发喵 (。-`ω´-)",
-      "help": "研究强大装备，耐心等待收获喵 (´・ω・｀)"
+      "name": "科研开发喵",
+      "help": "研究强大装备，耐心等待收获喵 (◕ᴗ◕✿)"
     },
     "Dorm": {
-      "name": "后宅打理 (｡･ω･｡)ﾉ♡",
-      "help": "喂食、收集爱心，让舰娘们舒舒服服喵~"
+      "name": "后宅打理喵",
+      "help": "喂食、收集爱心，让舰娘们舒舒服服喵~ (◕ᴗ◕✿)"
     },
     "Meowfficer": {
-      "name": "指挥喵育成 (ฅ^•ﻌ•^ฅ)",
-      "help": "培养指挥喵，雪风的后辈们就靠你啦喵！"
+      "name": "指挥喵育成",
+      "help": "培养指挥喵，雪风的后辈们就靠你啦喵！(=^･ω･^=)"
     },
     "Guild": {
-      "name": "大舰队活动 (｀・ω・´)ゞ",
-      "help": "为大舰队贡献力量，团结就是力量喵！"
+      "name": "大舰队活动喵",
+      "help": "为大舰队贡献力量，团结就是力量喵！( •̀ ω •́ )✧"
     },
     "Reward": {
-      "name": "收获奖励 (๑•́ ₃ •̀๑)",
-      "help": "领取各项奖励，资源滚滚来喵~"
+      "name": "收获奖励喵",
+      "help": "领取各项奖励，资源滚滚来喵~ (★ω★)"
     },
     "Awaken": {
-      "name": "认知觉醒喵 (´⊙ω⊙`)",
-      "help": "觉醒舰娘潜力，消耗心智单元，突破极限！"
+      "name": "认知觉醒喵",
+      "help": "觉醒舰娘潜力，消耗心智单元，突破极限喵！( •̀ ω •́ )✧"
     },
     "Daily": {
-      "name": "每日任务清剿 (｀・ω・´)9",
-      "help": "每日挑战、商船护送等，完成有丰厚奖励喵！"
+      "name": "每日任务清剿喵",
+      "help": "每日挑战、商船护送等，完成有丰厚奖励喵！(＾▽＾)"
     },
     "Hard": {
-      "name": "主线-困难图强攻 (｡•̀ᴗ-)✧",
-      "help": "困难的关卡，需要更强的队伍喵~"
+      "name": "主线-困难图强攻喵",
+      "help": "困难的关卡，需要更强的队伍喵~ (｀・ω・´)"
     },
     "Exercise": {
-      "name": "演习竞技场 (≧∇≦)ﾉ",
-      "help": "与其他指挥官切磋，争取更高排名喵！"
+      "name": "演习竞技场喵",
+      "help": "与其他指挥官切磋，争取更高排名喵！(ง •̀_•́)ง"
     },
     "ShopFrequent": {
-      "name": "军火商商店巡视 (｀ω´)",
-      "help": "定期检查军火商，买走所有好东西喵！"
+      "name": "军火商巡视喵",
+      "help": "定期检查军火商，买走所有好东西喵！(★ω★)"
     },
     "ShopOnce": {
-      "name": "其他商店逛一圈 (=^･ω･^=)",
-      "help": "一次性购买其他商店的限时品喵~"
+      "name": "其他商店逛一圈喵",
+      "help": "一次性购买其他商店的限时品喵~ (★ω★)"
     },
     "Shipyard": {
-      "name": "开发船坞建造 (´・ω・`)",
-      "help": "购买科研图纸，开发新舰船喵！"
+      "name": "开发船坞建造喵",
+      "help": "购买科研图纸，开发新舰船喵！( •̀ᴗ-)✧"
     },
     "Gacha": {
-      "name": "每日抽卡许愿 (人´∀｀)．☆．。．:*・°",
-      "help": "抽一发轻型池贪200物资，白嫖的快乐喵！"
+      "name": "每日抽卡许愿",
+      "help": "抽一发轻型池贪200物资，白嫖的快乐喵！(ฅ´ω`ฅ)"
     },
     "Freebies": {
-      "name": "白嫖奖励领取 (o´∀`o)",
-      "help": "免费福利不容错过，通通拿走喵~"
+      "name": "白嫖奖励领取喵",
+      "help": "免费福利不容错过，通通拿走喵~ (★ω★)"
     },
     "Minigame": {
-      "name": "小游戏放松 (´・ω・)っ由",
+      "name": "小游戏放松喵",
       "help": "游戏币不会溢出时自动领币，有币且奖励没满时自动玩喵~"
     },
     "PrivateQuarters": {
-      "name": "宿舍计划安排 (｡･ω･｡)ﾉ♡",
-      "help": "照顾舰娘的宿舍生活，送玫瑰送蛋糕喵 (´▽`ʃ♡ƪ)"
+      "name": "宿舍计划安排喵",
+      "help": "照顾舰娘的宿舍生活，送玫瑰送蛋糕喵 (◕ᴗ◕✿)"
     },
     "OpsiGeneral": {
-      "name": "大世界通用设置板 (。・ω・。)",
-      "help": "所有大世界功能的共用参数，细心调整喵~"
+      "name": "大世界通用设置板",
+      "help": "所有大世界功能的共用参数，细心调整喵~ (・ω・)"
     },
     "OpsiAshBeacon": {
-      "name": "META作战挑战 (｀ε´)凸",
-      "help": "迎战META强敌，获取信标数据喵！"
+      "name": "META作战挑战喵",
+      "help": "迎战META强敌，获取信标数据喵！(ง •̀_•́)ง"
     },
     "OpsiAshAssist": {
-      "name": "META支援救援 (ノ_＜。)",
-      "help": "帮助好友和舰队战友打信标，每日三次喵~"
+      "name": "META支援救援喵",
+      "help": "帮助好友和舰队战友打信标，每日三次喵~ (´・ω・`)"
     },
     "OpsiExplore": {
-      "name": "每月开荒+ (๑•̀ㅂ•́)و✧",
-      "help": "每月重置后开荒整个大世界，自动清理海域喵！ (每隔27分钟一个)"
+      "name": "每月开荒喵",
+      "help": "每月重置后开荒整个大世界，自动清理海域喵！每隔27分钟一个"
     },
     "OpsiShop": {
-      "name": "大世界商店+ (。≖ˇｪˇ≖。)",
-      "help": "购买港口商店物资，换取珍贵道具喵~"
+      "name": "大世界商店喵",
+      "help": "购买港口商店物资，换取珍贵道具喵~ (＾▽＾)"
     },
     "OpsiVoucher": {
-      "name": "白票商店兑换 (´・ω・｀)",
-      "help": "用白票兑换每月特别商品喵~"
+      "name": "白票商店兑换喵",
+      "help": "用白票兑换每月特别商品喵~ (´・ω・`)"
     },
     "OpsiDaily": {
-      "name": "大世界每日+ (・ω・)ノ",
-      "help": "完成大世界日常任务，拿满奖励喵！"
+      "name": "大世界每日喵",
+      "help": "完成大世界日常任务，拿满奖励喵！(•̀ᴗ•́)و"
     },
     "OpsiObscure": {
-      "name": "隐秘海域清扫 (=｀ω´=)",
-      "help": "清理隐秘坐标，获得资源，27分钟一次喵~"
+      "name": "隐秘海域清扫喵",
+      "help": "清理隐秘坐标，获得资源，27分钟一次喵~ (=^･ω･^=)"
     },
     "OpsiAbyssal": {
-      "name": "深渊坐标突入 (ノ｀Д´)ノ",
-      "help": "仓库中的深渊海域坐标，一口气清掉喵！"
+      "name": "深渊坐标突入喵",
+      "help": "仓库中的深渊海域坐标，一口气清掉喵！(｀・ω・´)ゞ"
     },
     "OpsiArchive": {
-      "name": "档案坐标回溯 (。-`ω´-)",
+      "name": "档案坐标回溯喵",
       "help": "从白票商店买档案坐标并探索，不消耗行动力喵。需先通关主线并开荒或使用记录仪。"
     },
     "OpsiStronghold": {
-      "name": "塞壬要塞攻坚战 (｀皿´＃)",
-      "help": "每周清理塞壬要塞，潜艇每战出击可选喵！"
+      "name": "塞壬要塞攻坚战喵",
+      "help": "每周清理塞壬要塞，潜艇每战出击可选喵！(ง •̀_•́)ง"
     },
     "OpsiMonthBoss": {
-      "name": "月度Boss对决 (｀・ω・´)9",
-      "help": "挑战月度Boss简单/困难难度，获取丰厚奖励喵。"
+      "name": "月度Boss对决喵",
+      "help": "挑战月度Boss简单/困难难度，获取丰厚奖励喵。( •̀ ω •́ )✧"
     },
     "OpsiMeowfficerFarming": {
-      "name": "耄耋相接摸猫 (ฅ´ω`ฅ)",
-      "help": "按顺时针刷侵蚀海域，寻找指挥喵的线索喵！"
+      "name": "短猫相接摸猫喵",
+      "help": "按顺时针刷侵蚀海域，寻找指挥喵的线索喵！(=^･ω･^=)"
     },
     "OpsiHazard1Leveling": {
-      "name": "赛博股票侵蚀练级 (。-`ω´-)",
-      "help": "利用侵蚀1无限循环练级，雪风提醒务必看教程喵，后果自负 (>ω<)"
+      "name": "侵蚀1练级喵",
+      "help": "利用侵蚀1无限循环练级，雪风提醒务必看教程喵，后果自负 (´;ω;`)"
     },
     "OpsiScheduling": {
-      "name": "智能调度+ (｡•̀ᴗ-)✧",
-      "help": "大世界智能调度，协调侵蚀1练级与黄币补充任务自动切换，并推送通知喵~"
+      "name": "智能调度喵",
+      "help": "大世界智能调度，协调侵蚀1练级与黄币补充任务自动切换，并推送通知喵~ (´・ω・`)"
     },
     "OpsiCrossMonth": {
-      "name": "跨月每日金菜计划 (´⊙ω⊙`)",
+      "name": "跨月每日金菜计划",
       "help": "跨月重置前10分进入大世界，等待重置但不退出，立即完成新一天日常、隐秘、深渊和短猫，获取额外金菜喵！期间千万別操作游戏。"
     },
     "OpsiSimulator": {
-      "name": "大世界模拟器 Alpha (。-`ω´-)✧",
+      "name": "大世界模拟器 Alpha",
       "help": "用蒙特卡洛算法模拟侵蚀循环结果，不影响运行。请确保正确配置调度等参数。测试版，结果仅供参考。关于奸商行动力模型缺乏证据。坠机指行动力低于保留阈值。"
     },
     "IslandPlan": {
-      "name": "岛屿计划全局喵 (｡･ω･｡)",
+      "name": "岛屿计划全局喵",
       "help": "岛屿计划的全局配置喵，包括季节设定~"
     },
     "IslandBusiness": {
-      "name": "经营模块喵 (｀・ω・´)",
-      "help": "自动经营5个商店喵（有鱼餐馆、白熊饮品、乌鱼烤肉、啾啾简餐、啾咖啡），选人上菜一气呵成！"
+      "name": "经营模块喵",
+      "help": "自动经营5个商店喵（有鱼餐馆、白熊饮品、乌鱼烤肉、啾啾简餐、啾咖啡），选人上菜一气呵成！(★ω★)"
     },
     "IslandFarm": {
-      "name": "农田耕作喵 (。・ω・。)",
+      "name": "农田耕作喵",
       "help": ""
     },
     "IslandRancher": {
-      "name": "牧场养殖喵 (´・ω・`)",
+      "name": "牧场养殖喵",
       "help": ""
     },
     "IslandMineForest": {
-      "name": "矿山林场喵 (｀・ω・´)9",
+      "name": "矿山林场喵",
       "help": ""
     },
     "IslandRestaurant": {
-      "name": "有鱼餐馆喵 (ฅ´ω`ฅ)",
+      "name": "有鱼餐馆喵",
       "help": ""
     },
     "IslandTeahouse": {
-      "name": "白熊饮品喵 (｡•̀ᴗ-)✧",
+      "name": "白熊饮品喵",
       "help": ""
     },
     "IslandGrill": {
-      "name": "乌鱼烤肉喵 (╯▽╰)",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "乌鱼烤肉喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "IslandJuuEatery": {
-      "name": "啾啾简餐喵 (´・ω・`)つ",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "啾啾简餐喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "IslandJuuCoffee": {
-      "name": "啾咖啡喵 (´▽`ʃ♡ƪ)",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "啾咖啡喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "IslandManufacture": {
-      "name": "制造业喵 (｀ω´)",
+      "name": "制造业喵",
       "help": ""
     },
     "IslandDailyGather": {
-      "name": "每日采集喵 (๑•̀ㅂ•́)و✧",
-      "help": "通过管理界面的采集页签，雪风帮你模拟点击完成每日采集喵~ 凌晨3:10和下午6:00准时出发！"
+      "name": "每日采集喵",
+      "help": "通过管理界面的采集页签，雪风帮你模拟点击完成每日采集喵~ 凌晨3:10和下午6:00准时出发！(=^･ω･^=)"
     },
     "IslandAirDrop": {
-      "name": "每日补给喵 (・ω<)",
-      "help": "仅支持minitouch喵。领取每日补给~ (・ω<)"
+      "name": "每日补给喵",
+      "help": "仅支持minitouch喵。领取每日补给~ (=^･ω･^=)"
     },
     "IslandCargoPreparation": {
-      "name": "货物筹备喵 (๑¯◡¯๑)",
-      "help": "自动领取货运奖励，避开牛奶货物，确认默认选中的第一个可替换委托并装载货物喵。"
+      "name": "货物筹备喵",
+      "help": "自动领取货运奖励，避开牛奶货物，确认默认选中的第一个可替换委托并装载货物喵。(´・ω・`)"
     },
     "IslandDailyOrder": {
-      "name": "每日订单喵 (๑¯◡¯๑)",
-      "help": "从岛屿手机页面进入订单界面，超自动检测紧急/挑战/轻松订单喵~(目前不支持普通订单,以后估计也不考虑支持) 芝士和豆腐通通驳回！(๑•̀ㅂ•́)و✧\n\n每日订单功能还在测试喵，如果有每日订单或紧急委托无法交付，请截图反馈（要保证截图为 1280x720 的游戏内截图）喵。"
+      "name": "每日订单喵",
+      "help": "从岛屿手机页面进入订单界面，超自动检测紧急/挑战/轻松订单喵~芝士和豆腐通通驳回！ 每日订单功能还在测试喵，如果有每日订单或紧急委托无法交付，请截图反馈喵。"
     },
     "IslandDailyInteract": {
       "name": "每日/周任务喵",
       "help": "仅支持minitouch喵。处理岛屿摸猫、JUU速运、商区外送服务与每周照相任务喵。相关按钮资源生成后可启用。"
     },
     "IslandPearlSell": {
-      "name": "每周珍珠采购与售卖喵 (๑¯◡¯๑)",
-      "help": "仅支持minitouch喵。每周二 01:00 自动处理珍珠喵：先买本周珍珠，再卖已有珍珠。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错喵。"
+      "name": "每周珍珠采购与售卖喵",
+      "help": "仅支持minitouch喵。每周二 01:00 自动处理珍珠喵：先买本周珍珠，再卖已有珍珠。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错喵。(´;ω;`)"
     },
     "Daemon": {
-      "name": "半自动点击小助手 (｀・ω・´)つ",
-      "help": "遇到未适配关卡？雪风帮你点击准备、结算、退役，你只需手动选敌人喵~"
+      "name": "半自动点击小助手喵",
+      "help": "遇到未适配关卡？雪风帮你点击准备、结算、退役，你只需手动选敌人喵~ (｀・ω・´)"
     },
     "OpsiDaemon": {
-      "name": "大世界半自动辅助 ( ´_ゝ`)",
-      "help": "在大世界深渊或主线时，帮助点击战斗准备、结算，跳过剧情。手动选敌和切海域喵~"
+      "name": "大世界半自动辅助喵",
+      "help": "在大世界深渊或主线时，帮助点击战斗准备、结算，跳过剧情。手动选敌和切海域喵~ (´・ω・`)"
     },
     "EventStory": {
-      "name": "活动剧情快进 (。-ω-)zzz",
-      "help": "完成活动剧情，仅适用于上线时间20241219及之后的活动，请等3分钟喵~"
+      "name": "活动剧情快进喵",
+      "help": "完成活动剧情，仅适用于上线时间20241219及之后的活动，请等3分钟喵~ (´・ω・`)"
     },
     "BoxDisassemble": {
-      "name": "拆解装备箱喵 (｀ε´)凸",
-      "help": "将仓库中的装备箱拆解为部件，配置好去启动喵！"
+      "name": "拆解装备箱喵",
+      "help": "将仓库中的装备箱拆解为部件，配置好去启动喵！( •̀ᴗ-)✧"
     },
     "Benchmark": {
-      "name": "性能测试喵 (´・ω・`)つ",
-      "help": "测试截图与控制方案速度，然后选最快方案喵~"
+      "name": "性能测试喵",
+      "help": "测试截图与控制方案速度，然后选最快方案喵~ (´・ω・`)"
     },
     "OcrBenchmark": {
-      "name": "OCR性能测试 (。-`ω´-)",
-      "help": "测试文字识别速度，一般不用管喵~"
+      "name": "OCR性能测试",
+      "help": "测试文字识别速度，一般不用管喵~ (´・ω・`)"
     },
     "AzurLaneUncensored": {
-      "name": "反和谐魔法 (ﾉ≧∀≦)ﾉ・‥…━━━★",
-      "help": "仅国服使用，下载反和谐文件推送到模拟器并重启游戏喵，让画面更可爱~"
+      "name": "反和谐魔法",
+      "help": "仅国服使用，下载反和谐文件推送到模拟器并重启游戏喵，让画面更可爱~ (=^･ω･^=)"
     },
     "GameManager": {
-      "name": "游戏管理器(未完成) (；´Д`)",
-      "help": "半成品，只能强制关游戏和自动登录喵~"
+      "name": "游戏管理器",
+      "help": "半成品，只能强制关游戏和自动登录喵~ (´;ω;`)"
     },
     "EmulatorManager": {
-      "name": "模拟器管理器 (。・ω・。)",
-      "help": "提供手动重启模拟器的入口喵~"
+      "name": "模拟器管理器",
+      "help": "提供手动重启模拟器的入口喵~ (=^･ω･^=)"
     }
   },
   "Scheduler": {
     "_info": {
-      "name": "任务调度面板 (。・ω・。)",
-      "help": "设定任务何时运行，雪风的时间魔法喵~"
+      "name": "任务调度面板",
+      "help": "设定任务何时运行，雪风的时间魔法喵~ (・ω・)"
     },
     "Enable": {
       "name": "启用此功能喵",
-      "help": "把任务加入调度列表，委托、科研、收获强制开启喵~",
-      "True": "开启中 (=^･ω･^=)",
-      "False": "关闭中 (´;ω;`)"
+      "help": "把任务加入调度列表，委托、科研、收获强制开启喵~ (´・ω・`)",
+      "True": "开启中",
+      "False": "关闭中"
     },
     "PushNotification": {
       "name": "推送通知",
-      "help": "启用后，任务完成时会通过 OnePush 推送成功或失败通知喵",
+      "help": "启用后，任务完成时会通过 OnePush 推送成功或失败通知喵 (´・ω・`)",
       "True": "已启用",
       "False": "关闭"
     },
     "NextRun": {
-      "name": "下次运行时机 (´・ω・`)",
-      "help": "自动计算的时间喵，不用手改。清空则立刻奔跑喵~"
+      "name": "下次运行时机",
+      "help": "自动计算的时间喵，不用手改。清空则立刻奔跑喵~ (=^･ω･^=)"
     },
     "Command": {
-      "name": "内部任务代号 (。・ω・。)",
-      "help": "任务的真名，人类看不懂喵~"
+      "name": "内部任务代号",
+      "help": "任务的真名，人类看不懂喵~ (ΦωΦ)"
     },
     "SuccessInterval": {
-      "name": "成功后延迟 X 分钟再跑 (・ω・)ノ",
-      "help": "任务成功后休息一会儿喵~"
+      "name": "成功后延迟 X 分钟再跑",
+      "help": "任务成功后休息一会儿喵~ (￣ω￣)"
     },
     "FailureInterval": {
-      "name": "失败后延迟 X 分钟再试 (´；ω；｀)",
-      "help": "失败不气馁，等等再战喵~"
+      "name": "失败后延迟 X 分钟再试",
+      "help": "失败不气馁，等等再战喵~ (ง •̀_•́)ง"
     },
     "ServerUpdate": {
-      "name": "服务器刷新时刻 (๑•̀ㅂ•́)و✧",
-      "help": "有些任务完成后等到服务器刷新再跑，自动换算时区喵~"
+      "name": "服务器刷新时刻",
+      "help": "有些任务完成后等到服务器刷新再跑，自动换算时区喵~ (´・ω・`)"
     },
     "Sensitive": {
-      "name": "敏感任务 (╥﹏╥)",
+      "name": "敏感任务",
       "help": "出错的时候不让重启游戏喵！直接停止 AzurPilot 运行喵！跨月每日、隐秘海域、深渊海域这种关键时刻的任务才需要开喵~",
-      "True": "True",
-      "False": "False"
+      "True": "是喵",
+      "False": "否喵"
     }
   },
   "Emulator": {
     "_info": {
-      "name": "模拟器魔法阵 (。・ω・。)",
-      "help": "连接模拟器的配置，认真填写喵~"
+      "name": "模拟器魔法阵",
+      "help": "连接模拟器的配置，认真填写喵~ (｀・ω・´)"
     },
     "Serial": {
-      "name": "模拟器 Serial (･ω･)ﾉ",
-      "help": "模拟器连接串，常见的下面有列表喵。填 \"auto\" 自动检测，但多开或部分模拟器需手动填喵~\n\n蓝叠: 127.0.0.1:5555\n蓝叠4 Hyper-v: \"bluestacks4-hyperv\" 多开 \"bluestacks4-hyperv-2\"...\n蓝叠5 Hyper-v: \"bluestacks5-hyperv\" 多开 \"bluestacks5-hyperv-1\"...\n夜神: 127.0.0.1:62001\n夜神64: 127.0.0.1:59865\nMuMu/MuMuX: 127.0.0.1:7555\nMuMu12: 127.0.0.1:16384\nMuMu Pro (macOS): 127.0.0.1:16384 多开依次 16416, 16448 ...\n逍遥: 127.0.0.1:21503\n雷电: emulator-5554 或 127.0.0.1:5555\n多开时用 `adb devices` 查或看官方教程喵~"
+      "name": "模拟器 Serial",
+      "help": "模拟器连接串，常见的下面有列表喵。填 \"auto\" 自动检测，但多开或部分模拟器需手动填喵~ 蓝叠: 127.0.0.1:5555 蓝叠4 Hyper-v: \"bluestacks4-hyperv\" 多开 \"bluestacks4-hyperv-2\"... 蓝叠5 Hyper-v: \"bluestacks5-hyperv\" 多开 \"bluestacks5-hyperv-1\"... 夜神: 127.0.0.1:62001 夜神64: 127.0.0.1:59865 MuMu/MuMuX: 127.0.0.1:7555 MuMu12: 127.0.0.1:16384 MuMu Pro : 127.0.0.1:16384 多开依次 16416, 16448 ... 逍遥: 127.0.0.1:21503 雷电: emulator-5554 或 127.0.0.1:5555 多开时用 `adb devices` 查或看官方教程喵~"
     },
     "PackageName": {
-      "name": "游戏服务器选择 (｀・ω・´)",
-      "help": "装多个客户端时选对应服务器喵~",
-      "auto": "自动探测 (｀・ω・´)",
+      "name": "游戏服务器选择",
+      "help": "装多个客户端时选对应服务器喵~ (´・ω・`)",
+      "auto": "自动探测",
       "com.bilibili.azurlane": "国服舰B喵",
       "com.YoStarEN.AzurLane": "国际服喵",
       "com.YoStarJP.AzurLane": "日服喵",
@@ -471,9 +471,9 @@
       "com.hkmanjuu.azurlane.gp.mc": "台服喵 com.hkmanjuu.azurlane.gp.mc"
     },
     "ServerName": {
-      "name": "游戏内服务器选择 (=^･ω･^=)",
-      "help": "选游戏内所在服以启用服务器状态检测，维护或掉线时挂起恢复喵~",
-      "disabled": "不使用检测 (。-`ω´-)",
+      "name": "游戏内服务器选择",
+      "help": "选游戏内所在服以启用服务器状态检测，维护或掉线时挂起恢复喵~ (´・ω・`)",
+      "disabled": "不使用检测",
       "cn_android-0": "[国服] 莱茵演习",
       "cn_android-1": "[国服] 巴巴罗萨",
       "cn_android-2": "[国服] 霸王行动",
@@ -546,9 +546,9 @@
       "jp-17": "[JP] スイートバン"
     },
     "ScreenshotMethod": {
-      "name": "模拟器截图法术 (∩・ω・)∩",
-      "help": "自动选择执行性能测试并换最快方案喵。通常 DroidCast_raw > aScreenCap_nc > ADB_nc > ...\n运行工具-性能测试寻找最优！",
-      "auto": "自动选择最快喵 (・ω<)",
+      "name": "模拟器截图法术 ∩",
+      "help": "自动选择执行性能测试并换最快方案喵。通常 DroidCast_raw > aScreenCap_nc > ADB_nc > ... 运行工具-性能测试寻找最优！(´・ω・`)",
+      "auto": "自动选择最快喵",
       "ADB": "ADB仔喵",
       "ADB_nc": "ADB_nc喵",
       "uiautomator2": "uiautomator2喵",
@@ -560,8 +560,8 @@
       "ldopengl": "ldopengl喵"
     },
     "ControlMethod": {
-      "name": "模拟器控制手势 (ノ・ω・)ノ",
-      "help": "速度 minitouch > Hermit > uiautomator2 ~= ADB\n推荐 minitouch，VMOS下用 Hermit 喵~",
+      "name": "模拟器控制手势",
+      "help": "速度 minitouch > Hermit > uiautomator2 ~= ADB 推荐 minitouch，VMOS下用 Hermit 喵~",
       "ADB": "ADB喵",
       "uiautomator2": "uiautomator2喵",
       "minitouch": "minitouch喵",
@@ -569,23 +569,23 @@
       "MaaTouch": "MaaTouch喵"
     },
     "ScreenshotDedithering": {
-      "name": "去除图片色彩喵 (・ω・｀)",
+      "name": "去除图片色彩喵",
       "help": "手机上运行时开启喵~"
     },
     "AdbRestart": {
       "name": "检测不到设备时重启adb喵",
-      "help": "有时adb会闹脾气，重启一下就好 (´・ω・`)"
+      "help": "有时adb会闹脾气，重启一下就好 (=^･ω･^=)"
     }
   },
   "EmulatorInfo": {
     "_info": {
-      "name": "模拟器实例详情 (。・ω・。)",
-      "help": "根据Serial自动填充，不懂别乱改喵。修改端口即可启动对应实例喵~"
+      "name": "模拟器实例详情",
+      "help": "根据Serial自动填充，不懂别乱改喵。修改端口即可启动对应实例喵~ (｀・ω・´)"
     },
     "Emulator": {
-      "name": "模拟器品种 (｀・ω・´)",
+      "name": "模拟器品种",
       "help": "",
-      "auto": "自动检测 (´・ω・`)",
+      "auto": "自动检测",
       "NoxPlayer": "夜神模拟器喵",
       "NoxPlayer64": "夜神64位喵",
       "BlueStacks4": "蓝叠4喵",
@@ -605,16 +605,16 @@
       "SSH": "SSH"
     },
     "name": {
-      "name": "模拟器实例小名 (・ω・)",
+      "name": "模拟器实例小名",
       "help": ""
     },
     "path": {
-      "name": "模拟器安装路径 (。・ω・。)",
+      "name": "模拟器安装路径",
       "help": ""
     },
     "EnableRemoteSSH": {
       "name": "开启远程喵喵 SSH 管理",
-      "help": "在重启模拟器之前，让喵喵通过 SSH 在远程服务器上执行指令喵（比如重启 Docker 容器）。",
+      "help": "在重启模拟器之前，让喵喵通过 SSH 在远程服务器上执行指令喵。",
       "True": "喵",
       "False": "唔"
     },
@@ -632,126 +632,126 @@
     },
     "RemoteSSHPublicKey": {
       "name": "SSH 喵喵私钥",
-      "help": "SSH 登录所需的喵喵私钥内容喵（如果需要的话喵）"
+      "help": "SSH 登录所需的喵喵私钥内容喵"
     },
     "RemoteStartCommand": {
       "name": "远程喵喵启动指令",
-      "help": "在重启模拟器时执行的启动 SSH 指令喵（比如启动 Docker 容器喵）"
+      "help": "在重启模拟器时执行的启动 SSH 指令喵"
     },
     "RemoteStopCommand": {
       "name": "远程喵喵停止指令",
-      "help": "在重启模拟器时执行的停止 SSH 指令喵（比如停止 Docker 容器喵）"
+      "help": "在重启模拟器时执行的停止 SSH 指令喵"
     }
   },
   "Error": {
     "_info": {
-      "name": "调试与错误处理 (;ﾟ∇ﾟ)",
-      "help": "遇到异常怎么办？雪风来补救喵~"
+      "name": "调试与错误处理",
+      "help": "遇到异常怎么办？雪风来补救喵~ (´;ω;`)"
     },
     "HandleError": {
-      "name": "启用异常大法 (｀・ω・´)",
-      "help": "处理部分异常，运行出错时自动撤退喵。"
+      "name": "启用异常大法",
+      "help": "处理部分异常，运行出错时自动撤退喵。 (´・ω・`)"
     },
     "SaveError": {
-      "name": "出错时保存 Log 和照片 (´；ω；｀)",
-      "help": "留下证据，便于排查问题喵。"
+      "name": "出错时保存 Log 和照片",
+      "help": "留下证据，便于排查问题喵。 (｀・ω・´)"
     },
     "StrictRestart": {
-      "name": "敏感任务出错禁止重启 (｀ε´)",
+      "name": "敏感任务出错禁止重启",
       "help": "隐秘、深渊、跨月每日出错时停止AzurPilot而不是重启喵，避免损失。"
     },
     "SaveErrorCount": {
-      "name": "错误日志保留数 (´・ω・`)",
+      "name": "错误日志保留数",
       "help": "超过上限的日志会被清理喵，0或负数无限喵。"
     },
     "OnePushConfig": {
-      "name": "错误推送通知喵 (・ω<)",
-      "help": "发生无法处理异常时通过Onepush推送消息喵。配置见文档~"
+      "name": "错误推送通知喵",
+      "help": "发生无法处理异常时通过Onepush推送消息喵。配置见文档~ (´・ω・`)"
     },
     "ScreenshotLength": {
-      "name": "出错时保留最后 X 张截图 (σ・ω・)σ",
+      "name": "出错时保留最后 X 张截图 σ",
       "help": "帮助分析错误时的界面截图喵。"
     },
     "GameStuckRestart": {
-      "name": "游戏卡死时重启模拟器 (╯°□°）╯︵ ┻━┻",
+      "name": "游戏卡死时重启模拟器",
       "help": "连续卡死达到次数后重启模拟器，可能修复假死和显存溢出喵。"
     },
     "GameStuckThreshold": {
-      "name": "卡死重启阈值 (´・ω・`)",
+      "name": "卡死重启阈值",
       "help": "连续卡死多少次触发重启喵。"
     },
     "AdbOfflineRestart": {
-      "name": "检测不到设备重启模拟器 (´；ω；｀)",
+      "name": "检测不到设备重启模拟器",
       "help": "ADB离线连续达到次数后重启模拟器喵。"
     },
     "AdbOfflineThreshold": {
-      "name": "检测不到设备重启阈值 (。-`ω´-)",
+      "name": "检测不到设备重启阈值",
       "help": "连续多少次触发重启喵。"
     },
     "LlmAnalysis": {
-      "name": "启用 LLM 错误分析喵 (´⊙ω⊙`)",
-      "help": "发生异常时调用LLM分析原因给建议喵~"
+      "name": "启用 LLM 错误分析喵",
+      "help": "发生异常时调用LLM分析原因给建议喵~ (ΦωΦ)"
     },
     "LlmApiKey": {
-      "name": "LLM 的 API Key (。・ω・。)",
+      "name": "LLM 的 API Key",
       "help": "请自行前往 https://platform.deepseek.com/ 或 https://platform.xiaomimimo.com/ 购买模型服务并获取 API Key 喵。"
     },
     "LlmApiBase": {
-      "name": "LLM API Base (・ω・｀)",
+      "name": "LLM API Base",
       "help": "填写模型服务提供商的 OpenAI 兼容 Base URL，可参考 https://platform.deepseek.com/ 或 https://platform.xiaomimimo.com/ 的接入说明喵。"
     },
     "LlmModel": {
-      "name": "LLM 模型选择 (∩・ω・)∩",
+      "name": "LLM 模型选择 ∩",
       "help": "填写已购买服务支持的模型名称，请以 https://platform.deepseek.com/ 或 https://platform.xiaomimimo.com/ 平台展示为准喵。"
     }
   },
   "Optimization": {
     "_info": {
-      "name": "优化魔法 (。-`ω´-)✧",
-      "help": "让AzurPilot跑得更流畅喵~"
+      "name": "优化魔法",
+      "help": "让AzurPilot跑得更流畅喵~ (=^･ω･^=)"
     },
     "OcrDevice": {
-      "name": "OCR设备选择 (´・ω・`)",
+      "name": "OCR设备选择",
       "help": "OCR跑在CPU/GPU/ANE上。GPU用Windows DirectML，ANE用macOS Neural Engine。自动：Apple Silicon选ANE，Windows显存>1G选GPU，否则CPU。",
-      "auto": "自动判断 (｀・ω・´)",
+      "auto": "自动判断",
       "cpu": "CPU喵",
       "gpu": "GPU喵",
-      "ane": "ANE喵 (Apple)"
+      "ane": "ANE喵"
     },
     "OcrBackend": {
-      "name": "OCR后端喵 (≧∇≦)ﾉ",
+      "name": "OCR后端喵",
       "help": "选OCR推理引擎喵。onnxruntime用ONNX Runtime，ncnn用ncnn Vulkan后端喵。自动默认onnxruntime喵。",
-      "auto": "自动 (onnxruntime) 喵",
+      "auto": "自动 喵",
       "onnxruntime": "ONNX Runtime 喵",
-      "ncnn": "ncnn (Vulkan) 喵"
+      "ncnn": "ncnn 喵"
     },
     "ScreenshotInterval": {
-      "name": "放慢截图至 X 秒一张 (´-ω-`)zzz",
-      "help": "两次截图最小间隔0.001~0.3，高配电脑降CPU占用喵。"
+      "name": "放慢截图至 X 秒一张",
+      "help": "两次截图最小间隔0.001~0.3，高配电脑降CPU占用喵。 (´・ω・`)"
     },
     "CombatScreenshotInterval": {
-      "name": "战斗时放慢截图至 X 秒一张 (╯°Д°)╯",
-      "help": "降低战斗时CPU占用，间隔0.001~1.0喵。"
+      "name": "战斗时放慢截图至 X 秒一张",
+      "help": "降低战斗时CPU占用，间隔0.001~1.0喵。 (´・ω・`)"
     },
     "TaskHoardingDuration": {
-      "name": "囤积任务 X 分钟 (｀・ω・´)っ由",
-      "help": "任务触发后等待X分钟一次性执行，降低操作频率喵。"
+      "name": "囤积任务 X 分钟",
+      "help": "任务触发后等待X分钟一次性执行，降低操作频率喵。 (´・ω・`)"
     },
     "WhenTaskQueueEmpty": {
-      "name": "任务队列清空后 (´・ω・`)",
-      "help": "无任务时关游戏降CPU占用喵~",
-      "stay_there": "停在原地发呆 (。・ω・。)",
+      "name": "任务队列清空后",
+      "help": "无任务时关游戏降CPU占用喵~ (´・ω・`)",
+      "stay_there": "停在原地发呆",
       "goto_main": "回主界面喵",
       "close_game": "关闭游戏喵"
     }
   },
   "DropRecord": {
     "_info": {
-      "name": "掉落记录簿 (。・ω・。)",
-      "help": "记录每一次收获喵~"
+      "name": "掉落记录簿",
+      "help": "记录每一次收获喵~ (＾▽＾)"
     },
     "SaveFolder": {
-      "name": "掉落保存目录 (´・ω・`)",
+      "name": "掉落保存目录",
       "help": ""
     },
     "AzurStatsID": {
@@ -761,11 +761,11 @@
     "API": {
       "name": "上传线路喵",
       "help": "国内用户连不上可用\"国内反向代理\"喵~",
-      "default": "默认 (Cloudflare) (｀・ω・´)",
-      "cn_gz_reverse_proxy": "国内反向代理 (广州) 喵"
+      "default": "默认",
+      "cn_gz_reverse_proxy": "国内反向代理 喵"
     },
     "ResearchRecord": {
-      "name": "科研截图动作 (。-`ω´-)✧",
+      "name": "科研截图动作",
       "help": "",
       "do_not": "无视喵",
       "save": "保存喵",
@@ -773,7 +773,7 @@
       "save_and_upload": "保存并上传喵"
     },
     "CommissionRecord": {
-      "name": "委托截图动作 (;ﾟ∇ﾟ)",
+      "name": "委托截图动作",
       "help": "",
       "do_not": "无视喵",
       "save": "保存喵",
@@ -781,13 +781,13 @@
       "save_and_upload": "保存并上传喵"
     },
     "CombatRecord": {
-      "name": "战斗掉落截图 (๑•̀ㅂ•́)و✧",
+      "name": "战斗掉落截图",
       "help": "启用后会放缓结算点击速度，自律寻敌下不生效喵。",
       "do_not": "无视喵",
       "save": "保存喵"
     },
     "OpsiRecord": {
-      "name": "大世界掉落截图 (´⊙ω⊙`)",
+      "name": "大世界掉落截图",
       "help": "",
       "do_not": "无视喵",
       "save": "保存喵",
@@ -803,13 +803,13 @@
       "save_and_upload": "save_and_upload"
     },
     "MeowfficerBuy": {
-      "name": "指挥喵购买截图 (ฅ´ω`ฅ)",
+      "name": "指挥喵购买截图",
       "help": "",
       "do_not": "无视喵",
       "save": "保存喵"
     },
     "MeowfficerTalent": {
-      "name": "指挥喵天赋截图 (｡･ω･｡)ﾉ♡",
+      "name": "指挥喵天赋截图",
       "help": "",
       "do_not": "无视喵",
       "save": "保存喵",
@@ -817,32 +817,32 @@
       "save_and_upload": "保存并上传喵"
     },
     "TelemetryReport": {
-      "name": "遥测数据上报 (=^･ω･^=)",
-      "help": "匿名上报CL1统计数据（战斗次数、明石概率等），统计网站 https://alas.nanoda.work/ 喵。"
+      "name": "遥测数据上报",
+      "help": "匿名上报CL1统计数据，统计网站 https://alas.nanoda.work/ 喵。"
     },
     "BugReport": {
-      "name": "Bug 日志上报 (´；ω；｀)",
+      "name": "Bug 日志上报",
       "help": "匿名上报异常日志帮助改进喵。"
     }
   },
   "Log": {
     "_info": {
-      "name": "日志喵记录 (。・ω・。)",
+      "name": "日志喵记录",
       "help": "调度器重启后生效喵~"
     },
     "LogKeepCount": {
-      "name": "Log保留天数 (´・ω・`)",
+      "name": "Log保留天数",
       "help": "超过天数删掉喵。"
     },
     "LogBackUpMethod": {
-      "name": "过期Log处理方式 (・ω<)",
+      "name": "过期Log处理方式",
       "help": "备份到./log/bak 喵",
       "delete": "删除喵",
       "zip": "压缩备份喵",
       "copy": "拷贝备份喵"
     },
     "ZipMethod": {
-      "name": "压缩格式喵 (｀・ω・´)",
+      "name": "压缩格式喵",
       "help": "",
       "bz2": "bz2喵",
       "gzip": "gzip喵",
@@ -852,12 +852,12 @@
   },
   "Retirement": {
     "_info": {
-      "name": "退役策略板 (´・ω・`)",
-      "help": "如何处理多余舰娘喵~"
+      "name": "退役策略板",
+      "help": "如何处理多余舰娘喵~ (´・ω・`)"
     },
     "RetireMode": {
-      "name": "退役模式选择 (｀ω´)",
-      "help": "强化材料不足退回一键退役喵。",
+      "name": "退役模式选择",
+      "help": "强化材料不足退回一键退役喵。 (´・ω・`)",
       "one_click_retire": "一键退役喵",
       "enhance": "强化喵",
       "old_retire": "传统退役喵"
@@ -865,23 +865,23 @@
   },
   "PublicEmotion": {
     "_info": {
-      "name": "共用心情呵护 (｡・ω・｡)ﾉ♡",
-      "help": "让同一队完成多项任务，共享心情喵。确保任务舰队职能为单队全清且队伍共用。"
+      "name": "共用心情呵护",
+      "help": "让同一队完成多项任务，共享心情喵。确保任务舰队职能为单队全清且队伍共用。 (=^･ω･^=)"
     },
     "Enable": {
       "name": "启用共用心情功能喵",
       "help": "开启后使用下方统一心情配置替换原配置喵~"
     },
     "Tasks": {
-      "name": "共用心情任务列表 (・ω・)ノ",
-      "help": "半角逗号分隔，如\"Main, Event, EventA\"。\n主线图-1: Main, 2: Main2, 3: Main3\n活动图-1: Event, 2: Event2, 作战档案: WarArchives\n每日A: EventA, B: EventB, C: EventC, D: EventD, SP: EventSp"
+      "name": "共用心情任务列表",
+      "help": "半角逗号分隔，如\"Main, Event, EventA\"。 主线图-1: Main, 2: Main2, 3: Main3 活动图-1: Event, 2: Event2, 作战档案: WarArchives 每日A: EventA, B: EventB, C: EventC, D: EventD, SP: EventSp"
     },
     "FleetValue": {
-      "name": "心情数值 (｡・ω・｡)",
+      "name": "心情数值",
       "help": ""
     },
     "FleetRecord": {
-      "name": "心情记录时刻 (´・ω・`)",
+      "name": "心情记录时刻",
       "help": ""
     },
     "FleetControl": {
@@ -893,7 +893,7 @@
       "prevent_red_face": "防止红脸 (>0) 喵"
     },
     "FleetRecover": {
-      "name": "心情回复便利 (´・ω・｀)",
+      "name": "心情回复便利",
       "help": "",
       "not_in_dormitory": "未放置于后宅 (20/h) 喵",
       "dormitory_floor_1": "后宅一层 (40/h) 喵",
@@ -910,69 +910,69 @@
   },
   "YukikazeTaskManager": {
     "_info": {
-      "name": "雪风大人的任务管理 (｀・ω・´)ゝ",
-      "help": "任务优先级与调度，本大人说了算喵！"
+      "name": "雪风大人的任务管理 ゝ",
+      "help": "任务优先级与调度，本大人说了算喵！(｀・ω・´)"
     },
     "TaskPriorityAdjustment": {
       "name": "任务优先级调整喵",
-      "help": "默认优先级参考喵（# 后为说明，实际填写时不要复制注释）：\nRestart    # 重启游戏\n> OpsiCrossMonth    # 大世界跨月每日\n> Commission > Tactical > Research    # 委托 > 战术学院 > 科研\n> Exercise    # 演习\n> Dorm > Meowfficer > Guild > Gacha    # 后宅 > 指挥喵 > 大舰队 > 每日抽卡\n> Reward    # 收获\n> ShopFrequent > ShopOnce > Shipyard > Freebies    # 通用商店 > 其他商店 > 开发船坞 > 白嫖奖励\n> PrivateQuarters    # 私人休息室\n> OpsiExplore    # 大世界每月开荒\n> Minigame > Awaken    # 小游戏 > 认知觉醒\n> OpsiAshBeacon    # META信标作战\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop    # 大世界日常 > 港口商店 > 兑换商店 > 活动商店\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive    # 深渊海域 > 塞壬要塞 > 隐秘海域 > 档案坐标\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss    # 每日挑战 > 困难图 > META作战 > META支援 > 月度boss\n> Sos > EventSp > EventA > EventB > EventC > EventD    # SOS > 活动每日SP > 活动每日A > 活动每日B > 活动每日C > 活动每日D\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort    # 共斗活动每日 > 共斗活动SP > 作战档案 > 商船护航\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant    # 岛屿啾啾简餐 > 啾咖啡 > 乌鱼烤肉 > 白熊饮品 > 有鱼餐馆\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture    # 岛屿农田 > 牧场 > 矿山林场 > 每日采集 > 制造业\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation    # 岛屿每日补给 > 经营模块 > 每日订单 > 每日/周任务 > 每周珍珠采购与售卖 > 货物筹备\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3    # 活动图1 > 活动图2 > 活动图3 > 共斗活动 > 医院活动 > 医院活动事件 > 共斗活动 > 共斗沉船 > 主线 > 主线2 > 主线3\n> OpsiMeowfficerFarming    # 短猫相接\n> GemsFarming    # 刷紧急委托\n> Ambush11    # 1-1刷伏击\n> OpsiHazard1Leveling    # 侵蚀一练级\n> ThreeOilLowCost    # 三油低耗\n\n格式：每行只写任务名喵，用 `>` 连接优先级（越靠前越优先）。\n上面的 `#` 注释只是说明喵，写入配置时不要保留注释，否则任务名匹配会失败。\n任务名要用英文配置任务名；不知道任务名时切到英文界面看名字喵。\n留空就使用内置默认优先级喵。"
+      "help": "默认优先级参考喵： Restart # 重启游戏 > OpsiCrossMonth # 大世界跨月每日 > Commission > Tactical > Research # 委托 > 战术学院 > 科研 > Exercise # 演习 > Dorm > Meowfficer > Guild > Gacha # 后宅 > 指挥喵 > 大舰队 > 每日抽卡 > Reward # 收获 > ShopFrequent > ShopOnce > Shipyard > Freebies # 通用商店 > 其他商店 > 开发船坞 > 白嫖奖励 > PrivateQuarters # 私人休息室 > OpsiExplore # 大世界每月开荒 > Minigame > Awaken # 小游戏 > 认知觉醒 > OpsiAshBeacon # META信标作战 > OpsiDaily > OpsiShop > OpsiVoucher > EventShop # 大世界日常 > 港口商店 > 兑换商店 > 活动商店 > OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive # 深渊海域 > 塞壬要塞 > 隐秘海域 > 档案坐标 > Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss # 每日挑战 > 困难图 > META作战 > META支援 > 月度boss > Sos > EventSp > EventA > EventB > EventC > EventD # SOS > 活动每日SP > 活动每日A > 活动每日B > 活动每日C > 活动每日D > RaidDaily > CoalitionSp > WarArchives > MaritimeEscort # 共斗活动每日 > 共斗活动SP > 作战档案 > 商船护航 > IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant # 岛屿啾啾简餐 > 啾咖啡 > 乌鱼烤肉 > 白熊饮品 > 有鱼餐馆 > IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture # 岛屿农田 > 牧场 > 矿山林场 > 每日采集 > 制造业 > IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation # 岛屿每日补给 > 经营模块 > 每日订单 > 每日/周任务 > 每周珍珠采购与售卖 > 货物筹备 > Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3 # 活动图1 > 活动图2 > 活动图3 > 共斗活动 > 医院活动 > 医院活动事件 > 共斗活动 > 共斗沉船 > 主线 > 主线2 > 主线3 > OpsiMeowfficerFarming # 短猫相接 > GemsFarming # 刷紧急委托 > Ambush11 # 1-1刷伏击 > OpsiHazard1Leveling # 侵蚀一练级 > ThreeOilLowCost # 三油低耗 格式：每行只写任务名喵，用 `>` 连接优先级。 上面的 `#` 注释只是说明喵，写入配置时不要保留注释，否则任务名匹配会失败。 任务名要用英文配置任务名；不知道任务名时切到英文界面看名字喵。 留空就使用内置默认优先级喵。"
     }
   },
   "OneClickRetire": {
     "_info": {
-      "name": "一键退役过滤器 (。・ω・。)",
-      "help": "\"退役模式\"为\"一键退役\"时生效喵"
+      "name": "一键退役过滤器",
+      "help": "\"退役模式\"为\"一键退役\"时生效喵 (=^･ω･^=)"
     },
     "KeepLimitBreak": {
-      "name": "保留满星同名舰 (´・ω・`)",
-      "help": "没有满星时保留几艘同名船。如果不能退役设成\"不保留\"喵。",
+      "name": "保留满星同名舰",
+      "help": "没有满星时保留几艘同名船。如果不能退役设成\"不保留\"喵。 (´・ω・`)",
       "keep_limit_break": "保留满星所需喵",
-      "do_not_keep": "不保留喵 (´;ω;`)"
+      "do_not_keep": "不保留喵"
     }
   },
   "Enhance": {
     "_info": {
-      "name": "强化设置板板 (｀・ω・´)9",
-      "help": "\"退役模式\"为\"强化\"时生效喵"
+      "name": "强化设置板板",
+      "help": "\"退役模式\"为\"强化\"时生效喵 (=^･ω･^=)"
     },
     "ShipToEnhance": {
-      "name": "强化目标 (・ω<)",
+      "name": "强化目标",
       "help": "",
       "all": "强化全部舰娘喵",
       "favourite": "仅强化常用喵"
     },
     "Filter": {
-      "name": "强化过滤串串 (。・ω・。)",
-      "help": "格式: \"cv > bb > ...\" 留空用默认强化方式喵。"
+      "name": "强化过滤串串",
+      "help": "格式: \"cv > bb > ...\" 留空用默认强化方式喵。 (´・ω・`)"
     },
     "CheckPerCategory": {
-      "name": "每分类强化数量限制 (´・ω・`)",
-      "help": "每个舰种最多强化多少艘，战斗中跳过且不计入，优先看材料喵。"
+      "name": "每分类强化数量限制",
+      "help": "每个舰种最多强化多少艘，战斗中跳过且不计入，优先看材料喵。 (´・ω・`)"
     }
   },
   "OldRetire": {
     "_info": {
-      "name": "传统退役规则 (´；ω；｀)",
-      "help": "\"退役模式\"为\"传统退役\"时生效。注意：基于稀有度，可能退役布里喵！"
+      "name": "传统退役规则",
+      "help": "\"退役模式\"为\"传统退役\"时生效。注意：基于稀有度，可能退役布里喵！ (´;ω;`)"
     },
     "N": {
-      "name": "退役白皮 (N) 喵",
+      "name": "退役白皮 喵",
       "help": ""
     },
     "R": {
-      "name": "退役蓝皮 (R) 喵",
+      "name": "退役蓝皮 喵",
       "help": ""
     },
     "SR": {
-      "name": "退役紫皮 (SR) 喵",
+      "name": "退役紫皮 喵",
       "help": ""
     },
     "SSR": {
-      "name": "退役金皮 (SSR) 喵",
+      "name": "退役金皮 喵",
       "help": ""
     },
     "RetireAmount": {
-      "name": "退役数量喵 (・ω・｀)",
+      "name": "退役数量喵",
       "help": "",
       "retire_all": "退役全部喵",
       "retire_10": "退役10个喵"
@@ -980,16 +980,16 @@
   },
   "Campaign": {
     "_info": {
-      "name": "关卡探险指南 (｀・ω・´)ゞ",
-      "help": "选择要攻略的关卡喵"
+      "name": "关卡探险指南",
+      "help": "选择要攻略的关卡喵 (´・ω・`)"
     },
     "Name": {
-      "name": "关卡名称键入 (例如7-2-3 三战撤退) (・ω・)ノ",
-      "help": "例如 7-2, 12-4, D3, SP4 不区分大小写喵~ 缺失关卡请等更新。"
+      "name": "关卡名称键入",
+      "help": "例如 7-2, 12-4, D3, SP4 不区分大小写喵~ 缺失关卡请等更新。 (´・ω・`)"
     },
     "Event": {
-      "name": "活动名选定 (｀・ω・´)",
-      "help": "自动选最新活动喵~",
+      "name": "活动名选定",
+      "help": "自动选最新活动喵~ (=^･ω･^=)",
       "campaign_main": "主线图喵",
       "coalition_20230323": "Frostfall",
       "coalition_20240627": "Welcome to Little Academy",
@@ -1080,6 +1080,7 @@
       "event_20260326_cn": "The Vagabond’s Recruitment Plan",
       "event_20260417_cn": "Vacation Lane – Beachside Brilliance",
       "event_20260520_cn": "Alliance Before the Hagiobull",
+      "event_20260625_cn": "美梦巡演：奇妙夜",
       "raid_20200624": "Air Raid Drills with Essex Rerun",
       "raid_20210708": "Cross Wave rerun",
       "raid_20220127": "Mystery Investigation",
@@ -1141,8 +1142,8 @@
       "war_archives_20240725_cn": "archives Interlude of Illusions"
     },
     "Mode": {
-      "name": "关卡模式喵 (｀・ω・´)",
-      "help": "仅适用主线喵",
+      "name": "关卡模式喵",
+      "help": "仅适用主线喵 (´・ω・`)",
       "normal": "普通喵",
       "hard": "困难喵"
     },
@@ -1155,24 +1156,24 @@
       "help": ""
     },
     "UseAutoSearch": {
-      "name": "使用自律寻敌喵 (´-ω-`)zzz",
+      "name": "使用自律寻敌喵",
       "help": ""
     },
     "Use2xBook": {
-      "name": "使用高效作战指令书 (｀ω´)",
-      "help": "双倍石油双倍掉落喵！"
+      "name": "使用高效作战指令书",
+      "help": "双倍石油双倍掉落喵！(★ω★)"
     },
     "AmbushEvade": {
       "name": "规避伏击喵",
       "help": ""
     },
     "UseRecommendFleet": {
-      "name": "自动配队困难图 (｀・ω・´)ゞ",
-      "help": "使用游戏推荐阵容自动完成困难配队喵~"
+      "name": "自动配队困难图",
+      "help": "使用游戏推荐阵容自动完成困难配队喵~ (=^･ω･^=)"
     },
     "DefeatWithdraw": {
-      "name": "道中失败处理 (｀・ω・´)",
-      "help": "道中战斗战败时的处理方式喵",
+      "name": "道中失败处理",
+      "help": "道中战斗战败时的处理方式喵 (´・ω・`)",
       "withdraw_continue": "撤退后继续任务喵",
       "switch_fleet": "切换队伍继续出击喵",
       "withdraw_stop": "撤退后关闭任务喵"
@@ -1180,52 +1181,52 @@
   },
   "StopCondition": {
     "_info": {
-      "name": "停火条件 (。・ω・。)",
-      "help": "触发任一条件后停止任务喵"
+      "name": "停火条件",
+      "help": "触发任一条件后停止任务喵 (´・ω・`)"
     },
     "OilLimit": {
-      "name": "石油低于 X 后推迟 (´；ω；｀)",
-      "help": "石油不足时歇一歇，等回复再出喵~"
+      "name": "石油低于 X 后推迟",
+      "help": "石油不足时歇一歇，等回复再出喵~ (=^･ω･^=)"
     },
     "CoinLimit": {
-      "name": "物资大于 X 后停止喵 (・ω・)ノ",
-      "help": "物资大于该数值后停止当前任务喵\n0 表示不限制物资喵"
+      "name": "物资大于 X 后停止喵",
+      "help": "物资大于该数值后停止当前任务喵 0 表示不限制物资喵"
     },
     "RunCount": {
-      "name": "出击次数大于 X 停止 (・ω・)ノ",
+      "name": "出击次数大于 X 停止",
       "help": "每运行一次减一，到零停止。0为无限喵。"
     },
     "MapAchievement": {
-      "name": "达成关卡成就停止 (´・ω・`)",
+      "name": "达成关卡成就停止",
       "help": "100%通关、三星、安全海域等条件满足即停喵。",
       "non_stop": "不停喵",
       "non_stop_clear_all": "不停+每把全清喵",
       "100_percent_clear": "100%通关喵",
       "map_3_stars": "100%+三星喵",
       "threat_safe": "100%+三星+安全海域喵",
-      "threat_safe_without_3_stars": "100%+安全海域（无三星）喵"
+      "threat_safe_without_3_stars": "100%+安全海域喵"
     },
     "StageIncrease": {
-      "name": "达成成就后向前开荒 (｀・ω・´)9",
+      "name": "达成成就后向前开荒",
       "help": "自动开荒下一关。确保队伍强度足够，属性限制满足，并设\\\"达成关卡成就后停止\\\"。支持1-1至15-4，A~D，T，SP喵。"
     },
     "GetNewShip": {
-      "name": "获得新船后停止 (´⊙ω⊙`)",
+      "name": "获得新船后停止",
       "help": ""
     },
     "ReachLevel": {
-      "name": "舰船升至 X 级后停止 (´・ω・`)",
+      "name": "舰船升至 X 级后停止",
       "help": "任意低于X级的船升到X级时停。0不限喵。"
     }
   },
   "WarArchives": {
     "_info": {
-      "name": "作战档案查阅 (｡-_-｡)",
+      "name": "作战档案查阅",
       "help": ""
     },
     "DailyRunCount": {
       "name": "每日出击次数喵",
-      "help": "每天最多运行作战档案多少次喵。\n0 表示不限制。\n达到次数后会延迟到下一次服务器刷新，不会关闭任务喵。"
+      "help": "每天最多运行作战档案多少次喵。 0 表示不限制。 达到次数后会延迟到下一次服务器刷新，不会关闭任务喵。 (´・ω・`)"
     },
     "DailyRunCountRemain": {
       "name": "今日剩余出击次数",
@@ -1242,11 +1243,11 @@
   },
   "Fleet": {
     "_info": {
-      "name": "出击舰队编排 (｀・ω・´)ゞ",
-      "help": "设定哪支舰队上场喵"
+      "name": "出击舰队编排",
+      "help": "设定哪支舰队上场喵 (=^･ω･^=)"
     },
     "Fleet1": {
-      "name": "一队编号 (・ω<)",
+      "name": "一队编号",
       "help": "",
       "1": "1番队喵",
       "2": "2番队喵",
@@ -1256,7 +1257,7 @@
       "6": "6番队喵"
     },
     "Fleet1Formation": {
-      "name": "一队阵型排列 (・ω・)ノ",
+      "name": "一队阵型排列",
       "help": "",
       "line_ahead": "单纵阵喵",
       "double_line": "复纵阵喵",
@@ -1272,8 +1273,8 @@
       "hide_in_upper_left": "躲左上角喵"
     },
     "Fleet1Step": {
-      "name": "一队步长 (活动图用) (´・ω・`)",
-      "help": "活动图中限制移动距离喵",
+      "name": "一队步长",
+      "help": "活动图中限制移动距离喵 (´・ω・`)",
       "2": "2步喵",
       "3": "3步喵",
       "4": "4步喵",
@@ -1315,8 +1316,8 @@
       "5": "5步喵"
     },
     "FleetOrder": {
-      "name": "舰队职能分工 (｀・ω・´)",
-      "help": "非自律拾取问号弹药。4战以内强制一队全清。",
+      "name": "舰队职能分工",
+      "help": "非自律拾取问号弹药。4战以内强制一队全清。 (´・ω・`)",
       "fleet1_mob_fleet2_boss": "一队道中 二队boss喵",
       "fleet1_boss_fleet2_mob": "一队boss 二队道中喵",
       "fleet1_all_fleet2_standby": "一队全清 二队待机喵",
@@ -1325,8 +1326,8 @@
   },
   "Submarine": {
     "_info": {
-      "name": "潜艇出击计划 (。・ω・。)",
-      "help": "水下力量的运用喵"
+      "name": "潜艇出击计划",
+      "help": "水下力量的运用喵 (=^･ω･^=)"
     },
     "Fleet": {
       "name": "潜艇舰队编号喵",
@@ -1336,7 +1337,7 @@
       "2": "潜艇2队喵"
     },
     "Mode": {
-      "name": "潜艇出击方案 (｀・ω・´)",
+      "name": "潜艇出击方案",
       "help": "仅自律寻敌关闭时有效。\"狩猎及BOSS战\"道中狩猎并在BOSS战召唤喵。",
       "do_not_use": "不使用喵",
       "hunt_only": "仅狩猎喵",
@@ -1345,7 +1346,7 @@
       "every_combat": "每战出击喵"
     },
     "AutoSearchMode": {
-      "name": "潜艇自律方案 (´-ω-`)zzz",
+      "name": "潜艇自律方案",
       "help": "自律寻敌下生效",
       "sub_standby": "待机喵",
       "sub_auto_call": "自动召唤潜艇喵"
@@ -1361,22 +1362,22 @@
   },
   "Emotion": {
     "_info": {
-      "name": "心情关怀系统 (｡･ω･｡)ﾉ♡",
-      "help": "舰娘的心情非常重要喵~"
+      "name": "心情关怀系统",
+      "help": "舰娘的心情非常重要喵~ (=^･ω･^=)"
     },
     "Mode": {
-      "name": "心情处理模式 (´・ω・`)",
+      "name": "心情处理模式",
       "help": "",
       "calculate": "计算心情消耗喵",
       "ignore": "无视红脸警告喵",
       "calculate_ignore": "计算+无视喵"
     },
     "Fleet1Value": {
-      "name": "一队心情值 (๑•́ ₃ •̀๑)",
+      "name": "一队心情值",
       "help": ""
     },
     "Fleet1Record": {
-      "name": "一队心情记录 (´・ω・`)",
+      "name": "一队心情记录",
       "help": ""
     },
     "Fleet1Control": {
@@ -1388,7 +1389,7 @@
       "prevent_red_face": "防止红脸 (>0) 喵"
     },
     "Fleet1Recover": {
-      "name": "一队心情回复力 (´-ω-`)",
+      "name": "一队心情回复力",
       "help": "",
       "not_in_dormitory": "未放后宅 (20/h) 喵",
       "dormitory_floor_1": "后宅一层 (40/h) 喵",
@@ -1403,7 +1404,7 @@
       "help": ""
     },
     "Fleet2Value": {
-      "name": "二队心情值 (๑•́ ₃ •̀๑)",
+      "name": "二队心情值",
       "help": ""
     },
     "Fleet2Record": {
@@ -1436,50 +1437,50 @@
   },
   "HpControl": {
     "_info": {
-      "name": "血量管控 (´；ω；｀)",
-      "help": "仅在关阵容锁定时生效喵"
+      "name": "血量管控",
+      "help": "仅在关阵容锁定时生效喵 (´・ω・`)"
     },
     "UseHpBalance": {
-      "name": "启用血量平衡调整 ( ´_ゝ`)",
-      "help": "低血量放保护位，高血量放承伤位喵"
+      "name": "启用血量平衡调整",
+      "help": "低血量放保护位，高血量放承伤位喵 (´・ω・`)"
     },
     "UseEmergencyRepair": {
       "name": "使用维修工具喵",
       "help": ""
     },
     "UseLowHpRetreat": {
-      "name": "启用低血量撤退 (´；ω；｀)ﾉ",
+      "name": "启用低血量撤退",
       "help": ""
     },
     "HpBalanceThreshold": {
-      "name": "前排血量差大于 X 时换位 (｀・ω・´)",
+      "name": "前排血量差大于 X 时换位",
       "help": ""
     },
     "HpBalanceWeight": {
-      "name": "先锋血量权重 (格式: 1000, 1000, 1000) (´・ω・`)",
+      "name": "先锋血量权重",
       "help": "根据肉度调整喵"
     },
     "RepairUseSingleThreshold": {
-      "name": "任意舰娘血量< X 使用单修 (´；ω；｀)",
+      "name": "任意舰娘血量< X 使用单修",
       "help": ""
     },
     "RepairUseMultiThreshold": {
-      "name": "全体血量< X 使用群修 (｡•́︿•̀｡)",
+      "name": "全体血量< X 使用群修",
       "help": ""
     },
     "LowHpRetreatThreshold": {
-      "name": "任意舰娘血量< X 撤退 (；´Д`)",
+      "name": "任意舰娘血量< X 撤退",
       "help": ""
     }
   },
   "EnemyPriority": {
     "_info": {
-      "name": "索敌逻辑自定义 (｀・ω・´)9",
-      "help": "优先打谁，雪风帮你选喵"
+      "name": "索敌逻辑自定义",
+      "help": "优先打谁，雪风帮你选喵 (=^･ω･^=)"
     },
     "EnemyScaleBalanceWeight": {
-      "name": "敌人优先级方案 (。・ω・。)",
-      "help": "先清通往BOSS路径上的敌人，再按优先级处理。",
+      "name": "敌人优先级方案",
+      "help": "先清通往BOSS路径上的敌人，再按优先级处理。 (´・ω・`)",
       "default_mode": "依地图文件喵",
       "S3_enemy_first": "优先打大型敌人喵",
       "S1_enemy_first": "优先打小型敌人喵"
@@ -1487,31 +1488,31 @@
   },
   "C11AffinityFarming": {
     "_info": {
-      "name": "1-1 伏击刷好感 (´⊙ω⊙`)",
-      "help": "进1-1后在C1附近反复横跳刷好感喵。"
+      "name": "1-1 伏击刷好感",
+      "help": "进1-1后在C1附近反复横跳刷好感喵。 (=^･ω･^=)"
     },
     "RunCount": {
-      "name": "运行次数 (・ω<)",
+      "name": "运行次数",
       "help": ""
     }
   },
   "C72MysteryFarming": {
     "_info": {
-      "name": "7-2 三战拣垃圾 (´・ω・`)つ",
-      "help": "打三战捡完问号撤退喵。"
+      "name": "7-2 三战拣垃圾",
+      "help": "打三战捡完问号撤退喵。 (´・ω・`)"
     },
     "StepOnA3": {
       "name": "用二队踩 A3 喵",
-      "help": "避免A2问号点被堵住喵。"
+      "help": "避免A2问号点被堵住喵。 (´・ω・`)"
     }
   },
   "C122MediumLeveling": {
     "_info": {
-      "name": "12-2 中型练级 (´-ω-`)z",
-      "help": "用弱队打12-2非三星敌人后撤退，提高经验/油耗比喵。"
+      "name": "12-2 中型练级 z",
+      "help": "用弱队打12-2非三星敌人后撤退，提高经验/油耗比喵。 (´・ω・`)"
     },
     "LargeEnemyTolerance": {
-      "name": "最多打 X 战三星敌人 (;ﾟ∇ﾟ)",
+      "name": "最多打 X 战三星敌人",
       "help": "",
       "0": "0喵",
       "1": "1喵",
@@ -1521,18 +1522,18 @@
   },
   "C124LargeLeveling": {
     "_info": {
-      "name": "12-4 大型练级 (｀ω´)b",
-      "help": "强队打12-4三星敌人后撤退，提升经验/油耗比喵。"
+      "name": "12-4 大型练级",
+      "help": "强队打12-4三星敌人后撤退，提升经验/油耗比喵。 (´・ω・`)"
     },
     "NonLargeEnterTolerance": {
-      "name": "进图后 X 战无三星撤退 (´;ω;`)",
+      "name": "进图后 X 战无三星撤退",
       "help": "",
       "0": "0喵",
       "1": "1喵",
       "2": "2喵"
     },
     "NonLargeRetreatTolerance": {
-      "name": "最多打 X 战非三星 (´-ω-`)",
+      "name": "最多打 X 战非三星",
       "help": "",
       "0": "0喵",
       "1": "1喵",
@@ -1540,7 +1541,7 @@
       "10": "10喵"
     },
     "PickupAmmo": {
-      "name": "X 战后拣弹药 (｀・ω・´)っ",
+      "name": "X 战后拣弹药",
       "help": "",
       "3": "3喵",
       "4": "4喵",
@@ -1549,17 +1550,17 @@
   },
   "GemsFarming": {
     "_info": {
-      "name": "1-1刷伏击配置 (紧急委托赚钻石) (´⊙ω⊙`)",
-      "help": "警告: 少量钻石获取方式，非高效手段。萌新别迷信低耗，角色养成才重要。阵形成型玩家可获取额外魔方，钻石当副产品喵。\n旗舰32级后更换旗舰。委托油比 A3 > A1 > 2-4 > 2-1，活动图更好。一队完成战斗，前排百级零破驱逐输出装，后排33级以下零破白航母。二队跨队支援。\n无法设置舰队职能时：有错误推送就停止任务并通知，否则直接停止AzurPilot，防石油消耗。"
+      "name": "1-1刷伏击配置",
+      "help": "警告: 少量钻石获取方式，非高效手段。萌新别迷信低耗，角色养成才重要。阵形成型玩家可获取额外魔方，钻石当副产品喵。 旗舰32级后更换旗舰。委托油比 A3 > A1 > 2-4 > 2-1，活动图更好。一队完成战斗，前排百级零破驱逐输出装，后排33级以下零破白航母。二队跨队支援。 无法设置舰队职能时：有错误推送就停止任务并通知，否则直接停止AzurPilot，防石油消耗。"
     },
     "ChangeFlagship": {
-      "name": "更换旗舰 (｀・ω・´)ゞ",
-      "help": "旗舰>=32级或红脸时更换。找1-31白航母，退役换下的旗舰。记录并更换装备喵。",
+      "name": "更换旗舰",
+      "help": "旗舰>=32级或红脸时更换。找1-31白航母，退役换下的旗舰。记录并更换装备喵。 (´・ω・`)",
       "ship": "更换舰船喵",
       "ship_equip": "更换舰船+装备喵"
     },
     "CommonCV": {
-      "name": "指定旗舰航母 (´・ω・`)",
+      "name": "指定旗舰航母",
       "help": "",
       "custom": "自定义喵",
       "any": "任意喵",
@@ -1570,18 +1571,18 @@
       "hermes": "竞技神喵"
     },
     "CommonCVFilter": {
-      "name": "自定义旗舰航母过滤器 (;ﾟ∇ﾟ)",
+      "name": "自定义旗舰航母过滤器",
       "help": "需将\"指定旗舰航母\"设为\"自定义\"，按顺序选择。bogue, ranger, langley, hermes"
     },
     "ChangeVanguard": {
-      "name": "更换前排 (｀・ω・´)",
-      "help": "前排红脸时更换。换100级白鹰/铁血白驱（国服外70级），尽量多备驱逐喵。",
+      "name": "更换前排",
+      "help": "前排红脸时更换。换100级白鹰/铁血白驱，尽量多备驱逐喵。",
       "disabled": "不更换喵",
       "ship": "更换舰船喵",
       "ship_equip": "更换舰船+装备喵"
     },
     "CommonDD": {
-      "name": "指定前排驱逐 (・ω<)",
+      "name": "指定前排驱逐",
       "help": "",
       "custom": "自定义喵",
       "any": "任意喵",
@@ -1592,11 +1593,11 @@
       "DDG": "导驱喵"
     },
     "CommonDDFilter": {
-      "name": "自定义前排过滤器 (。-`ω´-)",
+      "name": "自定义前排过滤器",
       "help": "z20, z21, aulick, foote, cassin, downes 按顺序优先喵。"
     },
     "EquipmentCode": {
-      "name": "装备码 (´・ω・`) つ ~",
+      "name": "装备码 つ ~",
       "help": "更换舰船+装备时生效。蓝叠需开虚拟键盘。DD, bogue, hermes, langley, ranger 各有装备码喵。"
     },
     "UseEmotionFirst": {
@@ -1608,59 +1609,59 @@
       "help": "打开后，遇到心情警告弹窗将强制打完，打完后如开启更换前排会强制换船"
     },
     "ALLowHighFlagshipLevel": {
-      "name": "仅更换满级后排 (｡•̀ᴗ-)✧",
+      "name": "仅更换满级后排",
       "help": "打开后只选100级白轻航。确保船坞有符合条件的船喵。"
     },
     "ALLowLowVanguardLevel": {
-      "name": "可更换低等级前排 (´・ω・`)",
+      "name": "可更换低等级前排",
       "help": "前排等级限制降为30级以上，困难模式70级喵。"
     },
     "DelayTaskIFNoFlagship": {
-      "name": "无旗舰时推迟任务 (´；ω；｀)",
+      "name": "无旗舰时推迟任务",
       "help": "找不到白航母就推迟喵。"
     },
     "CommissionLimit": {
-      "name": "防止紧急委托过多 (・ω・｀)",
+      "name": "防止紧急委托过多",
       "help": "7x24运行防委托过多做不完每日，建议过滤器只选短时高收益委托喵。"
     },
     "VanguardLevelMin": {
-      "name": "前排最低等级 (。・ω・。)",
+      "name": "前排最低等级",
       "help": "筛选白皮前排最低等级，默认1喵。"
     },
     "VanguardLevelMax": {
-      "name": "前排最高等级 (｡･ω･｡)",
+      "name": "前排最高等级",
       "help": "筛选白皮前排最高等级，默认125喵。"
     }
   },
   "EventGeneral": {
     "_info": {
-      "name": "活动通用选项板 (。・ω・。)",
-      "help": "控制活动开销喵"
+      "name": "活动通用选项板",
+      "help": "控制活动开销喵 (´・ω・`)"
     },
     "PtLimit": {
-      "name": "活动 PT 限制 (´@ω@`)",
+      "name": "活动 PT 限制",
       "help": "累计PT达设定值禁所有活动任务，0不限制。自律寻敌不即时触发喵。开启后无需计算总次数。"
     },
     "TimeLimit": {
-      "name": "活动时间限制 (´・ω・`)",
+      "name": "活动时间限制",
       "help": "超过本地时间禁活动任务，'2020-01-01 00:00:00'为不限，触发后重置。防止活动结束忘关喵。"
     }
   },
   "TaskBalancer": {
     "_info": {
-      "name": "任务平衡措施 (｀・ω・´)",
-      "help": "防活动图物资过低喵"
+      "name": "任务平衡措施",
+      "help": "防活动图物资过低喵 (´・ω・`)"
     },
     "Enable": {
       "name": "启用任务平衡喵",
-      "help": "每次出击后检查物资量喵"
+      "help": "每次出击后检查物资量喵 (=^･ω･^=)"
     },
     "CoinLimit": {
-      "name": "保持物资大于 X (´；ω；｀)",
+      "name": "保持物资大于 X",
       "help": ""
     },
     "TaskCall": {
-      "name": "物资过低时呼叫任务X (。・ω・。)",
+      "name": "物资过低时呼叫任务X",
       "help": "需提前设置好被调用的任务喵。",
       "Main": "主线图喵",
       "Main2": "主线图-2喵",
@@ -1671,21 +1672,21 @@
   },
   "EventDaily": {
     "_info": {
-      "name": "活动每日图 (｀・ω・´)ゞ",
-      "help": "完成每日活动关卡喵"
+      "name": "活动每日图",
+      "help": "完成每日活动关卡喵 (=^･ω･^=)"
     },
     "StageFilter": {
-      "name": "活动每日过滤器 (・ω<)",
-      "help": "按过滤器顺序出击喵"
+      "name": "活动每日过滤器",
+      "help": "按过滤器顺序出击喵 (´・ω・`)"
     },
     "LastStage": {
-      "name": "上一个完成的关卡 (´・ω・`)",
-      "help": "自动更新，跳过已完成关卡，过0点重置喵。"
+      "name": "上一个完成的关卡",
+      "help": "自动更新，跳过已完成关卡，过0点重置喵。 (´・ω・`)"
     }
   },
   "Raid": {
     "_info": {
-      "name": "共斗活动配置 (。・ω・。)",
+      "name": "共斗活动配置",
       "help": ""
     },
     "Mode": {
@@ -1697,13 +1698,13 @@
       "ex": "EX喵"
     },
     "UseTicket": {
-      "name": "使用演习券喵 (｀ω´)",
+      "name": "使用演习券喵",
       "help": ""
     }
   },
   "RaidScuttle": {
     "_info": {
-      "name": "共斗沉船战术 (´；ω；｀)",
+      "name": "共斗沉船战术",
       "help": ""
     },
     "Sacrifice": {
@@ -1716,27 +1717,27 @@
   },
   "RaidDaily": {
     "_info": {
-      "name": "共斗每日 (。・ω・。)",
-      "help": "完成共斗简单普通困难每日喵"
+      "name": "共斗每日",
+      "help": "完成共斗简单普通困难每日喵 (=^･ω･^=)"
     },
     "StageFilter": {
-      "name": "难度过滤器 (・ω<)",
+      "name": "难度过滤器",
       "help": ""
     }
   },
   "Hospital": {
     "_info": {
-      "name": "医院活动设置 (´・ω・`)",
+      "name": "医院活动设置",
       "help": ""
     },
     "UseRecommendFleet": {
       "name": "使用舰队推荐喵",
-      "help": "关闭则需手动为15关配队喵"
+      "help": "关闭则需手动为15关配队喵 (´・ω・`)"
     }
   },
   "HospitalEvent": {
     "_info": {
-      "name": "共斗医院特殊设置 (。・ω・。)",
+      "name": "共斗医院特殊设置",
       "help": ""
     },
     "Mode": {
@@ -1758,8 +1759,8 @@
   },
   "MaritimeEscort": {
     "_info": {
-      "name": "商船护航 (｀・ω・´)",
-      "help": "进去就撤退，约70%奖励喵。"
+      "name": "商船护航",
+      "help": "进去就撤退，约70%奖励喵。 (´・ω・`)"
     },
     "Enable": {
       "name": "启用商船护航喵",
@@ -1768,19 +1769,19 @@
   },
   "Coalition": {
     "_info": {
-      "name": "光影风尚活动配置 (๑´ㅂ`๑)",
-      "help": "出击前必须手动配队喵。"
+      "name": "光影风尚活动配置",
+      "help": "出击前必须手动配队喵。 (´・ω・`)"
     },
     "Mode": {
       "name": "难度喵",
-      "help": "SP图需用活动每日SP运行喵。",
+      "help": "SP图需用活动每日SP运行喵。 (´・ω・`)",
       "easy": "easy喵",
       "normal": "normal喵",
       "hard": "hard喵",
       "sp": "sp喵"
     },
     "Fleet": {
-      "name": "出击队伍模式 (｀・ω・´)ゞ",
+      "name": "出击队伍模式",
       "help": "",
       "single": "单队连战喵",
       "multi": "多队出击喵"
@@ -1788,7 +1789,7 @@
   },
   "EventShop": {
     "_info": {
-      "name": "活动商店扫货设置 (・∀・)ノ",
+      "name": "活动商店扫货设置",
       "help": ""
     },
     "UnlockSSRShip": {
@@ -1796,63 +1797,63 @@
       "help": ""
     },
     "BuyURShip": {
-      "name": "购买 X 只UR舰船 (´⊙ω⊙`)",
+      "name": "购买 X 只UR舰船",
       "help": "",
       "0": "0喵",
       "1": "1喵",
       "2": "2喵"
     },
     "PresetFilter": {
-      "name": "活动商店过滤器 (｀・ω・´)",
-      "help": "默认全买即可喵",
+      "name": "活动商店过滤器",
+      "help": "默认全买即可喵 (=^･ω･^=)",
       "all": "全部喵",
       "custom": "自定义喵"
     },
     "CustomFilter": {
-      "name": "自定义过滤器 (。-`ω´-)✧",
+      "name": "自定义过滤器",
       "help": "需将过滤器设为自定义。阅读文档，乱设出问题别叫喵→ https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
     }
   },
   "Commission": {
     "_info": {
-      "name": "委托派遣策略 (｀・ω・´)",
+      "name": "委托派遣策略",
       "help": ""
     },
     "PresetFilter": {
-      "name": "委托过滤器 (・ω<)",
+      "name": "委托过滤器",
       "help": "不了解收益别自定义喵。24小时刷紧急委托请用7x24刷委托过滤器。刷紧急时别用石油优先。",
       "cube": "钻石>魔方>石油喵",
-      "cube_24h": "钻石>魔方>石油（7x24刷委托）喵",
+      "cube_24h": "钻石>魔方>石油喵",
       "chip": "钻石>心智>魔方喵",
-      "chip_24h": "钻石>心智>魔方（7x24刷委托）喵",
+      "chip_24h": "钻石>心智>魔方喵",
       "oil": "钻石>石油>魔方喵",
       "custom": "自定义喵"
     },
     "AddShortest": {
       "name": "自动接取耗时最短的委托",
-      "help": "当配置的自定义委托过滤器无委托可选时，自动接取耗时最短的委托。该设置不会影响任何内置的委托策略。"
+      "help": "当配置的自定义委托过滤器无委托可选时，自动接取耗时最短的委托。该设置不会影响任何内置的委托策略。 (´・ω・`)"
     },
     "CustomFilter": {
-      "name": "自定义委托过滤器 (;ﾟ∇ﾟ)",
+      "name": "自定义委托过滤器",
       "help": "需将过滤器设自定义并阅读文档。乱设漏委托别叫喵→ https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
     },
     "DoMajorCommission": {
-      "name": "做主要委托 (1200油/1000油) (´・ω・`)",
-      "help": "1200油委现已过时收益低，建议关闭喵。"
+      "name": "做主要委托 (1200油/1000油)",
+      "help": "1200油委现已过时收益低，建议关闭喵。 (´・ω・`)"
     }
   },
   "Tactical": {
     "_info": {
-      "name": "战术学院安排 (。・ω・。)",
+      "name": "战术学院安排",
       "help": ""
     },
     "TacticalFilter": {
-      "name": "战术学院过滤器 (´・ω・`)",
+      "name": "战术学院过滤器",
       "help": "一般不需改喵"
     },
     "RapidTrainingSlot": {
-      "name": "使用快速学习 (｀・ω・´)9",
-      "help": "活动期间每天10次快速技能学习喵",
+      "name": "使用快速学习",
+      "help": "活动期间每天10次快速技能学习喵 (=^･ω･^=)",
       "do_not_use": "不使用喵",
       "slot_1": "使用于1号位喵",
       "slot_2": "使用于2号位喵",
@@ -1861,59 +1862,59 @@
     },
     "SkillAutoSwitch": {
       "name": "自动换技能喵",
-      "help": "自动换到下一个还没学完的技能继续学喵",
+      "help": "自动换到下一个还没学完的技能继续学喵 (=^･ω･^=)",
       "True": "开启喵",
       "False": "关闭喵"
     }
   },
   "ControlExpOverflow": {
     "_info": {
-      "name": "溢出经验管控 (´・ω・`)",
-      "help": "防技能快满级时用高级书溢出大量经验。如T3溢100，T4溢100，剩1100经验时不使用T4改用T3喵。"
+      "name": "溢出经验管控",
+      "help": "防技能快满级时用高级书溢出大量经验。如T3溢100，T4溢100，剩1100经验时不使用T4改用T3喵。 (´・ω・`)"
     },
     "Enable": {
       "name": "启用溢出经验控制喵",
       "help": ""
     },
     "T4Allow": {
-      "name": "允许 T4 书溢出 X 点经验 (｡•́︿•̀｡)",
+      "name": "允许 T4 书溢出 X 点经验",
       "help": ""
     },
     "T3Allow": {
-      "name": "允许 T3 书溢出 X 点经验 (´・ω・`)",
+      "name": "允许 T3 书溢出 X 点经验",
       "help": ""
     },
     "T2Allow": {
-      "name": "允许 T2 书溢出 X 点经验 (。-`ω´-)",
+      "name": "允许 T2 书溢出 X 点经验",
       "help": ""
     },
     "T1Allow": {
-      "name": "允许 T1 书溢出 X 点经验 (´-ω-`)",
+      "name": "允许 T1 书溢出 X 点经验",
       "help": ""
     }
   },
   "AddNewStudent": {
     "_info": {
-      "name": "学习新技能-自动指派 (｀・ω・´)っ",
-      "help": "战术学院有空位时自动指派舰娘学第一个未满级技能喵。"
+      "name": "学习新技能-自动指派",
+      "help": "战术学院有空位时自动指派舰娘学第一个未满级技能喵。 (=^･ω･^=)"
     },
     "Enable": {
       "name": "启用该功能喵",
       "help": ""
     },
     "Favorite": {
-      "name": "优先选择常用喵 (｡･ω･｡)ﾉ♡",
+      "name": "优先选择常用喵",
       "help": ""
     },
     "MinLevel": {
-      "name": "仅添加等级 >= X 的角色 (・ω<)",
+      "name": "仅添加等级 >= X 的角色",
       "help": ""
     }
   },
   "Research": {
     "_info": {
-      "name": "科研项目选择 (。-`ω´-)✧",
-      "help": "当过滤器与设置共同作用时，AzurPilot找满足所有条件的项目。如设过滤器 `H1 > D2.5 > shortest` 且禁魔方，最终不会选耗魔方项目。想切魔方只需打开，不必改过滤器。"
+      "name": "科研项目选择",
+      "help": "当过滤器与设置共同作用时，AzurPilot找满足所有条件的项目。如设过滤器 `H1 > D2.5 > shortest` 且禁魔方，最终不会选耗魔方项目。想切魔方只需打开，不必改过滤器。 (´・ω・`)"
     },
     "UseCube": {
       "name": "使用魔方喵",
@@ -1925,7 +1926,7 @@
     },
     "CubePreserve": {
       "name": "保留 X 个魔方喵",
-      "help": "当当前魔方数量小于等于该值时，科研暂时不选择消耗魔方的项目喵。\n0 表示关闭喵。"
+      "help": "当当前魔方数量小于等于该值时，科研暂时不选择消耗魔方的项目喵。 0 表示关闭喵。"
     },
     "UseCoin": {
       "name": "使用物资喵",
@@ -1944,11 +1945,11 @@
       "do_not_use": "不使用喵"
     },
     "AllowDelay": {
-      "name": "资源不足时延迟科研 (´・ω・`)",
-      "help": "资源不足延迟到满足条件或科研队即将清空，不会停转。长期缺资源或运行时间不够可取消，保持队列满。"
+      "name": "资源不足时延迟科研",
+      "help": "资源不足延迟到满足条件或科研队即将清空，不会停转。长期缺资源或运行时间不够可取消，保持队列满。 (´・ω・`)"
     },
     "PresetFilter": {
-      "name": "科研过滤器 (｀・ω・´)",
+      "name": "科研过滤器",
       "help": "科研掉落和刷新见 https://azur-stats.lyoko.io/ ，没了解别自定义。预优化过滤器喵。",
       "custom": "自定义喵",
       "series_8_blueprint_305": "八期 蓝图+305喵",
@@ -1975,17 +1976,17 @@
       "series_2_457_only": "二期 仅457喵"
     },
     "CustomFilter": {
-      "name": "自定义科研过滤器 (;ﾟ∇ﾟ)",
+      "name": "自定义科研过滤器",
       "help": "需将过滤器设为自定义并读文档。乱设出问题别叫喵→ https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
     }
   },
   "Dorm": {
     "_info": {
-      "name": "后宅照料 (｡･ω･｡)ﾉ♡",
+      "name": "后宅照料",
       "help": ""
     },
     "Collect": {
-      "name": "收集爱心和家具币 (´▽`ʃ♡ƪ)",
+      "name": "收集爱心和家具币",
       "help": ""
     },
     "Feed": {
@@ -1993,21 +1994,21 @@
       "help": ""
     },
     "FeedFilter": {
-      "name": "喂食过滤器 (・ω<)",
+      "name": "喂食过滤器",
       "help": "一般不需改喵"
     },
     "BuyFood": {
-      "name": "自动购买食物 (｀・ω・´)",
-      "help": "状态显示，禁止设置，别问开关事情喵。"
+      "name": "自动购买食物",
+      "help": "状态显示，禁止设置，别问开关事情喵。 (´・ω・`)"
     }
   },
   "BuyFurniture": {
     "_info": {
-      "name": "活动限时家具购买 (๑¯◡¯๑)",
-      "help": "购买后宅家具商城限时家具喵"
+      "name": "活动限时家具购买",
+      "help": "购买后宅家具商城限时家具喵 (=^･ω･^=)"
     },
     "Enable": {
-      "name": "购买活动家具 (・ω<)",
+      "name": "购买活动家具",
       "help": ""
     },
     "BuyOption": {
@@ -2017,27 +2018,27 @@
       "all": "购买全部喵"
     },
     "LastRun": {
-      "name": "上次检查时间 (´・ω・`)",
+      "name": "上次检查时间",
       "help": "防重复运行，间隔6天。自动记录喵。"
     }
   },
   "Meowfficer": {
     "_info": {
-      "name": "指挥喵相关 (ฅ^•ﻌ•^ฅ)",
+      "name": "指挥喵相关",
       "help": ""
     },
     "BuyAmount": {
-      "name": "每天买 X 个猫箱 (´⊙ω⊙`)",
-      "help": "每日第一个猫箱免费喵"
+      "name": "每天买 X 个猫箱",
+      "help": "每日第一个猫箱免费喵 (=^･ω･^=)"
     },
     "FortChoreMeowfficer": {
-      "name": "喵窝互动 (。・ω・。)",
-      "help": "清扫、喂食、逗猫喵"
+      "name": "喵窝互动",
+      "help": "清扫、喂食、逗猫喵 (=^･ω･^=)"
     }
   },
   "MeowfficerTrain": {
     "_info": {
-      "name": "指挥喵训练 (ฅ´ω`ฅ)",
+      "name": "指挥喵训练",
       "help": ""
     },
     "Enable": {
@@ -2051,43 +2052,43 @@
       "once_a_day": "每天收一只喵"
     },
     "RetainTalentedGold": {
-      "name": "锁定带特殊天赋的金猫 (｡•̀ᴗ-)✧",
-      "help": "收取时锁定，不会被强化，需手动检查解锁喵。"
+      "name": "锁定带特殊天赋的金猫",
+      "help": "收取时锁定，不会被强化，需手动检查解锁喵。 (´・ω・`)"
     },
     "RetainTalentedPurple": {
-      "name": "锁定带特殊天赋的紫猫 (。・ω・。)",
+      "name": "锁定带特殊天赋的紫猫",
       "help": "同上，紫猫版本喵。"
     },
     "EnhanceIndex": {
-      "name": "用无特殊天赋猫给第 X 只强化 (｀・ω・´)9",
+      "name": "用无特殊天赋猫给第 X 只强化",
       "help": "猫仓库第X只，1~12，顺序左上到右下喵。"
     },
     "MaxFeedLevel": {
-      "name": "不用大于 X 级的猫作强化材料 (´・ω・`)",
+      "name": "不用大于 X 级的猫作强化材料",
       "help": "X 1~30喵"
     }
   },
   "GuildLogistics": {
     "_info": {
-      "name": "大舰队后勤 (｀・ω・´)ゞ",
+      "name": "大舰队后勤",
       "help": ""
     },
     "Enable": {
       "name": "启用大舰队后勤喵",
-      "help": "领取大舰队任务、提交筹备、领取奖励喵"
+      "help": "领取大舰队任务、提交筹备、领取奖励喵 (=^･ω･^=)"
     },
     "SelectNewMission": {
-      "name": "选择新的每周舰队任务 (｡•̀ᴗ-)✧",
-      "help": "需司令/副司令。默认塞壬歼灭Ⅲ，击沉任意敌人300艘喵。"
+      "name": "选择新的每周舰队任务",
+      "help": "需司令/副司令。默认塞壬歼灭Ⅲ，击沉任意敌人300艘喵。 (´・ω・`)"
     },
     "ExchangeFilter": {
-      "name": "筹备物品过滤器 (・ω<)",
-      "help": "一般不改，优先消耗最少喵。"
+      "name": "筹备物品过滤器",
+      "help": "一般不改，优先消耗最少喵。 (´・ω・`)"
     }
   },
   "GuildOperation": {
     "_info": {
-      "name": "大舰队作战 (｀ω´)b",
+      "name": "大舰队作战",
       "help": ""
     },
     "Enable": {
@@ -2095,41 +2096,41 @@
       "help": ""
     },
     "SelectNewOperation": {
-      "name": "开启新的大舰队作战 (。・ω・。)",
-      "help": "需司令/副司令。默认达古康纳尔岛海空战奖励最多喵。"
+      "name": "开启新的大舰队作战",
+      "help": "需司令/副司令。默认达古康纳尔岛海空战奖励最多喵。 (´・ω・`)"
     },
     "NewOperationMaxDate": {
-      "name": "每月 X 号后不再开启新作战 (´・ω・`)",
+      "name": "每月 X 号后不再开启新作战",
       "help": "仅启用\"开新作战\"时生效。不建议开满三次，每人每月只参与两次，避免影响派遣评价。"
     },
     "JoinThreshold": {
-      "name": "作战进度 > X 时才参加 (｀・ω・´)",
+      "name": "作战进度 > X 时才参加",
       "help": "0.0~1.0。如0.5表示进度未过半才加入，1为不管直接加喵。"
     },
     "AttackBoss": {
-      "name": "打大舰队BOSS (｀ε´)",
+      "name": "打大舰队BOSS",
       "help": ""
     },
     "BossFleetRecommend": {
-      "name": "使用推荐舰队打BOSS (´・ω・`)",
+      "name": "使用推荐舰队打BOSS",
       "help": "建议关闭自己配队喵。"
     }
   },
   "Reward": {
     "_info": {
-      "name": "收获设置 (๑¯◡¯๑)",
+      "name": "收获设置",
       "help": ""
     },
     "CollectOil": {
-      "name": "收获石油 (´⊙ω⊙`)",
+      "name": "收获石油",
       "help": ""
     },
     "CollectCoin": {
-      "name": "收获物资 (｡•ᴗ•｡)♡",
+      "name": "收获物资",
       "help": ""
     },
     "CollectExp": {
-      "name": "收获经验书 (´-ω-`)",
+      "name": "收获经验书",
       "help": ""
     },
     "CollectMission": {
@@ -2143,8 +2144,8 @@
   },
   "Awaken": {
     "_info": {
-      "name": "认知觉醒 (´⊙ω⊙`)",
-      "help": "觉醒船坞所有船直到心智单元耗尽喵。"
+      "name": "认知觉醒",
+      "help": "觉醒船坞所有船直到心智单元耗尽喵。 (´・ω・`)"
     },
     "LevelCap": {
       "name": "觉醒至等级上限喵",
@@ -2153,38 +2154,38 @@
       "level125": "125级喵"
     },
     "Favourite": {
-      "name": "仅觉醒常用舰船 (｡･ω･｡)ﾉ♡",
+      "name": "仅觉醒常用舰船",
       "help": ""
     }
   },
   "GeneralShop": {
     "_info": {
-      "name": "军火商（通用商店） (｀ω´)",
+      "name": "军火商",
       "help": ""
     },
     "Enable": {
       "name": "商店开关喵",
-      "help": "开启才执行，关闭任务跳过喵。"
+      "help": "开启才执行，关闭任务跳过喵。 (´・ω・`)"
     },
     "UseGems": {
       "name": "使用钻石喵",
       "help": ""
     },
     "Refresh": {
-      "name": "刷新商店喵 (消耗50钻)",
+      "name": "刷新商店喵",
       "help": ""
     },
     "BuySkinBox": {
-      "name": "买外观装备箱 (´⊙ω⊙`)",
-      "help": "降维护成本，过滤器外观箱选择器不随更新，但会购买未知的、数量1、消耗7000物资的物品视为外观箱喵。"
+      "name": "买外观装备箱",
+      "help": "降维护成本，过滤器外观箱选择器不随更新，但会购买未知的、数量1、消耗7000物资的物品视为外观箱喵。 (´・ω・`)"
     },
     "ConsumeCoins": {
-      "name": "消耗溢出物资 (｡•̀ᴗ-)✧",
-      "help": "物资超550000时购买所有消耗物资物品喵。"
+      "name": "消耗溢出物资",
+      "help": "物资超550000时购买所有消耗物资物品喵。 (´・ω・`)"
     },
     "OverflowCoins": {
-      "name": "GeneralShop.OverflowCoins.name",
-      "help": "GeneralShop.OverflowCoins.help"
+      "name": "溢出金币喵",
+      "help": "金币超过上限时购买喵 (=^･ω･^=)"
     },
     "Filter": {
       "name": "商店过滤器喵",
@@ -2193,16 +2194,16 @@
   },
   "GuildShop": {
     "_info": {
-      "name": "舰队商店 (｀・ω・´)ゞ",
+      "name": "舰队商店",
       "help": ""
     },
     "Enable": {
       "name": "商店开关喵",
-      "help": "开启执行，关闭跳过喵。"
+      "help": "开启执行，关闭跳过喵。 (´・ω・`)"
     },
     "Refresh": {
-      "name": "刷新商店喵 (消耗50舰队币)",
-      "help": "舰队币不值钱，建议开喵。"
+      "name": "刷新商店喵",
+      "help": "舰队币不值钱，建议开喵。 (=^･ω･^=)"
     },
     "Filter": {
       "name": "商店过滤器喵",
@@ -2310,12 +2311,12 @@
   },
   "MedalShop2": {
     "_info": {
-      "name": "功勋商店（退役兑换） (。・ω・。)",
+      "name": "功勋商店",
       "help": ""
     },
     "Enable": {
       "name": "商店开关喵",
-      "help": "开启执行，关闭跳过喵。"
+      "help": "开启执行，关闭跳过喵。 (´・ω・`)"
     },
     "Filter": {
       "name": "商店过滤器喵",
@@ -2375,15 +2376,15 @@
   },
   "MeritShop": {
     "_info": {
-      "name": "军需商店（演习商店） (≧∇≦)ﾉ",
+      "name": "军需商店",
       "help": ""
     },
     "Enable": {
       "name": "商店开关喵",
-      "help": "开启执行，关闭跳过喵。"
+      "help": "开启执行，关闭跳过喵。 (´・ω・`)"
     },
     "Refresh": {
-      "name": "刷新商店喵 (消耗20钻)",
+      "name": "刷新商店喵",
       "help": ""
     },
     "Filter": {
@@ -2393,12 +2394,12 @@
   },
   "CoreShop": {
     "_info": {
-      "name": "核心兑换 (´・ω・`)",
+      "name": "核心兑换",
       "help": ""
     },
     "Enable": {
       "name": "商店开关喵",
-      "help": "开启执行，关闭跳过喵。"
+      "help": "开启执行，关闭跳过喵。 (´・ω・`)"
     },
     "Filter": {
       "name": "商店过滤器喵",
@@ -2407,8 +2408,8 @@
   },
   "ShipyardDr": {
     "_info": {
-      "name": "彩科研图纸购买设置 (´⊙ω⊙`)",
-      "help": "每天买彩科研图纸，彩和金折扣独立，每天各白嫖2张喵。"
+      "name": "彩科研图纸购买设置",
+      "help": "每天买彩科研图纸，彩和金折扣独立，每天各白嫖2张喵。 (=^･ω･^=)"
     },
     "ResearchSeries": {
       "name": "科研期数喵",
@@ -2421,7 +2422,7 @@
     },
     "ShipIndex": {
       "name": "舰船序号喵",
-      "help": "从左往右数，从1开始喵",
+      "help": "从左往右数，从1开始喵 (´・ω・`)",
       "0": "不购买喵",
       "1": "1喵",
       "2": "2喵",
@@ -2441,7 +2442,7 @@
   },
   "Shipyard": {
     "_info": {
-      "name": "金科研图纸购买设置 (｡•̀ᴗ-)✧",
+      "name": "金科研图纸购买设置",
       "help": ""
     },
     "ResearchSeries": {
@@ -2476,8 +2477,8 @@
   },
   "Gacha": {
     "_info": {
-      "name": "每日抽卡许愿池 (人´∀｀)．☆．。．:*・°",
-      "help": "抽卡做每日，每天一发轻型池贪200物资喵。"
+      "name": "每日抽卡许愿池",
+      "help": "抽卡做每日，每天一发轻型池贪200物资喵。 (=^･ω･^=)"
     },
     "Pool": {
       "name": "卡池喵",
@@ -2504,26 +2505,26 @@
     },
     "UseTicket": {
       "name": "使用单次建造券喵",
-      "help": "开启后支持建造券的池优先用券，无券及一般池仍用魔方喵。"
+      "help": "开启后支持建造券的池优先用券，无券及一般池仍用魔方喵。 (´・ω・`)"
     },
     "UseDrill": {
-      "name": "使用钻头完成建造 (´・ω・`)",
-      "help": "选否等明天再下水，贪一个钻头喵。"
+      "name": "使用钻头完成建造",
+      "help": "选否等明天再下水，贪一个钻头喵。 (´・ω・`)"
     }
   },
   "BattlePass": {
     "_info": {
-      "name": "大月卡 (๑¯◡¯๑)",
+      "name": "大月卡",
       "help": ""
     },
     "Collect": {
-      "name": "领取大月卡奖励 (´▽`ʃ♡ƪ)",
+      "name": "领取大月卡奖励",
       "help": ""
     }
   },
   "DataKey": {
     "_info": {
-      "name": "档案秘钥 (。・ω・。)",
+      "name": "档案秘钥",
       "help": ""
     },
     "Collect": {
@@ -2532,12 +2533,12 @@
     },
     "ForceCollect": {
       "name": "强制领取档案秘钥喵",
-      "help": "秘钥满时强制领（消红点）喵。"
+      "help": "秘钥满时强制领喵。 (=^･ω･^=)"
     }
   },
   "Mail": {
     "_info": {
-      "name": "邮件领取 (｀・ω・´)",
+      "name": "邮件领取",
       "help": ""
     },
     "ClaimMerit": {
@@ -2559,7 +2560,7 @@
   },
   "SupplyPack": {
     "_info": {
-      "name": "优惠礼包 (´・ω・`)",
+      "name": "优惠礼包",
       "help": ""
     },
     "Collect": {
@@ -2568,7 +2569,7 @@
     },
     "DayOfWeek": {
       "name": "延长至周几喵",
-      "help": "建议平日周一至五，以免漏买喵。",
+      "help": "建议平日周一至五，以免漏买喵。 (´・ω・`)",
       "0": "周一喵",
       "1": "周二喵",
       "2": "周三喵",
@@ -2580,7 +2581,7 @@
   },
   "Minigame": {
     "_info": {
-      "name": "小游戏 (´・ω・)っ由",
+      "name": "小游戏",
       "help": ""
     },
     "Collect": {
@@ -2590,24 +2591,24 @@
   },
   "PrivateQuarters": {
     "_info": {
-      "name": "宿舍计划设置 (｡･ω･｡)ﾉ♡",
+      "name": "宿舍计划设置",
       "help": ""
     },
     "BuyRoses": {
-      "name": "购买每周浪漫满分 (´▽`ʃ♡ƪ)",
-      "help": "每周一重置次数，一次买完，物资不足24K则取消推迟至次日喵。"
+      "name": "购买每周浪漫满分",
+      "help": "每周一重置次数，一次买完，物资不足24K则取消推迟至次日喵。 (´・ω・`)"
     },
     "BuyCake": {
-      "name": "购买每周蛋糕礼盒 (๑´ㅂ`๑)",
-      "help": "每周一重置，一次买完，钻石不足210钻取消推迟次日喵。"
+      "name": "购买每周蛋糕礼盒",
+      "help": "每周一重置，一次买完，钻石不足210钻取消推迟次日喵。 (´・ω・`)"
     },
     "TargetInteract": {
-      "name": "清空每日精力 (｀・ω・´)9",
+      "name": "清空每日精力",
       "help": "与选定舰娘互动清空今日精力喵。"
     },
     "TargetShip": {
-      "name": "选择每日互动的舰娘 (｡•̀ᴗ-)✧",
-      "help": "选一个舰娘进行每日互动喵。",
+      "name": "选择每日互动的舰娘",
+      "help": "选一个舰娘进行每日互动喵。 (=^･ω･^=)",
       "anchorage": "安克雷奇喵",
       "noshiro": "能代喵",
       "sirius": "天狼星喵",
@@ -2618,15 +2619,15 @@
   },
   "Daily": {
     "_info": {
-      "name": "每日任务执行 (｀・ω・´)ゞ",
+      "name": "每日任务执行",
       "help": ""
     },
     "UseDailySkip": {
       "name": "使用快速挑战喵",
-      "help": "每日S胜解锁扫荡，未解锁回退传统出击喵。"
+      "help": "每日S胜解锁扫荡，未解锁回退传统出击喵。 (´・ω・`)"
     },
     "EscortMission": {
-      "name": "商船护送（部件/鱼雷本） (｀ω´)",
+      "name": "商船护送",
       "help": "",
       "skip": "不打喵",
       "first": "第一个喵",
@@ -2634,7 +2635,7 @@
       "third": "第三个喵"
     },
     "EscortMissionFleet": {
-      "name": "商船护送出击舰队 ( ´_ゝ`)",
+      "name": "商船护送出击舰队",
       "help": "",
       "1": "1喵",
       "2": "2喵",
@@ -2644,7 +2645,7 @@
       "6": "6喵"
     },
     "AdvanceMission": {
-      "name": "海域突进（教材/自爆本） (。・ω・。)",
+      "name": "海域突进",
       "help": "",
       "skip": "不打喵",
       "first": "第一个喵",
@@ -2662,7 +2663,7 @@
       "6": "6喵"
     },
     "FierceAssault": {
-      "name": "斩首行动（箱子本） (•̀ᴗ•́)و",
+      "name": "斩首行动",
       "help": "",
       "skip": "不打喵",
       "first": "第一个喵",
@@ -2680,7 +2681,7 @@
       "6": "6喵"
     },
     "TacticalTraining": {
-      "name": "战术研修（心智本） (๑•̀ㅂ•́)و✧",
+      "name": "战术研修",
       "help": "",
       "skip": "不打喵",
       "first": "第一个喵",
@@ -2698,15 +2699,15 @@
       "6": "6喵"
     },
     "SupplyLineDisruption": {
-      "name": "破交作战（潜艇本） (´-ω-`)",
-      "help": "需解锁快速挑战，否则跳过喵。",
+      "name": "破交作战",
+      "help": "需解锁快速挑战，否则跳过喵。 (´・ω・`)",
       "skip": "不打喵",
       "first": "第一个喵",
       "second": "第二个喵",
       "third": "第三个喵"
     },
     "ModuleDevelopment": {
-      "name": "兵装训练（兵装本） (｀・ω・´)9",
+      "name": "兵装训练",
       "help": "",
       "skip": "不打喵",
       "first": "第一个喵",
@@ -2723,7 +2724,7 @@
       "6": "6喵"
     },
     "EmergencyModuleDevelopment": {
-      "name": "限时兵装训练 (｀ε´)",
+      "name": "限时兵装训练",
       "help": "",
       "skip": "不打喵",
       "first": "第一个喵",
@@ -2742,11 +2743,11 @@
   },
   "Hard": {
     "_info": {
-      "name": "困难图日常 (´；ω；｀)",
-      "help": "需解锁周回模式，未解锁前用主线图功能喵。"
+      "name": "困难图日常",
+      "help": "需解锁周回模式，未解锁前用主线图功能喵。 (´・ω・`)"
     },
     "HardStage": {
-      "name": "困难关卡名 (例如11-2,12-2,12-4) (・ω<)",
+      "name": "困难关卡名",
       "help": ""
     },
     "HardFleet": {
@@ -2758,11 +2759,11 @@
   },
   "Exercise": {
     "_info": {
-      "name": "演习竞技 (≧∇≦)ﾉ",
-      "help": "打演习，血量过低自动撤退喵。"
+      "name": "演习竞技",
+      "help": "打演习，血量过低自动撤退喵。 (´・ω・`)"
     },
     "DelayUntilHoursBeforeNextUpdate": {
-      "name": "推迟演习至下次更新前X小时 (・ω<)",
+      "name": "推迟演习至下次更新前X小时",
       "help": "",
       "1": "1喵",
       "2": "2喵",
@@ -2772,7 +2773,7 @@
       "12": "不推迟喵"
     },
     "OpponentChooseMode": {
-      "name": "对手选择模式 (｀・ω・´)",
+      "name": "对手选择模式",
       "help": "",
       "max_exp": "经验最多喵",
       "easiest": "战力最低喵",
@@ -2780,12 +2781,12 @@
       "easiest_else_exp": "先最简单再经验最多喵"
     },
     "OpponentTrial": {
-      "name": "每个对手尝试 X 次 (;ﾟ∇ﾟ)",
+      "name": "每个对手尝试 X 次",
       "help": ""
     },
     "ExerciseStrategy": {
       "name": "演习策略喵",
-      "help": "保留5次则在设定时间冲刺元帅，周日晚18点刷新后清空次数喵。",
+      "help": "保留5次则在设定时间冲刺元帅，周日晚18点刷新后清空次数喵。 (´・ω・`)",
       "aggressive": "清空演习次数喵",
       "fri18": "保留5次至周五18点喵",
       "sat0": "保留5次至周六0点喵",
@@ -2796,16 +2797,16 @@
       "sun18": "保留5次至周日18点喵"
     },
     "LowHpThreshold": {
-      "name": "血量< X 后撤退 (´；ω；｀)",
-      "help": "0.0~1.0，检测最上方血条喵。"
+      "name": "血量< X 后撤退",
+      "help": "0.0~1.0，检测最上方血条喵。 (´・ω・`)"
     },
     "LowHpConfirmWait": {
-      "name": "血量低于阈值后过X秒再撤 (´・ω・`)",
-      "help": "推荐1.0~3.0，因为立绘遮挡需确认喵。"
+      "name": "血量低于阈值后过X秒再撤",
+      "help": "推荐1.0~3.0，因为立绘遮挡需确认喵。 (´・ω・`)"
     },
     "OpponentRefreshValue": {
-      "name": "今日演习对手已刷新X次 (´・ω・`)",
-      "help": "自动更新，0点重置。手动刷新对手应改此值喵。"
+      "name": "今日演习对手已刷新X次",
+      "help": "自动更新，0点重置。手动刷新对手应改此值喵。 (´・ω・`)"
     },
     "OpponentRefreshRecord": {
       "name": "演习对手刷新记录时间喵",
@@ -2814,11 +2815,11 @@
   },
   "Sos": {
     "_info": {
-      "name": "潜艇图（SOS） (｀・ω・´)ゞ",
+      "name": "潜艇图",
       "help": ""
     },
     "Chapter": {
-      "name": "潜艇图出击章节 (｀ω´)",
+      "name": "潜艇图出击章节",
       "help": "",
       "3": "3喵",
       "4": "4喵",
@@ -2832,81 +2833,81 @@
   },
   "OpsiAshAssist": {
     "_info": {
-      "name": "META支援 (｡•ᴗ•｡)♡",
-      "help": "每天三次信标支援喵。"
+      "name": "META支援",
+      "help": "每天三次信标支援喵。 (=^･ω･^=)"
     },
     "Tier": {
-      "name": "寻找等级大于 X 的信标 (｀・ω・´)",
+      "name": "寻找等级大于 X 的信标",
       "help": "尝试若干次找不到符合条件的随缘打喵。"
     }
   },
   "OpsiGeneral": {
     "_info": {
-      "name": "大世界通用设置板 (。・ω・。)",
-      "help": "所有大世界功能公用设置喵。"
+      "name": "大世界通用设置板",
+      "help": "所有大世界功能公用设置喵。 (´・ω・`)"
     },
     "UseLogger": {
-      "name": "使用坐标记录仪 (´・ω・`)っ",
-      "help": "每次进仓库使用所有坐标记录仪喵。"
+      "name": "使用坐标记录仪",
+      "help": "每次进仓库使用所有坐标记录仪喵。 (´・ω・`)"
     },
     "BuyActionPointLimit": {
-      "name": "买行动力X次 (´⊙ω⊙`)",
-      "help": "最大购买次数。",
+      "name": "买行动力X次",
+      "help": "最大购买次数。 (´・ω・`)",
       "0": "不买喵",
-      "1": "1次(1000油100行动力)喵",
-      "2": "2次(2000油200行动力)喵",
-      "3": "3次(4000油400行动力)喵",
-      "4": "4次(6000油600行动力)喵",
-      "5": "5次(10000油1000行动力)喵"
+      "1": "1次喵",
+      "2": "2次喵",
+      "3": "3次喵",
+      "4": "4次喵",
+      "5": "5次喵"
     },
     "OilLimit": {
-      "name": "买行动力时保留 X 石油 (´；ω；｀)",
+      "name": "买行动力时保留 X 石油",
       "help": ""
     },
     "RepairThreshold": {
-      "name": "任意舰船血量< X 回港修理 (；´Д`)",
-      "help": "0.0~1.0"
+      "name": "任意舰船血量< X 回港修理",
+      "help": "0.0~1.0 (´・ω・`)"
     },
     "UseRepairPack": {
-      "name": "使用维修箱修船 (´・ω・`)つ",
-      "help": "启用后使用仓库维修箱，建议配合侵蚀1练级喵。"
+      "name": "使用维修箱修船",
+      "help": "启用后使用仓库维修箱，建议配合侵蚀1练级喵。 (´・ω・`)"
     },
     "RepairPackThreshold": {
-      "name": "血量< X 使用维修箱 (｡•́︿•̀｡)",
-      "help": "仅打开修船开关且打完深渊、要塞、月度Boss后尝试。0.0~1.0"
+      "name": "血量< X 使用维修箱",
+      "help": "仅打开修船开关且打完深渊、要塞、月度Boss后尝试。0.0~1.0 (´・ω・`)"
     },
     "RepairPackThresholdHazard1": {
-      "name": "任意舰船血量低于 X 后，使用维修箱修理（侵蚀1）",
-      "help": "仅在开启“使用维修箱修船”时生效\n仅在“侵蚀1练级+”任务中尝试维修\n0.0 ~ 1.0"
+      "name": "任意舰船血量低于 X 后，使用维修箱修理",
+      "help": "仅在开启「使用维修箱修船」时生效 仅在「侵蚀1练级+」任务中尝试维修 0.0 ~ 1.0 (´・ω・`)"
     },
     "DoRandomMapEvent": {
-      "name": "完成地图随机事件 (。・ω・。)",
+      "name": "完成地图随机事件",
       "help": "自律后重新扫描地图：买明石商店、用塞壬信息收集/探测装置、解锁双舰队机关喵。"
     },
     "AkashiShopFilter": {
-      "name": "商店过滤器 (｀ω´)",
+      "name": "商店过滤器",
       "help": "默认只买体力喵。买紫币设为 'ActionPoint > PurpleCoins'。"
     },
     "NotifyOpsiMail": {
-      "name": "推送大世界相关信息 (｀・ω・´)っ",
+      "name": "推送大世界相关信息",
       "help": "使用 OnePush 推送侵蚀1和短猫信息喵。启动器推送由“启动器推送”单独控制喵。信息较多可能较吵喵。"
     },
     "LauncherPush": {
-      "name": "启动器推送 (｀・ω・´)っ",
+      "name": "启动器推送",
       "help": "将大世界相关信息推送到启动器和 Windows 通知喵。关闭后仅影响启动器推送，不影响 OnePush 推送喵。"
     },
     "IndependentPush": {
-      "name": "大世界信息独立推送 (。・ω・。)",
-      "help": "发需要同时开启“推送大世界相关信息”功能喵。\n关闭时使用智慧港区设置 —> 调试设置 —> 错误推送设置，需要同时开启“错误推送”功能喵。\n开启时使用大世界推送设置，需要分离推送内容时请开启此功能喵。"
+      "name": "大世界信息独立推送",
+      "help": "发需要同时开启“推送大世界相关信息”功能喵。 关闭时使用智慧港区设置 —> 调试设置 —> 错误推送设置，需要同时开启“错误推送”功能喵。 开启时使用大世界推送设置，需要分离推送内容时请开启此功能喵。"
     },
     "OpsiOnePushConfig": {
-      "name": "大世界推送设置 (｀・ω・´)っ",
+      "name": "大世界推送设置",
       "help": "“大世界信息独立推送”功能开启时设置才生效喵。使用 Onepush 推送一条关于侵蚀1和短猫的信息喵。配置方法见文档喵：https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
     }
   },
   "OpsiAshBeacon": {
     "_info": {
-      "name": "META作战 (｀ε´)凸",
+      "name": "META作战",
       "help": ""
     },
     "AttackMode": {
@@ -2917,29 +2918,29 @@
       "current_dossier_only": "档案喵"
     },
     "OneHitMode": {
-      "name": "一击即走战术 (・ω<)",
+      "name": "一击即走战术",
       "help": "每个信标只出击一次，之后半小时叫支援，档案不生效喵。"
     },
     "DossierAutoAttackMode": {
-      "name": "档案信标自动作战 (｡•̀ᴗ-)✧",
+      "name": "档案信标自动作战",
       "help": "首次战斗后自动作战，目前仅国服喵。"
     },
     "RequestAssist": {
-      "name": "呼叫支援 (´・ω・`)つ",
+      "name": "呼叫支援",
       "help": "打前从好友、舰队、世界叫支援，档案不生效喵。"
     },
     "EnsureFullyCollected": {
-      "name": "保证收集满每日200信标数据 (´⊙ω⊙`)",
+      "name": "保证收集满每日200信标数据",
       "help": "未满前暂时无视保留行动力，需同时开启短猫相接喵。"
     },
     "AutoCollectShip": {
-      "name": "自动获取新META舰船 (。・ω・。)",
+      "name": "自动获取新META舰船",
       "help": "关闭则不会点同步按钮，需手动领取喵。"
     }
   },
   "OpsiFleetFilter": {
     "_info": {
-      "name": "出击舰队过滤 (｀・ω・´)ゞ",
+      "name": "出击舰队过滤",
       "help": ""
     },
     "Filter": {
@@ -2949,7 +2950,7 @@
   },
   "OpsiFleet": {
     "_info": {
-      "name": "舰队设置板 (´・ω・`)",
+      "name": "舰队设置板",
       "help": ""
     },
     "Fleet": {
@@ -2967,34 +2968,34 @@
   },
   "OpsiExplore": {
     "_info": {
-      "name": "大世界开荒 (๑•̀ㅂ•́)و✧",
-      "help": "月初开荒所有海域，不需战役信息记录仪。每27分钟清理一个，保证空域搜索冷却。需通关主线并完成模拟战+塞壬试验场喵。"
+      "name": "大世界开荒",
+      "help": "月初开荒所有海域，不需战役信息记录仪。每27分钟清理一个，保证空域搜索冷却。需通关主线并完成模拟战+塞壬试验场喵。 (´・ω・`)"
     },
     "SpecialRadar": {
-      "name": "已购买战役信息记录仪 (5000油) (´⊙ω⊙`)",
-      "help": "非必须，未购买时不可勾选喵。"
+      "name": "已购买战役信息记录仪",
+      "help": "非必须，未购买时不可勾选喵。 (´・ω・`)"
     },
     "ForceRun": {
-      "name": "无视运行间隔强制运行 (｀ε´)",
-      "help": "带来额外行动力消耗，一般不用开喵。"
+      "name": "无视运行间隔强制运行",
+      "help": "带来额外行动力消耗，一般不用开喵。 (´・ω・`)"
     },
     "LastZone": {
-      "name": "上一次完成的区域 (自动更新) (・ω・)ノ",
+      "name": "上一次完成的区域",
       "help": "填0重置进度，重置后自动跳过已开荒海域。支持海域ID或名称喵。"
     },
     "ExploreProgress": {
-      "name": "每月开荒进度 (´・ω・`)",
-      "help": "显示当前完成百分比喵。"
+      "name": "每月开荒进度",
+      "help": "显示当前完成百分比喵。 (=^･ω･^=)"
     }
   },
   "OpsiShop": {
     "_info": {
-      "name": "港口商店 (。・ω・。)",
-      "help": "需通关主线并完成模拟战+塞壬试验场，且启用开荒或使用记录仪。新商店在下个月才可用喵。"
+      "name": "港口商店",
+      "help": "需通关主线并完成模拟战+塞壬试验场，且启用开荒或使用记录仪。新商店在下个月才可用喵。 (´・ω・`)"
     },
     "PresetFilter": {
       "name": "港口商店过滤器喵",
-      "help": "默认即可，白票溢出选高价值+META材料，萌新选不买META材料（买除META材料外所有）。高价值=行动力、坐标、金及以上；META材料=通用战术教材+4种强化材料。",
+      "help": "默认即可，白票溢出选高价值+META材料，萌新选不买META材料。高价值=行动力、坐标、金及以上；META材料=通用战术教材+4种强化材料。",
       "max_benefit": "高价值物品喵",
       "max_benefit_meta": "高价值物品+META材料喵",
       "no_meta": "不购买META材料喵",
@@ -3002,18 +3003,18 @@
       "custom": "自定义喵"
     },
     "CustomFilter": {
-      "name": "自定义过滤器 (;ﾟ∇ﾟ)",
+      "name": "自定义过滤器",
       "help": "设自定义并阅读文档，乱设出问题别叫喵→ https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
     },
     "DisableBeforeDate": {
-      "name": "每月 X 号前不买商店 (｡•̀ᴗ-)✧",
+      "name": "每月 X 号前不买商店",
       "help": "从指定日后一天开始每天买，0不限每天买喵。"
     }
   },
   "OpsiVoucher": {
     "_info": {
-      "name": "特别兑换商店（每月白票商店） (｀・ω・´)9",
-      "help": "购买每月白票商店。需通关主线并完成模拟战+塞壬试验场喵。"
+      "name": "特别兑换商店",
+      "help": "购买每月白票商店。需通关主线并完成模拟战+塞壬试验场喵。 (=^･ω･^=)"
     },
     "Filter": {
       "name": "商店过滤器喵",
@@ -3022,27 +3023,27 @@
   },
   "OpsiDaily": {
     "_info": {
-      "name": "大世界日常 (´-ω-`)zzz",
-      "help": "需通关主线并完成模拟战+塞壬试验场，且启用开荒或使用记录仪喵。"
+      "name": "大世界日常",
+      "help": "需通关主线并完成模拟战+塞壬试验场，且启用开荒或使用记录仪喵。 (´・ω・`)"
     },
     "DoMission": {
-      "name": "做大世界每日 (｀・ω・´)ゞ",
-      "help": "在港口接每日并完成所有喵。"
+      "name": "做大世界每日",
+      "help": "在港口接每日并完成所有喵。 (=^･ω･^=)"
     },
     "UseTuningSample": {
-      "name": "使用效能样本 (｀ω´)",
-      "help": "使用所有六种效能样本和强力效能样本喵。"
+      "name": "使用效能样本",
+      "help": "使用所有六种效能样本和强力效能样本喵。 (´・ω・`)"
     },
     "SkipSirenResearchMission": {
-      "name": "不做塞壬研究任务 (´・ω・`)",
-      "help": "开启则跳过塞壬研究·I/II，研究任务用黄币换紫币喵。"
+      "name": "不做塞壬研究任务",
+      "help": "开启则跳过塞壬研究·I/II，研究任务用黄币换紫币喵。 (´・ω・`)"
     },
     "KeepMissionZone": {
-      "name": "保留海域不清理 (。・ω・。)",
-      "help": "完成每日后退出海域，下次任务刷同一海域不另耗行动力。月底最后一天清理所有未清海域喵。"
+      "name": "保留海域不清理",
+      "help": "完成每日后退出海域，下次任务刷同一海域不另耗行动力。月底最后一天清理所有未清海域喵。 (´・ω・`)"
     },
     "MissionZones": {
-      "name": "月底需清理的海域 (自动记录) (´・ω・`)",
+      "name": "月底需清理的海域",
       "help": "自动记录，一般不需改喵。"
     },
     "CollectTargetReward": {
@@ -3052,50 +3053,50 @@
   },
   "OpsiObscure": {
     "_info": {
-      "name": "隐秘海域清理 (=^･ω･^=)",
-      "help": "每27分钟清一个隐秘海域，保证空域冷却。需通关主线并完成模拟战+塞壬试验场，且启用开荒或使用记录仪喵。"
+      "name": "隐秘海域清理",
+      "help": "每27分钟清一个隐秘海域，保证空域冷却。需通关主线并完成模拟战+塞壬试验场，且启用开荒或使用记录仪喵。 (´・ω・`)"
     },
     "SkipHazard2Obscure": {
-      "name": "不清理2级坐标 (´・ω・`)",
+      "name": "不清理2级坐标",
       "help": "开启则不打侵蚀2级隐秘喵。"
     },
     "ForceRun": {
-      "name": "无视运行间隔强制运行 (｀ε´)",
+      "name": "无视运行间隔强制运行",
       "help": "带来额外行动力消耗，一般不开喵。"
     }
   },
   "OpsiAbyssal": {
     "_info": {
-      "name": "深渊海域扫荡 (｀皿´＃)",
-      "help": "清理仓库深渊坐标。条件同隐秘喵。"
+      "name": "深渊海域扫荡",
+      "help": "清理仓库深渊坐标。条件同隐秘喵。 (´・ω・`)"
     },
     "ForceRun": {
-      "name": "无视运行间隔强制运行 (｀ε´)",
+      "name": "无视运行间隔强制运行",
       "help": "额外行动力消耗，一般不开喵。"
     }
   },
   "OpsiStronghold": {
     "_info": {
-      "name": "塞壬要塞攻坚战 (｀・ω・´)9",
-      "help": "清理每周塞壬要塞。条件同前喵。"
+      "name": "塞壬要塞攻坚战",
+      "help": "清理每周塞壬要塞。条件同前喵。 (´・ω・`)"
     },
     "SubmarineEveryCombat": {
-      "name": "潜艇每战出击 (｀ω´)b",
-      "help": "开启后如过滤器有潜艇编队，弹药耗尽后退要塞并推迟任务喵。"
+      "name": "潜艇每战出击",
+      "help": "开启后如过滤器有潜艇编队，弹药耗尽后退要塞并推迟任务喵。 (´・ω・`)"
     },
     "ForceRun": {
-      "name": "无视运行间隔强制运行 (｀ε´)",
+      "name": "无视运行间隔强制运行",
       "help": "额外行动力消耗，一般不开喵。"
     },
     "HasStronghold": {
-      "name": "OpsiStronghold.HasStronghold.name",
-      "help": "OpsiStronghold.HasStronghold.help"
+      "name": "塞壬要塞喵",
+      "help": "检测到塞壬要塞时执行喵"
     }
   },
   "OpsiMonthBoss": {
     "_info": {
-      "name": "月度Boss决战 (≧∇≦)/",
-      "help": "清理简单/困难月度Boss。简单失败再出击至击破，困难失败终止。需通关主线并完成模拟战+塞壬试验场，且启用开荒或记录仪喵。"
+      "name": "月度Boss决战",
+      "help": "清理简单/困难月度Boss。简单失败再出击至击破，困难失败终止。需通关主线并完成模拟战+塞壬试验场，且启用开荒或记录仪喵。 (´・ω・`)"
     },
     "Mode": {
       "name": "清理月度Boss难度喵",
@@ -3104,21 +3105,21 @@
       "normal_hard": "简单+困难喵"
     },
     "CheckAdaptability": {
-      "name": "适应性203/203/156以上才打BOSS (｀・ω・´)",
+      "name": "适应性203/203/156以上才打BOSS",
       "help": ""
     },
     "ForceRun": {
-      "name": "无视运行间隔强制运行 (｀ε´)",
+      "name": "无视运行间隔强制运行",
       "help": ""
     }
   },
   "OpsiMeowfficerFarming": {
     "_info": {
-      "name": "短猫相接 (ฅ´ω`ฅ)",
-      "help": "按顺时针出击指定侵蚀等级海域。需通关主线并完成模拟战+塞壬试验场，且启用开荒或记录仪喵。"
+      "name": "短猫相接",
+      "help": "按顺时针出击指定侵蚀等级海域。需通关主线并完成模拟战+塞壬试验场，且启用开荒或记录仪喵。 (´・ω・`)"
     },
     "ActionPointPreserve": {
-      "name": "保留 X 点行动力 (´・ω・`)",
+      "name": "保留 X 点行动力",
       "help": "行动力低于X停，自动开箱子，X包含箱内行动力。建议保留3000给侵蚀1练级。大世界重置前3天自动减至200，若启用侵蚀1练级则1000，最后一天减至0喵。"
     },
     "SmartNaturalAPCleanup": {
@@ -3136,81 +3137,81 @@
       "10": "中心海域喵"
     },
     "TargetZone": {
-      "name": "指定海域 (｡•̀ᴗ-)✧",
-      "help": "仅出击指定海域，支持ID或名称。填0跳转默认逻辑（按侵蚀搜索）。"
+      "name": "指定海域",
+      "help": "仅出击指定海域，支持ID或名称。填0跳转默认逻辑。"
     },
     "StayInZone": {
-      "name": "循环出击指定海域 (・ω<)",
+      "name": "循环出击指定海域",
       "help": "开启后一直留在指定海域内运行，不再循环其他。仅在指定海域不为0时生效喵。"
     },
     "APPreserveUntilReset": {
-      "name": "月底重置强制消耗行动力 (´⊙ω⊙`)",
+      "name": "月底重置强制消耗行动力",
       "help": "重置前自动将保留行动力设为0，确保积余被消耗。建议配合侵蚀1练级喵。"
     }
   },
   "OpsiTarget": {
     "_info": {
-      "name": "海域成就 ( ´_ゝ`)",
+      "name": "海域成就",
       "help": ""
     },
     "TargetFarming": {
-      "name": "刷取安全海域成就 (｀・ω・´)9",
+      "name": "刷取安全海域成就",
       "help": ""
     },
     "TargetZone": {
-      "name": "指定海域 (成就星星) (。・ω・。)",
+      "name": "指定海域",
       "help": "仅出击指定海域获取大世界成就星星。支持ID或名称。填0或清空取消指定喵。"
     },
     "LastRun": {
-      "name": "上一次领取时间 (自动) (´・ω・`)",
+      "name": "上一次领取时间",
       "help": "防重复，自动记录喵。"
     }
   },
   "OpsiHazard1Leveling": {
     "_info": {
-      "name": "侵蚀1练级（赛博股票） (´⊙ω⊙`)",
-      "help": "消耗作战补给凭证获取大量经验和少量行动力。推荐1-2艘预装填航母。原版AzurPilot的防呆限制已解除，请谨慎设置喵。"
+      "name": "侵蚀1练级",
+      "help": "消耗作战补给凭证获取大量经验和少量行动力。推荐1-2艘预装填航母。原版AzurPilot的防呆限制已解除，请谨慎设置喵。 (´;ω;`)"
     },
     "TargetZone": {
-      "name": "指定海域 (规避BUG) (｀・ω・´)",
+      "name": "指定海域",
       "help": "仅出击指定海域，可规避游戏BUG无法刷新。",
       "0": "不指定喵",
       "44": "44|西大陆架D喵",
       "22": "22|NA海域西南B喵"
     },
     "OperationCoinsPreserve": {
-      "name": "保留 X 个作战补给凭证 (｡•̀ᴗ-)✧",
+      "name": "保留 X 个作战补给凭证",
       "help": "凭证少于X时运行短猫相接，不建议修改喵。"
     },
     "MinimumActionPointReserve": {
-      "name": "保留 X 点行动力 (｀ε´)",
-      "help": "搏一搏，单车变摩托！雪风大人已把幸运分给指挥官喵，上吧！"
+      "name": "保留 X 点行动力",
+      "help": "搏一搏，单车变摩托！雪风大人已把幸运分给指挥官喵，上吧！(ง •̀_•́)ง"
     },
     "ExecuteFixedPatrolScan": {
-      "name": "舰队强制移动 (雪风温馨提示) (ฅ´ω`ฅ)",
-      "help": "开启后强制移动舰队以免找不到明石，不想坠机就打开喵，轻松达到50万海里每月喵！"
+      "name": "舰队强制移动",
+      "help": "开启后强制移动舰队以免找不到明石，不想坠机就打开喵，轻松达到50万海里每月喵！( •̀ ω •́ )✧"
     },
     "SkipHpCheck": {
       "name": "献祭流跳过血量检测",
       "help": "开启后跳过战斗后的血量检测，即使船沉了也不会停止练级nanoda",
-      "True": "True",
-      "False": "False"
+      "True": "开启喵",
+      "False": "关闭喵"
     },
     "Cl1Filter": {
-      "name": "明石购买筛选 (｀ω´)",
-      "help": "默认只买体力喵。同时买紫币设为 'ActionPoint > PurpleCoins'。"
+      "name": "明石购买筛选",
+      "help": "默认只买体力喵。同时买紫币设为 'ActionPoint > PurpleCoins'。 (´・ω・`)"
     },
     "RecordNonCL1AP": {
-      "name": "统计非侵蚀1来源体力 (。・ω・。)",
+      "name": "统计非侵蚀1来源体力",
       "help": "开启则统计所有来源体力，关闭仅统计侵蚀1任务中体力，忽略其他任务或手动操作体力获取喵。"
     },
     "PreserveVirtualAsset": {
       "name": "保留 X 点虚拟资产",
-      "help": "虚拟资产 = 体力 × 1700/30 + 黄币 + (到月底时间/10分钟) × 1700/30\n虚拟资产低于 X 时运行黄币补充任务，0 为不限制"
+      "help": "虚拟资产 = 体力 × 1700/30 + 黄币 + × 1700/30 虚拟资产低于 X 时运行黄币补充任务，0 为不限制 (´・ω・`)"
     },
     "RecordSeaMiles": {
       "name": "海里数记录",
-      "help": "每次侵蚀1练级循环后记录海里数到统计",
+      "help": "每次侵蚀1练级循环后记录海里数到统计 (´・ω・`)",
       "True": "开启",
       "False": "关闭"
     }
@@ -3218,15 +3219,15 @@
   "OpsiSirenBug": {
     "_info": {
       "name": "塞壬研究装置",
-      "help": "配置塞壬研究装置的基础处理选项喵。"
+      "help": "配置塞壬研究装置的基础处理选项喵。 (´・ω・`)"
     },
     "SirenResearch_Enable": {
       "name": "启用塞壬研究装置",
-      "help": "启用后使用紫币通过塞壬研究装置转换为黄币\n需要足够的海里数支撑紫币消耗喵。"
+      "help": "启用后使用紫币通过塞壬研究装置转换为黄币 需要足够的海里数支撑紫币消耗喵。 (´・ω・`)"
     },
     "Siren_Mode": {
       "name": "与塞壬探测装置的互动方式喵",
-      "help": "选择与塞壬装置的互动方式喵。探测资源消耗紫币（特别兑换凭证），探测敌人消耗塞壬能源存储器喵。",
+      "help": "选择与塞壬装置的互动方式喵。探测资源消耗紫币，探测敌人消耗塞壬能源存储器喵。",
       "resource": "反复尝试探测隐藏的资源喵",
       "enemy": "反复尝试探测隐藏的敌人喵"
     },
@@ -3242,141 +3243,141 @@
   },
   "OpsiCheckLeveling": {
     "_info": {
-      "name": "大世界舰队经验检测 (｀・ω・´)9",
-      "help": "检测出击舰队是否已获取满经验，是则推送通知，需先配置错误推送喵。"
+      "name": "大世界舰队经验检测",
+      "help": "检测出击舰队是否已获取满经验，是则推送通知，需先配置错误推送喵。 (´・ω・`)"
     },
     "TargetLevel": {
-      "name": "当所有舰船经验可升至此时推送(0不限) (´⊙ω⊙`)",
-      "help": "积攒经验足以升到填写等级时触发推送喵。"
+      "name": "当所有舰船经验可升至此时推送",
+      "help": "积攒经验足以升到填写等级时触发推送喵。 (´・ω・`)"
     },
     "LastRun": {
-      "name": "上次检查经验时间(自动) (´・ω・`)",
+      "name": "上次检查经验时间",
       "help": "防重复间隔1天，自动记录喵。"
     },
     "CheckInterval": {
-      "name": "检测间隔 (小时)",
+      "name": "检测间隔",
       "help": "每隔多少小时进行一次经验检测，默认24小时"
     },
     "EnableCustomCheck": {
       "name": "启用自定义舰船检测",
-      "help": "启用后仅检测指定的舰船是否达到目标等级，而非全部舰船",
+      "help": "启用后仅检测指定的舰船是否达到目标等级，而非全部舰船 (´・ω・`)",
       "True": "已启用",
       "False": "未启用"
     },
     "CustomCheckPositions": {
       "name": "自定义检测舰位",
-      "help": "填写需要检测的舰位编号(1-6)，多个舰位用英文逗号分隔（如：4,5），从上往下数1-6\n留空则检测所有舰船"
+      "help": "填写需要检测的舰位编号，多个舰位用英文逗号分隔，从上往下数1-6 留空则检测所有舰船 (´・ω・`)"
     },
     "DelayAfterFull": {
-      "name": "到达目标等级后推迟该任务 (｡•̀ᴗ-)✧",
+      "name": "到达目标等级后推迟该任务",
       "help": "检测到满经验后将本任务推迟指定时间喵。"
     }
   },
   "OpsiFleetAutoChange": {
     "_info": {
       "name": "侵蚀一舰队自动配队",
-      "help": "自动更换已满经验的舰船\n当经验检测发现指定舰位已满经验时，自动进入船坞选择替换舰船\n使用大世界经验检测的目标等级和自定义检测舰位配置\n使用教程：1.必须将所有常用舰船全部取消，只能留下练级舰船 2.必须启用自定义舰船检测并设置舰位 3.舰队必须为舰队1\n原理：每次大世界经验检测后，大世界自动配队运行时会将满经验的指定舰船的常用标记取消，回到港区后会从常用舰船里替换指定舰船"
+      "help": "自动更换已满经验的舰船 当经验检测发现指定舰位已满经验时，自动进入船坞选择替换舰船 使用大世界经验检测的目标等级和自定义检测舰位配置 使用教程：1.必须将所有常用舰船全部取消，只能留下练级舰船 2.必须启用自定义舰船检测并设置舰位 3.舰队必须为舰队1 原理：每次大世界经验检测后，大世界自动配队运行时会将满经验的指定舰船的常用标记取消，回到港区后会从常用舰船里替换指定舰船"
     },
     "Enable": {
       "name": "启用自动配队",
-      "help": "开启后将自动更换已满经验的舰船",
+      "help": "开启后将自动更换已满经验的舰船 (´・ω・`)",
       "True": "已启用",
       "False": "未启用"
     },
     "CooldownHours": {
-      "name": "冷却时间(小时)",
-      "help": "每次自动配队后的冷却时间，避免频繁触发",
+      "name": "冷却时间",
+      "help": "每次自动配队后的冷却时间，避免频繁触发 (´・ω・`)",
       "12": "12",
       "24": "24",
       "48": "48",
       "72": "72"
     },
     "LastRun": {
-      "name": "上次运行时间 (自动记录)",
-      "help": "记录上一次自动配队的时间以防止任务重复运行。这个数值是自动记录的，一般不需要手动修改"
+      "name": "上次运行时间",
+      "help": "记录上一次自动配队的时间以防止任务重复运行。这个数值是自动记录的，一般不需要手动修改 (´・ω・`)"
     }
   },
   "OpsiScheduling": {
     "_info": {
-      "name": "智能调度+（雪风特调） (｡>﹏<｡)",
-      "help": "协调侵蚀1练级与黄币补充任务自动切换，并推送通知。原版AzurPilot防呆限制已解除，谨慎设置喵。"
+      "name": "智能调度+",
+      "help": "协调侵蚀1练级与黄币补充任务自动切换，并推送通知。原版AzurPilot防呆限制已解除，谨慎设置喵。 (´;ω;`)"
     },
     "UseSmartSchedulingOperationCoinsPreserve": {
-      "name": "获取 X 个作战补给凭证 (´・ω・`)",
-      "help": "启用则使用下方获取凭证的配置，禁用则用侵蚀1练级的黄币保留配置。关=行动力控制，开=黄币控制。",
+      "name": "获取 X 个作战补给凭证",
+      "help": "启用则使用下方获取凭证的配置，禁用则用侵蚀1练级的黄币保留配置。关=行动力控制，开=黄币控制。 (´・ω・`)",
       "True": "开启喵",
       "False": "关闭喵"
     },
     "OperationCoinsPreserve": {
-      "name": "侵蚀1练级 保留 X 个作战补给凭证 (｀・ω・´)ゞ",
-      "help": "凭证< X 时运行黄币补充任务，不建议修改喵。"
+      "name": "侵蚀1练级 保留 X 个作战补给凭证",
+      "help": "凭证< X 时运行黄币补充任务，不建议修改喵。 (´・ω・`)"
     },
     "ActionPointPreserve": {
-      "name": "短猫相接 保留 X 点行动力 (´；ω；｀)",
-      "help": "行动力< X 后停止，自动开箱，X含箱内行动力。建议保留1000给侵蚀1练级喵。"
+      "name": "短猫相接 保留 X 点行动力",
+      "help": "行动力< X 后停止，自动开箱，X含箱内行动力。建议保留1000给侵蚀1练级喵。 (´・ω・`)"
     },
     "ActionPointEarlyTriggerEnable": {
       "name": "行动力提前调度",
       "help": "启用后在侵蚀一或短猫结束时记录自然行动力，并按每 10 分钟回复 1 点行动力计算智能调度下次运行时间，避免自然行动力溢出喵。",
-      "True": "True",
-      "False": "False"
+      "True": "开启喵",
+      "False": "关闭喵"
     },
     "ActionPointEarlyTriggerThreshold": {
       "name": "提前调度行动力阈值",
-      "help": "自然行动力恢复到 X 时再次运行智能调度。默认 200，适合在行动力接近自然上限时重新决定执行侵蚀一或短猫喵。"
+      "help": "自然行动力恢复到 X 时再次运行智能调度。默认 200，适合在行动力接近自然上限时重新决定执行侵蚀一或短猫喵。 (´・ω・`)"
     },
     "OperationCoinsReturnThreshold": {
-      "name": "获取 X 个作战补给凭证 (黄币任务) (｡•̀ᴗ-)✧",
-      "help": "黄币获取任务中共获取(增加)X个凭证后返回侵蚀1练级喵。"
+      "name": "获取 X 个作战补给凭证",
+      "help": "黄币获取任务中共获取X个凭证后返回侵蚀1练级喵。 (´・ω・`)"
     },
     "EnableMeowfficerFarming": {
-      "name": "启用短猫相接 (ฅ´ω`ฅ)",
-      "help": "智能调度中是否启用短猫补充黄币。",
+      "name": "启用短猫相接",
+      "help": "智能调度中是否启用短猫补充黄币。 (´・ω・`)",
       "True": "已启用喵",
       "False": "未启用喵"
     },
     "EnableObscure": {
-      "name": "启用隐秘海域 (=^･ω･^=)",
-      "help": "智能调度中是否启用隐秘海域补充黄币。",
+      "name": "启用隐秘海域",
+      "help": "智能调度中是否启用隐秘海域补充黄币。 (´・ω・`)",
       "True": "已启用喵",
       "False": "未启用喵"
     },
     "EnableAbyssal": {
-      "name": "启用深渊海域 (｀皿´)",
-      "help": "智能调度中是否启用深渊海域补充黄币。",
+      "name": "启用深渊海域",
+      "help": "智能调度中是否启用深渊海域补充黄币。 (´・ω・`)",
       "True": "已启用喵",
       "False": "未启用喵"
     },
     "EnableStronghold": {
-      "name": "启用塞壬要塞 (｀・ω・´)9",
-      "help": "智能调度中是否启用塞壬要塞补充黄币。",
+      "name": "启用塞壬要塞",
+      "help": "智能调度中是否启用塞壬要塞补充黄币。 (´・ω・`)",
       "True": "已启用喵",
       "False": "未启用喵"
     },
     "MeowStartEarlyMode": {
-      "name": "月末行动力自动清理模式 (•̀ᴗ•́)و ̑̑",
-      "help": "提前小时数=(当前行动力/30×历史平均每轮短猫耗时)×模式系数，与下月重置剩余时间比较。激进(×0.8)少提前，均衡(×1.2)平衡，保守(×1.5)多提前。",
+      "name": "月末行动力自动清理模式",
+      "help": "提前小时数=×模式系数，与下月重置剩余时间比较。激进(×0.8)少提前，均衡(×1.2)平衡，保守(×1.5)多提前。",
       "aggressive": "激进模式喵",
       "balanced": "均衡模式喵",
       "conservative": "保守模式喵"
     },
     "MeowStartEarlyEnable": {
-      "name": "启用月末行动力自动清理 (｀・ω・´)",
-      "help": "根据历史短猫耗时和当前行动力，自动判断是否提前短猫清月末过剩行动力。基准是下月重置时间，不是每日刷新喵。"
+      "name": "启用月末行动力自动清理",
+      "help": "根据历史短猫耗时和当前行动力，自动判断是否提前短猫清月末过剩行动力。基准是下月重置时间，不是每日刷新喵。 (´・ω・`)"
     },
     "VirtualAssetPreserve": {
       "name": "侵蚀1练级 保留 X 点虚拟资产",
-      "help": "虚拟资产低于 X 时运行黄币补充任务，虚拟资产 = 体力 × 1700/30 + 黄币 + (到月底时间/10分钟) × 1700/30"
+      "help": "虚拟资产低于 X 时运行黄币补充任务，虚拟资产 = 体力 × 1700/30 + 黄币 + × 1700/30 (´・ω・`)"
     }
   },
   "IslandPlan": {
     "_info": {
-      "name": "岛屿计划全局喵 (｡･ω･｡)",
+      "name": "岛屿计划全局喵",
       "help": "岛屿计划的全局配置喵，包括季节设定~"
     },
     "Season": {
-      "name": "当前季节",
-      "help": "设定岛屿计划当前所处的季节，不同季节会启用对应的季节限定物品。\n春季限定：凉拌双笋、芦笋炒虾仁、迎春花茶、鲜榨菠萝汁、芦笋、凤梨、荠菜干、春季花束\n夏季限定：苋菜饭团、番茄炒蛋、西瓜汁、黄瓜汁、番茄、黄瓜、茉莉精油、夏季花束",
+      "name": "四季轮转喵",
+      "help": "设定岛屿计划当前所处的季节，不同季节会启用对应的季节限定物品。 春季限定：凉拌双笋、芦笋炒虾仁、迎春花茶、鲜榨菠萝汁、芦笋、凤梨、荠菜干、春季花束 夏季限定：苋菜饭团、番茄炒蛋、西瓜汁、黄瓜汁、番茄、黄瓜、茉莉精油、夏季花束 (´・ω・`)",
       "spring": "春季",
       "summer": "夏季",
       "autumn": "秋季",
@@ -3385,11 +3386,11 @@
   },
   "IslandFarm": {
     "_info": {
-      "name": "农田喵 (。・ω・。)",
-      "help": "仅支持minitouch喵"
+      "name": "农田喵",
+      "help": "仅支持minitouch喵 (=^･ω･^=)"
     },
     "Positions": {
-      "name": "农田岗位",
+      "name": "农田打工位喵",
       "help": "",
       "1": "1",
       "2": "2",
@@ -3397,15 +3398,15 @@
       "4": "4"
     },
     "WorkerFilter": {
-      "name": "农田使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "农田使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "MinFarm": {
-      "name": "农田作物底线",
-      "help": "建议660及以上"
+      "name": "田里庄稼底线喵",
+      "help": "建议660及以上 (´・ω・`)"
     },
     "PlantPotatoes": {
-      "name": "种小麦",
+      "name": "种小麦喵",
       "help": "",
       "0": "0",
       "1": "1",
@@ -3416,11 +3417,11 @@
   },
   "IslandOrchard": {
     "_info": {
-      "name": "果园喵 (´・ω・`)",
-      "help": "仓库只识别柚子喵，注意缓存"
+      "name": "果园喵",
+      "help": "仓库只识别柚子喵，注意缓存 (´・ω・`)"
     },
     "Positions": {
-      "name": "果园岗位",
+      "name": "果园打工位喵",
       "help": "",
       "1": "1",
       "2": "2",
@@ -3428,19 +3429,19 @@
       "4": "4"
     },
     "WorkerFilter": {
-      "name": "果园使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "果园使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "MinOrchard": {
-      "name": "水果底线",
+      "name": "水果收割线喵",
       "help": ""
     },
     "IgnoreAvocado": {
-      "name": "忽视牛油果",
+      "name": "不要牛油果喵",
       "help": ""
     },
     "PlantRubber": {
-      "name": "种橡胶",
+      "name": "种橡胶喵",
       "help": "",
       "0": "0",
       "1": "1",
@@ -3449,35 +3450,35 @@
       "4": "4"
     },
     "AmagiChanRubber": {
-      "name": "小天城种橡胶",
+      "name": "小天城去种橡胶喵",
       "help": ""
     }
   },
   "IslandNursery": {
     "_info": {
-      "name": "苗圃喵 (｀・ω・´)",
+      "name": "苗圃喵",
       "help": ""
     },
     "Positions": {
-      "name": "苗圃岗位",
+      "name": "苗圃打工位喵",
       "help": "",
       "1": "1",
       "2": "2"
     },
     "WorkerFilter": {
-      "name": "苗圃使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "苗圃使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "MinNursery": {
-      "name": "苗圃作物底线",
+      "name": "苗圃作物底线喵",
       "help": ""
     },
     "IgnorePineapple": {
-      "name": "忽视菠萝",
+      "name": "不要菠萝喵",
       "help": ""
     },
     "PlantLavender": {
-      "name": "种薰衣草",
+      "name": "种薰衣草喵",
       "help": "",
       "0": "0",
       "1": "1",
@@ -3486,80 +3487,80 @@
   },
   "IslandRancher": {
     "_info": {
-      "name": "牧场喵 (´・ω・`)",
+      "name": "牧场喵",
       "help": ""
     },
     "MinChicken": {
-      "name": "鸡肉底线",
+      "name": "鸡肉存货底线喵",
       "help": ""
     },
     "MinPork": {
-      "name": "猪肉底线",
+      "name": "猪肉底线喵",
       "help": ""
     },
     "Milk": {
-      "name": "养牛",
+      "name": "养牛喵",
       "help": ""
     },
     "RancherFilter": {
-      "name": "使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "Wool": {
-      "name": "养羊",
+      "name": "养羊喵",
       "help": ""
     },
     "WoolWorkerFilter": {
-      "name": "养羊使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "养羊使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     }
   },
   "IslandFishery": {
     "_info": {
-      "name": "渔场喵 (ฅ´ω`ฅ)",
-      "help": "支持7种水产喵：鲈鱼、黄鳍金枪鱼、贝类、小海虾、螃蟹、海参、鱿鱼\n默认繁殖黄鳍金枪鱼"
+      "name": "渔场喵",
+      "help": "支持7种水产喵：鲈鱼、黄鳍金枪鱼、贝类、小海虾、螃蟹、海参、鱿鱼 默认繁殖黄鳍金枪鱼 (=^･ω･^=)"
     },
     "Positions": {
-      "name": "渔场岗位",
+      "name": "渔场打工位喵",
       "help": "",
       "1": "1",
       "2": "2",
       "3": "3"
     },
     "MinBass": {
-      "name": "鲈鱼底线",
+      "name": "鲈鱼存货底线喵",
       "help": ""
     },
     "MinYellowfinTuna": {
-      "name": "黄鳍金枪鱼底线",
+      "name": "黄鳍金枪鱼底线喵",
       "help": ""
     },
     "MinShell": {
-      "name": "贝壳底线",
+      "name": "贝壳底线喵",
       "help": ""
     },
     "MinShrimp": {
-      "name": "小河虾底线",
+      "name": "小河虾底线喵",
       "help": ""
     },
     "MinCrayfish": {
-      "name": "小龙虾底线",
+      "name": "小龙虾底线喵",
       "help": ""
     },
     "MinCrab": {
-      "name": "螃蟹底线",
+      "name": "螃蟹底线喵",
       "help": ""
     },
     "MinSquid": {
-      "name": "鱿鱼底线",
+      "name": "鱿鱼底线喵",
       "help": ""
     },
     "MinSeaCucumber": {
-      "name": "海参底线",
+      "name": "海参底线喵",
       "help": ""
     },
     "PlantYellowfinTuna": {
-      "name": "养黄鳍金枪鱼",
+      "name": "养黄鳍金枪鱼喵",
       "help": "",
       "0": "0",
       "1": "1",
@@ -3567,17 +3568,17 @@
       "3": "3"
     },
     "RancherFilter": {
-      "name": "使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     }
   },
   "IslandMine": {
     "_info": {
-      "name": "矿山喵 (｀ω´)",
+      "name": "矿山喵",
       "help": ""
     },
     "Positions": {
-      "name": "岗位数量",
+      "name": "岗位数量喵",
       "help": "",
       "1": "1",
       "2": "2",
@@ -3585,8 +3586,8 @@
       "4": "4"
     },
     "MineSilver": {
-      "name": "采银矿岗位数",
-      "help": "几个空闲矿山岗位用于生产银矿，其余空着不动",
+      "name": "银矿打工位喵",
+      "help": "几个空闲矿山岗位用于生产银矿，其余空着不动 (´・ω・`)",
       "0": "0",
       "1": "1",
       "2": "2",
@@ -3594,37 +3595,37 @@
       "4": "4"
     },
     "WorkerFilter": {
-      "name": "矿山使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "矿山使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "MinCopper": {
-      "name": "铜矿最低库存",
-      "help": "仓库中铜矿数量低于此值时，矿山岗位才会生产"
+      "name": "铜矿底线喵",
+      "help": "仓库中铜矿数量低于此值时，矿山岗位才会生产 (´・ω・`)"
     },
     "MinAluminium": {
-      "name": "铝矿最低库存",
-      "help": "仓库中铝矿数量低于此值时，矿山岗位才会生产"
+      "name": "铝矿底线喵",
+      "help": "仓库中铝矿数量低于此值时，矿山岗位才会生产 (´・ω・`)"
     },
     "MinIron": {
-      "name": "铁矿最低库存",
-      "help": "仓库中铁矿数量低于此值时，矿山岗位才会生产"
+      "name": "铁矿底线喵",
+      "help": "仓库中铁矿数量低于此值时，矿山岗位才会生产 (´・ω・`)"
     },
     "MinSulphur": {
-      "name": "硫磺最低库存",
-      "help": "仓库中硫磺数量低于此值时，矿山岗位才会生产"
+      "name": "硫磺底线喵",
+      "help": "仓库中硫磺数量低于此值时，矿山岗位才会生产 (´・ω・`)"
     },
     "MinSilver": {
-      "name": "银矿最低库存",
-      "help": "仓库中银矿数量低于此值时，矿山岗位才会生产"
+      "name": "银矿底线喵",
+      "help": "仓库中银矿数量低于此值时，矿山岗位才会生产 (´・ω・`)"
     }
   },
   "IslandForest": {
     "_info": {
-      "name": "林场喵 (´・ω・`)",
+      "name": "林场喵",
       "help": ""
     },
     "Positions": {
-      "name": "岗位数量",
+      "name": "岗位数量喵",
       "help": "",
       "1": "1",
       "2": "2",
@@ -3632,8 +3633,8 @@
       "4": "4"
     },
     "CutElegant": {
-      "name": "伐典雅之木岗位数",
-      "help": "几个空闲林场岗位用于生产典雅之木，其余空着不动",
+      "name": "伐木打工位喵",
+      "help": "几个空闲林场岗位用于生产典雅之木，其余空着不动 (´・ω・`)",
       "0": "0",
       "1": "1",
       "2": "2",
@@ -3641,53 +3642,53 @@
       "4": "4"
     },
     "WorkerFilter": {
-      "name": "林场使用角色",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "林场使用角色喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "MinElegant": {
-      "name": "优雅木材最低库存",
-      "help": "仓库中优雅木材数量低于此值时，林场岗位才会生产"
+      "name": "优雅木材底线喵",
+      "help": "仓库中优雅木材数量低于此值时，林场岗位才会生产 (´・ω・`)"
     },
     "MinPractical": {
-      "name": "实用木材最低库存",
-      "help": "仓库中实用木材数量低于此值时，林场岗位才会生产"
+      "name": "实用木材底线喵",
+      "help": "仓库中实用木材数量低于此值时，林场岗位才会生产 (´・ω・`)"
     },
     "MinSelected": {
-      "name": "精选木材最低库存",
-      "help": "仓库中精选木材数量低于此值时，林场岗位才会生产"
+      "name": "精选木材底线喵",
+      "help": "仓库中精选木材数量低于此值时，林场岗位才会生产 (´・ω・`)"
     }
   },
   "IslandDailyGather": {
     "_info": {
-      "name": "每日采集",
-      "help": "通过管理界面采集页签，UI模拟点击完成每日采集。执行时间：凌晨3:10、下午6:00。流程：选择采集目标→切换开关→分配角色→出发"
+      "name": "每日采集喵",
+      "help": "通过管理界面采集页签，UI模拟点击完成每日采集。执行时间：凌晨3:10、下午6:00。流程：选择采集目标→切换开关→分配角色→出发 (´・ω・`)"
     },
     "WorkerFilter": {
-      "name": "采集角色",
-      "help": "以>连接，最多填写3个角色，分别对应第1~3个采集槽位。\n以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n每日采集不能选择 WorkerJuu，填写后会自动忽略。\n仅识别默认排序前两排；指定角色不可用时该槽位回退现有采集逻辑。"
+      "name": "采集角色喵",
+      "help": "以>连接，最多填写3个角色，分别对应第1~3个采集槽位。 以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 每日采集不能选择 WorkerJuu，填写后会自动忽略。 仅识别默认排序前两排；指定角色不可用时该槽位回退现有采集逻辑。"
     }
   },
   "IslandRestaurant": {
     "_info": {
-      "name": "有鱼餐馆喵 (ฅ´ω`ฅ)",
-      "help": "餐品1-8中的凉拌双笋/芦笋炒虾仁会根据当前季节自动切换为对应季节产品喵~"
+      "name": "有鱼餐馆喵",
+      "help": "餐品1-8中的凉拌双笋/芦笋炒虾仁会根据当前季节自动切换为对应季节产品喵~ (=^･ω･^=)"
     },
     "PostNumber": {
-      "name": "岗位数量",
+      "name": "岗位数量喵",
       "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "厨师",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "厨师喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "DoubleBambooShoots": {
-      "name": "季节餐优先制作",
-      "help": "开启后按当前季节选择餐馆季节餐，并在基础餐品之前优先制作喵。春季为凉拌双笋，夏季为苋菜饭团；秋冬无餐馆季节餐时不额外制作喵。"
+      "name": "季节餐优先制作喵",
+      "help": "开启后按当前季节选择餐馆季节餐，并在基础餐品之前优先制作喵。春季为凉拌双笋，夏季为苋菜饭团；秋冬无餐馆季节餐时不额外制作喵。 (´・ω・`)"
     },
     "Meal1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3704,11 +3705,11 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber1": {
-      "name": "餐品1数量",
+      "name": "餐品1数量喵",
       "help": ""
     },
     "Meal2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3725,11 +3726,11 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber2": {
-      "name": "餐品2数量",
+      "name": "餐品2数量喵",
       "help": ""
     },
     "Meal3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3746,11 +3747,11 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber3": {
-      "name": "餐品3数量",
+      "name": "餐品3数量喵",
       "help": ""
     },
     "Meal4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3767,11 +3768,11 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber4": {
-      "name": "餐品4数量",
+      "name": "餐品4数量喵",
       "help": ""
     },
     "Meal5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3788,11 +3789,11 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber5": {
-      "name": "餐品5数量",
+      "name": "餐品5数量喵",
       "help": ""
     },
     "Meal6": {
-      "name": "餐品6",
+      "name": "餐品6喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3809,11 +3810,11 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber6": {
-      "name": "餐品6数量",
+      "name": "餐品6数量喵",
       "help": ""
     },
     "Meal7": {
-      "name": "餐品7",
+      "name": "餐品7喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3830,11 +3831,11 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber7": {
-      "name": "餐品7数量",
+      "name": "餐品7数量喵",
       "help": ""
     },
     "Meal8": {
-      "name": "餐品8",
+      "name": "餐品8喵",
       "help": "",
       "None": "None",
       "tofu": "豆腐",
@@ -3851,18 +3852,18 @@
       "onion_fish": "洋葱蒸鱼"
     },
     "MealNumber8": {
-      "name": "餐品8数量",
+      "name": "餐品8数量喵",
       "help": ""
     }
   },
   "IslandRestaurantNextTask": {
     "_info": {
-      "name": "有鱼餐馆-备用任务喵 (´・ω・`)",
+      "name": "有鱼餐馆-备用任务喵",
       "help": ""
     },
     "AwayCook": {
-      "name": "常驻餐品",
-      "help": "以上全做完则做常驻餐品",
+      "name": "常驻餐品喵",
+      "help": "以上全做完则做常驻餐品 (´・ω・`)",
       "None": "None",
       "tofu": "豆腐",
       "omurice": "蛋包饭",
@@ -3880,25 +3881,25 @@
   },
   "IslandTeahouse": {
     "_info": {
-      "name": "白熊饮品喵 (｡•̀ᴗ-)✧",
-      "help": "迎春花茶/西瓜汁会根据季节自动切换喵，高优先级生产喵~"
+      "name": "白熊饮品喵",
+      "help": "迎春花茶/西瓜汁会根据季节自动切换喵，高优先级生产喵~ (=^･ω･^=)"
     },
     "PostNumber": {
-      "name": "岗位数量",
+      "name": "岗位数量喵",
       "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "厨师",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "厨师喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "Seasonal": {
-      "name": "季节饮品优先制作",
-      "help": "开启后按当前季节选择白熊饮品的季节饮品，并在基础饮品之前优先制作喵。春季为迎春花茶，夏季为西瓜汁；秋冬无白熊饮品季节饮品时不额外制作喵。"
+      "name": "季节饮品优先制作喵",
+      "help": "开启后按当前季节选择白熊饮品的季节饮品，并在基础饮品之前优先制作喵。春季为迎春花茶，夏季为西瓜汁；秋冬无白熊饮品季节饮品时不额外制作喵。 (´・ω・`)"
     },
     "Meal1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -3913,11 +3914,11 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber1": {
-      "name": "餐品1数量",
+      "name": "餐品1数量喵",
       "help": ""
     },
     "Meal2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -3932,11 +3933,11 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber2": {
-      "name": "餐品2数量",
+      "name": "餐品2数量喵",
       "help": ""
     },
     "Meal3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -3951,11 +3952,11 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber3": {
-      "name": "餐品3数量",
+      "name": "餐品3数量喵",
       "help": ""
     },
     "Meal4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -3970,11 +3971,11 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber4": {
-      "name": "餐品4数量",
+      "name": "餐品4数量喵",
       "help": ""
     },
     "Meal5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -3989,11 +3990,11 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber5": {
-      "name": "餐品5数量",
+      "name": "餐品5数量喵",
       "help": ""
     },
     "Meal6": {
-      "name": "餐品6",
+      "name": "餐品6喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -4008,11 +4009,11 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber6": {
-      "name": "餐品6数量",
+      "name": "餐品6数量喵",
       "help": ""
     },
     "Meal7": {
-      "name": "餐品7",
+      "name": "餐品7喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -4027,11 +4028,11 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber7": {
-      "name": "餐品7数量",
+      "name": "餐品7数量喵",
       "help": ""
     },
     "Meal8": {
-      "name": "餐品8",
+      "name": "餐品8喵",
       "help": "",
       "None": "None",
       "apple_juice": "苹果汁",
@@ -4046,18 +4047,18 @@
       "spring_flower_tea": "迎春花茶"
     },
     "MealNumber8": {
-      "name": "餐品8数量",
+      "name": "餐品8数量喵",
       "help": ""
     }
   },
   "IslandTeahouseNextTask": {
     "_info": {
-      "name": "白熊饮品-备用任务喵 (´・ω・`)",
+      "name": "白熊饮品-备用任务喵",
       "help": ""
     },
     "AwayCook": {
-      "name": "常驻餐品",
-      "help": "以上全做完则做常驻餐品",
+      "name": "常驻餐品喵",
+      "help": "以上全做完则做常驻餐品 (´・ω・`)",
       "None": "None",
       "apple_juice": "苹果汁",
       "banana_mango": "香蕉芒果汁",
@@ -4073,21 +4074,21 @@
   },
   "IslandGrill": {
     "_info": {
-      "name": "乌鱼烤肉喵 (╯▽╰)",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "乌鱼烤肉喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "PostNumber": {
-      "name": "岗位数量",
+      "name": "岗位数量喵",
       "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "厨师",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "厨师喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "Meal1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4100,11 +4101,11 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber1": {
-      "name": "餐品1数量",
+      "name": "餐品1数量喵",
       "help": ""
     },
     "Meal2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4117,11 +4118,11 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber2": {
-      "name": "餐品2数量",
+      "name": "餐品2数量喵",
       "help": ""
     },
     "Meal3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4134,11 +4135,11 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber3": {
-      "name": "餐品3数量",
+      "name": "餐品3数量喵",
       "help": ""
     },
     "Meal4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4151,11 +4152,11 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber4": {
-      "name": "餐品4数量",
+      "name": "餐品4数量喵",
       "help": ""
     },
     "Meal5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4168,11 +4169,11 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber5": {
-      "name": "餐品5数量",
+      "name": "餐品5数量喵",
       "help": ""
     },
     "Meal6": {
-      "name": "餐品6",
+      "name": "餐品6喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4185,11 +4186,11 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber6": {
-      "name": "餐品6数量",
+      "name": "餐品6数量喵",
       "help": ""
     },
     "Meal7": {
-      "name": "餐品7",
+      "name": "餐品7喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4202,11 +4203,11 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber7": {
-      "name": "餐品7数量",
+      "name": "餐品7数量喵",
       "help": ""
     },
     "Meal8": {
-      "name": "餐品8",
+      "name": "餐品8喵",
       "help": "",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
@@ -4219,18 +4220,18 @@
       "double_energy": "能量双拼套餐"
     },
     "MealNumber8": {
-      "name": "餐品8数量",
+      "name": "餐品8数量喵",
       "help": ""
     }
   },
   "IslandGrillNextTask": {
     "_info": {
-      "name": "乌鱼烤肉-备用任务喵 (´・ω・`)",
+      "name": "乌鱼烤肉-备用任务喵",
       "help": ""
     },
     "AwayCook": {
-      "name": "常驻餐品",
-      "help": "以上全做完则做常驻餐品",
+      "name": "常驻餐品喵",
+      "help": "以上全做完则做常驻餐品 (´・ω・`)",
       "None": "None",
       "roasted_skewer": "碳烤肉串",
       "chicken_potato": "禽肉土豆拼盘",
@@ -4244,21 +4245,21 @@
   },
   "IslandJuuEatery": {
     "_info": {
-      "name": "啾啾简餐喵 (´・ω・`)つ",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "啾啾简餐喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "PostNumber": {
-      "name": "岗位数量",
+      "name": "岗位数量喵",
       "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "厨师",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "厨师喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "Meal1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4273,11 +4274,11 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber1": {
-      "name": "餐品1数量",
+      "name": "餐品1数量喵",
       "help": ""
     },
     "Meal2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4292,11 +4293,11 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber2": {
-      "name": "餐品2数量",
+      "name": "餐品2数量喵",
       "help": ""
     },
     "Meal3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4311,11 +4312,11 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber3": {
-      "name": "餐品3数量",
+      "name": "餐品3数量喵",
       "help": ""
     },
     "Meal4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4330,11 +4331,11 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber4": {
-      "name": "餐品4数量",
+      "name": "餐品4数量喵",
       "help": ""
     },
     "Meal5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4349,11 +4350,11 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber5": {
-      "name": "餐品5数量",
+      "name": "餐品5数量喵",
       "help": ""
     },
     "Meal6": {
-      "name": "餐品6",
+      "name": "餐品6喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4368,11 +4369,11 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber6": {
-      "name": "餐品6数量",
+      "name": "餐品6数量喵",
       "help": ""
     },
     "Meal7": {
-      "name": "餐品7",
+      "name": "餐品7喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4387,11 +4388,11 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber7": {
-      "name": "餐品7数量",
+      "name": "餐品7数量喵",
       "help": ""
     },
     "Meal8": {
-      "name": "餐品8",
+      "name": "餐品8喵",
       "help": "",
       "None": "None",
       "apple_pie": "苹果派",
@@ -4406,18 +4407,18 @@
       "seafood_rice": "海鲜饭"
     },
     "MealNumber8": {
-      "name": "餐品8数量",
+      "name": "餐品8数量喵",
       "help": ""
     }
   },
   "IslandJuuEateryNextTask": {
     "_info": {
-      "name": "啾啾简餐-备用任务喵 (´・ω・`)",
+      "name": "啾啾简餐-备用任务喵",
       "help": ""
     },
     "AwayCook": {
-      "name": "常驻餐品",
-      "help": "以上全做完则做常驻餐品",
+      "name": "常驻餐品喵",
+      "help": "以上全做完则做常驻餐品 (´・ω・`)",
       "None": "None",
       "apple_pie": "苹果派",
       "corn_cup": "玉米杯",
@@ -4433,25 +4434,25 @@
   },
   "IslandJuuCoffee": {
     "_info": {
-      "name": "啾咖啡喵 (´▽`ʃ♡ƪ)",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "啾咖啡喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "PostNumber": {
-      "name": "岗位数量",
+      "name": "岗位数量喵",
       "help": "",
       "1": "1",
       "2": "2"
     },
     "ChefFilter": {
-      "name": "厨师",
-      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan\n小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei\n恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire\n镇海：ChenHai > 威廉D波特：WilliamDPorter\n海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago\n逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao\n仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
+      "name": "厨师喵",
+      "help": "以>连接，例如肇和 新泽西 小天城：ChaoHo > NewJersey > Amagi_chan 小加加：Saratoga > 明石：Akashi > 塔什干：Tashkent > 应瑞：YingSwei 恶毒：LeMalin > 独角兽：Unicorn > 岛风：Shimakaze > 柴郡：Cheshire 镇海：ChenHai > 威廉D波特：WilliamDPorter 海伦娜：Helena > 大帝：Friedrich > 愛宕：Atago 逸仙：Yixian > 奥古斯特：August > 欧根亲王：Eugen > 胡德：Hood > 标枪：Javelin > 拉菲：Laffey > 探索者：Explorer > 领航员：Navigator > 领洋者：OceanCrosser > 飞云：FeiYun > 高雄：Takao 仅识别默认排序前两排；指定舰娘不可用时回退 WorkerJuu。"
     },
     "Friedrich": {
       "name": "大帝",
-      "help": "芝士只识别两排角色，无则黄鸡，但醒神套餐会指定大帝制作，如果前两排没有大帝则不会制作"
+      "help": "芝士只识别两排角色，无则黄鸡，但醒神套餐会指定大帝制作，如果前两排没有大帝则不会制作 (´・ω・`)"
     },
     "Meal1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4465,11 +4466,11 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber1": {
-      "name": "餐品1数量",
+      "name": "餐品1数量喵",
       "help": ""
     },
     "Meal2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4483,11 +4484,11 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber2": {
-      "name": "餐品2数量",
+      "name": "餐品2数量喵",
       "help": ""
     },
     "Meal3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4501,11 +4502,11 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber3": {
-      "name": "餐品3数量",
+      "name": "餐品3数量喵",
       "help": ""
     },
     "Meal4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4519,11 +4520,11 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber4": {
-      "name": "餐品4数量",
+      "name": "餐品4数量喵",
       "help": ""
     },
     "Meal5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4537,11 +4538,11 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber5": {
-      "name": "餐品5数量",
+      "name": "餐品5数量喵",
       "help": ""
     },
     "Meal6": {
-      "name": "餐品6",
+      "name": "餐品6喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4555,11 +4556,11 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber6": {
-      "name": "餐品6数量",
+      "name": "餐品6数量喵",
       "help": ""
     },
     "Meal7": {
-      "name": "餐品7",
+      "name": "餐品7喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4573,11 +4574,11 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber7": {
-      "name": "餐品7数量",
+      "name": "餐品7数量喵",
       "help": ""
     },
     "Meal8": {
-      "name": "餐品8",
+      "name": "餐品8喵",
       "help": "",
       "None": "None",
       "iced_coffee": "冰咖啡",
@@ -4591,18 +4592,18 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "MealNumber8": {
-      "name": "餐品8数量",
+      "name": "餐品8数量喵",
       "help": ""
     }
   },
   "IslandJuuCoffeeNextTask": {
     "_info": {
-      "name": "啾咖啡-备用任务喵 (´・ω・`)",
+      "name": "啾咖啡-备用任务喵",
       "help": ""
     },
     "AwayCook": {
-      "name": "常驻餐品",
-      "help": "以上全做完则做常驻餐品",
+      "name": "常驻餐品喵",
+      "help": "以上全做完则做常驻餐品 (´・ω・`)",
       "None": "None",
       "iced_coffee": "冰咖啡",
       "omelette": "欧姆蛋",
@@ -4617,8 +4618,8 @@
   },
   "WoodProcessing": {
     "_info": {
-      "name": "木料加工喵 (｀・ω・´)",
-      "help": "只制作文件柜喵，木匠活就交给雪风吧 (｀・ω・´)9"
+      "name": "木料加工喵",
+      "help": "只制作文件柜喵，木匠活就交给雪风吧 (=^･ω･^=)"
     },
     "Positions": {
       "name": "岗位数",
@@ -4630,8 +4631,8 @@
   },
   "ElectronicProcessing": {
     "_info": {
-      "name": "电子加工喵 (｀・ω・´)",
-      "help": "只做滤芯喵~ 其他电子设备暂时不考虑 (｀・ω・´)"
+      "name": "电子加工喵",
+      "help": "只做滤芯喵~ 其他电子设备暂时不考虑 (´・ω・`)"
     },
     "Positions": {
       "name": "岗位数",
@@ -4643,8 +4644,8 @@
   },
   "Industrial": {
     "_info": {
-      "name": "工业生产喵 (｀・ω・´)",
-      "help": "钉子超过20个开始做餐具喵，还没解锁就手动做吧 (。-ω-)zzz"
+      "name": "工业生产喵",
+      "help": "钉子超过20个开始做餐具喵，还没解锁就手动做吧 (´・ω・`)"
     },
     "Positions": {
       "name": "岗位数",
@@ -4656,7 +4657,7 @@
   },
   "Handmade": {
     "_info": {
-      "name": "手工制作喵 (｀・ω・´)",
+      "name": "手工制作喵",
       "help": "皮革超过10个开始做鞋靴喵，没解锁的话需要手动做 (´・ω・`)"
     },
     "Positions": {
@@ -4669,52 +4670,52 @@
   },
   "IslandAirDrop": {
     "_info": {
-      "name": "每日补给喵 (・ω<)",
+      "name": "每日补给喵",
       "help": ""
     },
     "LastSteal": {
-      "name": "上次运行时间",
+      "name": "上次运行时间喵",
       "help": ""
     },
     "VisitOtherIsland": {
       "name": "去别人家拿补给喵",
-      "help": "关掉的话就只收自己岛上的空投，不去别人家串门蹭吃蹭喝啦 (｀・ω・´)"
+      "help": "关掉的话就只收自己岛上的空投，不去别人家串门蹭吃蹭喝啦 (=^･ω･^=)"
     }
   },
   "IslandDailyOrder": {
     "_info": {
-      "name": "每日订单喵 (๑¯◡¯๑)",
-      "help": "超自动检测紧急/挑战/轻松订单，根据芝士和豆腐黑名单驳回喵~"
+      "name": "每日订单喵",
+      "help": "超自动检测紧急/挑战/轻松订单，根据芝士和豆腐黑名单驳回喵~ (=^･ω･^=)"
     },
     "RejectCount": {
-      "name": "当前驳回次数 (｀・ω・´)",
+      "name": "当前驳回次数喵",
       "help": "今天已经驳回过多少次订单了喵~ 每天 0 点重置哒！"
     },
     "RejectFilter": {
-      "name": "驳回物品过滤 (￣▽￣)",
-      "help": "设置要驳回的坏坏物品喵~ 支持 Cheese（芝士）和 Tofu（豆腐），用 > 隔开。比如 \"Cheese > Tofu\""
+      "name": "驳回物品过滤喵",
+      "help": "设置要驳回的坏坏物品喵~ 支持 Cheese和 Tofu，用 > 隔开。比如 \"Cheese > Tofu\""
     },
     "UrgentDetectRefreshTime": {
-      "name": "紧急委托冷却时间 (｡•́︿•̀｡)",
+      "name": "紧急委托冷却时间喵",
       "help": "紧急委托的冷却时间喵~ 在这之前不会检测紧急委托的说！格式：YYYY-MM-DD HH:mm:ss"
     }
   },
   "IslandDailyInteract": {
     "_info": {
       "name": "每日/周任务喵",
-      "help": "仅支持minitouch喵。控制岛屿每日与每周互动任务，包含晨露农场摸猫、开发计划中的 JUU 速运、商区外送服务和每周照相任务喵。"
+      "help": "仅支持minitouch喵。控制岛屿每日与每周互动任务，包含晨露农场摸猫、开发计划中的 JUU 速运、商区外送服务和每周照相任务喵。 (=^･ω･^=)"
     },
     "WeeklyPhoto": {
-      "name": "每周照相任务",
-      "help": "从开发计划页面启动每周照相任务，循环完成三轮照相与空闲选择，直到任务图标消失喵。",
-      "True": "True",
-      "False": "False"
+      "name": "每周照相任务喵",
+      "help": "从开发计划页面启动每周照相任务，循环完成三轮照相与空闲选择，直到任务图标消失喵。 (=^･ω･^=)",
+      "True": "开启喵",
+      "False": "关闭喵"
     }
   },
   "IslandPearlSell": {
     "_info": {
-      "name": "每周珍珠采购与售卖喵 (๑¯◡¯๑)",
-      "help": "仅支持minitouch喵。每周二 01:00 自动处理珍珠喵：先按最高采购价买本周珍珠，再按最低售卖价卖已有珍珠。其他没完成的流程会延迟到次日 01:00 重试。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错喵。"
+      "name": "每周珍珠采购与售卖喵",
+      "help": "仅支持minitouch喵。每周二 01:00 自动处理珍珠喵：先按最高采购价买本周珍珠，再按最低售卖价卖已有珍珠。其他没完成的流程会延迟到次日 01:00 重试。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错喵。 (´・ω・`)"
     },
     "BuyPrice": {
       "name": "最高采购价格喵",
@@ -4730,37 +4731,37 @@
     },
     "DailyPriceRefresh": {
       "name": "每日03:00刷新价格喵",
-      "help": "开启后每天03:00进入珍珠商店刷新价格显示喵"
+      "help": "开启后每天03:00进入珍珠商店刷新价格显示喵 (=^･ω･^=)"
     },
     "NextPearlTradeTime": {
       "name": "下次采购售卖时间喵",
-      "help": "记录下次执行采购售卖的时间喵。到达此时间前仅做价格刷新（如启用）。"
+      "help": "记录下次执行采购售卖的时间喵。到达此时间前仅做价格刷新。 (´・ω・`)"
     }
   },
   "IslandCargoPreparation": {
     "_info": {
-      "name": "货物筹备喵 (๑¯◡¯๑)",
-      "help": "自动处理岛屿货运委托的领取、更换和装载流程喵。"
+      "name": "货物筹备喵",
+      "help": "自动处理岛屿货运委托的领取、更换和装载流程喵。 (=^･ω･^=)"
     },
     "Blacklist": {
       "name": "货物黑名单喵",
-      "help": "命中黑名单货物时更换委托喵。目前仅支持 Milk（牛奶）。"
+      "help": "命中黑名单货物时更换委托喵。目前仅支持 Milk。 (´・ω・`)"
     }
   },
   "IslandBusiness": {
     "_info": {
-      "name": "经营模块喵 (ฅ´ω`ฅ)",
-      "help": "管理店铺经营，支持分批经营喵~"
+      "name": "经营模块喵",
+      "help": "管理店铺经营，支持分批经营喵~ (=^･ω･^=)"
     },
     "BatchEnabled": {
-      "name": "启用分批经营",
-      "help": "把5个商店分两批安排，避免抢人打架喵",
-      "True": "启用",
-      "False": "禁用"
+      "name": "启用分批经营喵",
+      "help": "把5个商店分两批安排，避免抢人打架喵 (=^･ω･^=)",
+      "True": "启用喵",
+      "False": "禁用喵"
     },
     "Batch1Shops": {
-      "name": "第一批经营商店",
-      "help": "第一批要经营的商店",
+      "name": "第一批经营商店喵",
+      "help": "第一批要经营的商店 (´・ω・`)",
       "1": "有鱼餐馆",
       "2": "白熊饮品",
       "3": "啾啾简餐",
@@ -4768,8 +4769,8 @@
       "5": "啾咖啡"
     },
     "Batch2Shops": {
-      "name": "第二批经营商店",
-      "help": "第二批要经营的商店",
+      "name": "第二批经营商店喵",
+      "help": "第二批要经营的商店 (´・ω・`)",
       "1": "有鱼餐馆",
       "2": "白熊饮品",
       "3": "啾啾简餐",
@@ -4777,23 +4778,23 @@
       "5": "啾咖啡"
     },
     "SeasonalReplaceEnabled": {
-      "name": "启用季节限定替换",
-      "help": "季节菜品不够吃就自动换别的喵",
-      "True": "启用",
-      "False": "禁用"
+      "name": "启用季节限定替换喵",
+      "help": "季节菜品不够吃就自动换别的喵 (´・ω・`)",
+      "True": "启用喵",
+      "False": "禁用喵"
     },
     "SeasonalThreshold": {
-      "name": "季节限定替换阈值",
-      "help": "库存低于这个数就换菜喵"
+      "name": "季节限定替换阈值喵",
+      "help": "库存低于这个数就换菜喵 (´・ω・`)"
     }
   },
   "IslandBusinessShop1": {
     "_info": {
-      "name": "有鱼餐馆喵 (ฅ´ω`ฅ)",
+      "name": "有鱼餐馆喵",
       "help": ""
     },
     "Char1": {
-      "name": "角色1",
+      "name": "角色1喵",
       "help": "",
       "None": "None",
       "WorkerJuu": "工作啾",
@@ -4826,7 +4827,7 @@
       "Takao": "高雄"
     },
     "Char2": {
-      "name": "角色2",
+      "name": "角色2喵",
       "help": "",
       "None": "None",
       "WorkerJuu": "工作啾",
@@ -4859,7 +4860,7 @@
       "Takao": "高雄"
     },
     "Product1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "double_bamboo_shoots": "凉拌双笋",
@@ -4870,7 +4871,7 @@
       "amaranth_rice_ball": "苋菜饭团"
     },
     "Product2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "double_bamboo_shoots": "凉拌双笋",
@@ -4881,7 +4882,7 @@
       "amaranth_rice_ball": "苋菜饭团"
     },
     "Product3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "double_bamboo_shoots": "凉拌双笋",
@@ -4892,7 +4893,7 @@
       "amaranth_rice_ball": "苋菜饭团"
     },
     "Product4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "double_bamboo_shoots": "凉拌双笋",
@@ -4903,7 +4904,7 @@
       "amaranth_rice_ball": "苋菜饭团"
     },
     "Product5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "double_bamboo_shoots": "凉拌双笋",
@@ -4914,8 +4915,8 @@
       "amaranth_rice_ball": "苋菜饭团"
     },
     "SeasonalFallback": {
-      "name": "季节餐品备用餐品",
-      "help": "有鱼餐馆季节菜不够时换成这个喵",
+      "name": "季节内菜品默认替换喵",
+      "help": "有鱼餐馆季节菜不够时换成这个喵 (=^･ω･^=)",
       "None": "无",
       "double_bamboo_shoots": "凉拌双笋",
       "tofu_meat": "肉末烧豆腐",
@@ -4925,17 +4926,17 @@
       "amaranth_rice_ball": "苋菜饭团"
     },
     "BoostReplaceFilter": {
-      "name": "有鱼餐馆加成替换过滤",
-      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：double_bamboo_shoots:凉拌双笋, tofu_meat:肉末烧豆腐, tofu_combo:经典豆腐套餐, hearty_meal:绵玉定食, fo_tiao:佛跳墙, amaranth_rice_ball:苋菜饭团\n示例：30 > 20 > 10"
+      "name": "有鱼餐馆加成替换顺序喵",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵 可用餐品key对照：double_bamboo_shoots:凉拌双笋, tofu_meat:肉末烧豆腐, tofu_combo:经典豆腐套餐, hearty_meal:绵玉定食, fo_tiao:佛跳墙, amaranth_rice_ball:苋菜饭团 示例：30 > 20 > 10"
     }
   },
   "IslandBusinessShop2": {
     "_info": {
-      "name": "白熊饮品喵 (｡•̀ᴗ-)✧",
+      "name": "白熊饮品喵",
       "help": ""
     },
     "Char1": {
-      "name": "角色1",
+      "name": "角色1喵",
       "help": "",
       "None": "None",
       "WorkerJuu": "工作啾",
@@ -4968,7 +4969,7 @@
       "Takao": "高雄"
     },
     "Char2": {
-      "name": "角色2",
+      "name": "角色2喵",
       "help": "",
       "None": "None",
       "WorkerJuu": "工作啾",
@@ -5001,7 +5002,7 @@
       "Takao": "高雄"
     },
     "Product1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "spring_flower_tea": "迎春花茶",
@@ -5014,7 +5015,7 @@
       "watermelon_juice": "西瓜汁"
     },
     "Product2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "spring_flower_tea": "迎春花茶",
@@ -5027,7 +5028,7 @@
       "watermelon_juice": "西瓜汁"
     },
     "Product3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "spring_flower_tea": "迎春花茶",
@@ -5040,7 +5041,7 @@
       "watermelon_juice": "西瓜汁"
     },
     "Product4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "spring_flower_tea": "迎春花茶",
@@ -5053,7 +5054,7 @@
       "watermelon_juice": "西瓜汁"
     },
     "Product5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "spring_flower_tea": "迎春花茶",
@@ -5066,17 +5067,17 @@
       "watermelon_juice": "西瓜汁"
     },
     "BoostReplaceFilter": {
-      "name": "白熊饮品加成替换过滤",
-      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：spring_flower_tea:迎春花茶, strawberry_lemon:草莓蜜沁, strawberry_honey:草莓蜂蜜冰沙, floral_fruity:花香果韵, fruit_paradise:缤纷果乐园, lavender_tea:薰衣草茶, sunny_honey:阳光蜜水, watermelon_juice:西瓜汁\n示例：30 > 20 > strawberry_honey > fruit_paradise > 10"
+      "name": "白熊饮品加成替换顺序喵",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵 可用餐品key对照：spring_flower_tea:迎春花茶, strawberry_lemon:草莓蜜沁, strawberry_honey:草莓蜂蜜冰沙, floral_fruity:花香果韵, fruit_paradise:缤纷果乐园, lavender_tea:薰衣草茶, sunny_honey:阳光蜜水, watermelon_juice:西瓜汁 示例：30 > 20 > strawberry_honey > fruit_paradise > 10 (´・ω・`)"
     }
   },
   "IslandBusinessShop3": {
     "_info": {
-      "name": "啾啾简餐喵 (´・ω・`)つ",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "啾啾简餐喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "Char1": {
-      "name": "角色1",
+      "name": "角色1喵",
       "help": "",
       "None": "None",
       "WorkerJuu": "工作啾",
@@ -5109,7 +5110,7 @@
       "Takao": "高雄"
     },
     "Char2": {
-      "name": "角色2",
+      "name": "角色2喵",
       "help": "",
       "None": "None",
       "WorkerJuu": "工作啾",
@@ -5142,7 +5143,7 @@
       "Takao": "高雄"
     },
     "Product1": {
-      "name": "餐品1",
+      "name": "餐品1喵",
       "help": "",
       "None": "None",
       "orchard_duo": "果园二重奏",
@@ -5152,7 +5153,7 @@
       "seafood_rice": "海鲜饭"
     },
     "Product2": {
-      "name": "餐品2",
+      "name": "餐品2喵",
       "help": "",
       "None": "None",
       "orchard_duo": "果园二重奏",
@@ -5162,7 +5163,7 @@
       "seafood_rice": "海鲜饭"
     },
     "Product3": {
-      "name": "餐品3",
+      "name": "餐品3喵",
       "help": "",
       "None": "None",
       "orchard_duo": "果园二重奏",
@@ -5172,7 +5173,7 @@
       "seafood_rice": "海鲜饭"
     },
     "Product4": {
-      "name": "餐品4",
+      "name": "餐品4喵",
       "help": "",
       "None": "None",
       "orchard_duo": "果园二重奏",
@@ -5182,7 +5183,7 @@
       "seafood_rice": "海鲜饭"
     },
     "Product5": {
-      "name": "餐品5",
+      "name": "餐品5喵",
       "help": "",
       "None": "None",
       "orchard_duo": "果园二重奏",
@@ -5192,14 +5193,14 @@
       "seafood_rice": "海鲜饭"
     },
     "BoostReplaceFilter": {
-      "name": "啾啾简餐加成替换过滤",
-      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：orchard_duo:果园二重奏, succulently_sweet:香甜组合, berry_orange:莓果香橙甜点组, strawberry_charlotte:草莓夏洛特, seafood_rice:海鲜饭\n示例：30 > 20 > succulently_sweet > 10"
+      "name": "啾啾简餐加成替换顺序喵",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵 可用餐品key对照：orchard_duo:果园二重奏, succulently_sweet:香甜组合, berry_orange:莓果香橙甜点组, strawberry_charlotte:草莓夏洛特, seafood_rice:海鲜饭 示例：30 > 20 > succulently_sweet > 10 (´・ω・`)"
     }
   },
   "IslandBusinessShop4": {
     "_info": {
-      "name": "烏魚烤肉喵",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "name": "乌鱼烤肉喵",
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "Char1": {
       "name": "角色1喵",
@@ -5323,14 +5324,14 @@
       "double_energy": "能量双拼套餐"
     },
     "BoostReplaceFilter": {
-      "name": "乌鱼烤肉加成替换过滤",
-      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：roasted_skewer:碳烤肉串, stir_fried_chicken:爆炒禽肉, steak_bowl:汉堡肉饭, crayfish_stir_fry:爆炒小龙虾, carnival:烤肉狂欢, double_energy:能量双拼套餐\n示例：30 > 20 > crayfish_stir_fry > 10"
+      "name": "乌鱼烤肉加成替换顺序喵",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵 可用餐品key对照：roasted_skewer:碳烤肉串, stir_fried_chicken:爆炒禽肉, steak_bowl:汉堡肉饭, crayfish_stir_fry:爆炒小龙虾, carnival:烤肉狂欢, double_energy:能量双拼套餐 示例：30 > 20 > crayfish_stir_fry > 10 (´・ω・`)"
     }
   },
   "IslandBusinessShop5": {
     "_info": {
       "name": "啾咖啡喵",
-      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~"
+      "help": "餐品会按从1~8的顺序依次生产喵，生产目标为餐品X数量选项，完全满足前一项后才会执行下一项喵，后一项在运行时不会影响之前几项任务的达成喵~ (=^･ω･^=)"
     },
     "Char1": {
       "name": "角色1喵",
@@ -5449,41 +5450,41 @@
       "fruity_fruitier": "果香双杯乐"
     },
     "BoostReplaceFilter": {
-      "name": "啾咖啡加成替换过滤",
-      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵\n可用餐品key对照：cheese:芝士, strawberry_milkshake:草莓奶绿, morning_light:晨光活力组合, wake_up_call:醒神套餐, fruity_fruitier:果香双杯乐\n示例：30 > 20 > cheese > 10"
+      "name": "啾咖啡加成替换顺序喵",
+      "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵 可用餐品key对照：cheese:芝士, strawberry_milkshake:草莓奶绿, morning_light:晨光活力组合, wake_up_call:醒神套餐, fruity_fruitier:果香双杯乐 示例：30 > 20 > cheese > 10 (´・ω・`)"
     }
   },
   "Daemon": {
     "_info": {
-      "name": "半自动点击助手 (｀・ω・´)つ",
-      "help": "未适配关卡实用，会帮你点准备、结算、跳过剧情、退役、关弹窗。你只需手动选敌喵。"
+      "name": "半自动点击助手",
+      "help": "未适配关卡实用，会帮你点准备、结算、跳过剧情、退役、关弹窗。你只需手动选敌喵。 (´・ω・`)"
     },
     "EnterMap": {
-      "name": "自动点击进图准备 (・ω<)",
-      "help": "需事先准备好出击队伍喵。"
+      "name": "自动点击进图准备",
+      "help": "需事先准备好出击队伍喵。 (´・ω・`)"
     }
   },
   "OpsiDaemon": {
     "_info": {
-      "name": "大世界半自动辅助 ( ´_ゝ`)",
-      "help": "大世界深渊海域或主线时帮助点准备、结算、跳过剧情、关弹窗。你需手动选敌和切海域喵。"
+      "name": "大世界半自动辅助",
+      "help": "大世界深渊海域或主线时帮助点准备、结算、跳过剧情、关弹窗。你需手动选敌和切海域喵。 (´・ω・`)"
     },
     "RepairShip": {
-      "name": "靠近港口时自动修船 (´・ω・`)",
-      "help": "手动移队至港口后雪风帮修船。修完30秒内移走，否则再修喵。"
+      "name": "靠近港口时自动修船",
+      "help": "手动移队至港口后雪风帮修船。修完30秒内移走，否则再修喵。 (´・ω・`)"
     },
     "SelectEnemy": {
-      "name": "清理附近的敌人和物资 (｀・ω・´)9",
-      "help": "自动清扫附近敌人物资，基本能清全海域，遗漏或点错需手动解决喵。"
+      "name": "清理附近的敌人和物资",
+      "help": "自动清扫附近敌人物资，基本能清全海域，遗漏或点错需手动解决喵。 (´・ω・`)"
     }
   },
   "EventStory": {
     "_info": {
-      "name": "活动剧情快进器 (。-ω-)zzz",
-      "help": "完成活动剧情，仅适用上线时间20241219及之后的活动，请等约3分钟喵。"
+      "name": "活动剧情快进器",
+      "help": "完成活动剧情，仅适用上线时间20241219及之后的活动，请等约3分钟喵。 (´・ω・`)"
     },
     "SkipBattle": {
-      "name": "杀游戏跳过战斗 (｀ε´)",
+      "name": "杀游戏跳过战斗",
       "help": "",
       "True": "已启用喵",
       "False": "关闭喵"
@@ -5491,38 +5492,38 @@
   },
   "BoxDisassemble": {
     "_info": {
-      "name": "拆解装备箱 (ノ｀Д´)ノ",
-      "help": "拆解仓库装备箱，配置完启动等待即可喵。"
+      "name": "拆解装备箱",
+      "help": "拆解仓库装备箱，配置完启动等待即可喵。 (´・ω・`)"
     },
     "UsePurpleBox": {
-      "name": "拆解紫色装备箱 (´・ω・`)",
+      "name": "拆解紫色装备箱",
       "help": ""
     },
     "PurpleBoxLimit": {
-      "name": "保留每种紫色装备箱 X 个 (・ω<)",
+      "name": "保留每种紫色装备箱 X 个",
       "help": ""
     },
     "UseBlueBox": {
-      "name": "拆解蓝色装备箱 (。・ω・。)",
+      "name": "拆解蓝色装备箱",
       "help": ""
     },
     "BlueBoxLimit": {
-      "name": "保留每种蓝色装备箱 X 个 (´-ω-`)",
+      "name": "保留每种蓝色装备箱 X 个",
       "help": ""
     },
     "UseWhiteBox": {
-      "name": "拆解白色装备箱 (´・ω・｀)",
+      "name": "拆解白色装备箱",
       "help": ""
     },
     "WhiteBoxLimit": {
-      "name": "保留每种白色装备箱 X 个 (´・ω・`)",
+      "name": "保留每种白色装备箱 X 个",
       "help": ""
     }
   },
   "Benchmark": {
     "_info": {
-      "name": "性能测试 (´・ω・`)っ",
-      "help": "测试截图与点击方案速度，因模拟器和电脑而异。完成后在模拟器设置选最快方案喵。"
+      "name": "性能测试",
+      "help": "测试截图与点击方案速度，因模拟器和电脑而异。完成后在模拟器设置选最快方案喵。 (´・ω・`)"
     },
     "DeviceType": {
       "name": "设备类型喵",
@@ -5543,198 +5544,198 @@
   },
   "AzurLaneUncensored": {
     "_info": {
-      "name": "反和谐魔法阵 (ﾉ≧∀≦)ﾉ・‥…━━━★",
-      "help": "仅国服。下载反和谐文件，推送到模拟器，重启游戏喵。"
+      "name": "反和谐魔法阵",
+      "help": "仅国服。下载反和谐文件，推送到模拟器，重启游戏喵。 (´・ω・`)"
     },
     "Repository": {
       "name": "反和谐仓库喵",
-      "help": "一般不改。默认国内镜像 https://e.coding.net/llop18870/alas/AzurLaneUncensored.git 喵。"
+      "help": "一般不改。默认国内镜像 https://e.coding.net/llop18870/alas/AzurLaneUncensored.git 喵。 (´・ω・`)"
     }
   },
   "GameManager": {
     "_info": {
-      "name": "游戏管理 (未完成) (´・ω・`)",
-      "help": "半成品，仅强制关游戏、自动登录喵。"
+      "name": "游戏管理",
+      "help": "半成品，仅强制关游戏、自动登录喵。 (´・ω・`)"
     },
     "AutoRestart": {
       "name": "自动登录喵",
-      "help": "游戏被强制结束后自动登录喵。"
+      "help": "游戏被强制结束后自动登录喵。 (=^･ω･^=)"
     }
   },
   "EmulatorManagement": {
     "_info": {
-      "name": "模拟器管理 (´・ω・`)",
+      "name": "模拟器管理",
       "help": ""
     },
     "ScheduledEmulatorRestart": {
-      "name": "定时重启模拟器 (╯°□°）╯︵ ┻━┻",
-      "help": "每隔指定时间自动重启模拟器，防内存泄漏卡顿，等当前任务完成再重启喵。"
+      "name": "定时重启模拟器",
+      "help": "每隔指定时间自动重启模拟器，防内存泄漏卡顿，等当前任务完成再重启喵。 (´・ω・`)"
     },
     "RestartIntervalHours": {
-      "name": "重启间隔（小时） (´-ω-`)zzz",
+      "name": "重启间隔",
       "help": ""
     }
   },
   "EmulatorManager": {
     "_info": {
-      "name": "模拟器管理器喵 (。・ω・。)",
-      "help": "提供手动重启模拟器的入口喵~"
+      "name": "模拟器管理器喵",
+      "help": "提供手动重启模拟器的入口喵~ (=^･ω･^=)"
     },
     "EnableRemoteSSH": {
       "name": "启用远程 SSH 管理",
-      "help": "在重启模拟器之前，通过 SSH 在远程服务器上执行特定指令（如重启 Docker 容器）。",
-      "True": "True",
-      "False": "False"
+      "help": "在重启模拟器之前，通过 SSH 在远程服务器上执行特定指令。 (´・ω・`)",
+      "True": "开启喵",
+      "False": "关闭喵"
     },
     "RemoteSSHHost": {
       "name": "远程服务器地址",
-      "help": "远程服务器的 IP 地址或域名，例如: 192.168.1.100"
+      "help": "远程服务器的 IP 地址或域名，例如: 192.168.1.100 (´・ω・`)"
     },
     "RemoteSSHPort": {
       "name": "端口号",
-      "help": "SSH 服务端口，默认 22"
+      "help": "SSH 服务端口，默认 22 (´・ω・`)"
     },
     "RemoteSSHUser": {
       "name": "SSH 用户名",
-      "help": "登录 SSH 的用户名，例如: root"
+      "help": "登录 SSH 的用户名，例如: root (´・ω・`)"
     },
     "RemoteSSHPublicKey": {
       "name": "访问公钥",
-      "help": "SSH 登录所需的公钥内容（如果需要）"
+      "help": "SSH 登录所需的公钥内容 (´・ω・`)"
     },
     "RemoteStartCommand": {
-      "name": "EmulatorManager.RemoteStartCommand.name",
-      "help": "EmulatorManager.RemoteStartCommand.help"
+      "name": "远程启动命令喵",
+      "help": "模拟器远程启动时执行的命令喵 (=^･ω･^=)"
     },
     "RemoteStopCommand": {
-      "name": "EmulatorManager.RemoteStopCommand.name",
-      "help": "EmulatorManager.RemoteStopCommand.help"
+      "name": "远程关闭命令喵",
+      "help": "模拟器远程关闭时执行的命令喵 (=^･ω･^=)"
     }
   },
   "OpsiSimulatorParameters": {
     "_info": {
-      "name": "大世界模拟器参数设置 (。-`ω´-)✧",
+      "name": "大世界模拟器参数设置",
       "help": ""
     },
     "Samples": {
       "name": "采样数喵",
-      "help": "越大模拟越精准但更耗性能喵。"
+      "help": "越大模拟越精准但更耗性能喵。 (´・ω・`)"
     },
     "Draw": {
       "name": "绘图设置喵",
-      "help": "单样本轨迹：绘制一个样本变化。多样本平均趋势：总体趋势与概率。",
+      "help": "单样本轨迹：绘制一个样本变化。多样本平均趋势：总体趋势与概率。 (´・ω・`)",
       "do_not": "不绘图喵",
       "single_sample": "单样本轨迹喵",
       "multi_sample": "多样本平均趋势喵"
     },
     "TotalTime": {
-      "name": "总模拟时间 (秒) (´・ω・`)",
-      "help": "模拟多久，0为当月剩余时间喵。"
+      "name": "总模拟时间",
+      "help": "模拟多久，0为当月剩余时间喵。 (´・ω・`)"
     },
     "TimeUseRatio": {
-      "name": "时间利用率 (｀・ω・´)",
-      "help": "总模拟时间中侵蚀循环占比喵。"
+      "name": "时间利用率",
+      "help": "总模拟时间中侵蚀循环占比喵。 (´・ω・`)"
     },
     "InitialAp": {
-      "name": "初始行动力 (´・ω・`)",
-      "help": "0自动获取，不建议改喵。"
+      "name": "初始行动力",
+      "help": "0自动获取，不建议改喵。 (´・ω・`)"
     },
     "InitialCoin": {
-      "name": "初始黄币 (｡•ᴗ•｡)♡",
-      "help": "0自动获取，不建议改喵。"
+      "name": "初始黄币",
+      "help": "0自动获取，不建议改喵。 (´・ω・`)"
     },
     "MeowHazardLevel": {
       "name": "短猫侵蚀等级喵",
-      "help": "选择短猫任务执行等级(3或5)。",
+      "help": "选择短猫任务执行等级。 (´・ω・`)",
       "level3": "3喵",
       "level5": "5喵"
     },
     "CrossWeek": {
-      "name": "计算跨周 (´-ω-`)",
-      "help": "是否计算每周购买行动力和要塞事件喵。"
+      "name": "计算跨周",
+      "help": "是否计算每周购买行动力和要塞事件喵。 (´・ω・`)"
     },
     "BuyAp": {
-      "name": "每周是否购买行动力 (´⊙ω⊙`)",
-      "help": "不购买依然打要塞喵。"
+      "name": "每周是否购买行动力",
+      "help": "不购买依然打要塞喵。 (´・ω・`)"
     },
     "Cl1Coin": {
-      "name": "侵蚀1黄币期望 (ฅ´ω`ฅ)",
-      "help": "每轮侵蚀1平均获取多少黄币，建议145喵。"
+      "name": "侵蚀1黄币期望",
+      "help": "每轮侵蚀1平均获取多少黄币，建议145喵。 (´・ω・`)"
     },
     "Meow3Coin": {
-      "name": "短3黄币期望 (´・ω・`)",
-      "help": "每轮侵蚀3猫任务平均多少黄币，暂时配置750喵。"
+      "name": "短3黄币期望",
+      "help": "每轮侵蚀3猫任务平均多少黄币，暂时配置750喵。 (´・ω・`)"
     },
     "Meow5Coin": {
-      "name": "短5黄币期望 (｡•̀ᴗ-)✧",
-      "help": "每轮侵蚀5猫任务平均多少黄币，建议1700喵。"
+      "name": "短5黄币期望",
+      "help": "每轮侵蚀5猫任务平均多少黄币，建议1700喵。 (´・ω・`)"
     },
     "AkashiProbability": {
-      "name": "明石遇见概率 (´・ω・`)",
-      "help": "侵蚀循环中遇见明石商店概率，建议0.05喵。"
+      "name": "明石遇见概率",
+      "help": "侵蚀循环中遇见明石商店概率，建议0.05喵。 (´・ω・`)"
     },
     "Cl1Time": {
-      "name": "侵蚀1单轮耗时(秒) (｀・ω・´)9",
-      "help": "0从历史统计获取喵。"
+      "name": "侵蚀1单轮耗时",
+      "help": "0从历史统计获取喵。 (´・ω・`)"
     },
     "Meow3Time": {
-      "name": "短3单轮耗时(秒) (´-ω-`)zzz",
-      "help": "0从历史统计获取喵。"
+      "name": "短3单轮耗时",
+      "help": "0从历史统计获取喵。 (´・ω・`)"
     },
     "Meow5Time": {
-      "name": "短5单轮耗时(秒) (；´Д`)",
-      "help": "0从历史统计获取喵。"
+      "name": "短5单轮耗时",
+      "help": "0从历史统计获取喵。 (´・ω・`)"
     },
     "Deterministic": {
-      "name": "取消随机性 (调试用) (｀ε´)",
-      "help": "一般不开喵。"
+      "name": "取消随机性",
+      "help": "一般不开喵。 (´・ω・`)"
     }
   },
   "Storage": {
     "_info": {
-      "name": "任务状态存储 (。・ω・。)",
-      "help": "存放内部状态，异常时可手动清除喵。"
+      "name": "任务状态存储",
+      "help": "存放内部状态，异常时可手动清除喵。 (´・ω・`)"
     },
     "Storage": {
-      "name": "Storage.Storage.name",
-      "help": "Storage.Storage.help"
+      "name": "存储空间喵",
+      "help": "清除任务内部存储的状态数据喵 (=^･ω･^=)"
     }
   },
   "Gui": {
     "Aside": {
-      "Install": "安装喵 (´・ω・`)っ",
-      "Home": "首页喵",
+      "Install": "安装喵",
+      "Home": "猫窝喵",
       "Develop": "开发喵",
       "Performance": "性能喵",
-      "Setting": "设置喵",
+      "Setting": "设定喵",
       "AddAlas": "新增喵"
     },
     "Button": {
-      "Start": "启动喵 (｀・ω・´)9",
-      "Stop": "停止喵 (´；ω；｀)",
-      "ScrollON": "自动滚动 开",
-      "ScrollOFF": "自动滚动 关",
+      "Start": "出发喵！",
+      "Stop": "停下喵~",
+      "ScrollON": "自动滚动 开喵",
+      "ScrollOFF": "自动滚动 关喵",
       "DashboardON": "折叠喵",
       "DashboardOFF": "展开喵",
       "ClearLog": "清空日志喵",
-      "Setting": "设置喵",
-      "CheckUpdate": "检查更新喵",
-      "ClickToUpdate": "进行更新喵 (｡•̀ᴗ-)✧",
-      "RetryUpdate": "重试更新喵",
-      "CancelUpdate": "取消更新喵",
+      "Setting": "设定喵",
+      "CheckUpdate": "看看有没有新鱼干",
+      "ClickToUpdate": "更新喵！",
+      "RetryUpdate": "再试一次喵",
+      "CancelUpdate": "算了吧喵",
       "Open": "打开喵"
     },
     "Toast": {
       "DisableTranslateMode": "点这里关翻译模式喵",
-      "ConfigSaved": "设置已保存喵 (｡•ᴗ•｡)♡",
-      "AlasIsRunning": "调度器已经在跑喵，别急~",
-      "ClickToUpdate": "有可用更新啦喵！"
+      "ConfigSaved": "设定已保存喵~",
+      "AlasIsRunning": "雪风已经在跑啦，别急喵~",
+      "ClickToUpdate": "有新鱼干可以更新啦喵！"
     },
     "Status": {
-      "Running": "秘书舰工作中 (｀・ω・´)ゞ",
-      "Inactive": "茗正在偷你箱子 (´⊙ω⊙`)",
-      "Warning": "发生错误喵 (；´Д`)",
-      "Updating": "等待更新喵 (。-ω-)zzz"
+      "Running": "雪风值班中喵",
+      "Inactive": "茗正在偷你箱子",
+      "Warning": "出错了喵！",
+      "Updating": "更新中喵，稍等~"
     },
     "MenuAlas": {
       "Overview": "总览喵",
@@ -5832,7 +5833,7 @@
       "Actions": "操作喵"
     },
     "Update": {
-      "UpToDate": "已是最新喵 (。-`ω´-)",
+      "UpToDate": "已是最新喵",
       "HaveUpdate": "有新版本可用喵！",
       "UpdateStart": "开始更新喵",
       "UpdateWait": "等待所有 AzurPilot 完成当前任务喵",
@@ -5869,19 +5870,19 @@
       "NoApData": "暂无体力数据，运行侵蚀1任务后自动记录喵",
       "Refresh": "刷新喵",
       "NoValidApData": "暂无有效体力数据喵",
-      "ViewTitleLine": "分时曲线 (详细波动) 喵",
-      "ViewTitleDay": "天视图 ({day} 小时K线) 喵",
-      "ViewTitleMonth": "月视图 (日K线) 喵",
+      "ViewTitleLine": "分时曲线 喵",
+      "ViewTitleDay": "天视图 喵",
+      "ViewTitleMonth": "月视图 喵",
       "CannotAggregateKline": "无法聚合K线数据喵",
       "ViewLineShort": "分时喵",
       "DataPointsCount": "共 {count} 个点",
       "CandlesCount": "共 {count} 根K线",
       "ViewLabel": "📊 視圖喵:",
       "DetailLabel": "📈 詳情喵:",
-      "ViewLineButton": "分时(详细波动)喵",
-      "ViewDayButton": "天视图(小时K)喵",
-      "ViewMonthButton": "月视图(日K)喵",
-      "DetailChartTitle": "单日体力波动详情 (24小时) 喵~",
+      "ViewLineButton": "分时喵",
+      "ViewDayButton": "天视图喵",
+      "ViewMonthButton": "月视图喵",
+      "DetailChartTitle": "单日体力波动详情 喵~",
       "ToggleDetailChart": "详情图喵",
       "DetailChartOn": "✓ 开启喵",
       "DetailChartOff": "○ 关闭喵",
@@ -5892,7 +5893,7 @@
       "TargetLevel": "目标等级: {value}",
       "ShipSlot": "舰位喵",
       "Level": "等级喵",
-      "CurrentExpThisLevel": "当前经验(本级)喵",
+      "CurrentExpThisLevel": "当前经验喵",
       "TotalExp": "总经验喵",
       "ExpToTarget": "距目标经验喵",
       "SortiesNeeded": "还需出击喵",
@@ -5982,7 +5983,7 @@
       "NoValidResourceData": "暂无有效资源数据喵"
     },
     "Tactical": {
-      "SkillAutoSwitch": "Gui.Tactical.SkillAutoSwitch"
+      "SkillAutoSwitch": "技能自动切换喵"
     },
     "OpsiScheduling": {
       "UseSmartSchedulingOperationCoinsPreserve": "获取X个凭证喵",
@@ -5998,8 +5999,8 @@
       "MeowStartEarlyMode": "清理模式喵"
     },
     "Misc": {
-      "Enabled": "已开启喵",
-      "Disabled": "未开启喵"
+      "Enabled": "开启喵",
+      "Disabled": "关闭喵"
     },
     "OOBE": {
       "ImportTitle": "导入旧数据喵",
@@ -6015,21 +6016,21 @@
       "ImportErrorInvalid": "这不是有效的 AzurPilot/ALAS 配置喵",
       "ImportErrorFailed": "导入失败喵",
       "ImportErrorNoMatch": "所选文件夹中没有找到 config/ 或 log/cl1/ 下的匹配文件喵",
-      "WelcomeTitle": "欢迎使用 AzurPilot 喵！(｡>﹏<｡)",
-      "WelcomeDescription": "指挥官，快来和雪风一起完成初次设置喵~ (ฅ´ω`ฅ)",
-      "WelcomeSelectLanguage": "选择哪种语言喵？(･ω･)ﾉ",
-      "WelcomeHint": "选好语言后会自动匹配默认服务器喵，后面还能再改喵~",
-      "ServerTitle": "选择要去的服务器喵 (=^･ω･^=)",
-      "ServerHint": "选择正在玩的碧蓝航线服务器喵，会帮你填好默认包名喵。",
-      "ServerCN": "国服喵 (｀・ω・´)",
-      "ServerEN": "国际服 (EN) 喵",
-      "ServerJP": "日服 (JP) 喵",
-      "ServerTW": "台服 (TW) 喵",
-      "EmulatorTitle": "模拟器设置板板 (´-ω-`)",
+      "WelcomeTitle": "欢迎来到雪风的港区喵！",
+      "WelcomeDescription": "指挥官，快来和雪风一起完成初次设置喵~",
+      "WelcomeSelectLanguage": "想用哪种语言喵？",
+      "WelcomeHint": "选好语言后会自动匹配默认服务器喵，后面还能再改~",
+      "ServerTitle": "选择要去的服务器喵",
+      "ServerHint": "选择正在玩的碧蓝航线服务器喵，雪风会帮你填好默认包名。",
+      "ServerCN": "国服喵",
+      "ServerEN": "国际服喵",
+      "ServerJP": "日服喵",
+      "ServerTW": "台服喵",
+      "EmulatorTitle": "模拟器设置喵",
       "EmulatorHint": "填上 ADB 序列号和游戏包名喵，默认值适合常见本地模拟器喵。",
-      "EmulatorSerial": "模拟器序列号 / 地址喵 (。・ω・。)",
+      "EmulatorSerial": "模拟器序列号 / 地址喵",
       "EmulatorPackage": "包名选择喵",
-      "ReviewTitle": "确认并创建喵！(๑•̀ㅂ•́)و✧",
+      "ReviewTitle": "确认并创建喵！",
       "ReviewHint": "确认下面的信息喵，创建完成后就进入 AzurPilot 主界面喵。",
       "ReviewConfigName": "配置名称喵",
       "ReviewLanguage": "语言喵",
@@ -6038,7 +6039,7 @@
       "ReviewPackage": "包名喵",
       "ButtonNext": "下一步喵！",
       "ButtonBack": "上一步喵",
-      "ButtonCreate": "创建并完成喵！(=｀ω´=)"
+      "ButtonCreate": "创建并完成喵！"
     }
   }
 }

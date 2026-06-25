@@ -400,7 +400,7 @@
       "name": "この機能を有効にする",
       "help": "このタスクをスケジューラに追加します\n委託、科研、収穫タスクは強制的にオンになっています",
       "True": "有効",
-      "False": "False"
+      "False": "無効"
     },
     "PushNotification": {
       "name": "プッシュ通知",
@@ -431,8 +431,8 @@
     "Sensitive": {
       "name": "センシティブ任務",
       "help": "エラー発生時にゲームの再起動を禁止し、AzurPilot を直ちに停止します。越境デイリー、隠秘海域、深淵海域などの重要なタスクに適用。",
-      "True": "True",
-      "False": "False"
+      "True": "はい",
+      "False": "いいえ"
     }
   },
   "Emulator": {
@@ -1080,6 +1080,7 @@
       "event_20260326_cn": "ワンダラー募集計画",
       "event_20260417_cn": "バケーションレーン・きらめく砂浜",
       "event_20260520_cn": "聖印前の同盟",
+      "event_20260625_cn": "美梦巡演：奇妙夜",
       "raid_20200624": "特別演習超空強襲波（復刻）",
       "raid_20210708": "交錯する新たな波 (復刻)",
       "raid_20220127": "秘密事件調査",
@@ -1744,7 +1745,7 @@
       "help": "",
       "easy": "正午",
       "normal": "黄昏",
-      "hard": "夜晚"
+      "hard": "夜"
     },
     "Stage": {
       "name": "ステージ名",
@@ -1862,8 +1863,8 @@
     "SkillAutoSwitch": {
       "name": "自動スキル切替",
       "help": "次の未学習スキルに自動的に切り替えて学習します",
-      "True": "オン",
-      "False": "オフ"
+      "True": "有効",
+      "False": "無効"
     }
   },
   "ControlExpOverflow": {
@@ -2483,10 +2484,10 @@
       "name": "カードプール",
       "help": "",
       "light": "ライトプール",
-      "heavy": "頑丈なプール",
+      "heavy": "ヘビープール",
       "special": "特別なプール",
       "event": "イベントプール",
-      "wishing_well": "祈りのプール"
+      "wishing_well": "願いのプール"
     },
     "Amount": {
       "name": "引いたカードの枚数",
@@ -2513,26 +2514,26 @@
   },
   "BattlePass": {
     "_info": {
-      "name": "大きな月のカード",
+      "name": "マンスリーパス",
       "help": ""
     },
     "Collect": {
-      "name": "ビッグマンスカードの特典を受け取る",
+      "name": "マンスリーパスの特典を受け取る",
       "help": ""
     }
   },
   "DataKey": {
     "_info": {
-      "name": "ファイルキー",
+      "name": "データキー",
       "help": ""
     },
     "Collect": {
-      "name": "ファイルキーを取得する",
+      "name": "データキーを取得する",
       "help": ""
     },
     "ForceCollect": {
-      "name": "ファイルキーの強制収集",
-      "help": "ファイルキーがいっぱいの場合、それを収集することが必須になります（赤い点を削除します）"
+      "name": "データキーの強制収集",
+      "help": "データキーがいっぱいの場合、それを収集することが必須になります（赤い点を削除します）"
     }
   },
   "Mail": {
@@ -3193,8 +3194,8 @@
     "SkipHpCheck": {
       "name": "HPチェックをスキップ",
       "help": "戦闘後のHPチェックをスキップします。艦船が撃沈されても練級を続行します。",
-      "True": "True",
-      "False": "False"
+      "True": "有効",
+      "False": "無効"
     },
     "Cl1Filter": {
       "name": "明石購入フィルター",
@@ -3260,8 +3261,8 @@
     "EnableCustomCheck": {
       "name": "カスタム艦船検出を有効にする",
       "help": "有効にすると、指定した艦船のみが目標レベルに達したかを検出します。",
-      "True": "True",
-      "False": "False"
+      "True": "有効",
+      "False": "無効"
     },
     "CustomCheckPositions": {
       "name": "カスタム検出艦位",
@@ -3274,14 +3275,14 @@
   },
   "OpsiFleetAutoChange": {
     "_info": {
-      "name": "OpsiFleetAutoChange._info.name",
-      "help": "OpsiFleetAutoChange._info.help"
+      "name": "艦隊自動変更",
+      "help": "大洋で艦隊の自動変更を設定します"
     },
     "Enable": {
       "name": "自動編成を有効にする",
       "help": "有効にすると、経験値が最大になった艦船を自動的に交換します。",
-      "True": "True",
-      "False": "False"
+      "True": "有効",
+      "False": "無効"
     },
     "CooldownHours": {
       "name": "クールダウン時間（時間）",
@@ -3304,8 +3305,8 @@
     "UseSmartSchedulingOperationCoinsPreserve": {
       "name": "X 個の戦闘物資引換券を入手する",
       "help": "有効にすると、以下に設定された戦闘補給券をX個入手する構成が使用されます。無効にすると、侵食 1 レベリングと黄色のコイン保持構成が使用されます。\n閉じたときにモビリティ制御が使用されます\n開いた後、黄色のコインを使用して制御します",
-      "True": "真実",
-      "False": "間違い"
+      "True": "有効",
+      "False": "無効"
     },
     "OperationCoinsPreserve": {
       "name": "侵食 1 レベリング、X 戦闘供給券を維持",
@@ -3318,8 +3319,8 @@
     "ActionPointEarlyTriggerEnable": {
       "name": "行動力の早期スケジュール",
       "help": "侵食 1 または指揮ニャ周回の終了時に自然回復分の行動力を記録し、10 分ごとに 1 回復する速度でスマートスケジュールの次回実行時刻を計算して、行動力あふれを防ぎます。",
-      "True": "True",
-      "False": "False"
+      "True": "有効",
+      "False": "無効"
     },
     "ActionPointEarlyTriggerThreshold": {
       "name": "早期スケジュール行動力しきい値",
@@ -3333,25 +3334,25 @@
       "name": "ショートキャット接続を有効にする",
       "help": "インテリジェント スケジューリングでショート キャット接続タスクが黄色のコインを補充できるようにするかどうか",
       "True": "有効",
-      "False": "有効になっていません"
+      "False": "無効"
     },
     "EnableObscure": {
       "name": "未知の海を可能にする",
       "help": "黄色のコインを補充するためにインテリジェントなスケジューリングでHidden Seaミッションを有効にするかどうか",
       "True": "有効",
-      "False": "有効になっていません"
+      "False": "無効"
     },
     "EnableAbyssal": {
       "name": "深海を有効にする",
       "help": "イエローコインを補充するためのインテリジェントなスケジューリングで深海ミッションを有効にするかどうか",
       "True": "有効",
-      "False": "有効になっていません"
+      "False": "無効"
     },
     "EnableStronghold": {
       "name": "セイレン要塞を有効にする",
       "help": "黄色のコインを補充するためにインテリジェント スケジューリングで Siren Fortress タスクを有効にするかどうか",
       "True": "有効",
-      "False": "有効になっていません"
+      "False": "無効"
     },
     "MeowStartEarlyMode": {
       "name": "月末モビリティ自動掃除モード",
@@ -3585,7 +3586,7 @@
       "4": "4"
     },
     "MineSilver": {
-      "name": "采银矿岗位数",
+      "name": "銀鉱山の作業人数",
       "help": "アイドル鉱山ポストのいくつかを銀の生産に割り当て、残りは空きのままにします。",
       "0": "0",
       "1": "1",
@@ -3632,7 +3633,7 @@
       "4": "4"
     },
     "CutElegant": {
-      "name": "伐典雅之木岗位数",
+      "name": "エレガント伐採の作業人数",
       "help": "アイドル林業ポストのいくつかを高級木材の生産に割り当て、残りは空きのままにします。",
       "0": "0",
       "1": "1",
@@ -4707,8 +4708,8 @@
     "WeeklyPhoto": {
       "name": "週間写真タスク",
       "help": "開発計画から週間写真タスクを開始し、写真撮影と待機選択を3回繰り返し、タスクアイコンが消えるまで処理します。",
-      "True": "True",
-      "False": "False"
+      "True": "有効",
+      "False": "無効"
     }
   },
   "IslandPearlSell": {
@@ -5486,7 +5487,7 @@
       "name": "ゲームをキルし、戦闘をスキップする",
       "help": "",
       "True": "有効",
-      "False": "間違い"
+      "False": "無効"
     }
   },
   "BoxDisassemble": {
@@ -5583,8 +5584,8 @@
     "EnableRemoteSSH": {
       "name": "リモートSSH管理を有効にする",
       "help": "エミュレータを再起動する前に、SSH経由でリモートサーバー上で特定のコマンドを実行します。",
-      "True": "True",
-      "False": "False"
+      "True": "有効",
+      "False": "無効"
     },
     "RemoteSSHHost": {
       "name": "リモートサーバーアドレス",
@@ -5696,8 +5697,8 @@
       "help": "タスクの内部状態を保存します。タスクが異常な場合は手動でクリアできます。"
     },
     "Storage": {
-      "name": "ストレージ.ストレージ.名",
-      "help": "ストレージ.ストレージ.ヘルプ"
+      "name": "タスクストレージ",
+      "help": "タスク内部の状態データをクリアします"
     }
   },
   "Gui": {
@@ -5751,25 +5752,25 @@
     "Overview": {
       "Scheduler": "スケジューラ",
       "Dashboard": "ダッシュボード",
-      "SecondsAgo": "Gui.概要.秒前",
-      "MinutesAgo": "Gui.概要.数分前",
-      "HoursAgo": "Gui.概要.時間前",
-      "DaysAgo": "Gui.概要.日前",
-      "MonthsAgo": "Gui.概要.数か月前",
-      "YearsAgo": "Gui.概要.年前",
-      "NoData": "Gui.Overview.NoData",
-      "Oil": "Gui.概要.オイル",
-      "Coin": "Gui.概要.コイン",
-      "Gem": "Gui.概要.Gem",
-      "Cube": "Gui.概要.Cube",
-      "Pt": "Gui.概要.Pt",
-      "YellowCoin": "Gui.概要.YellowCoin",
-      "PurpleCoin": "Gui.概要.パープルコイン",
-      "ActionPoint": "Gui.Overview.ActionPoint",
-      "Merit": "GUI.概要.メリット",
-      "Medal": "GUI.概要.メダル",
-      "Core": "Gui.概要.コア",
-      "GuildCoin": "Gui.概要.ギルドコイン",
+      "SecondsAgo": "秒前",
+      "MinutesAgo": "分前",
+      "HoursAgo": "時間前",
+      "DaysAgo": "日前",
+      "MonthsAgo": "ヶ月前",
+      "YearsAgo": "年前",
+      "NoData": "データなし",
+      "Oil": "燃料",
+      "Coin": "資金",
+      "Gem": "ダイヤ",
+      "Cube": "キューブ",
+      "Pt": "イベントPT",
+      "YellowCoin": "大洋黄貨",
+      "PurpleCoin": "大洋紫貨",
+      "ActionPoint": "行動力",
+      "Merit": "功績",
+      "Medal": "メダル",
+      "Core": "コアデータ",
+      "GuildCoin": "艦隊貨幣",
       "Log": "ログ",
       "Running": "ランニング",
       "Pending": "キューにいます",
@@ -5865,141 +5866,141 @@
       "ChooseFile": "ファイルを選択"
     },
     "Stat": {
-      "LoadApDataFailed": "Failed to load AP data: {e}",
-      "NoApData": "No AP change data yet. Data will be recorded after running OpSi-1.",
-      "Refresh": "Refresh",
-      "NoValidApData": "No valid AP data available.",
-      "ViewTitleLine": "Intraday Line (Detailed Fluctuation)",
-      "ViewTitleDay": "Day View ({day} Hourly Candles)",
-      "ViewTitleMonth": "Month View (Daily Candles)",
-      "CannotAggregateKline": "Unable to aggregate candle data.",
-      "ViewLineShort": "Line",
-      "DataPointsCount": "{count} data points",
-      "CandlesCount": "{count} candles",
-      "ViewLabel": "📊 View:",
-      "DetailLabel": "📈 Detail:",
-      "ViewLineButton": "Intraday (Detailed)",
-      "ViewDayButton": "Day View (Hourly K)",
-      "ViewMonthButton": "Month View (Daily K)",
-      "DetailChartTitle": "Daily AP Fluctuation Detail (24h)",
-      "ToggleDetailChart": "Detail Chart",
-      "DetailChartOn": "✓ On",
-      "DetailChartOff": "○ Off",
-      "LoadOpsiStatsFailed": "Failed to load OpSi stats: {e}",
-      "LoadExpStatsFailed": "Failed to load EXP stats: {e}",
-      "DailyExpCheckTitle": "Daily EXP Check",
-      "CheckTime": "Check time: {value}",
-      "TargetLevel": "Target level: {value}",
-      "ShipSlot": "Slot",
-      "Level": "Level",
-      "CurrentExpThisLevel": "Current EXP (Level)",
-      "TotalExp": "Total EXP",
-      "ExpToTarget": "EXP to target",
-      "SortiesNeeded": "Sorties needed",
-      "EstimatedTime": "Estimated time",
-      "NoExpData": "No EXP data yet. Data will be recorded after OpSi-1 leveling.",
-      "Month": "Month",
-      "BattleCount": "Battles",
-      "BattleRounds": "Rounds",
-      "SortieCost": "Sortie Cost",
-      "AkashiEncounters": "Akashi Encounters",
-      "AkashiRate": "Akashi Rate",
-      "SirenResearchDevices": "Siren Research Devices",
-      "SirenResearchRate": "Siren Research Rate",
-      "HazardLevel": "Corrosion Level",
-      "AverageAP": "Average AP",
-      "NetAP": "Net AP",
-      "LoopEfficiency": "Loop Efficiency",
-      "ExpEfficiency": "EXP efficiency: {value}/{unit}",
-      "ExpEfficiencyHeader": "EXP Efficiency",
-      "AvgBattleTime": "Avg battle time: {value}{unit}",
-      "AvgBattleTimeHeader": "Avg battle time",
-      "AvgRoundTime": "Avg round time",
-      "TodayBattles": "Today battles: {value}{unit}",
-      "TodayBattlesHeader": "Today battles",
-      "TodayExp": "Today EXP: {value}",
-      "TodayExpHeader": "Today EXP",
-      "TodayRun": "Today run: {value}{unit}",
-      "TodayRunHeader": "Today run",
-      "OpsiDataCollectionTitle": "Yukikaze OpSi-1 Data Collection",
-      "MonthlyPurchasedAP": "Monthly purchased AP: {value}",
-      "MeowDataCollectionTitle": "Meow Session Data",
-      "MeowRounds": "Meow Rounds",
-      "AvgMeowRoundTime": "Avg Meow Round Time",
-      "MeowLootTitle": "Meow Session Loot",
-      "NoMeowDataNotice": "No local Meowfficer farming loot data yet. It will be generated automatically after a run.",
-      "MeowAdvanceAdviceTitle": "Meow Early Start Advice",
-      "CurrentAP": "Current AP: {value}",
-      "ApPerRound": "AP per round: {value} AP",
-      "AvailableRounds": "Available rounds: {value}{unit}",
-      "AvgRoundDuration": "Avg round duration: {value}{unit}",
-      "CurrentMode": "Current mode: {value}",
-      "RecommendAhead": "Recommended lead time: {value}{unit}",
-      "RoundUnit": " rounds",
-      "SecondUnit": "s",
-      "HourUnit": "h",
-      "MinuteUnit": "m",
-      "ExportModuleLoadFailed": "Export failed: cannot load stats module: {e}",
-      "CsvHeaderAkashiRate": "Akashi Rate (%)",
-      "CsvHeaderLoopEfficiency": "Loop Efficiency (%)",
-      "CsvHeaderMonthlyPurchasedAP": "Monthly Purchased AP",
-      "CsvFilenameTemplate": "opsi1_leveling_{month}_details.csv",
-      "SavedToDesktop": "Saved to desktop: {path}",
-      "SaveDesktopFailed": "Failed to save to desktop: {e}",
-      "ExportAndSaveDesktop": "Export and Save to Desktop",
-      "NoShipExpData": "No ship EXP data. Run \"Daily EXP Check\" first.",
-      "ShipExpProgressTitle": "Daily EXP Check: Detected Ship Levels and Progress",
-      "LastCheckTime": "Last check time: {value}",
-      "AvgOpsiRoundTime": "Avg OpSi-1 round time: {value}{unit}",
-      "TodayBattleUnit": "",
-      "NoTodayBattleData": "No battle data for today yet. It will update automatically after battles.",
-      "LoadShipExpFailed": "Failed to load ship EXP data: {e}",
-      "TargetExpRequired": "EXP required for target level",
-      "BattlesCompleted": "Battles completed",
-      "ExpRemaining": "EXP remaining",
-      "StartCleanupTime": "Suggested cleanup start: {value}",
-      "NextOsReset": "Next OS reset: {value}",
-      "MeowAutoCleanupStatus": "Auto early cleanup: {value}",
-      "CommissionIncomeTitle": "Gui.Stat.CommissionIncomeTitle",
-      "CommissionIncomeMonth": "Gui.Stat.CommissionIncomeMonth",
-      "CommissionIncomeWeek": "Gui.Stat.CommissionIncomeWeek",
-      "CommissionIncomeDay": "Gui.Stat.CommissionIncomeDay",
-      "CommissionIncomeNoData": "Gui.Stat.CommissionIncomeNoData",
-      "CommissionIncomeItemGem": "Gui.Stat.CommissionIncomeItemGem",
-      "CommissionIncomeItemCube": "Gui.Stat.CommissionIncomeItemCube",
-      "CommissionIncomeItemChip": "Gui.Stat.CommissionIncomeItemChip",
-      "CommissionIncomeItemOil": "Gui.Stat.CommissionIncomeItemOil",
-      "CommissionIncomeItemCoin": "Gui.Stat.CommissionIncomeItemCoin",
-      "CommissionIncomeHeaderItem": "Gui.Stat.CommissionIncomeHeaderItem",
-      "CommissionIncomeHeaderTotal": "Gui.Stat.CommissionIncomeHeaderTotal",
-      "CommissionIncomeHeaderCount": "Gui.Stat.CommissionIncomeHeaderCount",
-      "CommissionIncomeHeaderAvg": "Gui.Stat.CommissionIncomeHeaderAvg",
-      "CommissionIncomeTotalCommissions": "Gui.Stat.CommissionIncomeTotalCommissions",
-      "CommissionIncomeRecentTitle": "Gui.Stat.CommissionIncomeRecentTitle",
+      "LoadApDataFailed": "APデータの読み込みに失敗しました: {e}",
+      "NoApData": "AP変動データがありません。侵蝕1タスク実行後に自動記録されます",
+      "Refresh": "更新",
+      "NoValidApData": "有効なAPデータがありません",
+      "ViewTitleLine": "分時チャート（詳細変動）",
+      "ViewTitleDay": "日表示（{day} 時間足）",
+      "ViewTitleMonth": "月表示（日足）",
+      "CannotAggregateKline": "K線データを集約できません",
+      "ViewLineShort": "分時",
+      "DataPointsCount": "{count} データポイント",
+      "CandlesCount": "{count} 本のK線",
+      "ViewLabel": "📊 表示:",
+      "DetailLabel": "📈 詳細:",
+      "ViewLineButton": "分時（詳細変動）",
+      "ViewDayButton": "日表示（時間足K線）",
+      "ViewMonthButton": "月表示（日足K線）",
+      "DetailChartTitle": "日別AP変動詳細（24時間）",
+      "ToggleDetailChart": "詳細チャート",
+      "DetailChartOn": "✓ オン",
+      "DetailChartOff": "○ オフ",
+      "LoadOpsiStatsFailed": "OpSi統計の読み込みに失敗しました: {e}",
+      "LoadExpStatsFailed": "経験値統計の読み込みに失敗しました: {e}",
+      "DailyExpCheckTitle": "日次経験値チェック",
+      "CheckTime": "チェック時間: {value}",
+      "TargetLevel": "目標レベル: {value}",
+      "ShipSlot": "艦位",
+      "Level": "レベル",
+      "CurrentExpThisLevel": "現在の経験値（今レベル）",
+      "TotalExp": "累計経験値",
+      "ExpToTarget": "目標までの経験値",
+      "SortiesNeeded": "必要出撃回数",
+      "EstimatedTime": "推定時間",
+      "NoExpData": "経験値データがありません。侵蝕1練級実行後に自動記録されます",
+      "Month": "月",
+      "BattleCount": "戦闘回数",
+      "BattleRounds": "戦闘ラウンド",
+      "SortieCost": "出撃消費",
+      "AkashiEncounters": "明石遭遇回数",
+      "AkashiRate": "明石遭遇率",
+      "SirenResearchDevices": "クレーン回数",
+      "SirenResearchRate": "クレーン確率",
+      "HazardLevel": "侵蝕レベル",
+      "AverageAP": "平均AP",
+      "NetAP": "純獲得AP",
+      "LoopEfficiency": "ループ効率",
+      "ExpEfficiency": "経験値効率: {value}/{unit}",
+      "ExpEfficiencyHeader": "経験値効率",
+      "AvgBattleTime": "平均戦闘時間: {value}{unit}",
+      "AvgBattleTimeHeader": "平均戦闘時間",
+      "AvgRoundTime": "平均ラウンド時間",
+      "TodayBattles": "今日の戦闘: {value}{unit}",
+      "TodayBattlesHeader": "今日の戦闘",
+      "TodayExp": "今日の経験値: {value}",
+      "TodayExpHeader": "今日の経験値",
+      "TodayRun": "今日の実行: {value}{unit}",
+      "TodayRunHeader": "今日の実行",
+      "OpsiDataCollectionTitle": "雪風様の侵蝕1データ収集",
+      "MonthlyPurchasedAP": "今月購入AP: {value}",
+      "MeowDataCollectionTitle": "短猫データ収集",
+      "MeowRounds": "短猫ラウンド数",
+      "AvgMeowRoundTime": "平均短猫ラウンド時間",
+      "MeowLootTitle": "短猫収穫",
+      "NoMeowDataNotice": "短猫収穫データがありません。1回実行後に自動生成されます",
+      "MeowAdvanceAdviceTitle": "短猫早め開始アドバイス",
+      "CurrentAP": "現在のAP: {value}",
+      "ApPerRound": "1ラウンド消費: {value} AP",
+      "AvailableRounds": "実行可能ラウンド数: {value}{unit}",
+      "AvgRoundDuration": "平均ラウンド時間: {value}{unit}",
+      "CurrentMode": "現在のモード: {value}",
+      "RecommendAhead": "推奨早め開始: {value}{unit}",
+      "RoundUnit": " ラウンド",
+      "SecondUnit": "秒",
+      "HourUnit": "時間",
+      "MinuteUnit": "分",
+      "ExportModuleLoadFailed": "エクスポート失敗: 統計モジュールを読み込めません: {e}",
+      "CsvHeaderAkashiRate": "明石遭遇率(%)",
+      "CsvHeaderLoopEfficiency": "ループ効率(%)",
+      "CsvHeaderMonthlyPurchasedAP": "今月購入AP",
+      "CsvFilenameTemplate": "侵蝕1練級_{month}_詳細データ.csv",
+      "SavedToDesktop": "デスクトップに保存しました: {path}",
+      "SaveDesktopFailed": "デスクトップへの保存に失敗しました: {e}",
+      "ExportAndSaveDesktop": "デスクトップにエクスポートして保存",
+      "NoShipExpData": "艦船経験値データがありません。先に「日次経験値チェック」を実行してください",
+      "ShipExpProgressTitle": "日次経験値チェック: 検出された艦娘レベルと進捗",
+      "LastCheckTime": "前回チェック時間: {value}",
+      "AvgOpsiRoundTime": "平均侵蝕1ラウンド時間: {value}{unit}",
+      "TodayBattleUnit": "戦闘",
+      "NoTodayBattleData": "今日の戦闘データがありません。戦闘後に自動更新されます",
+      "LoadShipExpFailed": "艦船経験値データの読み込みに失敗しました: {e}",
+      "TargetExpRequired": "目標レベルに必要な経験値",
+      "BattlesCompleted": "完了戦闘数",
+      "ExpRemaining": "残り必要経験値",
+      "StartCleanupTime": "推奨クリーンアップ開始: {value}",
+      "NextOsReset": "次回大世界リセット: {value}",
+      "MeowAutoCleanupStatus": "自動先行クリーンアップ: {value}",
+      "CommissionIncomeTitle": "委託収益統計",
+      "CommissionIncomeMonth": "今月",
+      "CommissionIncomeWeek": "今週",
+      "CommissionIncomeDay": "今日",
+      "CommissionIncomeNoData": "委託収益データがありません。委託実行後に自動更新されます",
+      "CommissionIncomeItemGem": "ダイヤ",
+      "CommissionIncomeItemCube": "キューブ",
+      "CommissionIncomeItemChip": "コグチップ",
+      "CommissionIncomeItemOil": "燃料",
+      "CommissionIncomeItemCoin": "資金",
+      "CommissionIncomeHeaderItem": "アイテム",
+      "CommissionIncomeHeaderTotal": "合計",
+      "CommissionIncomeHeaderCount": "委託回数",
+      "CommissionIncomeHeaderAvg": "平均/回",
+      "CommissionIncomeTotalCommissions": "委託総回数: {value}",
+      "CommissionIncomeRecentTitle": "最近の委託記録",
       "ResourceChartTitle": "全リソース推移",
-      "LoadResourceDataFailed": "Gui.Stat.LoadResourceDataFailed",
-      "NoResourceData": "Gui.Stat.NoResourceData",
-      "NoValidResourceData": "Gui.Stat.NoValidResourceData"
+      "LoadResourceDataFailed": "リソースデータの読み込みに失敗しました: {e}",
+      "NoResourceData": "リソース変動データがありません。スクリプト実行後に自動記録されます",
+      "NoValidResourceData": "有効なリソースデータがありません"
     },
     "Tactical": {
-      "SkillAutoSwitch": "Gui.Tactical.SkillAutoSwitch"
+      "SkillAutoSwitch": "スキル自動切替"
     },
     "OpsiScheduling": {
-      "UseSmartSchedulingOperationCoinsPreserve": "Gui.OpsiScheduling.UseSmartSchedulingOperationCoinsPreserve",
-      "OperationCoinsPreserve": "Gui.OpsiScheduling.OperationCoinsPreserve",
-      "ActionPointPreserve": "Gui.OpsiScheduling.ActionPointPreserve",
+      "UseSmartSchedulingOperationCoinsPreserve": "スマートスケジューリング作戦コイン保留",
+      "OperationCoinsPreserve": "作戦コイン保留",
+      "ActionPointPreserve": "行動力保留",
       "ActionPointEarlyTriggerEnable": "行動力の早期スケジュール",
       "ActionPointEarlyTriggerThreshold": "早期スケジュール行動力しきい値",
-      "OperationCoinsReturnThreshold": "Gui.OpsiScheduling.OperationCoinsReturnThreshold",
-      "EnableMeowfficerFarming": "Gui.OpsiScheduling.EnableMeowfficerFarming",
-      "EnableObscure": "Gui.OpsiScheduling.EnableObscure",
-      "EnableAbyssal": "Gui.OpsiScheduling.EnableAbyssal",
-      "EnableStronghold": "Gui.OpsiScheduling.EnableStronghold",
-      "MeowStartEarlyMode": "Gui.OpsiScheduling.MeowStartEarlyMode"
+      "OperationCoinsReturnThreshold": "作戦コイン戻り閾値",
+      "EnableMeowfficerFarming": "指揮ニャー収集を有効",
+      "EnableObscure": "隠秘海域を有効",
+      "EnableAbyssal": "深淵海域を有効",
+      "EnableStronghold": "セイレーン要塞を有効",
+      "MeowStartEarlyMode": "短猫早期開始モード"
     },
     "Misc": {
-      "Enabled": "Enabled",
-      "Disabled": "Disabled"
+      "Enabled": "有効",
+      "Disabled": "無効"
     },
     "OOBE": {
       "ImportTitle": "旧データをインポート",

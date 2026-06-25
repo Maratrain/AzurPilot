@@ -3,14 +3,26 @@ import json
 import os
 import queue
 import shutil
+import socket
+import struct
 import subprocess
 import threading
 import time
+from time import sleep
 
 import cv2
+from module.device.pkg_resources import get_distribution
+
+_ = get_distribution
+
+from adbutils import AdbError, Network
 from starlette.responses import JSONResponse, HTMLResponse, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocketDisconnect
+from module.device.method.scrcpy import const as scrcpy_const
+from module.device.method.scrcpy.control import ControlSender
+from module.device.method.scrcpy.options import ScrcpyOptions
+from module.device.method.utils import recv_all
 from module.logger import logger
 from module.config.utils import DEFAULT_CONFIG_NAME
 
@@ -59,9 +71,52 @@ def _get_ffmpeg_path():
         return None
 
 
-def _video_stream_command(ffmpeg, codec, width, height, fps):
-    bitrate = "800k"
-    bufsize = "1600k"
+def _parse_int(value, default, minimum, maximum):
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, min(value, maximum))
+
+
+def _parse_float(value, default, minimum, maximum):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, min(value, maximum))
+
+
+def _put_queue(queue_obj, item):
+    try:
+        queue_obj.put(item)
+    except Exception:
+        pass
+
+
+def _video_stream_params(codec, width, height, fps, bitrate_scale=1.0):
+    pixels_per_second = max(1, width * height * fps)
+    bits_per_pixel = 0.42
+    crf = 28
+    normal_minimum = 320
+    absolute_minimum = 160
+    maximum = 20000
+
+    bitrate_scale = max(0.25, min(float(bitrate_scale), 1.5))
+    base_kbps = int(pixels_per_second * bits_per_pixel / 1000)
+    maxrate_kbps = int(max(normal_minimum, base_kbps) * bitrate_scale)
+    maxrate_kbps = max(absolute_minimum, min(maxrate_kbps, maximum))
+    return {
+        "crf": str(crf),
+        "maxrate": f"{maxrate_kbps}k",
+        "bufsize": f"{maxrate_kbps * 2}k",
+        "maxrate_kbps": maxrate_kbps,
+        "bitrate_scale": bitrate_scale,
+    }
+
+
+def _video_stream_command(ffmpeg, codec, width, height, fps, stream_params=None):
+    stream_params = stream_params or _video_stream_params(codec, width, height, fps)
     base = [
         ffmpeg,
         "-hide_banner",
@@ -79,31 +134,6 @@ def _video_stream_command(ffmpeg, codec, width, height, fps):
         "pipe:0",
         "-an",
     ]
-    if codec == "h265":
-        return base + [
-            "-c:v",
-            "libx265",
-            "-preset",
-            "ultrafast",
-            "-b:v",
-            bitrate,
-            "-maxrate",
-            bitrate,
-            "-bufsize",
-            bufsize,
-            "-x265-params",
-            f"log-level=error:keyint={fps}:min-keyint={fps}:scenecut=0",
-            "-tag:v",
-            "hvc1",
-            "-pix_fmt",
-            "yuv420p",
-            "-f",
-            "mp4",
-            "-movflags",
-            "empty_moov+default_base_moof+frag_keyframe",
-            "pipe:1",
-        ]
-
     return base + [
         "-c:v",
         "libx264",
@@ -111,12 +141,12 @@ def _video_stream_command(ffmpeg, codec, width, height, fps):
         "ultrafast",
         "-tune",
         "zerolatency",
-        "-b:v",
-        bitrate,
+        "-crf",
+        stream_params["crf"],
         "-maxrate",
-        bitrate,
+        stream_params["maxrate"],
         "-bufsize",
-        bufsize,
+        stream_params["bufsize"],
         "-profile:v",
         "baseline",
         "-level",
@@ -137,42 +167,969 @@ def _video_stream_command(ffmpeg, codec, width, height, fps):
     ]
 
 
+def _scrcpy_remux_command(ffmpeg, fps):
+    return [
+        ffmpeg,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-fflags",
+        "+genpts+nobuffer",
+        "-flags",
+        "low_delay",
+        "-probesize",
+        "32",
+        "-analyzeduration",
+        "0",
+        "-f",
+        "h264",
+        "-r",
+        str(fps),
+        "-i",
+        "pipe:0",
+        "-an",
+        "-c:v",
+        "copy",
+        "-flush_packets",
+        "1",
+        "-f",
+        "mp4",
+        "-movflags",
+        "empty_moov+default_base_moof+frag_keyframe+separate_moof+dash",
+        "pipe:1",
+    ]
+
+
+def _h264_start_code_size(data, index):
+    if data[index:index + 4] == b"\x00\x00\x00\x01":
+        return 4
+    if data[index:index + 3] == b"\x00\x00\x01":
+        return 3
+    return 0
+
+
+def _iter_h264_nals(data):
+    starts = []
+    index = 0
+    length = len(data)
+    while index < length - 3:
+        size = _h264_start_code_size(data, index)
+        if size:
+            starts.append((index, size))
+            index += size
+        else:
+            index += 1
+    for pos, (start, size) in enumerate(starts):
+        end = starts[pos + 1][0] if pos + 1 < len(starts) else length
+        nal = data[start + size:end]
+        if nal:
+            yield nal
+
+
+def _h264_avc1_codec(data):
+    for nal in _iter_h264_nals(data):
+        if (nal[0] & 0x1F) == 7 and len(nal) >= 4:
+            return f"avc1.{nal[1]:02X}{nal[2]:02X}{nal[3]:02X}"
+    return "avc1.42E01E"
+
+
+def _h264_avcc_description(data):
+    sps = None
+    pps = None
+    for nal in _iter_h264_nals(data):
+        nal_type = nal[0] & 0x1F
+        if nal_type == 7 and sps is None:
+            sps = nal
+        elif nal_type == 8 and pps is None:
+            pps = nal
+        if sps is not None and pps is not None:
+            break
+    if sps is None:
+        return None
+    payload = bytearray()
+    payload += b"\x01"
+    payload += sps[1:4]
+    payload += b"\xff"
+    payload += b"\xe1"
+    payload += len(sps).to_bytes(2, "big")
+    payload += sps
+    if pps is None:
+        payload += b"\x00"
+    else:
+        payload += b"\x01"
+        payload += len(pps).to_bytes(2, "big")
+        payload += pps
+    return list(payload)
+
+
+def _iter_h264_nals_flexible(chunks):
+    for data in chunks:
+        if not data:
+            continue
+        found = False
+        for nal in _iter_h264_nals(data):
+            found = True
+            yield nal
+        if not found:
+            yield data
+
+
+def _h264_avc1_codec_from_chunks(chunks):
+    for nal in _iter_h264_nals_flexible(chunks):
+        if (nal[0] & 0x1F) == 7 and len(nal) >= 4:
+            return f"avc1.{nal[1]:02X}{nal[2]:02X}{nal[3]:02X}"
+    return "avc1.42E01E"
+
+
+def _collect_h264_preroll(session, stop_event, max_wait=3.0):
+    deadline = time.time() + max_wait
+    chunks = []
+    has_sps = False
+    has_pps = False
+    has_frame = False
+    while time.time() < deadline and not stop_event.is_set() and session.alive:
+        chunk = session.read_video()
+        if chunk is None:
+            continue
+        if chunk == b"":
+            break
+        chunks.append(chunk)
+        data = b"".join(chunks)
+        for nal in _iter_h264_nals(data):
+            nal_type = nal[0] & 0x1F
+            if nal_type == 7:
+                has_sps = True
+            elif nal_type == 8:
+                has_pps = True
+            elif nal_type in (1, 5):
+                has_frame = True
+        if has_sps and has_pps and has_frame:
+            break
+    return b"".join(chunks)
+
+
+async def _collect_ws_scrcpy_preroll(session, max_wait=3.0):
+    deadline = time.time() + max_wait
+    chunks = []
+    has_sps = False
+    has_pps = False
+    has_frame = False
+    while time.time() < deadline and session.alive:
+        timeout = max(0.1, min(0.5, deadline - time.time()))
+        try:
+            data = await asyncio.wait_for(session.recv(), timeout=timeout)
+        except asyncio.TimeoutError:
+            continue
+        if not data:
+            break
+        parsed = _ws_scrcpy_parse_initial(data)
+        if parsed:
+            display = (parsed.get("displays") or [{}])[0]
+            width = int(display.get("screen_width") or display.get("width") or session.resolution[0])
+            height = int(display.get("screen_height") or display.get("height") or session.resolution[1])
+            session.resolution = (max(1, width), max(1, height))
+            continue
+        chunks.append(data)
+        for nal in _iter_h264_nals_flexible([data]):
+            nal_type = nal[0] & 0x1F
+            if nal_type == 7:
+                has_sps = True
+            elif nal_type == 8:
+                has_pps = True
+            elif nal_type in (1, 5):
+                has_frame = True
+        if has_sps and has_pps and has_frame:
+            break
+    return chunks
+
+
+def _live_preview_error_message(error):
+    message = str(error).strip()
+    if message:
+        return message
+
+    name = error.__class__.__name__
+    return f"{name}: {error!r}"
+
+
+WS_SCRCPY_VERSION = "1.19-ws7"
+WS_SCRCPY_PORT = 8886
+WS_SCRCPY_PACKAGE = "com.genymobile.scrcpy.Server"
+WS_SCRCPY_FILEPATH_LOCAL = "./bin/scrcpy/ws-scrcpy-server-v1.19-ws7.jar"
+WS_SCRCPY_FILEPATH_REMOTE = "/data/local/tmp/ws-scrcpy-server-v1.19-ws7.jar"
+WS_SCRCPY_MAGIC_INITIAL = b"scrcpy_initial"
+WS_SCRCPY_DEVICE_NAME_LENGTH = 64
+
+
+def _ws_scrcpy_int(data, offset):
+    return struct.unpack_from(">i", data, offset)[0], offset + 4
+
+
+def _ws_scrcpy_parse_initial(data):
+    if not isinstance(data, (bytes, bytearray)) or not data.startswith(WS_SCRCPY_MAGIC_INITIAL):
+        return None
+
+    try:
+        offset = len(WS_SCRCPY_MAGIC_INITIAL)
+        name_bytes = bytes(data[offset:offset + WS_SCRCPY_DEVICE_NAME_LENGTH]).rstrip(b"\x00")
+        offset += WS_SCRCPY_DEVICE_NAME_LENGTH
+        display_count, offset = _ws_scrcpy_int(data, offset)
+        displays = []
+        for _index in range(max(0, display_count)):
+            display_id, offset = _ws_scrcpy_int(data, offset)
+            width, offset = _ws_scrcpy_int(data, offset)
+            height, offset = _ws_scrcpy_int(data, offset)
+            rotation, offset = _ws_scrcpy_int(data, offset)
+            layer_stack, offset = _ws_scrcpy_int(data, offset)
+            flags, offset = _ws_scrcpy_int(data, offset)
+            connection_count, offset = _ws_scrcpy_int(data, offset)
+            screen_info_len, offset = _ws_scrcpy_int(data, offset)
+            screen_width = width
+            screen_height = height
+            if screen_info_len >= 25 and offset + screen_info_len <= len(data):
+                screen_width = struct.unpack_from(">i", data, offset + 16)[0]
+                screen_height = struct.unpack_from(">i", data, offset + 20)[0]
+                rotation = data[offset + 24]
+            offset += max(0, screen_info_len)
+            video_settings_len, offset = _ws_scrcpy_int(data, offset)
+            offset += max(0, video_settings_len)
+            displays.append({
+                "display_id": display_id,
+                "width": width,
+                "height": height,
+                "screen_width": screen_width,
+                "screen_height": screen_height,
+                "rotation": rotation,
+                "layer_stack": layer_stack,
+                "flags": flags,
+                "connection_count": connection_count,
+            })
+
+        encoders = []
+        if offset + 4 <= len(data):
+            encoder_count, offset = _ws_scrcpy_int(data, offset)
+            for _index in range(max(0, encoder_count)):
+                name_len, offset = _ws_scrcpy_int(data, offset)
+                name = bytes(data[offset:offset + name_len]).decode("utf-8", errors="replace")
+                offset += max(0, name_len)
+                if name:
+                    encoders.append(name)
+        client_id = -1
+        if offset + 4 <= len(data):
+            client_id, offset = _ws_scrcpy_int(data, offset)
+
+        return {
+            "device_name": name_bytes.decode("utf-8", errors="replace"),
+            "displays": displays,
+            "encoders": encoders,
+            "client_id": client_id,
+        }
+    except Exception as e:
+        logger.warning(f"解析 ws-scrcpy 初始信息失败: {e}")
+        return None
+
+
+def _build_ws_scrcpy_video_settings(width, fps, bitrate):
+    height = max(180, int(round(width * 9 / 16)))
+    payload = bytearray()
+    payload += struct.pack(">B", 101)  # TYPE_CHANGE_STREAM_PARAMETERS
+    payload += struct.pack(">i", int(bitrate))
+    payload += struct.pack(">i", int(fps))
+    payload += struct.pack(">b", 1)  # iFrameInterval，低延迟下更快恢复
+    payload += struct.pack(">h", int(width))
+    payload += struct.pack(">h", int(height))
+    payload += struct.pack(">hhhh", 0, 0, 0, 0)  # crop
+    payload += struct.pack(">b", 0)  # sendFrameMeta=false，浏览器直接收 H264
+    payload += struct.pack(">b", -1)  # unlocked orientation
+    payload += struct.pack(">i", 0)  # displayId
+    payload += struct.pack(">i", 0)  # codecOptions
+    payload += struct.pack(">i", 0)  # encoderName
+    return bytes(payload)
+
+
+class LiveWsScrcpySession:
+    """
+    NetrisTV/ws-scrcpy 的设备端 WebSocket server 会话。
+
+    浏览器仍只连接 WebUI；这里负责启动设备端 server、ADB forward，并把视频和控制消息代理过去。
+    """
+    _sessions = {}
+    _sessions_lock = threading.Lock()
+
+    def __init__(self, instance, fps=60, width=640, bitrate_scale=1.0):
+        from module.config.config import AzurLaneConfig
+        from module.device.connection import Connection
+
+        self.instance = instance
+        self.fps = _parse_int(fps, 60, 15, 240)
+        self.width = _parse_int(width, 640, 320, 1280)
+        self.bitrate_scale = _parse_float(bitrate_scale, 1.0, 0.25, 1.5)
+        self.config = AzurLaneConfig(instance)
+        self.connection = Connection(self.config)
+        self.server_stream = None
+        self.local_port = None
+        self.remote_ws = None
+        self.loop = None
+        self.send_lock = None
+        self.alive = False
+        self.resolution = (1280, 720)
+        self.device_name = ""
+
+    @classmethod
+    def register(cls, instance, session):
+        key = instance or DEFAULT_CONFIG_NAME
+        with cls._sessions_lock:
+            old = cls._sessions.get(key)
+            if old is not None and old is not session:
+                old.stop()
+            cls._sessions[key] = session
+
+    @classmethod
+    def get(cls, instance):
+        key = instance or DEFAULT_CONFIG_NAME
+        with cls._sessions_lock:
+            session = cls._sessions.get(key)
+            if session is not None and session.alive:
+                return session
+        return None
+
+    @classmethod
+    async def release(cls, instance, session=None):
+        key = instance or DEFAULT_CONFIG_NAME
+        with cls._sessions_lock:
+            current = cls._sessions.get(key)
+            if current is not None and (session is None or current is session):
+                cls._sessions.pop(key, None)
+            else:
+                current = None
+        if current is not None:
+            await current.stop_async()
+
+    @property
+    def bitrate(self):
+        base = max(1, self.width * int(self.width * 9 / 16) * self.fps)
+        bitrate = int(base * 0.20 * self.bitrate_scale)
+        return max(300_000, min(bitrate, 20_000_000))
+
+    def _server_command(self):
+        args = [
+            "/",
+            WS_SCRCPY_PACKAGE,
+            WS_SCRCPY_VERSION,
+            "web",
+            "ERROR",
+            str(WS_SCRCPY_PORT),
+            "false",
+        ]
+        return f"CLASSPATH={WS_SCRCPY_FILEPATH_REMOTE} nohup app_process {' '.join(args)} >/dev/null 2>&1 &"
+
+    def _local_port_open(self):
+        if not self.local_port:
+            return False
+        try:
+            with socket.create_connection(("127.0.0.1", int(self.local_port)), timeout=0.3):
+                return True
+        except OSError:
+            return False
+
+    def start_server(self):
+        if not os.path.exists(WS_SCRCPY_FILEPATH_LOCAL):
+            raise RuntimeError(f"未找到 ws-scrcpy server: {WS_SCRCPY_FILEPATH_LOCAL}")
+
+        logger.hr("实时 ws-scrcpy 预览启动")
+        self.connection.adb_push(WS_SCRCPY_FILEPATH_LOCAL, WS_SCRCPY_FILEPATH_REMOTE)
+        self.local_port = self.connection.adb_forward(f"tcp:{WS_SCRCPY_PORT}")
+        if self._local_port_open():
+            logger.info("ws-scrcpy server 已在运行，复用设备端服务")
+            return
+        output = self.connection.adb_shell(self._server_command(), timeout=2)
+        if output:
+            logger.info(output)
+
+    async def connect(self):
+        from websockets.asyncio.client import connect
+
+        if not self.local_port:
+            raise RuntimeError("ws-scrcpy 未创建 ADB forward")
+
+        self.loop = asyncio.get_running_loop()
+        self.send_lock = asyncio.Lock()
+        url = f"ws://127.0.0.1:{self.local_port}/"
+        last_error = None
+        for _index in range(20):
+            try:
+                self.remote_ws = await connect(url, max_size=None)
+                self.alive = True
+                return
+            except Exception as e:
+                last_error = e
+                await asyncio.sleep(0.1)
+        raise RuntimeError(f"连接 ws-scrcpy server 失败: {last_error}")
+
+    async def recv(self):
+        if self.remote_ws is None:
+            return None
+        try:
+            data = await self.remote_ws.recv()
+        except Exception as e:
+            self.alive = False
+            code = getattr(e, "code", None)
+            reason = getattr(e, "reason", "")
+            if code is not None:
+                logger.warning(f"ws-scrcpy 设备端连接关闭: code={code}, reason={reason}")
+            else:
+                logger.warning(f"ws-scrcpy 设备端接收失败: {_live_preview_error_message(e)}")
+            return None
+        if isinstance(data, str):
+            return data.encode("utf-8", errors="replace")
+        return bytes(data)
+
+    async def send_binary(self, data):
+        if not self.alive or self.remote_ws is None:
+            return
+        async with self.send_lock:
+            await self.remote_ws.send(data)
+
+    def _send_control(self, data):
+        if not self.loop or not self.alive:
+            return
+        try:
+            future = asyncio.run_coroutine_threadsafe(self.send_binary(data), self.loop)
+            future.result(timeout=2)
+        except Exception as e:
+            logger.warning(f"发送 ws-scrcpy 控制消息失败: {e}")
+
+    def _scale_point(self, x, y):
+        width, height = self.resolution
+        x = int(max(0, min(1280, x)) * width / 1280)
+        y = int(max(0, min(720, y)) * height / 720)
+        return x, y
+
+    def _touch_message(self, x, y, action, touch_id=-1):
+        x, y = self._scale_point(x, y)
+        width, height = self.resolution
+        return struct.pack(
+            ">BBqiiHHHi",
+            scrcpy_const.TYPE_INJECT_TOUCH_EVENT,
+            action,
+            touch_id,
+            int(x),
+            int(y),
+            int(width),
+            int(height),
+            0xFFFF,
+            1,
+        )
+
+    @staticmethod
+    def _keycode_message(keycode, action):
+        return struct.pack(">BBiii", scrcpy_const.TYPE_INJECT_KEYCODE, action, int(keycode), 0, 0)
+
+    @staticmethod
+    def _text_message(text):
+        data = str(text or "").encode("utf-8")
+        return struct.pack(">Bi", scrcpy_const.TYPE_INJECT_TEXT, len(data)) + data
+
+    def tap(self, x, y):
+        self._send_control(self._touch_message(x, y, scrcpy_const.ACTION_DOWN))
+        self._send_control(self._touch_message(x, y, scrcpy_const.ACTION_UP))
+
+    def drag(self, start, end, duration_ms=220):
+        sx, sy = start.get("x", 0), start.get("y", 0)
+        ex, ey = end.get("x", 0), end.get("y", 0)
+        duration = max(40, min(int(duration_ms or 220), 1500)) / 1000
+        steps = max(3, min(int(duration / 0.012), 80))
+        self._send_control(self._touch_message(sx, sy, scrcpy_const.ACTION_DOWN))
+        for index in range(1, steps):
+            ratio = index / steps
+            x = int(sx + (ex - sx) * ratio)
+            y = int(sy + (ey - sy) * ratio)
+            self._send_control(self._touch_message(x, y, scrcpy_const.ACTION_MOVE))
+            sleep(duration / steps)
+        self._send_control(self._touch_message(ex, ey, scrcpy_const.ACTION_MOVE))
+        self._send_control(self._touch_message(ex, ey, scrcpy_const.ACTION_UP))
+
+    def keycode(self, keycode):
+        self._send_control(self._keycode_message(keycode, scrcpy_const.ACTION_DOWN))
+        self._send_control(self._keycode_message(keycode, scrcpy_const.ACTION_UP))
+
+    def text(self, text):
+        if text:
+            self._send_control(self._text_message(text))
+
+    async def stop_async(self):
+        logger.hr("实时 ws-scrcpy 预览停止")
+        self.alive = False
+        if self.remote_ws is not None:
+            try:
+                await self.remote_ws.close()
+            except Exception:
+                pass
+            self.remote_ws = None
+
+    def stop(self):
+        self.alive = False
+        if self.remote_ws is not None:
+            try:
+                if self.loop is not None and self.loop.is_running():
+                    try:
+                        current_loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        current_loop = None
+                    if current_loop is self.loop:
+                        self.loop.create_task(self.remote_ws.close())
+                    else:
+                        future = asyncio.run_coroutine_threadsafe(self.remote_ws.close(), self.loop)
+                        future.result(timeout=1)
+            except Exception:
+                pass
+            self.remote_ws = None
+        if self.server_stream is not None:
+            try:
+                self.server_stream.close()
+            except Exception as e:
+                logger.warning(f"关闭 ws-scrcpy server stream 失败: {e}")
+        self.server_stream = None
+
+
+class LiveScrcpySession:
+    """
+    预览专用 scrcpy 会话。
+
+    这里只桥接 H264 原始流和控制 socket，不启动 PyAV 解码线程。
+    """
+    _sessions = {}
+    _sessions_lock = threading.Lock()
+
+    def __init__(self, instance, fps=60, width=640, bitrate_scale=1.0):
+        from module.config.config import AzurLaneConfig
+        from module.device.method.scrcpy.core import ScrcpyCore
+
+        self.instance = instance
+        self.fps = _parse_int(fps, 60, 15, 240)
+        self.width = _parse_int(width, 640, 320, 1280)
+        self.bitrate_scale = _parse_float(bitrate_scale, 1.0, 0.25, 1.5)
+        self.config = AzurLaneConfig(instance)
+        self.connection = ScrcpyCore(self.config)
+        self.video_socket = None
+        self.control_socket = None
+        self.server_stream = None
+        self.alive = False
+        self.resolution = (1280, 720)
+        self.control_lock = threading.RLock()
+        self.control_sender = ControlSender(self)
+
+    @property
+    def _scrcpy_control_socket(self):
+        return self.control_socket
+
+    @property
+    def _scrcpy_control_socket_lock(self):
+        return self.control_lock
+
+    @property
+    def _scrcpy_resolution(self):
+        return self.resolution
+
+    @classmethod
+    def acquire(cls, instance, fps=60, width=640, bitrate_scale=1.0):
+        key = instance or DEFAULT_CONFIG_NAME
+        with cls._sessions_lock:
+            session = cls._sessions.get(key)
+            if session is not None:
+                session.stop()
+                cls._sessions.pop(key, None)
+            session = cls(key, fps=fps, width=width, bitrate_scale=bitrate_scale)
+            session.start()
+            cls._sessions[key] = session
+            return session
+
+    @classmethod
+    def get(cls, instance):
+        key = instance or DEFAULT_CONFIG_NAME
+        with cls._sessions_lock:
+            session = cls._sessions.get(key)
+            if session is not None and session.alive:
+                return session
+        return None
+
+    @classmethod
+    def release(cls, instance, session=None):
+        key = instance or DEFAULT_CONFIG_NAME
+        with cls._sessions_lock:
+            current = cls._sessions.get(key)
+            if current is not None and (session is None or current is session):
+                cls._sessions.pop(key, None)
+                current.stop()
+
+    @property
+    def bitrate(self):
+        # scrcpy 1.20 超过 20Mbps 会回落默认值，保守限制在 20Mbps 内。
+        base = max(1, self.width * int(self.width * 9 / 16) * self.fps)
+        bitrate = int(base * 0.20 * self.bitrate_scale)
+        return max(300_000, min(bitrate, 20_000_000))
+
+    def _scrcpy_command(self):
+        original_frame_rate = ScrcpyOptions.frame_rate
+        try:
+            ScrcpyOptions.frame_rate = self.fps
+            commands = ScrcpyOptions.command_v120(jar_path=self.config.SCRCPY_FILEPATH_REMOTE)
+        finally:
+            ScrcpyOptions.frame_rate = original_frame_rate
+
+        # scrcpy-server 1.20 参数位置：max_size、bitrate、max_fps。
+        commands[6] = str(self.width)
+        commands[7] = str(self.bitrate)
+        commands[8] = str(self.fps)
+        return commands
+
+    def start(self):
+        try:
+            logger.hr("实时 scrcpy 预览启动")
+            self.connection.adb_push(self.config.SCRCPY_FILEPATH_LOCAL, self.config.SCRCPY_FILEPATH_REMOTE)
+            self.server_stream = self.connection.adb.shell(self._scrcpy_command(), stream=True)
+            self.server_stream.conn.settimeout(3)
+
+            ret = self.server_stream.read(10)
+            if b"Aborted" in ret:
+                raise RuntimeError("scrcpy-server 启动失败：Aborted")
+            if ret == b"[server] E":
+                ret += recv_all(self.server_stream)
+                raise RuntimeError(ret.decode("utf-8", errors="replace"))
+            ret += self._receive_server_stream()
+            logger.info(ret)
+
+            self.video_socket = self._connect_scrcpy_socket()
+            dummy_byte = self.video_socket.recv(1)
+            if dummy_byte != b"\x00":
+                raise RuntimeError("scrcpy 视频流握手失败")
+
+            self.control_socket = self._connect_scrcpy_socket()
+            device_name = self.video_socket.recv(64).decode("utf-8", errors="replace").rstrip("\x00")
+            if device_name:
+                logger.attr("LiveScrcpyDevice", device_name)
+            resolution = self.video_socket.recv(4)
+            if len(resolution) != 4:
+                raise RuntimeError("scrcpy 未返回视频分辨率")
+            self.resolution = struct.unpack(">HH", resolution)
+            logger.attr("LiveScrcpyResolution", self.resolution)
+            self.video_socket.settimeout(1)
+            self.alive = True
+        except Exception:
+            self.stop()
+            raise
+
+    def _receive_server_stream(self):
+        if self.server_stream is not None:
+            try:
+                return self.server_stream.conn.recv(4096)
+            except Exception:
+                pass
+        return b""
+
+    def _connect_scrcpy_socket(self):
+        timeout_at = time.time() + 3
+        while time.time() < timeout_at:
+            try:
+                sock = self.connection.adb.create_connection(Network.LOCAL_ABSTRACT, "scrcpy")
+                sock.settimeout(3)
+                return sock
+            except AdbError:
+                sleep(0.1)
+        raise RuntimeError("连接 scrcpy socket 超时")
+
+    def read_video(self, size=0x10000):
+        if not self.video_socket:
+            return b""
+        try:
+            return self.video_socket.recv(size)
+        except socket.timeout:
+            return None
+        except (ConnectionError, OSError):
+            return b""
+
+    def scale_point(self, x, y):
+        width, height = self.resolution
+        x = int(max(0, min(1280, x)) * width / 1280)
+        y = int(max(0, min(720, y)) * height / 720)
+        return x, y
+
+    def tap(self, x, y):
+        x, y = self.scale_point(x, y)
+        with self.control_lock:
+            self.control_sender.touch(x, y, scrcpy_const.ACTION_DOWN)
+            self.control_sender.touch(x, y, scrcpy_const.ACTION_UP)
+
+    def drag(self, start, end, duration_ms=220):
+        sx, sy = self.scale_point(start.get("x", 0), start.get("y", 0))
+        ex, ey = self.scale_point(end.get("x", 0), end.get("y", 0))
+        duration = max(40, min(int(duration_ms or 220), 1500)) / 1000
+        steps = max(3, min(int(duration / 0.012), 80))
+        with self.control_lock:
+            self.control_sender.touch(sx, sy, scrcpy_const.ACTION_DOWN)
+            for index in range(1, steps):
+                ratio = index / steps
+                x = int(sx + (ex - sx) * ratio)
+                y = int(sy + (ey - sy) * ratio)
+                self.control_sender.touch(x, y, scrcpy_const.ACTION_MOVE)
+                sleep(duration / steps)
+            self.control_sender.touch(ex, ey, scrcpy_const.ACTION_MOVE)
+            self.control_sender.touch(ex, ey, scrcpy_const.ACTION_UP)
+
+    def keycode(self, keycode):
+        keycode = int(keycode)
+        with self.control_lock:
+            self.control_sender.keycode(keycode, scrcpy_const.ACTION_DOWN)
+            self.control_sender.keycode(keycode, scrcpy_const.ACTION_UP)
+
+    def text(self, text):
+        text = str(text or "")
+        if not text:
+            return
+        with self.control_lock:
+            self.control_sender.text(text)
+
+    def stop(self):
+        logger.hr("实时 scrcpy 预览停止")
+        self.alive = False
+        for obj in (self.control_socket, self.video_socket, self.server_stream):
+            if obj is None:
+                continue
+            try:
+                obj.close()
+            except Exception as e:
+                logger.warning(f"关闭 scrcpy 资源失败: {e}")
+        self.control_socket = None
+        self.video_socket = None
+        self.server_stream = None
+
+
+class LiveControlDevice:
+    def __init__(self, instance):
+        from module.config.config import AzurLaneConfig
+        from module.device.connection import Connection
+
+        self.config = AzurLaneConfig(instance)
+        self.connection = Connection(self.config)
+
+    def tap(self, x, y):
+        self.connection.adb_shell(["input", "tap", int(x), int(y)])
+
+    def drag(self, start, end, duration_ms=220):
+        p1 = (int(start.get("x", 0)), int(start.get("y", 0)))
+        p2 = (int(end.get("x", 0)), int(end.get("y", 0)))
+        duration_ms = max(40, min(int(duration_ms or 220), 1500))
+        self.connection.adb_shell(["input", "swipe", p1[0], p1[1], p2[0], p2[1], duration_ms])
+
+    def keycode(self, keycode):
+        self.connection.adb_shell(["input", "keyevent", int(keycode)])
+
+    def text(self, text):
+        text = str(text or "").replace(" ", "%s")
+        if text:
+            self.connection.adb_shell(["input", "text", text])
+
+
+def _key_to_android_keycode(key):
+    mapping = {
+        "Backspace": scrcpy_const.KEYCODE_DEL,
+        "Delete": scrcpy_const.KEYCODE_FORWARD_DEL,
+        "Enter": scrcpy_const.KEYCODE_ENTER,
+        "Escape": scrcpy_const.KEYCODE_BACK,
+        "Tab": scrcpy_const.KEYCODE_TAB,
+        " ": scrcpy_const.KEYCODE_SPACE,
+        "ArrowUp": scrcpy_const.KEYCODE_DPAD_UP,
+        "ArrowDown": scrcpy_const.KEYCODE_DPAD_DOWN,
+        "ArrowLeft": scrcpy_const.KEYCODE_DPAD_LEFT,
+        "ArrowRight": scrcpy_const.KEYCODE_DPAD_RIGHT,
+        "Home": scrcpy_const.KEYCODE_HOME,
+        "End": scrcpy_const.KEYCODE_MOVE_END,
+        "PageUp": scrcpy_const.KEYCODE_PAGE_UP,
+        "PageDown": scrcpy_const.KEYCODE_PAGE_DOWN,
+        "AppSwitch": scrcpy_const.KEYCODE_APP_SWITCH,
+    }
+    return mapping.get(key)
+
+
+CONTROL_ACTION_KEYCODES = {
+    "back": scrcpy_const.KEYCODE_BACK,
+    "home": scrcpy_const.KEYCODE_HOME,
+    "app_switch": scrcpy_const.KEYCODE_APP_SWITCH,
+}
+
+
 async def ws_live_screenshot(websocket):
     await websocket.accept()
 
     instance = websocket.query_params.get("instance", DEFAULT_CONFIG_NAME)
-    codec = websocket.query_params.get("codec", "h264").lower()
-    if codec not in ("h264", "h265"):
-        codec = "h264"
-    try:
-        fps = int(websocket.query_params.get("fps", "5"))
-    except ValueError:
-        fps = 5
-    fps = max(1, min(fps, 15))
-    try:
-        target_width = int(websocket.query_params.get("width", "640"))
-    except ValueError:
-        target_width = 640
-    target_width = max(320, min(target_width, 1280))
-
-    ffmpeg = _get_ffmpeg_path()
-    if not ffmpeg:
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": "ffmpeg not found. Install ffmpeg or imageio-ffmpeg to use H264/H265 live preview.",
-        }))
-        await websocket.close()
-        return
-
-    stop_event = threading.Event()
-    out_queue = queue.Queue(maxsize=16)
-    proc = None
+    mode = websocket.query_params.get("mode", "auto").lower()
+    if mode not in ("auto", "scrcpy", "screenshot"):
+        mode = "auto"
+    codec = "h264"
+    fps = _parse_int(websocket.query_params.get("fps", "60"), 60, 15, 240)
+    target_width = _parse_int(websocket.query_params.get("width", "640"), 640, 320, 1280)
+    bitrate_scale = _parse_float(websocket.query_params.get("bitrate_scale", "1"), 1.0, 0.25, 1.5)
 
     try:
         from module.webui.fake_pil_module import remove_fake_pil_module
         remove_fake_pil_module()
     except Exception:
         pass
+
+    if mode in ("auto", "scrcpy"):
+        try:
+            await _ws_live_scrcpy(websocket, instance, fps, target_width, bitrate_scale)
+            return
+        except WebSocketDisconnect:
+            return
+        except Exception as e:
+            if mode == "scrcpy":
+                message = _live_preview_error_message(e)
+                logger.error(f"ws_live_scrcpy error: {message}")
+                try:
+                    await websocket.send_text(json.dumps({"type": "error", "message": message}))
+                except Exception:
+                    pass
+                return
+            logger.warning(f"scrcpy 预览不可用，回退截图模式: {_live_preview_error_message(e)}")
+
+    ffmpeg = _get_ffmpeg_path()
+    if not ffmpeg:
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": "未找到 ffmpeg，截图兜底模式无法启动。",
+        }))
+        await websocket.close()
+        return
+
+    await _ws_live_screenshot_fallback(websocket, instance, codec, ffmpeg, fps, target_width, bitrate_scale)
+
+
+async def _ws_live_scrcpy(websocket, instance, fps, target_width, bitrate_scale):
+    try:
+        await _ws_live_ws_scrcpy(websocket, instance, fps, target_width, bitrate_scale)
+        return
+    except WebSocketDisconnect:
+        raise
+    except Exception as e:
+        logger.warning(f"ws-scrcpy 预览不可用，回退原版 scrcpy: {_live_preview_error_message(e)}")
+
+    await _ws_live_raw_scrcpy(websocket, instance, fps, target_width, bitrate_scale)
+
+
+async def _ws_live_ws_scrcpy(websocket, instance, fps, target_width, bitrate_scale):
+    session = LiveWsScrcpySession(instance, fps=fps, width=target_width, bitrate_scale=bitrate_scale)
+    LiveWsScrcpySession.register(instance, session)
+
+    try:
+        await asyncio.to_thread(session.start_server)
+        await session.connect()
+
+        initial = await asyncio.wait_for(session.recv(), timeout=3)
+        info = _ws_scrcpy_parse_initial(initial)
+        if not info:
+            raise RuntimeError("ws-scrcpy 未返回初始设备信息")
+
+        display = (info.get("displays") or [{}])[0]
+        width = int(display.get("screen_width") or display.get("width") or target_width)
+        height = int(display.get("screen_height") or display.get("height") or int(target_width * 9 / 16))
+        session.resolution = (max(1, width), max(1, height))
+        session.device_name = info.get("device_name") or ""
+        if session.device_name:
+            logger.attr("LiveWsScrcpyDevice", session.device_name)
+        logger.attr("LiveWsScrcpyResolution", session.resolution)
+
+        await session.send_binary(_build_ws_scrcpy_video_settings(target_width, fps, session.bitrate))
+        preroll = await _collect_ws_scrcpy_preroll(session)
+        codec_string = _h264_avc1_codec_from_chunks(preroll)
+        logger.attr("LiveWsScrcpyPreroll", f"{sum(len(item) for item in preroll)} bytes, {codec_string}")
+        await websocket.send_text(json.dumps({
+            "type": "ready",
+            "mode": "ws-scrcpy",
+            "codec": "h264",
+            "format": "raw_h264",
+            "codec_string": codec_string,
+            "description": None,
+            "width": session.resolution[0],
+            "height": session.resolution[1],
+            "fps": fps,
+            "bitrate_mode": "scrcpy",
+            "maxrate": f"{int(session.bitrate / 1000)}k",
+            "bitrate_scale": bitrate_scale,
+        }))
+        for data in preroll:
+            await websocket.send_bytes(data)
+
+        while session.alive:
+            data = await session.recv()
+            if not data:
+                break
+            parsed = _ws_scrcpy_parse_initial(data)
+            if parsed:
+                display = (parsed.get("displays") or [{}])[0]
+                width = int(display.get("screen_width") or display.get("width") or session.resolution[0])
+                height = int(display.get("screen_height") or display.get("height") or session.resolution[1])
+                session.resolution = (max(1, width), max(1, height))
+                await websocket.send_text(json.dumps({
+                    "type": "resize",
+                    "width": session.resolution[0],
+                    "height": session.resolution[1],
+                }))
+                continue
+            await websocket.send_bytes(data)
+    finally:
+        await LiveWsScrcpySession.release(instance, session=session)
+
+
+async def _ws_live_raw_scrcpy(websocket, instance, fps, target_width, bitrate_scale):
+    stop_event = threading.Event()
+    session = None
+
+    try:
+        session = LiveScrcpySession.acquire(instance, fps=fps, width=target_width, bitrate_scale=bitrate_scale)
+        width, height = session.resolution
+        preroll = await asyncio.to_thread(_collect_h264_preroll, session, stop_event)
+        if not preroll:
+            raise RuntimeError("scrcpy 未输出 H264 视频数据")
+        codec_string = _h264_avc1_codec(preroll)
+        description = _h264_avcc_description(preroll)
+        logger.attr("LiveScrcpyPreroll", f"{len(preroll)} bytes, {codec_string}")
+        await websocket.send_text(json.dumps({
+            "type": "ready",
+            "mode": "scrcpy",
+            "codec": "h264",
+            "format": "raw_h264",
+            "codec_string": codec_string,
+            "description": description,
+            "width": width,
+            "height": height,
+            "fps": fps,
+            "bitrate_mode": "scrcpy",
+            "maxrate": f"{int(session.bitrate / 1000)}k",
+            "bitrate_scale": bitrate_scale,
+        }))
+        await websocket.send_bytes(preroll)
+
+        while not stop_event.is_set() and session.alive:
+            raw_h264 = await asyncio.to_thread(session.read_video)
+            if raw_h264 is None:
+                continue
+            if raw_h264 == b"":
+                if not stop_event.is_set() and session.alive:
+                    await websocket.send_text(json.dumps({"type": "error", "message": "scrcpy 视频流已断开"}))
+                break
+            await websocket.send_bytes(raw_h264)
+    finally:
+        stop_event.set()
+        # 预览关闭即停止 scrcpy，避免后台持续占用编码器。
+        if session is not None:
+            LiveScrcpySession.release(instance, session=session)
+
+
+async def _ws_live_screenshot_fallback(websocket, instance, codec, ffmpeg, fps, target_width, bitrate_scale):
+    stop_event = threading.Event()
+    out_queue = queue.Queue(maxsize=16)
+    proc = None
 
     try:
         from module.config.config import AzurLaneConfig
@@ -189,23 +1146,24 @@ async def ws_live_screenshot(websocket):
         if target_height % 2:
             target_height += 1
         size = (target_width, target_height)
+        stream_params = _video_stream_params(codec, target_width, target_height, fps, bitrate_scale)
 
-        mime = (
-            'video/mp4; codecs="hvc1.1.6.L93.B0"'
-            if codec == "h265"
-            else 'video/mp4; codecs="avc1.42E01E"'
-        )
+        mime = 'video/mp4; codecs="avc1.42E01E"'
         await websocket.send_text(json.dumps({
             "type": "ready",
+            "mode": "screenshot",
             "codec": codec,
             "mime": mime,
             "width": target_width,
             "height": target_height,
             "fps": fps,
+            "bitrate_mode": "dynamic",
+            "maxrate": stream_params["maxrate"],
+            "bitrate_scale": stream_params["bitrate_scale"],
         }))
 
         proc = subprocess.Popen(
-            _video_stream_command(ffmpeg, codec, target_width, target_height, fps),
+            _video_stream_command(ffmpeg, codec, target_width, target_height, fps, stream_params),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -238,7 +1196,7 @@ async def ws_live_screenshot(websocket):
                 try:
                     image = device.screenshot()
                 except Exception as e:
-                    out_queue.put(("error", str(e)))
+                    _put_queue(out_queue, ("error", str(e)))
                     break
             try:
                 proc.stdin.close()
@@ -253,8 +1211,8 @@ async def ws_live_screenshot(websocket):
                     break
                 if not chunk:
                     break
-                out_queue.put(("data", chunk))
-            out_queue.put(("eof", None))
+                _put_queue(out_queue, ("data", chunk))
+            _put_queue(out_queue, ("eof", None))
 
         def stderr_reader():
             try:
@@ -262,7 +1220,7 @@ async def ws_live_screenshot(websocket):
             except Exception:
                 err = ""
             if err and not stop_event.is_set():
-                out_queue.put(("error", err[-1000:]))
+                _put_queue(out_queue, ("error", err[-1000:]))
 
         threading.Thread(target=writer, daemon=True).start()
         threading.Thread(target=reader, daemon=True).start()
@@ -280,9 +1238,10 @@ async def ws_live_screenshot(websocket):
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        logger.error(f"ws_live_screenshot error: {e}")
+        message = _live_preview_error_message(e)
+        logger.error(f"ws_live_screenshot error: {message}")
         try:
-            await websocket.send_text(json.dumps({"type": "error", "message": str(e)}))
+            await websocket.send_text(json.dumps({"type": "error", "message": message}))
         except Exception:
             pass
     finally:
@@ -292,6 +1251,76 @@ async def ws_live_screenshot(websocket):
                 proc.kill()
             except Exception:
                 pass
+
+
+async def ws_live_control(websocket):
+    await websocket.accept()
+    instance = websocket.query_params.get("instance", DEFAULT_CONFIG_NAME)
+    fallback = None
+
+    def get_target():
+        nonlocal fallback
+        ws_session = LiveWsScrcpySession.get(instance)
+        if ws_session is not None:
+            return ws_session
+        session = LiveScrcpySession.get(instance)
+        if session is not None:
+            return session
+        if fallback is None:
+            fallback = LiveControlDevice(instance)
+        return fallback
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({"type": "error", "message": "控制消息不是有效 JSON"}))
+                continue
+
+            action = data.get("type")
+            target = get_target()
+            if action == "tap":
+                x = int(data.get("x", 0))
+                y = int(data.get("y", 0))
+                logger.info(f"实时预览控制：点击 ({x}, {y})")
+                await asyncio.to_thread(target.tap, x, y)
+            elif action == "drag":
+                start = data.get("start") or {}
+                end = data.get("end") or {}
+                duration_ms = data.get("duration_ms", 220)
+                logger.info(f"实时预览控制：拖拽 {start} -> {end}")
+                await asyncio.to_thread(target.drag, start, end, duration_ms)
+            elif action == "key":
+                keycode = data.get("keycode")
+                if keycode is None:
+                    keycode = _key_to_android_keycode(data.get("key"))
+                if keycode is not None:
+                    logger.info(f"实时预览控制：按键 {keycode}")
+                    await asyncio.to_thread(target.keycode, keycode)
+            elif action == "text":
+                text = data.get("text", "")
+                logger.info("实时预览控制：文本输入")
+                await asyncio.to_thread(target.text, text)
+            elif action == "back":
+                logger.info("实时预览控制：返回")
+                await asyncio.to_thread(target.keycode, scrcpy_const.KEYCODE_BACK)
+            elif action in CONTROL_ACTION_KEYCODES:
+                keycode = CONTROL_ACTION_KEYCODES[action]
+                logger.info(f"实时预览控制：系统按键 {action} ({keycode})")
+                await asyncio.to_thread(target.keycode, keycode)
+            else:
+                await websocket.send_text(json.dumps({"type": "error", "message": f"未知控制动作: {action}"}))
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        message = _live_preview_error_message(e)
+        logger.error(f"ws_live_control error: {message}")
+        try:
+            await websocket.send_text(json.dumps({"type": "error", "message": message}))
+        except Exception:
+            pass
 
 _notification_queue = asyncio.Queue()
 
@@ -414,4 +1443,5 @@ api_routes = [
     Route("/api/import_legacy_upload", api_import_legacy_upload, methods=["POST"]),
     Route("/obs", serve_obs_overlay),
     WebSocketRoute("/ws/live_screenshot", ws_live_screenshot),
+    WebSocketRoute("/ws/live_control", ws_live_control),
 ]

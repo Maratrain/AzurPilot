@@ -400,7 +400,7 @@
       "name": "启用该功能",
       "help": "将这个任务加入调度器\n委托、科研、收获任务是强制打开的",
       "True": "已启用",
-      "False": "False"
+      "False": "关闭"
     },
     "PushNotification": {
       "name": "推送通知",
@@ -431,8 +431,8 @@
     "Sensitive": {
       "name": "敏感任务",
       "help": "出错时禁止重启游戏，直接停止 AzurPilot 运行。适用于跨月每日、隐秘海域、深渊海域等关键时刻任务。",
-      "True": "True",
-      "False": "False"
+      "True": "是",
+      "False": "否"
     }
   },
   "Emulator": {
@@ -615,8 +615,8 @@
     "EnableRemoteSSH": {
       "name": "启用远程 SSH 管理",
       "help": "在重启模拟器之前，通过 SSH 在远程服务器上执行特定指令（如重启 Docker 容器）。",
-      "True": "True",
-      "False": "False"
+      "True": "开启",
+      "False": "关闭"
     },
     "RemoteSSHHost": {
       "name": "远程服务器地址",
@@ -1080,6 +1080,7 @@
       "event_20260326_cn": "漫游者招募计划",
       "event_20260417_cn": "假日航线闪耀海滨",
       "event_20260520_cn": "圣印前的同盟",
+      "event_20260625_cn": "美梦巡演：奇妙夜",
       "raid_20200624": "复刻特别演习埃塞克斯级",
       "raid_20210708": "复刻穿越彼方的水线",
       "raid_20220127": "演习神秘事件调查",
@@ -1352,7 +1353,7 @@
     },
     "DistanceToBoss": {
       "name": "BOSS战前将潜艇移动到BOSS附近",
-      "help": "仅在\"潜艇出击方案\"为\"仅BOSS战\"及\"狩猎及BOSS战\",时生效\n选择\"距离BOSS X格\"需要保证潜艇狩猎范围能覆盖到BOSS，距离使用曼哈顿距离计算，选择\"使用远洋支援\"需要潜艇队伍里有U522/达芬奇",
+      "help": "仅在\"潜艇出击方案\"为\"仅BOSS战\"及\"狩猎及BOSS战\"时生效\n选择\"距离BOSS X格\"需要保证潜艇狩猎范围能覆盖到BOSS，距离使用曼哈顿距离计算，选择\"使用远洋支援\"需要潜艇队伍里有U522/达芬奇",
       "to_boss_position": "至 BOSS 所在位置",
       "1_grid_to_boss": "距离 BOSS 1 格",
       "2_grid_to_boss": "距离 BOSS 2 格",
@@ -1497,7 +1498,7 @@
   },
   "C72MysteryFarming": {
     "_info": {
-      "name": "7-2 三站拣垃圾",
+      "name": "7-2 三战拣垃圾",
       "help": "打三战，拣完问号后撤退"
     },
     "StepOnA3": {
@@ -2046,7 +2047,7 @@
     },
     "Mode": {
       "name": "训练模式",
-      "help": "无缝练猫将每隔 2.5 ~ 3.5 小时收取指挥猫\n每天收一只意思是每天收一只，周日收全部、强化并重新填充队列，以完成每周任务",
+      "help": "无缝练猫将每隔 2.5 ~ 3.5 小时收取指挥喵\n每天收一只意思是每天收一只，周日收全部、强化并重新填充队列，以完成每周任务",
       "seamlessly": "无缝练猫",
       "once_a_day": "每天收一只"
     },
@@ -2176,7 +2177,7 @@
     },
     "BuySkinBox": {
       "name": "买外观装备箱",
-      "help": "为降低维护成本，过滤器中的外观箱选择器不会随游戏更新，但Alas会将任何未知的，数量为1的，消耗7000物资的物品视为外观箱，并购买"
+      "help": "为降低维护成本，过滤器中的外观箱选择器不会随游戏更新，但AzurPilot会将任何未知的，数量为1的，消耗7000物资的物品视为外观箱，并购买"
     },
     "ConsumeCoins": {
       "name": "消耗溢出物资",
@@ -3088,8 +3089,8 @@
       "help": "开启后将带来额外的行动力消耗，一般不用打开，慢慢打就好"
     },
     "HasStronghold": {
-      "name": "OpsiStronghold.HasStronghold.name",
-      "help": "OpsiStronghold.HasStronghold.help"
+      "name": "塞壬要塞",
+      "help": "检测到塞壬要塞时执行"
     }
   },
   "OpsiMonthBoss": {
@@ -3193,8 +3194,8 @@
     "SkipHpCheck": {
       "name": "献祭流跳过血量检测",
       "help": "开启后跳过战斗后的血量检测，即使船沉了也不会停止练级",
-      "True": "True",
-      "False": "False"
+      "True": "开启",
+      "False": "关闭"
     },
     "Cl1Filter": {
       "name": "明石购买筛选",
@@ -3304,8 +3305,8 @@
     "UseSmartSchedulingOperationCoinsPreserve": {
       "name": "获取 X 个作战补给凭证",
       "help": "启用后将使用下方设置的 获取 X 个作战补给凭证 的配置，禁用则使用侵蚀1练级 黄币保留配置\n关闭后将使用行动力控制\n打开后使用黄币控制",
-      "True": "True",
-      "False": "False"
+      "True": "开启",
+      "False": "关闭"
     },
     "OperationCoinsPreserve": {
       "name": "侵蚀1练级 保留 X 个作战补给凭证",
@@ -3318,8 +3319,8 @@
     "ActionPointEarlyTriggerEnable": {
       "name": "行动力提前调度",
       "help": "启用后在侵蚀一或短猫结束时记录自然行动力，并按每 10 分钟回复 1 点行动力计算智能调度下次运行时间，避免自然行动力溢出。",
-      "True": "True",
-      "False": "False"
+      "True": "开启",
+      "False": "关闭"
     },
     "ActionPointEarlyTriggerThreshold": {
       "name": "提前调度行动力阈值",
@@ -4707,8 +4708,8 @@
     "WeeklyPhoto": {
       "name": "每周照相任务",
       "help": "从开发计划页面启动每周照相任务，循环完成三轮照相与空闲选择，直到任务图标消失。",
-      "True": "True",
-      "False": "False"
+      "True": "开启",
+      "False": "关闭"
     }
   },
   "IslandPearlSell": {
@@ -5486,7 +5487,7 @@
       "name": "杀游戏跳过战斗",
       "help": "",
       "True": "已启用",
-      "False": "False"
+      "False": "关闭"
     }
   },
   "BoxDisassemble": {
@@ -5583,8 +5584,8 @@
     "EnableRemoteSSH": {
       "name": "启用远程 SSH 管理",
       "help": "在重启模拟器之前，通过 SSH 在远程服务器上执行特定指令（如重启 Docker 容器）。",
-      "True": "True",
-      "False": "False"
+      "True": "开启",
+      "False": "关闭"
     },
     "RemoteSSHHost": {
       "name": "远程服务器地址",
@@ -5603,12 +5604,12 @@
       "help": "SSH 登录所需的公钥内容（如果需要）"
     },
     "RemoteStartCommand": {
-      "name": "EmulatorManager.RemoteStartCommand.name",
-      "help": "EmulatorManager.RemoteStartCommand.help"
+      "name": "远程启动命令",
+      "help": "模拟器远程启动时执行的命令"
     },
     "RemoteStopCommand": {
-      "name": "EmulatorManager.RemoteStopCommand.name",
-      "help": "EmulatorManager.RemoteStopCommand.help"
+      "name": "远程关闭命令",
+      "help": "模拟器远程关闭时执行的命令"
     }
   },
   "OpsiSimulatorParameters": {
@@ -5696,8 +5697,8 @@
       "help": "存放任务内部状态，任务异常时可以手动清除"
     },
     "Storage": {
-      "name": "Storage.Storage.name",
-      "help": "Storage.Storage.help"
+      "name": "存储空间",
+      "help": "清除任务内部存储的状态数据"
     }
   },
   "Gui": {
@@ -5751,25 +5752,25 @@
     "Overview": {
       "Scheduler": "调度器",
       "Dashboard": "仪表盘",
-      "SecondsAgo": "Gui.Overview.SecondsAgo",
-      "MinutesAgo": "Gui.Overview.MinutesAgo",
-      "HoursAgo": "Gui.Overview.HoursAgo",
-      "DaysAgo": "Gui.Overview.DaysAgo",
-      "MonthsAgo": "Gui.Overview.MonthsAgo",
-      "YearsAgo": "Gui.Overview.YearsAgo",
-      "NoData": "Gui.Overview.NoData",
-      "Oil": "Gui.Overview.Oil",
-      "Coin": "Gui.Overview.Coin",
-      "Gem": "Gui.Overview.Gem",
-      "Cube": "Gui.Overview.Cube",
-      "Pt": "Gui.Overview.Pt",
-      "YellowCoin": "Gui.Overview.YellowCoin",
-      "PurpleCoin": "Gui.Overview.PurpleCoin",
-      "ActionPoint": "Gui.Overview.ActionPoint",
-      "Merit": "Gui.Overview.Merit",
-      "Medal": "Gui.Overview.Medal",
-      "Core": "Gui.Overview.Core",
-      "GuildCoin": "Gui.Overview.GuildCoin",
+      "SecondsAgo": "秒前",
+      "MinutesAgo": "分钟前",
+      "HoursAgo": "小时前",
+      "DaysAgo": "天前",
+      "MonthsAgo": "月前",
+      "YearsAgo": "年前",
+      "NoData": "无数据",
+      "Oil": "石油",
+      "Coin": "物资",
+      "Gem": "钻石",
+      "Cube": "魔方",
+      "Pt": "活动PT",
+      "YellowCoin": "大世界黄币",
+      "PurpleCoin": "大世界紫币",
+      "ActionPoint": "行动力",
+      "Merit": "功勋",
+      "Medal": "勋章",
+      "Core": "核心数据",
+      "GuildCoin": "舰队币",
       "Log": "日志",
       "Running": "运行中",
       "Pending": "队列中",
@@ -5982,20 +5983,20 @@
       "NoValidResourceData": "暂无有效资源数据"
     },
     "Tactical": {
-      "SkillAutoSwitch": "Gui.Tactical.SkillAutoSwitch"
+      "SkillAutoSwitch": "技能自动切换"
     },
     "OpsiScheduling": {
-      "UseSmartSchedulingOperationCoinsPreserve": "Gui.OpsiScheduling.UseSmartSchedulingOperationCoinsPreserve",
-      "OperationCoinsPreserve": "Gui.OpsiScheduling.OperationCoinsPreserve",
-      "ActionPointPreserve": "Gui.OpsiScheduling.ActionPointPreserve",
+      "UseSmartSchedulingOperationCoinsPreserve": "智能调度作战补给凭证保留",
+      "OperationCoinsPreserve": "作战补给凭证保留",
+      "ActionPointPreserve": "行动力保留",
       "ActionPointEarlyTriggerEnable": "行动力提前调度",
       "ActionPointEarlyTriggerThreshold": "提前调度行动力阈值",
-      "OperationCoinsReturnThreshold": "Gui.OpsiScheduling.OperationCoinsReturnThreshold",
-      "EnableMeowfficerFarming": "Gui.OpsiScheduling.EnableMeowfficerFarming",
-      "EnableObscure": "Gui.OpsiScheduling.EnableObscure",
-      "EnableAbyssal": "Gui.OpsiScheduling.EnableAbyssal",
-      "EnableStronghold": "Gui.OpsiScheduling.EnableStronghold",
-      "MeowStartEarlyMode": "Gui.OpsiScheduling.MeowStartEarlyMode"
+      "OperationCoinsReturnThreshold": "作战补给凭证回退阈值",
+      "EnableMeowfficerFarming": "启用指挥喵刷取",
+      "EnableObscure": "启用隐秘海域",
+      "EnableAbyssal": "启用深渊海域",
+      "EnableStronghold": "启用塞壬要塞",
+      "MeowStartEarlyMode": "短猫提前开始模式"
     },
     "Misc": {
       "Enabled": "已开启",

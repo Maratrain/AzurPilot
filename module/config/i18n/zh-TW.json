@@ -280,7 +280,7 @@
     },
     "OpsiCrossMonth": {
       "name": "跨月每日",
-      "help": "    AzurPilot將在大世界跨月重置之前10分鍾進入大世界，等待大世界重置但不退出大世界，然後完成新一天的大世界每日、隱秘海域、深淵海域和短貓相接，以獲得額外的金菜。執行大世界每日時，按\"大世界每日\"任務設定執行，其餘同理。\n    重要：AzurPilot等待跨月期間，請不要操作遊戲。"
+      "help": "    AzurPilot將在大世界跨月重置之前10分鐘進入大世界，等待大世界重置但不退出大世界，然後完成新一天的大世界每日、隱秘海域、深淵海域和短貓相接，以獲得額外的金菜。執行大世界每日時，按\"大世界每日\"任務設定執行，其餘同理。\n    重要：AzurPilot等待跨月期間，請不要操作遊戲。"
     },
     "OpsiSimulator": {
       "name": "大世界模擬器 Alpha",
@@ -400,7 +400,7 @@
       "name": "啟用該功能",
       "help": "將這個任務加入排程器\n委託、科研、收獲任務是強制開啟的",
       "True": "已啟用",
-      "False": "False"
+      "False": "未啟用"
     },
     "PushNotification": {
       "name": "推送通知",
@@ -417,11 +417,11 @@
       "help": ""
     },
     "SuccessInterval": {
-      "name": "執行成功後，推遲下一次執行 X 分鍾",
+      "name": "執行成功後，推遲下一次執行 X 分鐘",
       "help": ""
     },
     "FailureInterval": {
-      "name": "執行失敗後，推遲下一次執行 X 分鍾",
+      "name": "執行失敗後，推遲下一次執行 X 分鐘",
       "help": ""
     },
     "ServerUpdate": {
@@ -431,8 +431,8 @@
     "Sensitive": {
       "name": "敏感任務",
       "help": "出錯時禁止重啟遊戲，直接停止 AzurPilot 運行。適用於跨月每日、隱秘海域、深淵海域等關鍵時刻任務。",
-      "True": "True",
-      "False": "False"
+      "True": "是",
+      "False": "否"
     }
   },
   "Emulator": {
@@ -583,7 +583,7 @@
       "help": "下列數值是根據Serial自動填充的，如果不懂請不要隨意修改，修改埠即可自動啟動對應例項"
     },
     "Emulator": {
-      "name": "模擬器型別",
+      "name": "模擬器類型",
       "help": "",
       "auto": "自動檢測",
       "NoxPlayer": "夜神模擬器",
@@ -615,8 +615,8 @@
     "EnableRemoteSSH": {
       "name": "啟用遠端 SSH 管理",
       "help": "在重啟模擬器之前，透過 SSH 在遠端伺服器上執行特定指令（如重啟 Docker 容器）。",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     },
     "RemoteSSHHost": {
       "name": "遠端伺服器地址",
@@ -734,8 +734,8 @@
       "help": "執行兩次截圖之間的最小間隔，限制在 0.001 ~ 1.0，能降低戰鬥時的 CPU 佔用"
     },
     "TaskHoardingDuration": {
-      "name": "囤積任務 X 分鍾",
-      "help": "能在收菜期間降低操作遊戲的頻率\n任務觸發後，等待 X 分鍾，再一次性執行囤積的任務"
+      "name": "囤積任務 X 分鐘",
+      "help": "能在收菜期間降低操作遊戲的頻率\n任務觸發後，等待 X 分鐘，再一次性執行囤積的任務"
     },
     "WhenTaskQueueEmpty": {
       "name": "當任務佇列清空後",
@@ -1080,6 +1080,7 @@
       "event_20260326_cn": "漫遊者招募計劃",
       "event_20260417_cn": "假日航線閃耀海濱",
       "event_20260520_cn": "聖印前的同盟",
+      "event_20260625_cn": "美梦巡演：奇妙夜",
       "raid_20200624": "特別演習埃塞克斯級(復刻)",
       "raid_20210708": "復刻穿越彼方的水線",
       "raid_20220127": "演習神秘事件調查",
@@ -2018,7 +2019,7 @@
     },
     "LastRun": {
       "name": "上次檢查時間",
-      "help": "記錄上一次檢查的時間以防止任務重復執行，檢查間隔為6天，這個數值是自動記錄的，一般不需要修改"
+      "help": "記錄上一次檢查的時間以防止任務重複執行，檢查間隔為6天，這個數值是自動記錄的，一般不需要修改"
     }
   },
   "Meowfficer": {
@@ -2163,7 +2164,7 @@
       "help": ""
     },
     "Enable": {
-      "name": "商店开关",
+      "name": "商店開關",
       "help": ""
     },
     "UseGems": {
@@ -2197,7 +2198,7 @@
       "help": ""
     },
     "Enable": {
-      "name": "商店开关",
+      "name": "商店開關",
       "help": ""
     },
     "Refresh": {
@@ -2314,7 +2315,7 @@
       "help": ""
     },
     "Enable": {
-      "name": "商店开关",
+      "name": "商店開關",
       "help": ""
     },
     "Filter": {
@@ -2436,7 +2437,7 @@
     },
     "LastRun": {
       "name": "上一次購買時間",
-      "help": "因為遊戲不顯示今天已經購買了幾張，所以這裡記錄上一次購買的時間以防止任務重復執行，這個數值是自動記錄的，一般不需要修改"
+      "help": "因為遊戲不顯示今天已經購買了幾張，所以這裡記錄上一次購買的時間以防止任務重複執行，這個數值是自動記錄的，一般不需要修改"
     }
   },
   "Shipyard": {
@@ -2471,7 +2472,7 @@
     },
     "LastRun": {
       "name": "上一次購買時間",
-      "help": "因為遊戲不顯示今天已經購買了幾張，所以這裡記錄上一次購買的時間以防止任務重復執行，這個數值是自動記錄的，一般不需要修改"
+      "help": "因為遊戲不顯示今天已經購買了幾張，所以這裡記錄上一次購買的時間以防止任務重複執行，這個數值是自動記錄的，一般不需要修改"
     }
   },
   "Gacha": {
@@ -2896,12 +2897,12 @@
       "help": "將大世界相關資訊推送到啟動器和 Windows 通知。關閉後僅影響啟動器推送，不影響 OnePush 推送。"
     },
     "IndependentPush": {
-      "name": "大世界信息獨立推送",
+      "name": "大世界資訊獨立推送",
       "help": "需要同時開啟「推送大世界相關資訊」功能。\n關閉時使用智慧港區設定 —> 調試設定 —> 錯誤推送設定，需要同時開啟「錯誤推送」功能。\n開啟時使用大世界推送設定，需要分離推送內容時請開啟此功能"
     },
     "OpsiOnePushConfig": {
       "name": "大世界推送設定",
-      "help": "“大世界信息獨立推送”功能開啟時設定才生效。使用 Onepush 推送一條關於侵蝕1和短貓的資訊。配置方法見文檔：https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
+      "help": "”大世界資訊獨立推送”功能開啟時設定才生效。使用 Onepush 推送一條關於侵蝕1和短貓的資訊。配置方法見文檔：https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
     }
   },
   "OpsiAshBeacon": {
@@ -2944,7 +2945,7 @@
     },
     "Filter": {
       "name": "出擊艦隊過濾器",
-      "help": "車輪戰打BOSS，一個艦隊死了就換另一個。\n請確保艦隊有足夠強度，最終能打死BOSS。\n使用 \"CallSubmarine\" 以在戰鬥前呼叫潛艇，但執行間隔將增加至60分鍾"
+      "help": "車輪戰打BOSS，一個艦隊死了就換另一個。\n請確保艦隊有足夠強度，最終能打死BOSS。\n使用 \"CallSubmarine\" 以在戰鬥前呼叫潛艇，但執行間隔將增加至60分鐘"
     }
   },
   "OpsiFleet": {
@@ -2962,13 +2963,13 @@
     },
     "Submarine": {
       "name": "呼叫潛艇",
-      "help": "開啟後，執行間隔將增加至60分鍾"
+      "help": "開啟後，執行間隔將增加至60分鐘"
     }
   },
   "OpsiExplore": {
     "_info": {
       "name": "大世界開荒",
-      "help": "每月月初開荒大世界的所有海域，不需要買戰役資訊記錄儀（5000油道具）\n這個功能將每隔27分鍾清理一個海域，以保證空域搜尋冷卻\n使用此功能前必須滿足以下條件：\n- 通關大世界主線並完成模擬戰+塞壬試驗場"
+      "help": "每月月初開荒大世界的所有海域，不需要買戰役資訊記錄儀（5000油道具）\n這個功能將每隔27分鐘清理一個海域，以保證空域搜尋冷卻\n使用此功能前必須滿足以下條件：\n- 通關大世界主線並完成模擬戰+塞壬試驗場"
     },
     "SpecialRadar": {
       "name": "已購買戰役資訊記錄儀（5000油道具）",
@@ -3053,7 +3054,7 @@
   "OpsiObscure": {
     "_info": {
       "name": "隱秘海域",
-      "help": "每隔27分鍾清理一個隱秘海域，以保證空域搜尋冷卻\n使用此功能前必須滿足以下條件：\n- 通關大世界主線並完成模擬戰+塞壬試驗場\n- 啟用大世界開荒任務或使用戰役資訊記錄儀（5000油道具）"
+      "help": "每隔27分鐘清理一個隱秘海域，以保證空域搜尋冷卻\n使用此功能前必須滿足以下條件：\n- 通關大世界主線並完成模擬戰+塞壬試驗場\n- 啟用大世界開荒任務或使用戰役資訊記錄儀（5000油道具）"
     },
     "SkipHazard2Obscure": {
       "name": "不清理2級坐標",
@@ -3193,8 +3194,8 @@
     "SkipHpCheck": {
       "name": "獻祭流跳過血量檢測",
       "help": "開啟後跳過戰鬥後的血量檢測，即使船沉了也不會停止練級",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     },
     "Cl1Filter": {
       "name": "明石購買篩選",
@@ -3243,7 +3244,7 @@
   "OpsiCheckLeveling": {
     "_info": {
       "name": "大世界艦隊經驗檢測",
-      "help": "檢測出擊艦隊所有船是否已經獲取滿經驗，是的話則發送一條推送消息\n需要先在 AzurPilot 設定中配置好\"錯誤推送設定\"\n沒成功檢測經驗會重新檢測，建議上滿六艘艦船不然就將檢測時間調大，連續3次失敗會推送並延時"
+      "help": "檢測出擊艦隊所有船是否已經獲取滿經驗，是的話則發送一條推送訊息\n需要先在 AzurPilot 設定中配置好\"錯誤推送設定\"\n沒成功檢測經驗會重新檢測，建議上滿六艘艦船不然就將檢測時間調大，連續3次失敗會推送並延時"
     },
     "TargetLevel": {
       "name": "當所有艦船經驗可升至此等級時推送 (0為不限制)",
@@ -3251,7 +3252,7 @@
     },
     "LastRun": {
       "name": "上次檢查經驗的時間 (自動記錄)",
-      "help": "記錄上一次檢查的時間以防止任務重復執行，檢查間隔為 1 天。這個數值是自動記錄的，一般不需要手動修改"
+      "help": "記錄上一次檢查的時間以防止任務重複執行，檢查間隔為 1 天。這個數值是自動記錄的，一般不需要手動修改"
     },
     "CheckInterval": {
       "name": "檢測間隔 (小時)",
@@ -3260,8 +3261,8 @@
     "EnableCustomCheck": {
       "name": "啟用自訂艦船檢測",
       "help": "啟用後僅檢測指定的艦船是否達到目標等級，而非全部艦船",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     },
     "CustomCheckPositions": {
       "name": "自訂檢測艦位",
@@ -3280,8 +3281,8 @@
     "Enable": {
       "name": "啟用自動配隊",
       "help": "開啟後將自動更換已滿經驗的艦船",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     },
     "CooldownHours": {
       "name": "冷卻時間(小時)",
@@ -3304,8 +3305,8 @@
     "UseSmartSchedulingOperationCoinsPreserve": {
       "name": "獲取 X 個作戰補給憑證",
       "help": "啟用後將使用下方設定的 獲取 X 個作戰補給憑證 的配置，停用則使用侵蝕1練級 黃幣保留配置\n關閉後將使用行動力控制\n開啟後使用黃幣控制",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     },
     "OperationCoinsPreserve": {
       "name": "侵蝕1練級 保留 X 個作戰補給憑證",
@@ -3318,8 +3319,8 @@
     "ActionPointEarlyTriggerEnable": {
       "name": "行動力提前排程",
       "help": "啟用後在侵蝕一或短貓結束時記錄自然行動力，並按每 10 分鐘回復 1 點行動力計算智慧排程下次運行時間，避免自然行動力溢出。",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     },
     "ActionPointEarlyTriggerThreshold": {
       "name": "提前排程行動力閾值",
@@ -3585,7 +3586,7 @@
       "4": "4"
     },
     "MineSilver": {
-      "name": "采银矿岗位数",
+      "name": "採銀礦崗位數",
       "help": "幾個空閒礦山崗位用於生產銀礦，其餘空著不動",
       "0": "0",
       "1": "1",
@@ -3632,7 +3633,7 @@
       "4": "4"
     },
     "CutElegant": {
-      "name": "伐典雅之木岗位数",
+      "name": "伐典雅之木崗位數",
       "help": "幾個空閒林場崗位用於生產典雅之木，其餘空著不動",
       "0": "0",
       "1": "1",
@@ -4707,8 +4708,8 @@
     "WeeklyPhoto": {
       "name": "每週照相任務",
       "help": "從開發計畫頁面啟動每週照相任務，循環完成三輪照相與空閒選擇，直到任務圖標消失。",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     }
   },
   "IslandPearlSell": {
@@ -5480,13 +5481,13 @@
   "EventStory": {
     "_info": {
       "name": "活動劇情",
-      "help": "完成活動劇情，僅適用於上線時間20241219及之後的活動，請等待約3分鍾"
+      "help": "完成活動劇情，僅適用於上線時間20241219及之後的活動，請等待約3分鐘"
     },
     "SkipBattle": {
       "name": "殺遊戲跳過戰鬥",
       "help": "",
       "True": "已啟用",
-      "False": "False"
+      "False": "關閉"
     }
   },
   "BoxDisassemble": {
@@ -5525,7 +5526,7 @@
       "help": "測試哪個截圖方案和控制方案速度更快，速度因模擬器和電腦配置而異\n測試完成後，在 \"AzurPilot\" - \"模擬器設定\" 內選擇最快的截圖和控制方案"
     },
     "DeviceType": {
-      "name": "裝置型別",
+      "name": "裝置類型",
       "help": "",
       "emulator": "模擬器",
       "plone_cloud_with_adb": "雲手機 有公網ADB",
@@ -5583,8 +5584,8 @@
     "EnableRemoteSSH": {
       "name": "啟用遠端 SSH 管理",
       "help": "在重啟模擬器之前，透過 SSH 在遠端伺服器上執行特定指令（如重啟 Docker 容器）。",
-      "True": "True",
-      "False": "False"
+      "True": "開啟",
+      "False": "關閉"
     },
     "RemoteSSHHost": {
       "name": "遠端伺服器地址",
@@ -5696,8 +5697,8 @@
       "help": "存放任務內部狀態，任務異常時可以手動清除"
     },
     "Storage": {
-      "name": "Storage.Storage.name",
-      "help": "Storage.Storage.help"
+      "name": "儲存空間",
+      "help": "清除任務內部儲存的狀態資料"
     }
   },
   "Gui": {
@@ -5751,25 +5752,25 @@
     "Overview": {
       "Scheduler": "排程器",
       "Dashboard": "儀表盤",
-      "SecondsAgo": "Gui.Overview.SecondsAgo",
-      "MinutesAgo": "Gui.Overview.MinutesAgo",
-      "HoursAgo": "Gui.Overview.HoursAgo",
-      "DaysAgo": "Gui.Overview.DaysAgo",
-      "MonthsAgo": "Gui.Overview.MonthsAgo",
-      "YearsAgo": "Gui.Overview.YearsAgo",
-      "NoData": "Gui.Overview.NoData",
-      "Oil": "Gui.Overview.Oil",
-      "Coin": "Gui.Overview.Coin",
-      "Gem": "Gui.Overview.Gem",
-      "Cube": "Gui.Overview.Cube",
-      "Pt": "Gui.Overview.Pt",
-      "YellowCoin": "Gui.Overview.YellowCoin",
-      "PurpleCoin": "Gui.Overview.PurpleCoin",
-      "ActionPoint": "Gui.Overview.ActionPoint",
-      "Merit": "Gui.Overview.Merit",
-      "Medal": "Gui.Overview.Medal",
-      "Core": "Gui.Overview.Core",
-      "GuildCoin": "Gui.Overview.GuildCoin",
+      "SecondsAgo": "秒前",
+      "MinutesAgo": "分鐘前",
+      "HoursAgo": "小時前",
+      "DaysAgo": "天前",
+      "MonthsAgo": "月前",
+      "YearsAgo": "年前",
+      "NoData": "無資料",
+      "Oil": "石油",
+      "Coin": "物資",
+      "Gem": "鑽石",
+      "Cube": "魔方",
+      "Pt": "活動PT",
+      "YellowCoin": "大世界黃幣",
+      "PurpleCoin": "大世界紫幣",
+      "ActionPoint": "行動力",
+      "Merit": "功勳",
+      "Medal": "勳章",
+      "Core": "核心資料",
+      "GuildCoin": "艦隊幣",
       "Log": "日誌",
       "Running": "執行中",
       "Pending": "佇列中",
@@ -5781,7 +5782,7 @@
       "TimeError": "時間錯誤",
       "JustNow": "剛剛",
       "SecondsAgo": "秒前",
-      "MinutesAgo": "分鍾前",
+      "MinutesAgo": "分鐘前",
       "HoursAgo": "小時前",
       "DaysAgo": "天前",
       "MonthsAgo": "月前",
@@ -5865,137 +5866,137 @@
       "ChooseFile": "選擇檔案"
     },
     "Stat": {
-      "LoadApDataFailed": "加载体力数据失败: {e}",
-      "NoApData": "暂无体力变化数据，运行侵蚀1任务后将自动记录",
-      "Refresh": "刷新",
-      "NoValidApData": "暂无有效体力数据",
-      "ViewTitleLine": "分时曲线 (详细波动)",
-      "ViewTitleDay": "天视图 ({day} 小时K线)",
-      "ViewTitleMonth": "月视图 (日K线)",
-      "CannotAggregateKline": "无法聚合K线数据",
-      "ViewLineShort": "分时",
-      "DataPointsCount": "共 {count} 个点",
-      "CandlesCount": "共 {count} 根K线",
+      "LoadApDataFailed": "載入體力資料失敗: {e}",
+      "NoApData": "暫無體力變化資料，執行侵蝕1任務後將自動記錄",
+      "Refresh": "重新整理",
+      "NoValidApData": "暫無有效體力資料",
+      "ViewTitleLine": "分時曲線 (詳細波動)",
+      "ViewTitleDay": "天視圖 ({day} 小時K線)",
+      "ViewTitleMonth": "月視圖 (日K線)",
+      "CannotAggregateKline": "無法聚合K線資料",
+      "ViewLineShort": "分時",
+      "DataPointsCount": "共 {count} 個點",
+      "CandlesCount": "共 {count} 根K線",
       "ViewLabel": "📊 視圖:",
       "DetailLabel": "📈 詳情:",
-      "ViewLineButton": "分时(详细波动)",
-      "ViewDayButton": "天视图(小时K)",
-      "ViewMonthButton": "月视图(日K)",
+      "ViewLineButton": "分時(詳細波動)",
+      "ViewDayButton": "天視圖(小時K)",
+      "ViewMonthButton": "月視圖(日K)",
       "DetailChartTitle": "單日體力波動詳情 (24小時)",
       "ToggleDetailChart": "詳情圖",
       "DetailChartOn": "✓ 開啟",
       "DetailChartOff": "○ 關閉",
-      "LoadOpsiStatsFailed": "加载 OpSi 统计失败: {e}",
-      "LoadExpStatsFailed": "加载经验统计失败: {e}",
-      "DailyExpCheckTitle": "每日经验检测",
-      "CheckTime": "检测时间: {value}",
-      "TargetLevel": "目标等级: {value}",
-      "ShipSlot": "舰位",
-      "Level": "等级",
-      "CurrentExpThisLevel": "当前经验(本级)",
-      "TotalExp": "总经验",
-      "ExpToTarget": "距目标经验",
-      "SortiesNeeded": "还需出击",
-      "EstimatedTime": "预计时间",
-      "NoExpData": "暂无经验数据，运行侵蚀1练级后将自动记录",
+      "LoadOpsiStatsFailed": "載入 OpSi 統計失敗: {e}",
+      "LoadExpStatsFailed": "載入經驗統計失敗: {e}",
+      "DailyExpCheckTitle": "每日經驗偵測",
+      "CheckTime": "偵測時間: {value}",
+      "TargetLevel": "目標等級: {value}",
+      "ShipSlot": "艦位",
+      "Level": "等級",
+      "CurrentExpThisLevel": "當前經驗(本級)",
+      "TotalExp": "總經驗",
+      "ExpToTarget": "距目標經驗",
+      "SortiesNeeded": "還需出擊",
+      "EstimatedTime": "預計時間",
+      "NoExpData": "暫無經驗資料，執行侵蝕1練級後將自動記錄",
       "Month": "月份",
-      "BattleCount": "战斗场次",
-      "BattleRounds": "战斗轮次",
-      "SortieCost": "出击消耗",
-      "AkashiEncounters": "遇见明石次数",
-      "AkashiRate": "遇见明石概率",
-      "SirenResearchDevices": "吊机次数",
-      "SirenResearchRate": "吊机概率",
-      "HazardLevel": "侵蚀等级",
-      "AverageAP": "平均体力",
-      "NetAP": "净赚体力",
-      "LoopEfficiency": "循环效率",
-      "ExpEfficiency": "经验效率: {value}/{unit}",
-      "ExpEfficiencyHeader": "经验效率",
-      "AvgBattleTime": "平均战斗时间: {value}{unit}",
-      "AvgBattleTimeHeader": "平均战斗时间",
-      "AvgRoundTime": "平均一轮时长",
-      "TodayBattles": "今日战斗: {value}{unit}",
-      "TodayBattlesHeader": "今日战斗",
-      "TodayExp": "今日经验: {value}",
-      "TodayExpHeader": "今日经验",
-      "TodayRun": "今日运行: {value}{unit}",
-      "TodayRunHeader": "今日运行",
-      "OpsiDataCollectionTitle": "雪风大人的侵蚀一数据收集",
-      "MonthlyPurchasedAP": "当月购买体力: {value}",
-      "MeowDataCollectionTitle": "短猫相接数据收集",
-      "MeowRounds": "出击轮次",
-      "AvgMeowRoundTime": "平均一轮短猫时长",
-      "MeowLootTitle": "短猫相接收获",
-      "NoMeowDataNotice": "暫無本地短貓收穫數據，完成一次短貓相接後會自動生成",
-      "MeowAdvanceAdviceTitle": "短猫提前开始建议",
-      "CurrentAP": "当前AP: {value}",
-      "ApPerRound": "每轮消耗: {value} AP",
-      "AvailableRounds": "可运行轮数: {value}{unit}",
-      "AvgRoundDuration": "平均每轮耗时: {value}{unit}",
-      "CurrentMode": "当前模式: {value}",
-      "RecommendAhead": "建议提前: {value}{unit}",
-      "RoundUnit": "轮",
+      "BattleCount": "戰鬥場次",
+      "BattleRounds": "戰鬥輪次",
+      "SortieCost": "出擊消耗",
+      "AkashiEncounters": "遇見明石次數",
+      "AkashiRate": "遇見明石機率",
+      "SirenResearchDevices": "吊機次數",
+      "SirenResearchRate": "吊機機率",
+      "HazardLevel": "侵蝕等級",
+      "AverageAP": "平均體力",
+      "NetAP": "淨賺體力",
+      "LoopEfficiency": "循環效率",
+      "ExpEfficiency": "經驗效率: {value}/{unit}",
+      "ExpEfficiencyHeader": "經驗效率",
+      "AvgBattleTime": "平均戰鬥時間: {value}{unit}",
+      "AvgBattleTimeHeader": "平均戰鬥時間",
+      "AvgRoundTime": "平均一輪時長",
+      "TodayBattles": "今日戰鬥: {value}{unit}",
+      "TodayBattlesHeader": "今日戰鬥",
+      "TodayExp": "今日經驗: {value}",
+      "TodayExpHeader": "今日經驗",
+      "TodayRun": "今日執行: {value}{unit}",
+      "TodayRunHeader": "今日執行",
+      "OpsiDataCollectionTitle": "雪風大人的侵蝕一資料收集",
+      "MonthlyPurchasedAP": "當月購買體力: {value}",
+      "MeowDataCollectionTitle": "短貓相接資料收集",
+      "MeowRounds": "出擊輪次",
+      "AvgMeowRoundTime": "平均一輪短貓時長",
+      "MeowLootTitle": "短貓相接收穫",
+      "NoMeowDataNotice": "暫無本地短貓收穫資料，完成一次短貓相接後會自動生成",
+      "MeowAdvanceAdviceTitle": "短貓提前開始建議",
+      "CurrentAP": "當前AP: {value}",
+      "ApPerRound": "每輪消耗: {value} AP",
+      "AvailableRounds": "可執行輪數: {value}{unit}",
+      "AvgRoundDuration": "平均每輪耗時: {value}{unit}",
+      "CurrentMode": "當前模式: {value}",
+      "RecommendAhead": "建議提前: {value}{unit}",
+      "RoundUnit": "輪",
       "SecondUnit": "秒",
-      "HourUnit": "小时",
-      "MinuteUnit": "分钟",
-      "ExportModuleLoadFailed": "导出失败：无法加载统计模块：{e}",
-      "CsvHeaderAkashiRate": "遇见明石概率(%)",
-      "CsvHeaderLoopEfficiency": "循环效率(%)",
-      "CsvHeaderMonthlyPurchasedAP": "当月购买体力",
-      "CsvFilenameTemplate": "侵蚀1练级_{month}_详细数据.csv",
-      "SavedToDesktop": "已保存至桌面：{path}",
-      "SaveDesktopFailed": "保存桌面失败：{e}",
-      "ExportAndSaveDesktop": "导出并保存到桌面",
-      "NoShipExpData": "暂无舰船经验数据，请先运行\"每日经验检测\"任务",
-      "ShipExpProgressTitle": "每日经验检测：识别到的舰娘等级与升级进度",
-      "LastCheckTime": "上次检查时间: {value}",
-      "AvgOpsiRoundTime": "平均一轮侵蚀1时长: {value}{unit}",
-      "TodayBattleUnit": "场",
-      "NoTodayBattleData": "暂无今日战斗数据，运行战斗后将自动更新",
-      "LoadShipExpFailed": "加载舰船经验数据失败: {e}",
-      "TargetExpRequired": "目标等级所需经验",
-      "BattlesCompleted": "已战斗场次",
-      "ExpRemaining": "还需经验",
+      "HourUnit": "小時",
+      "MinuteUnit": "分鐘",
+      "ExportModuleLoadFailed": "匯出失敗：無法載入統計模組：{e}",
+      "CsvHeaderAkashiRate": "遇見明石機率(%)",
+      "CsvHeaderLoopEfficiency": "循環效率(%)",
+      "CsvHeaderMonthlyPurchasedAP": "當月購買體力",
+      "CsvFilenameTemplate": "侵蝕1練級_{month}_詳細資料.csv",
+      "SavedToDesktop": "已儲存至桌面：{path}",
+      "SaveDesktopFailed": "儲存桌面失敗：{e}",
+      "ExportAndSaveDesktop": "匯出並儲存到桌面",
+      "NoShipExpData": "暫無艦船經驗資料，請先執行\"每日經驗偵測\"任務",
+      "ShipExpProgressTitle": "每日經驗偵測：識別到的艦娘等級與升級進度",
+      "LastCheckTime": "上次檢查時間: {value}",
+      "AvgOpsiRoundTime": "平均一輪侵蝕1時長: {value}{unit}",
+      "TodayBattleUnit": "場",
+      "NoTodayBattleData": "暫無今日戰鬥資料，執行戰鬥後將自動更新",
+      "LoadShipExpFailed": "載入艦船經驗資料失敗: {e}",
+      "TargetExpRequired": "目標等級所需經驗",
+      "BattlesCompleted": "已戰鬥場次",
+      "ExpRemaining": "還需經驗",
       "StartCleanupTime": "建議開始清理時間: {value}",
       "NextOsReset": "下次大世界重置: {value}",
       "MeowAutoCleanupStatus": "自動提前清理: {value}",
-      "CommissionIncomeTitle": "Gui.Stat.CommissionIncomeTitle",
-      "CommissionIncomeMonth": "Gui.Stat.CommissionIncomeMonth",
-      "CommissionIncomeWeek": "Gui.Stat.CommissionIncomeWeek",
-      "CommissionIncomeDay": "Gui.Stat.CommissionIncomeDay",
-      "CommissionIncomeNoData": "Gui.Stat.CommissionIncomeNoData",
-      "CommissionIncomeItemGem": "Gui.Stat.CommissionIncomeItemGem",
-      "CommissionIncomeItemCube": "Gui.Stat.CommissionIncomeItemCube",
-      "CommissionIncomeItemChip": "Gui.Stat.CommissionIncomeItemChip",
-      "CommissionIncomeItemOil": "Gui.Stat.CommissionIncomeItemOil",
-      "CommissionIncomeItemCoin": "Gui.Stat.CommissionIncomeItemCoin",
-      "CommissionIncomeHeaderItem": "Gui.Stat.CommissionIncomeHeaderItem",
-      "CommissionIncomeHeaderTotal": "Gui.Stat.CommissionIncomeHeaderTotal",
-      "CommissionIncomeHeaderCount": "Gui.Stat.CommissionIncomeHeaderCount",
-      "CommissionIncomeHeaderAvg": "Gui.Stat.CommissionIncomeHeaderAvg",
-      "CommissionIncomeTotalCommissions": "Gui.Stat.CommissionIncomeTotalCommissions",
-      "CommissionIncomeRecentTitle": "Gui.Stat.CommissionIncomeRecentTitle",
+      "CommissionIncomeTitle": "委託收益統計",
+      "CommissionIncomeMonth": "本月",
+      "CommissionIncomeWeek": "本週",
+      "CommissionIncomeDay": "今日",
+      "CommissionIncomeNoData": "暫無委託收益數據，運行委託後將自動更新",
+      "CommissionIncomeItemGem": "鑽石",
+      "CommissionIncomeItemCube": "心智魔方",
+      "CommissionIncomeItemChip": "心智",
+      "CommissionIncomeItemOil": "石油",
+      "CommissionIncomeItemCoin": "物資",
+      "CommissionIncomeHeaderItem": "物品",
+      "CommissionIncomeHeaderTotal": "數量",
+      "CommissionIncomeHeaderCount": "委託次數",
+      "CommissionIncomeHeaderAvg": "平均/次",
+      "CommissionIncomeTotalCommissions": "委託總次數: {value}",
+      "CommissionIncomeRecentTitle": "最近委託記錄",
       "ResourceChartTitle": "全資源變化趨勢",
-      "LoadResourceDataFailed": "Gui.Stat.LoadResourceDataFailed",
-      "NoResourceData": "Gui.Stat.NoResourceData",
-      "NoValidResourceData": "Gui.Stat.NoValidResourceData"
+      "LoadResourceDataFailed": "加載資源數據失敗: {e}",
+      "NoResourceData": "暫無資源變化數據，運行腳本後將自動記錄",
+      "NoValidResourceData": "暫無有效資源數據"
     },
     "Tactical": {
-      "SkillAutoSwitch": "Gui.Tactical.SkillAutoSwitch"
+      "SkillAutoSwitch": "技能自動切換"
     },
     "OpsiScheduling": {
-      "UseSmartSchedulingOperationCoinsPreserve": "Gui.OpsiScheduling.UseSmartSchedulingOperationCoinsPreserve",
-      "OperationCoinsPreserve": "Gui.OpsiScheduling.OperationCoinsPreserve",
-      "ActionPointPreserve": "Gui.OpsiScheduling.ActionPointPreserve",
+      "UseSmartSchedulingOperationCoinsPreserve": "智慧排程作戰補給憑證保留",
+      "OperationCoinsPreserve": "作戰補給憑證保留",
+      "ActionPointPreserve": "行動力保留",
       "ActionPointEarlyTriggerEnable": "行動力提前排程",
       "ActionPointEarlyTriggerThreshold": "提前排程行動力閾值",
-      "OperationCoinsReturnThreshold": "Gui.OpsiScheduling.OperationCoinsReturnThreshold",
-      "EnableMeowfficerFarming": "Gui.OpsiScheduling.EnableMeowfficerFarming",
-      "EnableObscure": "Gui.OpsiScheduling.EnableObscure",
-      "EnableAbyssal": "Gui.OpsiScheduling.EnableAbyssal",
-      "EnableStronghold": "Gui.OpsiScheduling.EnableStronghold",
-      "MeowStartEarlyMode": "Gui.OpsiScheduling.MeowStartEarlyMode"
+      "OperationCoinsReturnThreshold": "作戰補給憑證回退閾值",
+      "EnableMeowfficerFarming": "啟用指揮喵刷取",
+      "EnableObscure": "啟用隱秘海域",
+      "EnableAbyssal": "啟用深淵海域",
+      "EnableStronghold": "啟用塞壬要塞",
+      "MeowStartEarlyMode": "短貓提前開始模式"
     },
     "Misc": {
       "Enabled": "已開啟",
