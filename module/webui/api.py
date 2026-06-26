@@ -26,6 +26,11 @@ from module.device.method.utils import recv_all
 from module.logger import logger
 from module.config.utils import DEFAULT_CONFIG_NAME
 
+
+def is_demo_mode():
+    return os.environ.get("DEMO") == "1"
+
+
 def api_cl1_stats(request):
     try:
         from module.statistics.opsi_month import get_opsi_stats
@@ -968,6 +973,13 @@ CONTROL_ACTION_KEYCODES = {
 
 async def ws_live_screenshot(websocket):
     await websocket.accept()
+    if is_demo_mode():
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": "DEMO=1，实时预览已禁用，避免初始化设备资源。",
+        }))
+        await websocket.close()
+        return
 
     instance = websocket.query_params.get("instance", DEFAULT_CONFIG_NAME)
     mode = websocket.query_params.get("mode", "auto").lower()
@@ -1265,6 +1277,13 @@ async def _ws_live_screenshot_fallback(websocket, instance, codec, ffmpeg, fps, 
 
 async def ws_live_control(websocket):
     await websocket.accept()
+    if is_demo_mode():
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": "DEMO=1，实时控制已禁用，避免初始化设备资源。",
+        }))
+        await websocket.close()
+        return
     instance = websocket.query_params.get("instance", DEFAULT_CONFIG_NAME)
     fallback = None
 

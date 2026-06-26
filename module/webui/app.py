@@ -142,11 +142,21 @@ RESTRICTED_DEVICE_IDS = {
 RESTRICTED_DEVICE_MESSAGE = (
     "你的公网IP已泄露 请加群https://join.nanoda.work/#/join联系我们解除安全限制"
 )
-PUBLIC_WEBUI_WITHOUT_PASSWORD_MESSAGE = "当前配置允许所有设备访问，请添加密码\n\n设置方法:\n在config/deploy.yaml中添加:\nWebUI:\n  Password: 你的密码\n然后重启\n\n温馨提示：密码推荐大小写字母+数字不小于六位\n\n目前配置允許所有裝置存取，請新增密碼。\n\n設定方法:\n在config/deploy.yaml中添加:\nWebUI:\n  Password: 你的密碼\n然後重新啟動\n\n溫馨提示：密碼建議包含大小寫英文字母與數字，且不少於六位。\n\nThe current configuration allows access from all devices. Please set a password.\n\nHow to configure:\nAdd the following to config/deploy.yaml:\nWebUI:\n  Password: your_password\nThen restart the application.\n\nTip: It is recommended to use a password containing uppercase and lowercase letters as well as numbers, with a minimum length of 6 characters.\n\n現在の設定では、すべてのデバイスからアクセスできます。パスワードを設定してください。\n\n設定方法:\nconfig/deploy.yaml に以下を追加してください:\nWebUI:\n  Password: あなたのパスワード\nその後、アプリケーションを再起動してください。\n\nヒント：パスワードは英大文字・英小文字・数字を含み、6文字以上にすることを推奨します。"
 PUBLIC_WEBUI_PASSWORD_GENERATE_FAILED_MESSAGE = (
     "当前配置允许所有设备访问，但自动生成密码失败，请手动在 config/deploy.yaml 设置 Password 后重启。"
 )
 WEBUI_AUTO_PASSWORD_FILE = "password.txt"
+DEMO_DEVICE_ID_TEXT = "此程序是为了演示用途构建的版本/This application is a version built for demonstration purposes."
+
+
+def is_demo_mode():
+    """
+    判断是否处于演示环境。
+
+    Returns:
+        bool: True 表示 DEMO=1。
+    """
+    return os.environ.get("DEMO") == "1"
 
 
 def is_public_webui_host(host):
@@ -210,6 +220,9 @@ def ensure_public_webui_password(key):
     Returns:
         tuple[str | None, str | None]: 有效密码和失败原因。
     """
+    if is_demo_mode():
+        return key, None
+
     host = State.webui_host or State.deploy_config.WebuiHost
     if not is_public_webui_host(host) or is_webui_password_set(key):
         return key, None
@@ -3172,7 +3185,7 @@ class AlasGUI(Frame):
 
             # 在掉落记录组中显示可复制的设备ID
             if group_name == "DropRecord":
-                device_id = get_device_id()
+                device_id = DEMO_DEVICE_ID_TEXT if is_demo_mode() else get_device_id()
                 put_html(build_copyable_device_id(device_id))
 
         return len(output_list)
@@ -3193,13 +3206,12 @@ class AlasGUI(Frame):
 
     def _alas_start(self):
         self.alas.start(None, updater.event)
-        if os.environ.get("DEMO") == "1":
-            threading.Timer(5, self.alas.stop).start()
 
     def _simulator_start(self):
+        if is_demo_mode():
+            logger.info("DEMO=1，跳过大世界模拟器启动。")
+            return
         self.simulator.start()
-        if os.environ.get("DEMO") == "1":
-            threading.Timer(5, self.simulator.interrupt).start()
 
     @use_scope("content", clear=True)
     def alas_overview(self) -> None:
@@ -3380,8 +3392,9 @@ class AlasGUI(Frame):
             # version
             local_commit = updater.get_commit(short_sha1=True)
             version = local_commit[0] if local_commit and local_commit[0] else "Unknown"
+            device_id = DEMO_DEVICE_ID_TEXT if is_demo_mode() else get_device_id()
             put_scope("log-container", [put_scope("log", [put_html("")])]).style(
-                f"--device-id: '{get_device_id()}'; --version: 'Ver.{version}';"
+                f"--device-id: '{device_id}'; --version: 'Ver.{version}';"
             )
 
         log.console.width = log.get_width()
@@ -4554,7 +4567,7 @@ class AlasGUI(Frame):
             上游项目 / Upstream / 上流プロジェクト / 상류 프로젝트 / 上游專案：`https://github.com/LmeSzinc/AzurLaneAutoScript`
             本项目 / This project / 本プロジェクト / 본 프로젝트 / 本專案：`https://github.com/wess09/AzurPilot`
 
-            如需支持，请联系 / For support, please contact / サポートについてはこちらへ / 지원이 필요하면 아래로 / 如需支援請聯繫：`https://addgroup.nanoda.work/`
+            如需支持，请联系 / For support, please contact / サポートについてはこちらへ / 지원이 필요하면 아래로 / 如需支援請聯繫：`https://join.nanoda.work/#/join`
             """
             ).style("text-align: center")
 
@@ -5076,7 +5089,7 @@ def startup():
     task_handler.start()
     if State.deploy_config.DiscordRichPresence:
         init_discord_rpc()
-    if State.deploy_config.StartOcrServer:
+    if State.deploy_config.StartOcrServer and not is_demo_mode():
         start_ocr_server_process(State.deploy_config.OcrServerPort)
     if State.deploy_config.EnableRemoteAccess and (
         State.deploy_config.Password is not None or os.environ.get("DEMO") == "1"
@@ -5157,6 +5170,8 @@ def app():
     static_path = os.getcwd()
 
     def _block_restricted_device():
+        if is_demo_mode():
+            return False
         if get_device_id() not in RESTRICTED_DEVICE_IDS:
             return False
         popup(
@@ -5168,7 +5183,7 @@ def app():
         return True
 
     def _block_public_webui_password_error():
-        if password_error is None:
+        if is_demo_mode() or password_error is None:
             return False
         popup(
             "安全保护",

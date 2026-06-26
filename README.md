@@ -52,10 +52,16 @@ AzurPilot 是基于 AzurLaneAutoScript 修改而来的碧蓝航线自动化辅�
     <img src="https://img.shields.io/badge/Web-下载-blue?style=for-the-badge&logo=google-chrome&logoColor=white" />
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://addgroup.nanoda.work/#/">
+  <a href="https://join.nanoda.work/#/join">
     <img src="https://img.shields.io/badge/交流群-QQ-red?style=for-the-badge&logo=tencent-qq&logoColor=white" />
   </a>
 </div>
+
+## Linux 一键部署
+
+```bash
+curl -fsSL https://alas.nanoda.work/install/deploy-image.sh | sudo -E bash
+```
 
 ## GUI
 <div align="center">

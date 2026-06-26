@@ -256,6 +256,7 @@
             '.alas-live-preview-canvas{display:none;width:100%;aspect-ratio:16/9;background:#000;object-fit:contain;touch-action:none;}',
             '.alas-live-preview-keyboard-input{position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:.01;border:0;padding:0;background:transparent;color:transparent;caret-color:transparent;font-size:16px;resize:none;outline:none;}',
             '#alas-live-preview:fullscreen{width:100vw;height:100vh;right:auto;bottom:auto;border:0;border-radius:0;background:#000;}',
+            '@media (orientation: portrait){#alas-live-preview:fullscreen{orientation:landscape;}}',
             '#alas-live-preview:fullscreen .alas-live-preview-head{position:absolute;left:0;right:0;top:0;z-index:2;background:rgba(14,19,25,.86);}',
             '#alas-live-preview:fullscreen .alas-live-preview-video{width:100vw;height:100vh;aspect-ratio:auto;}',
             '#alas-live-preview:fullscreen .alas-live-preview-canvas{width:100vw;height:100vh;aspect-ratio:auto;}',
@@ -1086,6 +1087,25 @@
         }
     }
 
+    function lockLandscape() {
+        var orientation = screen.orientation || screen.mozOrientation || screen.msOrientation;
+        if (!orientation || typeof orientation.lock !== 'function') return;
+        try {
+            var result = orientation.lock('landscape');
+            if (result && typeof result.catch === 'function') {
+                result.catch(function () { });
+            }
+        } catch (e) { }
+    }
+
+    function unlockOrientation() {
+        var orientation = screen.orientation || screen.mozOrientation || screen.msOrientation;
+        if (!orientation || typeof orientation.unlock !== 'function') return;
+        try {
+            orientation.unlock();
+        } catch (e) { }
+    }
+
     function enterFullscreenControl() {
         var panel = ensurePanel();
         if (!panel.requestFullscreen) {
@@ -1093,6 +1113,7 @@
             return;
         }
         panel.requestFullscreen().then(function () {
+            lockLandscape();
             state.fullscreenControl = true;
             panel.classList.add('alas-live-preview-fullscreen-mode');
             bindControlEvents(true);
@@ -1107,6 +1128,7 @@
         state.fullscreenControl = false;
         bindControlEvents(false);
         stopControl();
+        unlockOrientation();
         var panel = ensurePanel();
         panel.classList.remove('alas-live-preview-fullscreen-mode');
         if (exitFullscreen && document.fullscreenElement === panel) {

@@ -180,6 +180,8 @@ class ProcessManager:
                 if update_tail_hit:
                     return 4
                 return 2
+            elif "此版本为演示用途" in s:
+                return 2
             elif update_tail_hit:
                 return 4
             else:
@@ -229,6 +231,16 @@ class ProcessManager:
             from module.logger import console_hdlr
             logger.removeHandler(console_hdlr)
         set_func_logger(func=q.put)
+
+        if os.environ.get("DEMO") == "1":
+            logger.info("Log3")
+            time.sleep(1)
+            logger.info("Log2")
+            time.sleep(1)
+            logger.info("Log1")
+            time.sleep(1)
+            logger.info("此版本为演示用途")
+            return
 
         from module.config.config import AzurLaneConfig
 
