@@ -17,23 +17,41 @@ ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 ENV no_proxy=${NO_PROXY}
 ENV NO_PROXY=${NO_PROXY}
+ENV PATH=/app/AzurPilot/.venv/bin:${PATH}
 
 WORKDIR /app/AzurPilot
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock ./
+
+RUN if [ -n "$HTTP_PROXY" ]; then \
+    printf 'Acquire::http::Proxy "%s";\nAcquire::https::Proxy "%s";\n' "$HTTP_PROXY" "$HTTPS_PROXY" > /etc/apt/apt.conf.d/99proxy; \
+    fi
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ca-certificates \
     git \
-    openssh-client \
+    adb \
     libgomp1 \
     libgl1 \
     libglib2.0-0 \
-    libxcb1 && \
+    openssh-client && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN git config --system --add safe.directory /app/AzurPilot
+RUN git config --global --add safe.directory '*' && \
+    if [ -n "$HTTP_PROXY" ]; then \
+        git config --global http.proxy "$HTTP_PROXY" && \
+        git config --global https.proxy "$HTTPS_PROXY"; \
+    fi
 
-CMD ["uv", "run", "python", "gui.py"]
+RUN uv venv --relocatable --python /usr/local/bin/python .venv && \
+    uv sync --frozen --no-dev --no-install-project && \
+    cp /usr/local/bin/uv .venv/bin/uv && \
+    cp /usr/bin/adb .venv/bin/adb && \
+    cp /usr/bin/git .venv/bin/git && \
+    rm -rf /root/.cache/uv
+
+COPY . .
+
+CMD [".venv/bin/python", "gui.py"]
