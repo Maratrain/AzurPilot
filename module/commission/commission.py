@@ -632,7 +632,7 @@ class RewardCommission(UI, InfoHandler):
                             )
                         tracked.append(text)
                     if cube_count > 0:
-                        text = f'🧊魔方 * {cube_count}}'
+                        text = f'🧊魔方 * {cube_count}'
                         if reward_stats is not None:
                             text += (
                             f'\n\n今日累计获取🧊魔方 * {reward_stats["today"].get("Cube", 0)}'
