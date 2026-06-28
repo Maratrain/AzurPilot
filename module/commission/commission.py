@@ -612,6 +612,9 @@ class RewardCommission(UI, InfoHandler):
 
             if merged_items:
                 instance = self.config.config_name
+                DEBUG_NOTIFY = True
+                if DEBUG_NOTIFY:
+                    merged_items["Gem"] = 50
                 cl1_db.add_commission_income(instance, merged_items, commission_count=1)
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
@@ -639,6 +642,7 @@ class RewardCommission(UI, InfoHandler):
                             f'\n本周累计获取🧊魔方 * {reward_stats["week"].get("Cube", 0)}'
                             f'\n本月累计获取🧊魔方 * {reward_stats["month"].get("Cube", 0)}'
                         )
+                        tracked.append(text)
                     if tracked:
                         msg = '\n'.join(tracked) 
                         if gem_count >= 50:
