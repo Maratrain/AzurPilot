@@ -192,6 +192,24 @@ def _venv_python_works(root: Path) -> bool:
     return True
 
 
+def _remove_stale_venv_launcher(root: Path):
+    """
+    清理 uv venv 在 Windows 上重建可重定位环境时可能撞到的旧启动器。
+
+    uv 使用 --allow-existing 时会复用 .venv，但 Windows 上已有的
+    Scripts/python.exe 可能阻止它创建新的可执行文件链接，报 os error 80。
+    """
+    if os.name != "nt":
+        return
+    python = venv_python(root)
+    if not python.exists():
+        return
+    try:
+        python.unlink()
+    except OSError:
+        pass
+
+
 def _run(command, root: Path, env=None):
     command = [str(part) for part in command]
     print("+ " + _join_command(command))
@@ -249,6 +267,7 @@ def _ensure_self_contained_python(root: Path, uv: Path):
             )
         )
 
+    _remove_stale_venv_launcher(root)
     _run(
         [
             uv,

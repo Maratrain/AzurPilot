@@ -46,6 +46,7 @@ MenuDevelop:
   Announcement:
   Update:
   Remote:
+  Setting:
   Utils:
 
 Overview:
@@ -157,6 +158,119 @@ Remote:
   EntryPoint:
   ConfigureHint:
   SSHNotInstall:
+
+Launcher:
+  StartupTitle:
+  AutoStart:
+  AutoStartHelp:
+  Loading:
+  Connected:
+  Disconnected:
+  RemoteUnavailable:
+  Unsupported:
+  Enabled:
+  Disabled:
+  Setting:
+  Failed:
+
+DeploySetting:
+  Title:
+  RestartNotice:
+  Loading:
+  Refresh:
+  Save:
+  Saving:
+  Saved:
+  Failed:
+  Enabled:
+  Disabled:
+  DemoDisabled:
+  GroupGit:
+  GroupPython:
+  GroupAdb:
+  GroupOcr:
+  GroupUpdate:
+  GroupMisc:
+  GroupRemoteAccess:
+  GroupWebui:
+  Repository:
+  RepositoryHelp:
+  Branch:
+  BranchHelp:
+  GitExecutable:
+  GitExecutableHelp:
+  GitProxy:
+  GitProxyHelp:
+  SSLVerify:
+  SSLVerifyHelp:
+  AutoUpdate:
+  AutoUpdateHelp:
+  PythonExecutable:
+  PythonExecutableHelp:
+  PypiMirror:
+  PypiMirrorHelp:
+  InstallDependencies:
+  InstallDependenciesHelp:
+  AdbExecutable:
+  AdbExecutableHelp:
+  ReplaceAdb:
+  ReplaceAdbHelp:
+  AutoConnect:
+  AutoConnectHelp:
+  InstallUiautomator2:
+  InstallUiautomator2Help:
+  UseOcrServer:
+  UseOcrServerHelp:
+  StartOcrServer:
+  StartOcrServerHelp:
+  OcrServerPort:
+  OcrServerPortHelp:
+  OcrClientAddress:
+  OcrClientAddressHelp:
+  EnableReload:
+  EnableReloadHelp:
+  CheckUpdateInterval:
+  CheckUpdateIntervalHelp:
+  AutoRestartTime:
+  AutoRestartTimeHelp:
+  DiscordRichPresence:
+  DiscordRichPresenceHelp:
+  EnableRemoteAccess:
+  EnableRemoteAccessHelp:
+  SSHUser:
+  SSHUserHelp:
+  SSHServer:
+  SSHServerHelp:
+  SSHExecutable:
+  SSHExecutableHelp:
+  WebuiHost:
+  WebuiHostHelp:
+  WebuiPort:
+  WebuiPortHelp:
+  Language:
+  LanguageHelp:
+  Theme:
+  ThemeHelp:
+  DpiScaling:
+  DpiScalingHelp:
+  Password:
+  PasswordHelp:
+  CDN:
+  CDNHelp:
+  WebuiSSLKey:
+  WebuiSSLKeyHelp:
+  WebuiSSLCert:
+  WebuiSSLCertHelp:
+
+StartupRun:
+  Title:
+  Description:
+  Loading:
+  Enabled:
+  Disabled:
+  Setting:
+  Failed:
+  Unavailable:
 
 Text:
   InvalidFeedBack:
