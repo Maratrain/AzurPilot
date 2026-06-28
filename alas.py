@@ -25,6 +25,9 @@ from module.exception import *
 from module.logger import logger
 from module.notify import handle_notify, notify_webui
 
+from module.debug.web_debug_server import start_debug_server
+from module.debug.commission_debug import CommissionDebugHandler
+
 # 缓存 i18n 任务名查找
 _i18n_task_names = None
 def _get_task_display_name(task_command):
@@ -1294,4 +1297,8 @@ class AzurLaneAutoScript:
 
 if __name__ == '__main__':
     alas = AzurLaneAutoScript()
+
+    debug_handler = CommissionDebugHandler(bot)
+    start_debug_server(debug_handler)
+
     alas.loop()
