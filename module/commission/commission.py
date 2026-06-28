@@ -615,9 +615,9 @@ class RewardCommission(UI, InfoHandler):
                 cl1_db.add_commission_income(instance, merged_items, commission_count=1)
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
-                if self.config.CommissionNotifyReward:
+                if self.config.Commission_CommissionNotifyReward:
                     reward_stats = None
-                    if self.config.CommissionNotifyRewardStatistics:
+                    if self.config.Commission_CommissionNotifyRewardStatistics:
                         reward_stats = cl1_db.get_commission_reward_stats(instance)
                     gem_count = merged_items.get("Gem", 0)
                     cube_count = merged_items.get("Cube", 0)
