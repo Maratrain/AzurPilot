@@ -612,9 +612,6 @@ class RewardCommission(UI, InfoHandler):
 
             if merged_items:
                 instance = self.config.config_name
-                DEBUG_NOTIFY = True
-                if DEBUG_NOTIFY:
-                    merged_items["Gem"] = 50
                 cl1_db.add_commission_income(instance, merged_items, commission_count=1)
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
