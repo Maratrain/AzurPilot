@@ -3,8 +3,6 @@ import sys
 import threading
 from multiprocessing import Event, Process, set_start_method
 from typing import Optional
-from module.debug.web_debug_server import start_debug_server
-from module.debug.handler import CommissionDebugHandler
 
 if sys.platform != "win32":
     import resource
