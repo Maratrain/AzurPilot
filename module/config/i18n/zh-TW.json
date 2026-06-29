@@ -1853,7 +1853,7 @@
     },
     "CommissionNotifyReward": {
       "name": "委託成功獲取鑽石推送",
-      "help": "開啟後，AzurPilot會在委託成功獲取鑽石時推送通知"
+      "help": "注意，請啟用並設定「錯誤推送設定」，否則此功能將不會生效。"
     },
     "CommissionNotifyRewardStatistics": {
       "name": "鑽石推送詳情",

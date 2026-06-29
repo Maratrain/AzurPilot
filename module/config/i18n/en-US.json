@@ -1853,7 +1853,7 @@
     },
     "CommissionNotifyReward": {
       "name": "Successful Commission Gem Notification",
-      "help": "After enabling, AzurPilot will send a notification when a commission successfully acquires diamonds."
+      "help": "Note: Please enable and configure Error Notification Settings; otherwise, this feature will not take effect."
     },
     "CommissionNotifyRewardStatistics": {
       "name": "Gem Notification Details",

@@ -1853,7 +1853,7 @@
     },
     "CommissionNotifyReward": {
       "name": "委托成功获取钻石推送",
-      "help": "开启后，AzurPilot会在委托成功获取红尖尖时推送通知"
+      "help": "注意，请开启错误推送设置并配置，否则此功能不生效"
     },
     "CommissionNotifyRewardStatistics": {
       "name": "钻石推送详情",

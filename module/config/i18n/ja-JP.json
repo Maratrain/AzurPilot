@@ -1853,7 +1853,7 @@
     },
     "CommissionNotifyReward": {
       "name": "委託成功でダイヤモンド取得通知",
-      "help": "オンにすると、AzurPilotは委託でダイヤモンドを取得した際に通知を送信します"
+      "help": "注意：「プッシュ通知設定」を有効にして設定してください。設定されていない場合、この機能は動作しません。"
     },
     "CommissionNotifyRewardStatistics": {
       "name": "ダイヤモンド通知の詳細",
