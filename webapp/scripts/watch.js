@@ -22,10 +22,10 @@ function getWebuiUrl() {
     const deployPath = path.resolve(__dirname, '../../config/deploy.yaml');
     const content = fs.readFileSync(deployPath, 'utf8');
     const config = yaml.parse(content);
-    const port = config?.Deploy?.Webui?.WebuiPort ?? 22267;
+    const port = config?.Deploy?.Webui?.WebuiPort ?? 25548;
     return `http://127.0.0.1:${port}`;
   } catch (e) {
-    return 'http://127.0.0.1:22267';
+    return 'http://127.0.0.1:25548';
   }
 }
 

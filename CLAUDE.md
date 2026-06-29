@@ -26,7 +26,7 @@ uv sync --frozen                               # 从 pyproject.toml + uv.lock �
 
 ### 运行应用
 ```bash
-uv run python gui.py    # 启动 WebUI 服务器（默认端口 22267）
+uv run python gui.py    # 启动 WebUI 服务器（默认端口 25548）
 uv run python alas.py   # 直接运行调度器
 uv run python mcp_server_sse.py  # 启动独立 MCP SSE 服务器（端口 22268）
 ```

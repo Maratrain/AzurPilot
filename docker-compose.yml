@@ -27,7 +27,7 @@ services:
             test:
                 [
                     "CMD-SHELL",
-                    ".venv/bin/python -c \"import socket; s=socket.create_connection(('127.0.0.1', 22267), 3); s.close()\"",
+                    ".venv/bin/python -c \"import socket; s=socket.create_connection(('127.0.0.1', 25548), 3); s.close()\"",
                 ]
             interval: 30s
             timeout: 5s
