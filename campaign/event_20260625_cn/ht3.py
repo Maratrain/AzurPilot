@@ -7,7 +7,7 @@ from .ht1 import Config as ConfigBase
 MAP = CampaignMap('HT3')
 MAP.shape = 'I8'
 MAP.camera_data = ['D2', 'D5', 'F2', 'F5']
-MAP.camera_data_spawn_point = ['F5', 'D5']
+MAP.camera_data_spawn_point = ['F5']
 MAP.map_data = """
     ++ ++ ++ ++ MB ++ ++ ++ ++
     ++ -- Me Me -- Me Me -- ++
@@ -50,7 +50,7 @@ A8, B8, C8, D8, E8, F8, G8, H8, I8, \
 
 class Config(ConfigBase):
     # ===== Start of generated config =====
-    MAP_SIREN_TEMPLATE = ['DD', 'DD']
+    MAP_SIREN_TEMPLATE = ['MeowfficerBust_Studying', 'MeowfficerBust_Playtime']
     MOVABLE_ENEMY_TURN = (2,)
     MAP_HAS_SIREN = True
     MAP_HAS_MOVABLE_ENEMY = True
@@ -58,12 +58,11 @@ class Config(ConfigBase):
     MAP_HAS_FLEET_STEP = True
     MAP_HAS_AMBUSH = False
     MAP_HAS_MYSTERY = False
-    MAP_CHAPTER_SWITCH_20260326 = True
-    STAGE_ENTRANCE = ['half', '20240725']
-    MAP_HAS_MODE_SWITCH = True
-    STAGE_INCREASE_AB = True
-    MAP_WALK_USE_CURRENT_FLEET = True
     # ===== End of generated config =====
+
+    MAP_SWIPE_MULTIPLY = (1.115, 1.136)
+    MAP_SWIPE_MULTIPLY_MINITOUCH = (1.078, 1.098)
+    MAP_SWIPE_MULTIPLY_MAATOUCH = (1.047, 1.065)
 
 
 class Campaign(CampaignBase):

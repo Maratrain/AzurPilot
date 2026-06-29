@@ -56,7 +56,7 @@ A10, B10, C10, D10, E10, F10, G10, \
 
 class Config:
     # ===== Start of generated config =====
-    MAP_SIREN_TEMPLATE = ['DD', 'DD']
+    MAP_SIREN_TEMPLATE = ['MeowfficerBust_Studying', 'MeowfficerBust_Playtime']
     MOVABLE_ENEMY_TURN = (2,)
     MAP_HAS_SIREN = True
     MAP_HAS_MOVABLE_ENEMY = True
@@ -64,15 +64,20 @@ class Config:
     MAP_HAS_FLEET_STEP = False
     MAP_HAS_AMBUSH = False
     MAP_HAS_MYSTERY = False
-    MAP_CHAPTER_SWITCH_20260326 = True
-    STAGE_ENTRANCE = ['half', '20240725']
-    MAP_HAS_MODE_SWITCH = False
-    STAGE_INCREASE_AB = True
-    MAP_WALK_USE_CURRENT_FLEET = True
     STAR_REQUIRE_1 = 0
     STAR_REQUIRE_2 = 0
     STAR_REQUIRE_3 = 0
     # ===== End of generated config =====
+
+    MAP_IS_ONE_TIME_STAGE = True
+    MAP_CHAPTER_SWITCH_20241219_SP = True
+    STAGE_ENTRANCE = ['half', '20240725']
+    MAP_HAS_MODE_SWITCH = False
+    HOMO_STORAGE = ((8, 6), [(137.405, 104.804), (1046.044, 104.804), (-12.171, 652.093), (1166.717, 652.093)])
+    MAP_ENSURE_EDGE_INSIGHT_CORNER = 'bottom'
+    MAP_SWIPE_MULTIPLY = (1.005, 1.024)
+    MAP_SWIPE_MULTIPLY_MINITOUCH = (0.972, 0.990)
+    MAP_SWIPE_MULTIPLY_MAATOUCH = (0.944, 0.961)
 
 
 class Campaign(CampaignBase):

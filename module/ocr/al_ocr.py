@@ -35,6 +35,7 @@ except Exception as e:
 
 
 DET_DEBUG = False
+PPOCRV6_EN_REC_KEYS_PATH = "bin/ocr_models/ppocr-v6/ppocrv6_en_dict.txt"
 
 
 class RecOnlyOCR(RapidOCR):
@@ -145,21 +146,21 @@ def _get_onnx_model_params(name):
     """
     if name in ("cn", "zhcn"):
         return (
-            "bin/ocr_models/zh-CN/alocr-zh-cn-v3.dtk.onnx",
-            "bin/ocr_models/zh-CN/cn.txt",
-            OCRVersion.PPOCRV5,
+            "bin/ocr_models/ppocr-v6/ap_zh-cn-v6.1_small_rec_dcu.onnx",
+            "bin/ocr_models/ppocr-v6/ppocrv6_cn_dict.txt",
+            OCRVersion.PPOCRV6,
         )
     elif name == "jp":
         return (
-            "bin/ocr_models/JP/JP.onnx",
-            "bin/ocr_models/JP/ppocrv5_dict.txt",
-            OCRVersion.PPOCRV5,
+            "bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx",
+            "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
+            OCRVersion.PPOCRV6,
         )
     elif name == "tw":
         return (
-            "bin/ocr_models/TW/TW.onnx",
-            "bin/ocr_models/TW/ppocrv5_dict.txt",
-            OCRVersion.PPOCRV5,
+            "bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx",
+            "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
+            OCRVersion.PPOCRV6,
         )
     else:
         return (
@@ -174,6 +175,7 @@ def _create_ocr(name):
     if backend == 'ncnn':
         if not supports_ncnn_model(name):
             raise ValueError(f"Unsupported ncnn OCR model: {name}")
+        logger.info("OCR backend is ncnn, using ncnn-specific recognition model")
         return NcnnRecOCR(name, device=config.ocr_device)
     else:
         ocr_device = config.ocr_device

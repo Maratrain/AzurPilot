@@ -92,6 +92,8 @@ class LoginHandler(UI):
                 continue
             if self.appear_then_click(LOGIN_RETURN_INFO, offset=(30, 30), interval=5):
                 continue
+            if self.appear_then_click(AVATAR_EXPIRED, offset=(30, 30), interval=5):
+                continue
             # 弹窗处理
             if self.handle_popup_confirm('LOGIN'):
                 continue

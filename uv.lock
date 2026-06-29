@@ -174,7 +174,7 @@ requires-dist = [
     { name = "pywebio", specifier = "==1.7.1" },
     { name = "pyyaml", specifier = "==6.0.3" },
     { name = "pyzmq", specifier = "==27.1.0" },
-    { name = "rapidocr", specifier = "==3.7.0" },
+    { name = "rapidocr", specifier = "==3.9.0" },
     { name = "retrying", specifier = "==1.3.4" },
     { name = "rich", specifier = "==11.2.0" },
     { name = "scipy", specifier = "==1.17.1" },
@@ -1558,7 +1558,7 @@ wheels = [
 
 [[package]]
 name = "rapidocr"
-version = "3.7.0"
+version = "3.9.0"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 dependencies = [
     { name = "colorlog" },
@@ -1574,7 +1574,7 @@ dependencies = [
     { name = "tqdm" },
 ]
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/5c/b8/011338eec8aea40cf9b82da7481f3e65e100537cff4c866b3c1b1e719b97/rapidocr-3.7.0-py3-none-any.whl", hash = "sha256:ace47f037956fa3780875f8556a0f27ab20d91962d36a9a2816aa367bb48718f" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/b6/e0/3d3c394448c3527aa99b858647b5404110c5e30a5549f9e2bc4c645bb6b8/rapidocr-3.9.0-py3-none-any.whl", hash = "sha256:f9e624d11315aa1ffe8ecf486a9ae7c2f7bef741d25a1e508fc5e25cb75dfed5" },
 ]
 
 [[package]]

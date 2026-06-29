@@ -18,6 +18,7 @@ class PQInteract(UI):
         'new_jersey': (PRIVATE_QUARTERS_SHIP_NEW_JERSEY, PRIVATE_QUARTERS_PAGE_LOCALE_LOFT),
         'taihou': (PRIVATE_QUARTERS_SHIP_TAIHOU, PRIVATE_QUARTERS_PAGE_LOCALE_LOFT),
         'aegir': (PRIVATE_QUARTERS_SHIP_AEGIR, PRIVATE_QUARTERS_PAGE_LOCALE_LOFT),
+        'nakhimov': (PRIVATE_QUARTERS_SHIP_NAKHIMOV, PRIVATE_QUARTERS_PAGE_LOCALE_VILLA),
     }
 
     def _pq_handle_dialogue(self):
@@ -74,6 +75,8 @@ class PQInteract(UI):
             if self.appear(PRIVATE_QUARTERS_ROOM_TARGET_CHECK_1, offset=(100, 100)):
                 return True
             if self.appear(PRIVATE_QUARTERS_ROOM_TARGET_CHECK_2, offset=(100, 100)):
+                return True
+            if self.appear(PRIVATE_QUARTERS_ROOM_TARGET_CHECK_3, offset=(100, 100)):
                 return True
 
             # 结束条件：等待超时失败
