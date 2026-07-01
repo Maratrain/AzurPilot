@@ -1555,9 +1555,22 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                     self._solved_map_event.add("is_akashi")
                     return True
                 else:
-                    logger.info("无法到达明石位置，执行强制移动")
-                    self._execute_fixed_patrol_scan(ExecuteFixedPatrolScan=True)
-                    return False
+                    grids = self.view.select(is_akashi=True)
+                    if "is_akashi" not in self._solved_map_event and grids and grids[0].is_akashi:
+                        grid = grids[0]
+                        fleet = self.convert_radar_to_local((0, 0))
+                        if fleet.distance_to(grid) <= 1:
+                            logger.info(f"Akashi ({grid}) is near current fleet ({fleet})")
+                            self.handle_akashi_supply_buy(grid)
+                            self._solved_map_event.add("is_akashi")
+                            return True
+                        else:
+                            logger.info("无法到达明石位置，执行强制移动")
+                            self._execute_fixed_patrol_scan(ExecuteFixedPatrolScan=True)
+                            return False
+                    else:
+                        logger.info("No map event")
+                        return False
             else:
                 logger.info(f"Akashi ({grid}) is near current fleet ({fleet})")
                 self.handle_akashi_supply_buy(grid)
