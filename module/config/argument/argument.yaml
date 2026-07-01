@@ -84,6 +84,10 @@ Scheduler:
 Restart:
   RandomDelay:
     value: 5, 50
+  ClearCache:
+    type: checkbox
+    value: false
+    option: [true, false]
 Emulator:
   Serial:
     value: auto

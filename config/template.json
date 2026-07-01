@@ -188,7 +188,8 @@
       "Sensitive": false
     },
     "Restart": {
-      "RandomDelay": "5, 50"
+      "RandomDelay": "5, 50",
+      "ClearCache": false
     },
     "Storage": {
       "Storage": {}

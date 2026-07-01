@@ -48,6 +48,13 @@ class AppControl(Adb, WSA, Uiautomator2):
         else:
             self.app_stop_adb()
 
+    def app_clear(self):
+        cache_path = f'/sdcard/Android/data/{self.package}/cache/*'
+        logger.info(f'App clear cache: {cache_path}')
+        result = self.adb_shell(['rm', '-rf', cache_path], timeout=30)
+        if result:
+            logger.info(f'App clear cache result: {result}')
+
     def hierarchy_timer_set(self, interval=None):
         if interval is None:
             interval = 0.1

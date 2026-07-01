@@ -443,6 +443,12 @@
     "RandomDelay": {
       "name": "Daily restart random delay",
       "help": "When restarting the game client each day, delay the restart by X random minutes after the server refresh time to stagger logins across multiple clients.\nSupports a single number or a range, for example 5, 50. Set to 0 to disable."
+    },
+    "ClearCache": {
+      "name": "Clear cache on restart",
+      "help": "When restarting the game client, delete external cache files under /sdcard/Android/data/<package>/cache/ after force-stopping the app.",
+      "True": "Enabled",
+      "False": "Disabled"
     }
   },
   "Emulator": {

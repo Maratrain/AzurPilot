@@ -1,5 +1,11 @@
 import os
 import re
+import shutil
+import stat
+import sys
+import urllib.request
+import zipfile
+from pathlib import Path
 
 import adbutils
 import uiautomator2 as u2
@@ -14,6 +20,19 @@ from module.exception import RequestHumanTakeover
 from module.logger import logger
 
 
+def platform_tools_url():
+    """
+    返回当前平台对应的 Android platform-tools 下载地址。
+    """
+    if sys.platform == 'win32':
+        return 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip'
+    if sys.platform == 'darwin':
+        return 'https://dl.google.com/android/repository/platform-tools-latest-darwin.zip'
+    if sys.platform.startswith('linux'):
+        return 'https://dl.google.com/android/repository/platform-tools-latest-linux.zip'
+    return None
+
+
 class ConnectionAttr:
     config: AzurLaneConfig
     serial: str
@@ -24,6 +43,66 @@ class ConnectionAttr:
         './bin/adb/adb.exe',
         '/usr/bin/adb'
     ]
+
+    def download_adb_binary(self, target):
+        """
+        下载官方 Android platform-tools，并把 adb 放到目标路径。
+
+        Args:
+            target (str): 期望的 adb 可执行文件路径，通常是 .venv/bin/adb。
+
+        Returns:
+            str | None: 安装成功后的 adb 绝对路径。
+        """
+        url = platform_tools_url()
+        if url is None:
+            logger.warning(f'当前平台不支持自动下载 ADB: {sys.platform}')
+            return None
+
+        target = Path(target).resolve()
+        root = Path.cwd().resolve()
+        tools_dir = root / '.venv' / 'platform-tools'
+        archive = root / '.venv' / 'platform-tools.zip'
+        executable = 'adb.exe' if os.name == 'nt' else 'adb'
+        source = tools_dir / executable
+
+        logger.hr('Download ADB', level=2)
+        logger.warning(f'未找到 ADB，正在下载 Android platform-tools: {url}')
+        tools_dir.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            urllib.request.urlretrieve(url, archive)
+        except Exception as e:
+            archive.unlink(missing_ok=True)
+            logger.warning(f'ADB 下载失败: {e}')
+            return None
+
+        if tools_dir.exists():
+            shutil.rmtree(tools_dir)
+        try:
+            with zipfile.ZipFile(archive, 'r') as z:
+                z.extractall(tools_dir.parent)
+        finally:
+            archive.unlink(missing_ok=True)
+
+        if not source.exists():
+            logger.warning(f'ADB 下载失败，未找到 {source}')
+            return None
+
+        if os.name != 'nt':
+            source.chmod(source.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            target.unlink()
+        try:
+            target.symlink_to(source)
+        except OSError:
+            shutil.copy2(source, target)
+            if os.name != 'nt':
+                target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        logger.info(f'ADB 已安装: {target}')
+        return str(target).replace('\\\\', '/').replace('\\', '/')
 
     def __init__(self, config):
         """
@@ -312,8 +391,18 @@ class ConnectionAttr:
             return file
 
         # Use adb in system PATH
-        file = 'adb'
-        return file
+        file = shutil.which('adb')
+        if file:
+            return os.path.abspath(file).replace('\\', '/')
+
+        # Download adb only when all local candidates are missing
+        file = State.deploy_config.AdbExecutable.replace('\\', '/')
+        file = os.path.abspath(file).replace('\\', '/')
+        downloaded = self.download_adb_binary(file)
+        if downloaded:
+            return downloaded
+
+        return 'adb'
 
     @cached_property
     def adb_client(self) -> AdbClient:

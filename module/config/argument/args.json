@@ -863,6 +863,14 @@
       "RandomDelay": {
         "type": "input",
         "value": "5, 50"
+      },
+      "ClearCache": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
       }
     },
     "Storage": {
