@@ -741,6 +741,40 @@
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
     },
+    "OcrModelVersionEnglish": {
+      "name": "OCR 英語モデルバージョン",
+      "help": "英語 OCR モデルのバージョンを選択します。auto は推奨の英語 v6.6 モデルを使用します。この項目は英語 Azur Lane モデルに適用されます。ncnn バックエンドでは無視されます。",
+      "auto": "自動推奨",
+      "azur_lane_v6_6": "英語 v6.6 (Azur Lane)",
+      "azur_lane_v6_5": "英語 v6.5 (Azur Lane)",
+      "ppocr_v6": "汎用 PP-OCRv6",
+      "alocr_en_v2_6": "英語 AlOCR v2.6",
+      "alocr_en_v2_0": "英語 AlOCR v2.0",
+      "alocr_en_v1_0": "英語 AlOCR v1.0"
+    },
+    "OcrModelVersionChinese": {
+      "name": "OCR 中国語モデルバージョン",
+      "help": "簡体中国語 OCR モデルのバージョンを選択します。auto は推奨の中国語 v6.1 モデルを使用します。この項目は cnocr/中国語モデルに適用されます。ncnn バックエンドでは無視されます。",
+      "auto": "自動推奨",
+      "cn_v6_1": "中国語 v6.1",
+      "cn_v6": "中国語 v6",
+      "ppocr_v6": "汎用 PP-OCRv6",
+      "alocr_cn_v3": "中国語 AlOCR v3",
+      "alocr_cn_v2_5": "中国語 AlOCR v2.5"
+    },
+    "OcrModelVersionJapanese": {
+      "name": "OCR 日本語モデルバージョン",
+      "help": "日本語 OCR モデルのバージョンを選択します。auto は日本語 Azur Lane v6 モデルを使用します。この項目は日本語モデルに適用されます。ncnn バックエンドでは無視されます。",
+      "auto": "自動推奨",
+      "azur_lane_jp_v6": "日本語 v6 (Azur Lane JP)",
+      "ppocr_v6": "汎用 PP-OCRv6"
+    },
+    "OcrModelVersionTraditionalChinese": {
+      "name": "OCR 繁体中国語モデルバージョン",
+      "help": "繁体中国語 OCR モデルのバージョンを選択します。現在は汎用 PP-OCRv6 のみ利用できます。今後のモデル追加のため、独立した設定として残しています。ncnn バックエンドでは無視されます。",
+      "auto": "自動推奨",
+      "ppocr_v6": "汎用 PP-OCRv6"
+    },
     "ScreenshotInterval": {
       "name": "スクリーンショット速度をX秒に1枚に減速",
       "help": "2回のスクリーンショット間の最小間隔。0.1～0.3に制限。高スペックPCでCPU使用率を低減できます。"

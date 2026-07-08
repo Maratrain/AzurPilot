@@ -741,6 +741,40 @@
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
     },
+    "OcrModelVersionEnglish": {
+      "name": "OCR English Model Version",
+      "help": "Choose the English OCR model version. Auto uses the recommended English v6.6 model. This affects the English Azur Lane model; ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "azur_lane_v6_6": "English v6.6 (Azur Lane)",
+      "azur_lane_v6_5": "English v6.5 (Azur Lane)",
+      "ppocr_v6": "Generic PP-OCRv6",
+      "alocr_en_v2_6": "English AlOCR v2.6",
+      "alocr_en_v2_0": "English AlOCR v2.0",
+      "alocr_en_v1_0": "English AlOCR v1.0"
+    },
+    "OcrModelVersionChinese": {
+      "name": "OCR Chinese Model Version",
+      "help": "Choose the Simplified Chinese OCR model version. Auto uses the recommended Chinese v6.1 model. This affects cnocr/Chinese models; ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "cn_v6_1": "Chinese v6.1",
+      "cn_v6": "Chinese v6",
+      "ppocr_v6": "Generic PP-OCRv6",
+      "alocr_cn_v3": "Chinese AlOCR v3",
+      "alocr_cn_v2_5": "Chinese AlOCR v2.5"
+    },
+    "OcrModelVersionJapanese": {
+      "name": "OCR Japanese Model Version",
+      "help": "Choose the Japanese OCR model version. Auto uses the Japanese Azur Lane v6 model. This affects Japanese models; ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "azur_lane_jp_v6": "Japanese v6 (Azur Lane JP)",
+      "ppocr_v6": "Generic PP-OCRv6"
+    },
+    "OcrModelVersionTraditionalChinese": {
+      "name": "OCR Traditional Chinese Model Version",
+      "help": "Choose the Traditional Chinese OCR model version. Currently only the generic PP-OCRv6 model is available; this separate setting is kept for future models. ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "ppocr_v6": "Generic PP-OCRv6"
+    },
     "ScreenshotInterval": {
       "name": "Slow Down Screenshot Speed to X Seconds per Frame",
       "help": "Minimum interval between two screenshots, limited to 0.001 ~ 0.3. Can reduce CPU usage on high-spec computers."

@@ -128,6 +128,10 @@ class GeneratedConfig:
     # 配置组 `Optimization`
     Optimization_OcrDevice = 'auto'  # auto, cpu, gpu, ane
     Optimization_OcrBackend = 'auto'  # auto, onnxruntime, ncnn
+    Optimization_OcrModelVersionEnglish = 'auto'  # auto, azur_lane_v6_6, azur_lane_v6_5, ppocr_v6, alocr_en_v2_6, alocr_en_v2_0, alocr_en_v1_0
+    Optimization_OcrModelVersionChinese = 'auto'  # auto, cn_v6_1, cn_v6, ppocr_v6, alocr_cn_v3, alocr_cn_v2_5
+    Optimization_OcrModelVersionJapanese = 'auto'  # auto, azur_lane_jp_v6, ppocr_v6
+    Optimization_OcrModelVersionTraditionalChinese = 'auto'  # auto, ppocr_v6
     Optimization_ScreenshotInterval = 0.3
     Optimization_CombatScreenshotInterval = 1.0
     Optimization_TaskHoardingDuration = 0

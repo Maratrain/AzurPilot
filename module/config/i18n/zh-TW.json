@@ -741,6 +741,40 @@
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
     },
+    "OcrModelVersionEnglish": {
+      "name": "OCR 英文模型版本",
+      "help": "選擇英文 OCR 模型版本。auto 使用英文推薦模型 v6.6。此項影響英文 Azur Lane 模型；ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "azur_lane_v6_6": "英文 v6.6 (Azur Lane)",
+      "azur_lane_v6_5": "英文 v6.5 (Azur Lane)",
+      "ppocr_v6": "通用 PP-OCRv6",
+      "alocr_en_v2_6": "英文 AlOCR v2.6",
+      "alocr_en_v2_0": "英文 AlOCR v2.0",
+      "alocr_en_v1_0": "英文 AlOCR v1.0"
+    },
+    "OcrModelVersionChinese": {
+      "name": "OCR 簡中模型版本",
+      "help": "選擇簡體中文 OCR 模型版本。auto 使用中文推薦模型 v6.1。此項影響 cnocr/中文模型；ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "cn_v6_1": "中文 v6.1",
+      "cn_v6": "中文 v6",
+      "ppocr_v6": "通用 PP-OCRv6",
+      "alocr_cn_v3": "中文 AlOCR v3",
+      "alocr_cn_v2_5": "中文 AlOCR v2.5"
+    },
+    "OcrModelVersionJapanese": {
+      "name": "OCR 日文模型版本",
+      "help": "選擇日文 OCR 模型版本。auto 使用日文 Azur Lane v6。此項影響日文模型；ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "azur_lane_jp_v6": "日文 v6 (Azur Lane JP)",
+      "ppocr_v6": "通用 PP-OCRv6"
+    },
+    "OcrModelVersionTraditionalChinese": {
+      "name": "OCR 繁中模型版本",
+      "help": "選擇繁體中文 OCR 模型版本。目前僅提供通用 PP-OCRv6，保留獨立選項以便後續擴充。ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "ppocr_v6": "通用 PP-OCRv6"
+    },
     "ScreenshotInterval": {
       "name": "放慢截圖速度至 X 秒一張",
       "help": "執行兩次截圖之間的最小間隔，限制在 0.001 ~ 0.3，對於高配置電腦能降低 CPU 佔用"

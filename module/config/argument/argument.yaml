@@ -202,6 +202,35 @@ Optimization:
   OcrBackend:
     value: auto
     option: [auto, onnxruntime, ncnn]
+  OcrModelVersionEnglish:
+    value: auto
+    option:
+      [
+        auto,
+        azur_lane_v6_6,
+        azur_lane_v6_5,
+        ppocr_v6,
+        alocr_en_v2_6,
+        alocr_en_v2_0,
+        alocr_en_v1_0,
+      ]
+  OcrModelVersionChinese:
+    value: auto
+    option:
+      [
+        auto,
+        cn_v6_1,
+        cn_v6,
+        ppocr_v6,
+        alocr_cn_v3,
+        alocr_cn_v2_5,
+      ]
+  OcrModelVersionJapanese:
+    value: auto
+    option: [auto, azur_lane_jp_v6, ppocr_v6]
+  OcrModelVersionTraditionalChinese:
+    value: auto
+    option: [auto, ppocr_v6]
   ScreenshotInterval: 0.3
   CombatScreenshotInterval: 1.0
   TaskHoardingDuration: 0

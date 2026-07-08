@@ -202,6 +202,21 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             return 'onnxruntime'
         return val
 
+    def ocr_model_version(self, name: str) -> str:
+        if self.ocr_backend == 'ncnn':
+            return 'ncnn'
+
+        if name == 'azur_lane':
+            return self.Optimization_OcrModelVersionEnglish
+        elif name == 'cn':
+            return self.Optimization_OcrModelVersionChinese
+        elif name in ['azur_lane_jp', 'jp']:
+            return self.Optimization_OcrModelVersionJapanese
+        elif name == 'tw':
+            return self.Optimization_OcrModelVersionTraditionalChinese
+        else:
+            return 'auto'
+
     @property
     def ocr_device(self) -> str:
         val = self.Optimization_OcrDevice

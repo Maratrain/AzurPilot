@@ -108,6 +108,10 @@
     "Optimization": {
       "OcrDevice": "auto",
       "OcrBackend": "auto",
+      "OcrModelVersionEnglish": "auto",
+      "OcrModelVersionChinese": "auto",
+      "OcrModelVersionJapanese": "auto",
+      "OcrModelVersionTraditionalChinese": "auto",
       "ScreenshotInterval": 0.3,
       "CombatScreenshotInterval": 1.0,
       "TaskHoardingDuration": 0,
