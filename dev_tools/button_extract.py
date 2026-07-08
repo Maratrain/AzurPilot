@@ -96,6 +96,8 @@ class ImageExtractor:
             self.file[server] = file
         else:
             logger.attr(server, f'{self.name} not found, use cn server assets')
+            if server == 'cn':
+                raise FileNotFoundError(f'Base asset not found: {file}')
             self.area[server] = self.area['cn']
             self.color[server] = self.color['cn']
             self.button[server] = self.button['cn']
@@ -162,6 +164,9 @@ class ModuleExtractor:
     def expression(self):
         exp = []
         for file in os.listdir(self.folder):
+            full_path = os.path.join(self.folder, file)
+            if not os.path.isfile(full_path):
+                continue
             if file[0].isdigit():
                 continue
             if file.startswith('TEMPLATE_'):
