@@ -2,6 +2,20 @@ from module.logger import logger  # Change folder automatically
 from dev_tools.utils import LuaLoader
 
 
+def normalize_text(text):
+    if isinstance(text, str):
+        return text.replace('\xa0', ' ')
+    return text
+
+
+def normalize_data(data):
+    if isinstance(data, dict):
+        return {normalize_data(key): normalize_data(value) for key, value in data.items()}
+    if isinstance(data, list):
+        return [normalize_data(item) for item in data]
+    return normalize_text(data)
+
+
 class Item:
     def __init__(self, data):
         """
@@ -29,7 +43,7 @@ class Project:
         Args:
             data (dict):
         """
-        self.name = data['name']
+        self.name = normalize_text(data['name'])
         self.series = int(data['blueprint_version'])
         self.time = int(data['time'])
         self.input = [Item(item) for item in data['consume'].values()]
@@ -45,7 +59,7 @@ class Project:
             'input': [{'name': item.name, 'amount': item.amount} for item in self.input],
             'output': [{'name': item.name} for item in self.output],
         }
-        return str(data)
+        return str(normalize_data(data))
 
 
 # Key: chinese, value: english
@@ -59,6 +73,8 @@ DIC_TRANSLATION = {
 
 
 def set_translation(cn, en):
+    cn = normalize_text(cn)
+    en = normalize_text(en)
     if len(cn) and len(en):
         if cn not in DIC_TRANSLATION:
             DIC_TRANSLATION[cn] = en
@@ -100,11 +116,11 @@ class TechnologyTemplate:
                 continue
             project = Project(value)
             if project.task.id:
-                project.task.name = task[project.task.id]['desc'].replace('\\n', '')
+                project.task.name = normalize_text(task[project.task.id]['desc'].replace('\\n', ''))
             for i in project.input:
-                i.name = item[i.id]['name'].strip()
+                i.name = normalize_text(item[i.id]['name'].strip())
             for i in project.output:
-                i.name = item[i.id]['name'].strip()
+                i.name = normalize_text(item[i.id]['name'].strip())
 
             key = (project.series, project.name)
             if key not in projects:
