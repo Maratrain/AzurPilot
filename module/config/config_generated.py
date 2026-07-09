@@ -283,8 +283,8 @@ class GeneratedConfig:
     GemsFarming_EquipmentCode = 'DD: null\nbogue: null\nhermes: null\nlangley: null\nranger: null'
     GemsFarming_UseEmotionFirst = False
     GemsFarming_IgnoreEmotionWarning = False
-    GemsFarming_ALLowHighFlagshipLevel = False
-    GemsFarming_ALLowLowVanguardLevel = False
+    GemsFarming_AllowHighFlagshipLevel = False
+    GemsFarming_AllowLowVanguardLevel = False
     GemsFarming_DelayTaskIFNoFlagship = False
     GemsFarming_CommissionLimit = False
     GemsFarming_VanguardLevelMin = 1

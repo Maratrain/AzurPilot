@@ -634,6 +634,14 @@ class ConfigUpdater:
         # 2025.06.26
         # ('Coalition.Coalition.Mode', 'Coalition.Coalition.Mode', coalition_to_little_academy),
     ]
+    redirection += [
+        (f'{task}.GemsFarming.ALLowHighFlagshipLevel', f'{task}.GemsFarming.AllowHighFlagshipLevel')
+        for task in [*GEMS_FARMINGS, 'Ambush11']
+    ]
+    redirection += [
+        (f'{task}.GemsFarming.ALLowLowVanguardLevel', f'{task}.GemsFarming.AllowLowVanguardLevel')
+        for task in [*GEMS_FARMINGS, 'Ambush11']
+    ]
 
     # redirection += [
     #     (

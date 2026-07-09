@@ -69,3 +69,7 @@ class RequestHumanTakeover(Exception):
 
 class AutoSearchSetError(Exception):
     pass
+
+
+class HardNotSatisfied(RequestHumanTakeover):
+    pass

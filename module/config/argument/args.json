@@ -2304,11 +2304,11 @@
         "type": "checkbox",
         "value": false
       },
-      "ALLowHighFlagshipLevel": {
+      "AllowHighFlagshipLevel": {
         "type": "checkbox",
         "value": false
       },
-      "ALLowLowVanguardLevel": {
+      "AllowLowVanguardLevel": {
         "type": "checkbox",
         "value": false
       },
@@ -2645,13 +2645,14 @@
       },
       "Fleet2Value": {
         "type": "input",
-        "value": 119
+        "value": 119,
+        "display": "hide"
       },
       "Fleet2Record": {
         "type": "datetime",
         "value": "2020-01-01 00:00:00",
         "validate": "datetime",
-        "display": "disabled"
+        "display": "hide"
       },
       "Fleet2Control": {
         "type": "select",
@@ -2810,11 +2811,11 @@
         "type": "checkbox",
         "value": false
       },
-      "ALLowHighFlagshipLevel": {
+      "AllowHighFlagshipLevel": {
         "type": "checkbox",
         "value": false
       },
-      "ALLowLowVanguardLevel": {
+      "AllowLowVanguardLevel": {
         "type": "checkbox",
         "value": false
       },
@@ -3317,11 +3318,11 @@
         "type": "checkbox",
         "value": false
       },
-      "ALLowHighFlagshipLevel": {
+      "AllowHighFlagshipLevel": {
         "type": "checkbox",
         "value": false
       },
-      "ALLowLowVanguardLevel": {
+      "AllowLowVanguardLevel": {
         "type": "checkbox",
         "value": false
       },

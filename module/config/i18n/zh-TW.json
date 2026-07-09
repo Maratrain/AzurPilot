@@ -1658,11 +1658,11 @@
       "name": "忽略心情警告彈窗",
       "help": "開啟後，遇到心情警告彈窗將強制打完，打完後如開啟更換前排會強制換船"
     },
-    "ALLowHighFlagshipLevel": {
+    "AllowHighFlagshipLevel": {
       "name": "僅更換滿級後排",
       "help": "開啟後，更換旗艦時僅會選擇100級的白皮輕航。\n使用時請保證船塢中有符合條件的艦船。"
     },
-    "ALLowLowVanguardLevel": {
+    "AllowLowVanguardLevel": {
       "name": "可更換低等級前排",
       "help": "開啟後，前排等級限制改為30級以上。若為困難模式（如CD圖）則改為70級。"
     },

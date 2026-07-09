@@ -528,8 +528,8 @@ GemsFarming:
       ranger: null
   UseEmotionFirst: false
   IgnoreEmotionWarning: false
-  ALLowHighFlagshipLevel: false
-  ALLowLowVanguardLevel: false
+  AllowHighFlagshipLevel: false
+  AllowLowVanguardLevel: false
   DelayTaskIFNoFlagship: false
   CommissionLimit: false
   VanguardLevelMin:
@@ -538,7 +538,6 @@ GemsFarming:
   VanguardLevelMax:
     value: 125
     validate: [1, 125]
-
 # ==================== Event ====================
 
 EventGeneral:

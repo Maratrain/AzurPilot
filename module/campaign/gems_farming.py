@@ -16,7 +16,7 @@ from module.equipment.assets import (
 )
 from module.equipment.equipment_code import EquipmentCodeHandler
 from module.equipment.fleet_equipment import FleetEquipment, OCR_FLEET_INDEX
-from module.exception import CampaignEnd, ScriptError, RequestHumanTakeover
+from module.exception import CampaignEnd, HardNotSatisfied, ScriptError, RequestHumanTakeover
 from module.retire.retirement import Retirement, TEMPLATE_COMMON_CV, TEMPLATE_COMMON_DD
 from module.retire.assets import DOCK_CHECK, DOCK_SHIP_DOWN, TEMPLATE_BOGUE, TEMPLATE_HERMES, TEMPLATE_LANGLEY, TEMPLATE_RANGER, TEMPLATE_CASSIN_1, TEMPLATE_CASSIN_2, TEMPLATE_DOWNES_1, TEMPLATE_DOWNES_2, TEMPLATE_AULICK, TEMPLATE_FOOTE
 from module.handler.assets import AUTO_SEARCH_MAP_OPTION_OFF
@@ -122,12 +122,12 @@ class GemsEquipmentHandler(EquipmentCodeHandler):
 
 
     def __init__(self, config, device=None, task=None):
-        command = config.task.command if config and hasattr(config, 'task') and config.task else 'GemsFarming'
-        super().__init__(config=config,
-                         device=device,
-                         task=task,
-                         key=f"{command}.GemsFarming.EquipmentCode",
-                         ships=['DD', 'bogue', 'hermes', 'langley', 'ranger'])
+        super().__init__(config=config, device=device, task=task)
+
+    @property
+    def equipment_code_config_key(self):
+        command = self.config.task.command if hasattr(self.config, 'task') and self.config.task else 'GemsFarming'
+        return f"{command}.GemsFarming.EquipmentCode"
 
     def current_ship(self, skip_first_screenshot=True):
         """
@@ -156,6 +156,23 @@ class GemsEquipmentHandler(EquipmentCodeHandler):
         if TEMPLATE_LANGLEY.match(self.device.image, scaling=25 / 21):
             return 'langley'
         return 'DD'
+
+    def clear_all_equip(self):
+        success = self.code_clear()
+        if not success:
+            logger.warning('[战役-紧急委托] 装备码导出失败，停止换船以避免装备状态丢失。')
+            raise RequestHumanTakeover
+        return success
+
+    def apply_equip_code(self, code=None):
+        if code is None:
+            success = self.code_apply()
+        else:
+            success = self._code_apply(code=code)
+        if not success:
+            logger.warning('[战役-紧急委托] 装备码应用失败，请人工检查当前舰队装备。')
+            raise RequestHumanTakeover
+        return success
 
 
 class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement):
@@ -349,7 +366,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
             Ship: 匹配的舰船。
         """
         faction = 'eagle' if self.config.GemsFarming_CommonCV == 'eagle' else 'all'
-        extra = 'can_limit_break' if self.config.GemsFarming_ALLowHighFlagshipLevel else 'enhanceable'
+        extra = 'can_limit_break' if self.config.GemsFarming_AllowHighFlagshipLevel else 'enhanceable'
         self.dock_favourite_set(False, wait_loading=False)
         self.dock_sort_method_dsc_set(False, wait_loading=False)
         self.dock_filter_set(
@@ -357,7 +374,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
 
         logger.hr('查找旗舰')
 
-        if self.config.GemsFarming_ALLowHighFlagshipLevel:
+        if self.config.GemsFarming_AllowHighFlagshipLevel:
             if self.config.SERVER in ['cn']:
                 max_level = 100
             else:
@@ -367,7 +384,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
             max_level = lv
             min_level = 1
         emotion_lower_bound = 0 if emotion == 0 else self.emotion_lower_bound
-        fleet = [0, self.fleet_to_attack] if self.config.GemsFarming_ALLowHighFlagshipLevel else self.fleet_to_attack
+        fleet = [0, self.fleet_to_attack] if self.config.GemsFarming_AllowHighFlagshipLevel else self.fleet_to_attack
 
         if self.config.GemsFarming_UseEmotionFirst:
             scanner = ShipScanner(
@@ -402,7 +419,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
             level=(min_level, max_level), emotion=(emotion_lower_bound, 150), fleet=fleet, status='free')
         scanner.disable('rarity')
 
-        if not self.config.GemsFarming_ALLowHighFlagshipLevel:
+        if not self.config.GemsFarming_AllowHighFlagshipLevel:
             ships = scanner.scan(self.device.image)
             if ships:
                 # 不需要更换当前舰船
@@ -486,7 +503,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
                 max_level = 70
             if getattr(self.config, 'GemsFarming_CommonDD', '') == 'DDG':
                 max_level = 125
-            if getattr(self.config, 'GemsFarming_ALLowLowVanguardLevel', False):
+            if getattr(self.config, 'GemsFarming_AllowLowVanguardLevel', False):
                 min_level = 30
             else:
                 min_level = max_level
@@ -715,7 +732,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
         target_ship = max(ship, key=lambda s: (s.level, s.emotion))
         if self.change_vanguard:
             self.set_emotion(min(self.get_emotion(), target_ship.emotion))
-        elif self.config.GemsFarming_ALLowHighFlagshipLevel:
+        elif self.config.GemsFarming_AllowHighFlagshipLevel:
             self.set_emotion(target_ship.emotion)
         self._ship_change_confirm(target_ship.button)
 
@@ -810,7 +827,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
         # 等级 32 限制
         if self._trigger_lv32 or (
                 self.change_flagship and self.campaign.config.LV32_TRIGGERED
-                and not self.config.GemsFarming_ALLowHighFlagshipLevel):
+                and not self.config.GemsFarming_AllowHighFlagshipLevel):
             self._trigger_lv32 = True
             logger.hr('TRIGGERED LV32 LIMIT')
             return True
@@ -850,13 +867,13 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
             mode (str): `normal` 或 `hard`。
             total (int): 总运行次数限制。
         """
-        self.config.STOP_IF_REACH_LV32 = self.change_flagship
+        self.config.STOP_IF_REACH_LV32 = self.change_flagship and not self.config.GemsFarming_AllowHighFlagshipLevel
         # 初始检查旗舰等级。
         # 如果启用了旗舰更换，在开始时强制更换旗舰。
         # 解决脚本以 32 级旗舰启动但未退役的问题。
         initial_check = (
             self.change_flagship
-            and not self.config.GemsFarming_ALLowHighFlagshipLevel
+            and not self.config.GemsFarming_AllowHighFlagshipLevel
             and not self._initial_flagship_check_done
         )
         self._initial_flagship_check_done = True
@@ -874,17 +891,30 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
                     self.set_emotion(0)
                 else:
                     raise e
-            except RequestHumanTakeover as e:
+            except HardNotSatisfied:
                 try:
-                    if e.args[0] == 'Hard not satisfied' and self.change_flagship and self.change_vanguard:
+                    if self.change_flagship and self.change_vanguard:
                         self.hard_mode_override()
                         self.vanguard_change()
                         self.flagship_change()
                     else:
                         raise RequestHumanTakeover
-                except RequestHumanTakeover as e:
-                    raise RequestHumanTakeover
-                except Exception as e:
+                except RequestHumanTakeover:
+                    raise
+                except Exception:
+                    from module.exception import GameStuckError
+                    raise GameStuckError
+            except RequestHumanTakeover as e:
+                try:
+                    if e.args and e.args[0] == 'Hard not satisfied' and self.change_flagship and self.change_vanguard:
+                        self.hard_mode_override()
+                        self.vanguard_change()
+                        self.flagship_change()
+                    else:
+                        raise
+                except RequestHumanTakeover:
+                    raise
+                except Exception:
                     from module.exception import GameStuckError
                     raise GameStuckError
 
@@ -899,7 +929,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
                     vanguard_success = self.vanguard_change()
                 if self.change_flagship and (vanguard_success or self._trigger_lv32):
                     flagship_success = self.flagship_change()
-                    if not flagship_success and self.config.GemsFarming_ALLowHighFlagshipLevel:
+                    if not flagship_success and self.config.GemsFarming_AllowHighFlagshipLevel:
                         self.set_emotion(emotion)
                 success = vanguard_success and flagship_success
 
