@@ -769,7 +769,7 @@ class RewardTacticalClass(Dock):
 
         # 重置筛选器；自然跳过 META 舰船
         self.dock_filter_set(
-            faction=[v for k, v in self.dock_filter.settings if k == 'faction' and v not in ['all', 'meta']]
+            faction=[v for k, v in self.dock_filter.settings if k == 'faction' and v not in ['all', 'meta', 'not_available']]
         )
 
         # 船坞中没有舰船
