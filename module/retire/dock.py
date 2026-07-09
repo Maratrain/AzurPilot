@@ -155,7 +155,6 @@ class Dock(Equipment):
             setting='sort',
             option_buttons=ButtonGrid(
                 origin=(218, 65), delta=delta, button_shape=button_shape, grid_shape=(7, 1), name='FILTER_SORT'),
-            # stat 选项有多余的网格，不值得处理
             # stat has extra grid, not worth pursuing
             option_names=['rarity', 'level', 'total', 'join', 'intimacy', 'mood', 'stat'],
             option_default='level'
@@ -210,6 +209,7 @@ class Dock(Equipment):
         setting.add_setting(
             setting='index',
             option_buttons=ButtonGrid(
+                origin=(218, 109), delta=delta, button_shape=button_shape, grid_shape=(7, 2), name='FILTER_INDEX'),
             option_names=['all', 'vanguard', 'main', 'dd', 'cl', 'ca', 'bb',
                           'cv', 'repair', 'ss', 'others', 'not_available', 'not_available', 'not_available'],
             option_default='all'
@@ -217,10 +217,8 @@ class Dock(Equipment):
         setting.add_setting(
             setting='faction',
             option_buttons=ButtonGrid(
+                origin=(218, 239), delta=delta, button_shape=button_shape, grid_shape=(7, 3), name='FILTER_FACTION'),
             option_names=['all', 'eagle', 'royal', 'sakura', 'iron', 'dragon', 'sardegna',
-                origin=(218, 138), delta=delta, button_shape=button_shape, grid_shape=(7, 2), name='FILTER_INDEX'),
-                origin=(218, 268), delta=delta, button_shape=button_shape, grid_shape=(7, 2), name='FILTER_FACTION'),
-                          'northern', 'iris', 'vichya', 'tulipa', 'meta', 'tempesta', 'other'],
                           'northern', 'iris', 'vichya', 'tulipa', 'pedreria', 'meta', 'tempesta',
                           'other', 'not_available', 'not_available', 'not_available', 'not_available', 'not_available', 'not_available'],
             option_default='all'
@@ -228,7 +226,6 @@ class Dock(Equipment):
         setting.add_setting(
             setting='rarity',
             option_buttons=ButtonGrid(
-                origin=(218, 398), delta=delta, button_shape=button_shape, grid_shape=(7, 1), name='FILTER_RARITY'),
                 origin=(218, 427), delta=delta, button_shape=button_shape, grid_shape=(7, 1), name='FILTER_RARITY'),
             option_names=['all', 'common', 'rare', 'elite', 'super_rare', 'ultra', 'not_available'],
             option_default='all'
@@ -236,7 +233,6 @@ class Dock(Equipment):
         setting.add_setting(
             setting='extra',
             option_buttons=ButtonGrid(
-                origin=(218, 471), delta=delta, button_shape=button_shape, grid_shape=(7, 2), name='FILTER_EXTRA'),
                 origin=(218, 499), delta=delta, button_shape=button_shape, grid_shape=(7, 2), name='FILTER_EXTRA'),
             option_names=['no_limit', 'has_skin', 'can_retrofit', 'enhanceable', 'can_limit_break', 'not_level_max', 'can_awaken',
                           'can_awaken_plus', 'special', 'oath_skin', 'unique_augment_module', 'wear_skin', 'oathed', 'not_available'],
@@ -254,21 +250,23 @@ class Dock(Equipment):
             wait_loading=True
     ):
         """
-        一步设置船坞筛选条件。
-
-        进入筛选面板、设置所有筛选项、确认并等待加载。支持单个值或列表。
+        A faster filter set function.
 
         Args:
-            sort: 排序方式，可选值：rarity, level, total, join, intimacy, mood, stat。
-            index: 舰种筛选，可选值：all, vanguard, main, dd, cl, ca, bb,
-                cv, repair, ss, others, not_available。
-            faction: 阵营筛选，可选值：all, eagle, royal, sakura, iron, dragon, sardegna,
-                northern, iris, vichya, tulipa, meta, tempesta, other。
-            rarity: 稀有度筛选，可选值：all, common, rare, elite, super_rare, ultra, not_available。
-            extra: 额外筛选，可选值：no_limit, has_skin, can_retrofit, enhanceable,
-                can_limit_break, not_level_max, can_awaken, can_awaken_plus,
-                special, oath_skin, unique_augment_module, wear_skin, oathed, not_available。
-            wait_loading: 是否等待卡片加载完成，连续操作时可设为 False。
+            sort (str, list):
+                ['rarity', 'level', 'total', 'join', 'intimacy', 'mood', 'stat']
+            index (str, list):
+                ['all', 'vanguard', 'main', 'dd', 'cl', 'ca', 'bb',
+                 'cv', 'repair', 'ss', 'others', 'not_available', 'not_available', 'not_available']
+            faction (str, list):
+                ['all', 'eagle', 'royal', 'sakura', 'iron', 'dragon', 'sardegna',
+                 'northern', 'iris', 'vichya', 'tulipa', 'pedreria', 'meta', 'tempesta',
+                 'other', 'not_available', 'not_available', 'not_available', 'not_available', 'not_available', 'not_available']
+            rarity (str, list):
+                ['all', 'common', 'rare', 'elite', 'super_rare', 'ultra', 'not_available']
+            extra (str, list):
+                ['no_limit', 'has_skin', 'can_retrofit', 'enhanceable', 'can_limit_break', 'not_level_max', 'can_awaken',
+                 'can_awaken_plus', 'special', 'oath_skin', 'unique_augment_module', 'wear_skin', 'oathed', 'not_available'],
 
         Pages:
             in: page_dock
@@ -284,16 +282,9 @@ class Dock(Equipment):
 
     def dock_select_one(self, button, skip_first_screenshot=True):
         """
-        在船坞中选择一艘舰船。
-        
-        点击指定舰船卡片并等待选择确认（选中计数变为 1/1）。
-        处理可能出现的弹窗确认对话框。
         Args:
-            button: 要选择的舰船卡片按钮。
-            skip_first_screenshot: 是否跳过首次截图，复用上一状态循环的截图。
-
-        Pages:
-            in: page_dock (DOCK_CHECK)
+            button (Button): Ship button to select
+            skip_first_screenshot:
         """
         # if self.config.SERVER == 'en':
         #     logger.info('EN has no dock_selected check currently, use plain click')
@@ -327,15 +318,12 @@ class Dock(Equipment):
 
     def dock_selected(self, skip_first_screenshot=True):
         """
-        检查船坞中是否已选中舰船。
-
-        通过 OCR 读取选中计数（如 1/1），判断是否有舰船被选中。
-        超时 1.5 秒后假设未选中。
         Args:
-            kip_first_screenshot: 是否跳过首次截图，复用上一状态循环的截图。
+            skip_first_screenshot:
 
         Returns:
-            bool: bool: True 表示已选中舰船（计数 >= 1/1），False 表示未选中（0/1）。
+            bool: If selected a ship in dock.
+                True for ship counter 1/1, False for 0/1.
         """
         # if self.config.SERVER == 'en':
         #     logger.info('EN has no dock_selected check currently, assume not selected')
@@ -361,19 +349,9 @@ class Dock(Equipment):
 
     def dock_select_confirm(self, check_button, skip_first_screenshot=True):
         """
-        确认舰船选择并等待跳转到目标页面。
-
-        点击确认按钮，等待 check_button 指定的页面出现。
-        处理可能出现的弹窗确认对话框。
-
-
-      Args:
-            heck_button: 目标页面的检测按钮，可以是 Button 或 callable。
-            skip_first_screenshot: 是否跳过首次截图，复用上一状态循环的截图。
-
-        Pages:
-            in: SHIP_CONFIRM
-            out: check_button 对应的页面
+        Args:
+            check_button (callable, Button):
+            skip_first_screenshot:
         """
         while 1:
             if skip_first_screenshot:
@@ -391,22 +369,19 @@ class Dock(Equipment):
 
     def dock_enter_first(self, non_npc=True, skip_first_screenshot=True):
         """
-        进入船坞中第一艘舰船的详情页。
-        
-        点击第一艘舰船卡片进入详情。若 non_npc 为 True 且第一艘是 NPC，
-        则自动选择第二艘。船坞为空时返回 False。
-
+        Enter first ship in dock
 
         Args:
-            non_npc: True 时若第一艘是 NPC 则选择第二艘，False 时始终选择第一艘。
-            skip_first_screenshot: 是否跳过首次截图，复用上一状态循环的截图。
+            non_npc: True to enter the second ship if first ship is NPC
+            skip_first_screenshot:
 
         Returns:
-            bool: True 成功进入舰船详情页，False 船坞为空或无可用舰船。
-
+            bool: True if success to enter
+                False if dock empty
+                False if non_npc and only one NPC in dock
 
         Pages:
-            in: page_dock (DOCK_CHECK)
+            in: page_dock
             out: SHIP_DETAIL_CHECK
         """
         logger.info('Dock enter first')
@@ -418,21 +393,21 @@ class Dock(Equipment):
             else:
                 self.device.screenshot()
 
-            # 退出条件：已进入详情页或船坞为空
+            # End
             if self.appear(SHIP_DETAIL_CHECK, offset=(20, 20)):
                 return True
             if self.appear(DOCK_EMPTY, offset=(20, 20)):
                 logger.info('Dock empty')
                 return False
 
-            # 点击舰船卡片
+            # Click
             if self.appear(DOCK_CHECK, offset=(20, 20), interval=3):
                 if non_npc:
-                    # 检测第一艘是否为 NPC
+                    # Check NPC
                     if DOCK_FIRST_NPC.match_luma(self.device.image, offset=(20, 20)):
                         logger.info('First ship is NPC, select second')
                         button = CARD_GRIDS[(1, 0)]
-                        # 检测第二艘是否存在
+                        # Check if there's second ship
                         color = get_color(self.device.image, button.area)
                         if color_similar(color, (34, 34, 42)):
                             logger.info('Second ship empty, dock empty')
