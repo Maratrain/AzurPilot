@@ -346,7 +346,7 @@ def get_research_ship_jp(image):
                              template=load_image(template),
                              area=DETAIL_BLUEPRINT.area,
                              offset=(10, 10),
-                             similarity=0.9)
+                             similarity=0.75)
         if sim > similarity:
             similarity = sim
             ship = name
