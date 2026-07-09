@@ -1791,10 +1791,11 @@
     "Mode": {
       "name": "Difficulty",
       "help": "SP map requires running the daily SP mission first",
-      "easy": "Easy",
-      "normal": "Normal",
-      "hard": "Hard",
-      "sp": "SP"
+      "tc1": "tc1",
+      "tc2": "tc2",
+      "tc3": "tc3",
+      "sp": "SP",
+      "ex": "ex"
     },
     "Fleet": {
       "name": "attack team",

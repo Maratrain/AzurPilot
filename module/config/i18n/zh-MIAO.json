@@ -1791,10 +1791,11 @@
     "Mode": {
       "name": "难度喵",
       "help": "SP图需用活动每日SP运行喵。 (´・ω・`)",
-      "easy": "easy喵",
-      "normal": "normal喵",
-      "hard": "hard喵",
-      "sp": "sp喵"
+      "tc1": "tc1",
+      "tc2": "tc2",
+      "tc3": "tc3",
+      "sp": "sp喵",
+      "ex": "ex"
     },
     "Fleet": {
       "name": "出击队伍模式",

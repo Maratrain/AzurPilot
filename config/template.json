@@ -1146,7 +1146,7 @@
       "DefeatWithdraw": "withdraw_stop"
     },
     "Coalition": {
-      "Mode": "hard",
+      "Mode": "tc3",
       "Fleet": "single"
     },
     "StopCondition": {
@@ -1802,7 +1802,7 @@
       "DefeatWithdraw": "withdraw_stop"
     },
     "Coalition": {
-      "Mode": "hard",
+      "Mode": "tc3",
       "Fleet": "single"
     },
     "StopCondition": {

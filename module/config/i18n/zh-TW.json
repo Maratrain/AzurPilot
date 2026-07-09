@@ -1791,10 +1791,11 @@
     "Mode": {
       "name": "難度",
       "help": "SP圖需要使用活動每日SP執行",
-      "easy": "easy",
-      "normal": "normal",
-      "hard": "hard",
-      "sp": "sp"
+      "tc1": "tc1",
+      "tc2": "tc2",
+      "tc3": "tc3",
+      "sp": "sp",
+      "ex": "ex"
     },
     "Fleet": {
       "name": "出擊隊伍",
