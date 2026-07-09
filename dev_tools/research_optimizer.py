@@ -1,4 +1,5 @@
 import itertools
+import os
 import re
 import time
 from copy import deepcopy
@@ -6,7 +7,7 @@ from dataclasses import dataclass
 from functools import wraps
 
 import numpy as np
-from numba import jit
+from numba import jit, prange
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 
@@ -16,6 +17,17 @@ from tqdm.contrib.concurrent import process_map
 默认二三期全毕业，二三期定向的权重增加到四期上
 假设二三期的项目刷新和四期一样，但没有收益
 """
+TARGET_SERIES = int(os.environ.get('RESEARCH_OPTIMIZER_SERIES', '4'))
+QUIET = os.environ.get('RESEARCH_OPTIMIZER_QUIET', '') == '1'
+BASE_SHIPS = ('Agir', 'Hakuryu', 'Anchorage', 'August', 'Marcopolo')
+if TARGET_SERIES == 9:
+    TARGET_SHIPS = ('valparaiso', 'maximmelmann', 'duncan', 'takahashi', 'orage')
+    TARGET_DR_SHIPS = ('valparaiso', 'maximmelmann')
+else:
+    TARGET_SHIPS = BASE_SHIPS
+    TARGET_DR_SHIPS = ('Agir', 'Hakuryu')
+SHIP_NAME_MAP = dict(zip(BASE_SHIPS, TARGET_SHIPS))
+
 # 索引，期数，名称，出现权重，彩图纸掉落，彩图纸掉落，金图纸掉落，金图纸掉落，金图纸掉落，彩装备掉落
 PROJECT_TABLE = """
 0	4	B-4	58.42861987	0	0	0.346666667	0.346666667	0.346666667	0.0588
@@ -639,16 +651,17 @@ def hr3(title):
     print('<' * 3 + ' ' + title + ' ' + '>' * 3)
 
 
-FILTER_REGEX = re.compile('([s\!][1234])?'
-                          '-?'
-                          '(neptune|monarch|ibuki|izumo|roon|saintlouis'
-                          '|seattle|georgia|kitakaze|azuma|friedrich'
-                          '|gascogne|champagne|cheshire|drake|mainz|odin'
-                          '|anchorage|hakuryu|agir|august|marcopolo)?'
-                          '(dr|pry)?'
-                          '([bcdeghqtaz])?'
-                          '-?'
-                          '(\d.\d|\d\d?)?')
+FILTER_REGEX = re.compile(r'([s!][123456789])?'
+                          r'-?'
+                          r'(neptune|monarch|ibuki|izumo|roon|saintlouis'
+                          r'|seattle|georgia|kitakaze|azuma|friedrich'
+                          r'|gascogne|champagne|cheshire|drake|mainz|odin'
+                          r'|anchorage|hakuryu|agir|august|marcopolo'
+                          r'|valparaiso|maximmelmann|duncan|takahashi|orage)?'
+                          r'(dr|pry)?'
+                          r'([bcdeghqtaz])?'
+                          r'-?'
+                          r'(\d.\d|\d\d?)?')
 FILTER_ATTR = ('series', 'ship', 'ship_rarity', 'genre', 'duration')
 FILTER_PRESET = ('shortest', 'cheapest', 'reset')
 FILTER = Filter(FILTER_REGEX, FILTER_ATTR, FILTER_PRESET)
@@ -707,16 +720,12 @@ class Research:
         self.genre, self.duration = self.name.split('-')
         self.duration = str(self.duration)
         if self.series == 4:
-            self.series = f'S{self.series}'
+            self.series = f'S{TARGET_SERIES}'
         else:
-            self.series = f'!4'
-        if self.genre in ['Agir', 'Hakuryu']:
-            self.ship = self.genre
-            self.ship_rarity = 'dr'
-            self.genre = 'D'
-        elif self.genre in ['Anchorage', 'August', 'Marcopolo']:
-            self.ship = self.genre
-            self.ship_rarity = 'pry'
+            self.series = f'!{TARGET_SERIES}'
+        if self.genre in BASE_SHIPS:
+            self.ship = SHIP_NAME_MAP[self.genre]
+            self.ship_rarity = 'dr' if self.ship in TARGET_DR_SHIPS else 'pry'
             self.genre = 'D'
         else:
             self.ship = ''
@@ -750,7 +759,7 @@ PROJECT_DURATION_ARRAY = np.array(list(PROJECT_DURATION.values()))
 
 class ResearchPool:
     remove_projects = 'B > T > E'
-    all_ships = ('Agir', 'Hakuryu', 'Anchorage', 'August', 'Marcopolo')
+    all_ships = TARGET_SHIPS
 
     def __init__(self, string):
         FILTER.load(string)
@@ -962,6 +971,20 @@ def simulate(project_select_index, reset_index, target, active=1., interval=0.):
     return day_cost, rewards
 
 
+@jit(nopython=True, fastmath=True, parallel=True)
+def simulate_many(project_select_index, reset_index, target, active, interval, sample_count):
+    day_cost_array = np.empty(sample_count)
+    rewards_array = np.empty((sample_count, 6))
+    for index in prange(sample_count):
+        sim_day, sim_rewards = simulate(project_select_index, reset_index, target, active=active, interval=interval)
+        day_cost_array[index] = sim_day
+        rewards_array[index] = sim_rewards
+    rewards = np.zeros(6)
+    for index in range(sample_count):
+        rewards += rewards_array[index]
+    return np.mean(day_cost_array), rewards / sample_count
+
+
 class FilterSimulator:
     active = 24 / 24
     interval = 0 / 60 / 24
@@ -974,25 +997,36 @@ class FilterSimulator:
         self.pool = ResearchPool(string)
 
     def run(self, sample_count=1000):
-        day_cost = 0
-        rewards = PROJECT_DROP[0] * 0
-        for _ in tqdm(range(sample_count)):
-            sim_day, sim_rewards = simulate(
+        if QUIET:
+            day_cost, rewards = simulate_many(
                 self.pool.project_select_index,
                 self.pool.reset_index,
-                target=FilterSimulator.target,
-                active=FilterSimulator.active,
-                interval=FilterSimulator.interval
+                FilterSimulator.target,
+                FilterSimulator.active,
+                FilterSimulator.interval,
+                sample_count
             )
-            day_cost += sim_day
-            rewards += sim_rewards
-        day_cost /= sample_count
-        rewards /= sample_count
+        else:
+            day_cost = 0
+            rewards = PROJECT_DROP[0] * 0
+            for _ in tqdm(range(sample_count)):
+                sim_day, sim_rewards = simulate(
+                    self.pool.project_select_index,
+                    self.pool.reset_index,
+                    target=FilterSimulator.target,
+                    active=FilterSimulator.active,
+                    interval=FilterSimulator.interval
+                )
+                day_cost += sim_day
+                rewards += sim_rewards
+            day_cost /= sample_count
+            rewards /= sample_count
 
-        hr3('End Testing')
-        print(self.string)
-        print(f'Average time cost: {day_cost}')
-        print(f'Average rewards: {rewards}')
+        if not QUIET:
+            hr3('End Testing')
+            print(self.string)
+            print(f'Average time cost: {day_cost}')
+            print(f'Average rewards: {rewards}')
 
         return day_cost
 
@@ -1039,7 +1073,8 @@ def position_insert(string, insert, position):
 
 def epoch_worker(data):
     index, total, sample_count, select_index, forward_index, string = data
-    hr3(f'Start Testing: {index}/{total}')
+    if not QUIET:
+        hr3(f'Start Testing: {index}/{total}')
     return FilterSimulator(string).run(sample_count)
 
 
@@ -1077,6 +1112,8 @@ class BruteForceOptimizer:
         look_forward = int(np.power(3, level))
         look_forward = max(look_forward, 1)
         sample_count = min(max(sample_count, 10000), 300000)
+        sample_count = int(os.environ.get('RESEARCH_OPTIMIZER_SAMPLE_COUNT', sample_count))
+        look_forward = int(os.environ.get('RESEARCH_OPTIMIZER_LOOK_FORWARD', look_forward))
         print(f'diff: {diff}, look_forward: {look_forward}, sample_count: {sample_count}')
 
         string_split = split_filter(string)
@@ -1086,7 +1123,10 @@ class BruteForceOptimizer:
         # index, total, sample_count, select_index, forward_index, string_added
         tests_data = [(index, total, sample_count, *row) for index, row in enumerate(all_tests)]
 
-        results = process_map(epoch_worker, tests_data, max_workers=BruteForceOptimizer.process)
+        if BruteForceOptimizer.process <= 1:
+            results = [epoch_worker(data) for data in tests_data]
+        else:
+            results = process_map(epoch_worker, tests_data, max_workers=BruteForceOptimizer.process)
 
         day_cost = np.ones((string_count, look_forward + 1)) * 1000
         for data, result in zip(tests_data[1:], results[1:]):

@@ -409,6 +409,7 @@ class ResearchProject:
         '|kearsarge|hindenburg|shimanto|schultz|flandre'
         '|napoli|nakhimov|halford|bayard|daisen'
         '|goudenleeuw|mecklenburg|dmitri|kansas|vittorio'
+        '|valparaiso|maximmelmann|duncan|takahashi|orage'
         ')')
     REGEX_INPUT = re.compile('(coin|cube|part)')
     REGEX_DR_SHIP = re.compile(
@@ -419,7 +420,20 @@ class ResearchProject:
         '|kearsarge|hindenburg'
         '|napoli|nakhimov'
         '|goudenleeuw|mecklenburg'
+        '|valparaiso|maximmelmann'
     )
+    SHIP_ALIAS = {
+        '蓝图：瓦尔帕莱索': 'valparaiso',
+        'blueprint-valparaíso': 'valparaiso',
+        '蓝图：{namecode:565}': 'maximmelmann',
+        '蓝图：马克斯·殷麦曼': 'maximmelmann',
+        '蓝图：玛克西米莉安·伊梅拉': 'maximmelmann',
+        '蓝图：邓肯': 'duncan',
+        '蓝图：{namecode:313}': 'takahashi',
+        '蓝图：高梁': 'takahashi',
+        '蓝图：狒': 'takahashi',
+        '蓝图：暴风雨': 'orage',
+    }
     # 使用以下代码生成：
     """
     out = []
@@ -442,7 +456,8 @@ class ResearchProject:
         '495', '021', '022', '072', '077', '095', '408', '463', '475', '482', '468', '008', '063', '075', '082', '068',
         '419', '478', '486', '488', '493', '019', '078', '086', '088', '093', '483', '413', '439', '471', '496', '083',
         '013', '039', '071', '096', '403', '458', '466', '490', '497', '003', '058', '066', '090', '097', '480', '436',
-        '487', '411', '464', '080', '036', '087', '011', '064']
+        '487', '411', '464', '080', '036', '087', '011', '064', '737', '781', '732', '740', '747', '337', '381', '332',
+        '340', '347', '437', '481', '432', '440', '447', '037', '081', '032', '040', '047']
 
     def __init__(self, name, series):
         """
@@ -489,7 +504,7 @@ class ResearchProject:
                 if result:
                     self.__setattr__(f'need_{result.group(1)}', True)
             for item in data['output']:
-                item_name = item['name'].replace(' ', '').lower()
+                item_name = self.ship_alias(item['name'].replace(' ', '').lower())
                 result = re.search(ResearchProject.REGEX_SHIP, item_name)
                 if not self.ship:
                     self.ship = result.group(1) if result else ''
@@ -509,6 +524,13 @@ class ResearchProject:
 
     def __eq__(self, other):
         return str(self) == str(other)
+
+    @classmethod
+    def ship_alias(cls, item_name):
+        for alias, ship in cls.SHIP_ALIAS.items():
+            if alias in item_name:
+                return ship
+        return item_name
 
     def check_name(self, name):
         """
@@ -633,7 +655,8 @@ class ResearchProjectJp:
     SHIP_S6 = ['kearsarge', 'hindenburg', 'shimanto', 'schultz', 'flandre']
     SHIP_S7 = ['napoli', 'nakhimov', 'halford', 'bayard', 'daisen']
     SHIP_S8 = ['goudenleeuw', 'mecklenburg', 'dmitri', 'kansas', 'vittorio']
-    SHIP_ALL = SHIP_S1 + SHIP_S2 + SHIP_S3 + SHIP_S4 + SHIP_S5 + SHIP_S6 + SHIP_S7 + SHIP_S8
+    SHIP_S9 = ['valparaiso', 'maximmelmann', 'duncan', 'takahashi', 'orage']
+    SHIP_ALL = SHIP_S1 + SHIP_S2 + SHIP_S3 + SHIP_S4 + SHIP_S5 + SHIP_S6 + SHIP_S7 + SHIP_S8 + SHIP_S9
     DR_SHIP = [
         'azuma', 'friedrich',
         'drake',
@@ -642,6 +665,7 @@ class ResearchProjectJp:
         'kearsarge', 'hindenburg',
         'napoli', 'nakhimov',
         'goudenleeuw', 'mecklenburg',
+        'valparaiso', 'maximmelmann',
     ]
 
     def __init__(self):
