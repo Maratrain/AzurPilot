@@ -441,7 +441,7 @@ def _ws_scrcpy_parse_initial(data):
             "client_id": client_id,
         }
     except Exception as e:
-        logger.warning(f"解析 ws-scrcpy 初始信息失败: {e}")
+        logger.warning(f"[WebUI] 解析 ws-scrcpy 初始信息失败: {e}")
         return None
 
 
@@ -557,11 +557,11 @@ class LiveWsScrcpySession:
         if not os.path.exists(WS_SCRCPY_FILEPATH_LOCAL):
             raise RuntimeError(f"未找到 ws-scrcpy server: {WS_SCRCPY_FILEPATH_LOCAL}")
 
-        logger.hr("实时 ws-scrcpy 预览启动")
+        logger.hr("[WebUI] 实时 ws-scrcpy 预览启动")
         self.connection.adb_push(WS_SCRCPY_FILEPATH_LOCAL, WS_SCRCPY_FILEPATH_REMOTE)
         self.local_port = self.connection.adb_forward(f"tcp:{WS_SCRCPY_PORT}")
         if self._server_running():
-            logger.info("ws-scrcpy server 已在运行，复用设备端服务")
+            logger.info("[WebUI] ws-scrcpy server 已在运行，复用设备端服务")
             return
         output = self.connection.adb_shell(self._server_command(), timeout=2)
         if output:
@@ -597,9 +597,9 @@ class LiveWsScrcpySession:
             code = getattr(e, "code", None)
             reason = getattr(e, "reason", "")
             if code is not None:
-                logger.warning(f"ws-scrcpy 设备端连接关闭: code={code}, reason={reason}")
+                logger.warning(f"[WebUI] ws-scrcpy 设备端连接关闭: code={code}, reason={reason}")
             else:
-                logger.warning(f"ws-scrcpy 设备端接收失败: {_live_preview_error_message(e)}")
+                logger.warning(f"[WebUI] ws-scrcpy 设备端接收失败: {_live_preview_error_message(e)}")
             return None
         if isinstance(data, str):
             return data.encode("utf-8", errors="replace")
@@ -618,7 +618,7 @@ class LiveWsScrcpySession:
             future = asyncio.run_coroutine_threadsafe(self.send_binary(data), self.loop)
             future.result(timeout=2)
         except Exception as e:
-            logger.warning(f"发送 ws-scrcpy 控制消息失败: {e}")
+            logger.warning(f"[WebUI] 发送 ws-scrcpy 控制消息失败: {e}")
 
     def _scale_point(self, x, y):
         width, height = self.resolution
@@ -679,7 +679,7 @@ class LiveWsScrcpySession:
             self._send_control(self._text_message(text))
 
     async def stop_async(self):
-        logger.hr("实时 ws-scrcpy 预览停止")
+        logger.hr("[WebUI] 实时 ws-scrcpy 预览停止")
         self.alive = False
         if self.remote_ws is not None:
             try:
@@ -709,7 +709,7 @@ class LiveWsScrcpySession:
             try:
                 self.server_stream.close()
             except Exception as e:
-                logger.warning(f"关闭 ws-scrcpy server stream 失败: {e}")
+                logger.warning(f"[WebUI] 关闭 ws-scrcpy server stream 失败: {e}")
         self.server_stream = None
 
 
@@ -806,7 +806,7 @@ class LiveScrcpySession:
 
     def start(self):
         try:
-            logger.hr("实时 scrcpy 预览启动")
+            logger.hr("[WebUI] 实时 scrcpy 预览启动")
             self.connection.adb_push(self.config.SCRCPY_FILEPATH_LOCAL, self.config.SCRCPY_FILEPATH_REMOTE)
             self.server_stream = self.connection.adb.shell(self._scrcpy_command(), stream=True)
             self.server_stream.conn.settimeout(3)
@@ -911,7 +911,7 @@ class LiveScrcpySession:
             self.control_sender.text(text)
 
     def stop(self):
-        logger.hr("实时 scrcpy 预览停止")
+        logger.hr("[WebUI] 实时 scrcpy 预览停止")
         self.alive = False
         for obj in (self.control_socket, self.video_socket, self.server_stream):
             if obj is None:
@@ -919,7 +919,7 @@ class LiveScrcpySession:
             try:
                 obj.close()
             except Exception as e:
-                logger.warning(f"关闭 scrcpy 资源失败: {e}")
+                logger.warning(f"[WebUI] 关闭 scrcpy 资源失败: {e}")
         self.control_socket = None
         self.video_socket = None
         self.server_stream = None
@@ -979,6 +979,36 @@ CONTROL_ACTION_KEYCODES = {
 }
 
 
+def _create_live_ws_scrcpy_session(instance, fps, target_width, bitrate_scale):
+    return LiveWsScrcpySession(
+        instance,
+        fps=fps,
+        width=target_width,
+        bitrate_scale=bitrate_scale,
+    )
+
+
+def _acquire_live_scrcpy_session(instance, fps, target_width, bitrate_scale):
+    return LiveScrcpySession.acquire(
+        instance,
+        fps=fps,
+        width=target_width,
+        bitrate_scale=bitrate_scale,
+    )
+
+
+def _init_live_screenshot_fallback(instance):
+    from module.config.config import AzurLaneConfig
+    from module.device.device import Device
+
+    if "ALAS_CONFIG_NAME" not in os.environ:
+        os.environ["ALAS_CONFIG_NAME"] = instance
+
+    config = AzurLaneConfig(instance)
+    device = Device(config)
+    return device, device.screenshot()
+
+
 async def ws_live_screenshot(websocket):
     await websocket.accept()
     if is_demo_mode():
@@ -1019,7 +1049,7 @@ async def ws_live_screenshot(websocket):
                 except Exception:
                     pass
                 return
-            logger.warning(f"scrcpy 预览不可用，回退截图模式: {_live_preview_error_message(e)}")
+            logger.warning(f"[WebUI] scrcpy 预览不可用，回退截图模式: {_live_preview_error_message(e)}")
 
     ffmpeg = _get_ffmpeg_path()
     if not ffmpeg:
@@ -1040,13 +1070,19 @@ async def _ws_live_scrcpy(websocket, instance, fps, target_width, bitrate_scale)
     except WebSocketDisconnect:
         raise
     except Exception as e:
-        logger.warning(f"ws-scrcpy 预览不可用，回退原版 scrcpy: {_live_preview_error_message(e)}")
+        logger.warning(f"[WebUI] ws-scrcpy 预览不可用，回退原版 scrcpy: {_live_preview_error_message(e)}")
 
     await _ws_live_raw_scrcpy(websocket, instance, fps, target_width, bitrate_scale)
 
 
 async def _ws_live_ws_scrcpy(websocket, instance, fps, target_width, bitrate_scale):
-    session = LiveWsScrcpySession(instance, fps=fps, width=target_width, bitrate_scale=bitrate_scale)
+    session = await asyncio.to_thread(
+        _create_live_ws_scrcpy_session,
+        instance,
+        fps,
+        target_width,
+        bitrate_scale,
+    )
     LiveWsScrcpySession.register(instance, session)
 
     try:
@@ -1116,7 +1152,13 @@ async def _ws_live_raw_scrcpy(websocket, instance, fps, target_width, bitrate_sc
     session = None
 
     try:
-        session = LiveScrcpySession.acquire(instance, fps=fps, width=target_width, bitrate_scale=bitrate_scale)
+        session = await asyncio.to_thread(
+            _acquire_live_scrcpy_session,
+            instance,
+            fps,
+            target_width,
+            bitrate_scale,
+        )
         width, height = session.resolution
         preroll = await asyncio.to_thread(_collect_h264_preroll, session, stop_event)
         if not preroll:
@@ -1153,7 +1195,7 @@ async def _ws_live_raw_scrcpy(websocket, instance, fps, target_width, bitrate_sc
         stop_event.set()
         # 预览关闭即停止 scrcpy，避免后台持续占用编码器。
         if session is not None:
-            LiveScrcpySession.release(instance, session=session)
+            await asyncio.to_thread(LiveScrcpySession.release, instance, session=session)
 
 
 async def _ws_live_screenshot_fallback(websocket, instance, codec, ffmpeg, fps, target_width, bitrate_scale):
@@ -1162,15 +1204,7 @@ async def _ws_live_screenshot_fallback(websocket, instance, codec, ffmpeg, fps, 
     proc = None
 
     try:
-        from module.config.config import AzurLaneConfig
-        from module.device.device import Device
-
-        if "ALAS_CONFIG_NAME" not in os.environ:
-            os.environ["ALAS_CONFIG_NAME"] = instance
-
-        config = AzurLaneConfig(instance)
-        device = Device(config)
-        first = device.screenshot()
+        device, first = await asyncio.to_thread(_init_live_screenshot_fallback, instance)
         src_height, src_width = first.shape[:2]
         target_height = int(round(target_width * src_height / src_width))
         if target_height % 2:
@@ -1321,31 +1355,31 @@ async def ws_live_control(websocket):
             if action == "tap":
                 x = int(data.get("x", 0))
                 y = int(data.get("y", 0))
-                logger.info(f"实时预览控制：点击 ({x}, {y})")
+                logger.info(f"[WebUI] 实时预览控制：点击 ({x}, {y})")
                 await asyncio.to_thread(target.tap, x, y)
             elif action == "drag":
                 start = data.get("start") or {}
                 end = data.get("end") or {}
                 duration_ms = data.get("duration_ms", 220)
-                logger.info(f"实时预览控制：拖拽 {start} -> {end}")
+                logger.info(f"[WebUI] 实时预览控制：拖拽 {start} -> {end}")
                 await asyncio.to_thread(target.drag, start, end, duration_ms)
             elif action == "key":
                 keycode = data.get("keycode")
                 if keycode is None:
                     keycode = _key_to_android_keycode(data.get("key"))
                 if keycode is not None:
-                    logger.info(f"实时预览控制：按键 {keycode}")
+                    logger.info(f"[WebUI] 实时预览控制：按键 {keycode}")
                     await asyncio.to_thread(target.keycode, keycode)
             elif action == "text":
                 text = data.get("text", "")
-                logger.info("实时预览控制：文本输入")
+                logger.info("[WebUI] 实时预览控制：文本输入")
                 await asyncio.to_thread(target.text, text)
             elif action == "back":
-                logger.info("实时预览控制：返回")
+                logger.info("[WebUI] 实时预览控制：返回")
                 await asyncio.to_thread(target.keycode, scrcpy_const.KEYCODE_BACK)
             elif action in CONTROL_ACTION_KEYCODES:
                 keycode = CONTROL_ACTION_KEYCODES[action]
-                logger.info(f"实时预览控制：系统按键 {action} ({keycode})")
+                logger.info(f"[WebUI] 实时预览控制：系统按键 {action} ({keycode})")
                 await asyncio.to_thread(target.keycode, keycode)
             else:
                 await websocket.send_text(json.dumps({"type": "error", "message": f"未知控制动作: {action}"}))
@@ -1476,7 +1510,7 @@ async def api_deploy_settings(request):
     try:
         return JSONResponse({"success": True, "data": deploy_settings_schema(t)})
     except Exception as e:
-        logger.error(f"读取部署设置失败: {e}")
+        logger.error(f"[WebUI] 读取部署设置失败: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 
@@ -1500,7 +1534,7 @@ async def api_deploy_settings_save(request):
     except ValueError as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
     except Exception as e:
-        logger.error(f"保存部署设置失败: {e}")
+        logger.error(f"[WebUI] 保存部署设置失败: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
     return JSONResponse({"success": True, "data": result})
@@ -1519,7 +1553,7 @@ async def api_deploy_startup_run(request):
     except ValueError as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
     except Exception as e:
-        logger.error(f"读取启动时自动运行失败: {e}")
+        logger.error(f"[WebUI] 读取启动时自动运行失败: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
     return JSONResponse({"success": True, "data": result})
@@ -1545,7 +1579,7 @@ async def api_deploy_startup_run_save(request):
     except ValueError as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
     except Exception as e:
-        logger.error(f"保存启动时自动运行失败: {e}")
+        logger.error(f"[WebUI] 保存启动时自动运行失败: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
     return JSONResponse({"success": True, "data": result})
@@ -1625,13 +1659,13 @@ async def api_import_legacy_upload(request):
                 elif "azurstat" in rel_target:
                     result["azurstat"] += 1
             except Exception as e:
-                logger.error(f"写入失败 {target}: {e}")
+                logger.error(f"[WebUI] 写入失败 {target}: {e}")
                 result["errors"] += 1
 
-        logger.info(f"导入完成: {result}")
+        logger.info(f"[WebUI] 导入完成: {result}")
         return JSONResponse({"success": True, "data": result})
     except Exception as e:
-        logger.error(f"导入API错误: {e}")
+        logger.error(f"[WebUI] 导入API错误: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 

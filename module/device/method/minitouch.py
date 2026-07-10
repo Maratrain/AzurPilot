@@ -456,10 +456,10 @@ def retry(func):
                     pass
 
         if func.__name__ in ['_minitouch_builder']:
-            logger.critical(f'重试 {func.__name__}() 失败')
+            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
 
-        logger.critical(f'重试 {func.__name__}() 失败')
+        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper

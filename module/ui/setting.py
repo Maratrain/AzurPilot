@@ -144,7 +144,7 @@ class Setting:
                 self.main.device.screenshot()
 
             if timeout.reached():
-                logger.warning(f'设置 {self.name} 选项超时，假定当前选项已正确。')
+                logger.warning(f'[UI] 设置 {self.name} 选项超时，假定当前选项已正确。')
                 return False
 
             self.show_active_buttons()

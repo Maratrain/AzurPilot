@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from module.base.utils import image_left_strip
 from module.combat.combat import BATTLE_PREPARATION, Combat
+from module.config.time_source import now as current_time
 from module.config.utils import DEFAULT_TIME
 from module.logger import logger
 from module.ocr.ocr import DigitCounter
@@ -160,7 +161,7 @@ class OSAsh(UI, MapEventHandler):
         # 信标任务的下次运行时间
         next_run = self.config.cross_get(keys="OpsiAshBeacon.Scheduler.NextRun", default=DEFAULT_TIME)
         # 距下次执行时间超过 30 分钟
-        if next_run - datetime.now() > timedelta(minutes=30):
+        if next_run - current_time() > timedelta(minutes=30):
             return True
         return False
 

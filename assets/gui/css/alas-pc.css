@@ -3,6 +3,28 @@
     grid-template-columns: 1fr 13rem;
 }
 
+[id^="pywebio-scope-arg_container-task-priority-"],
+[id^="pywebio-scope-task_priority_container_"] {
+    grid-auto-flow: row !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+[id^="pywebio-scope-task_priority_container_"] > *,
+[id^="pywebio-scope-task_priority_content_"],
+.task-priority-list {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+[id^="pywebio-scope-task_priority_content_"] > .form-group:first-child,
+[id^="pywebio-scope-task_priority_content_"] > .task-priority-pin,
+[id^="pywebio-scope-task_priority_content_"] *[style*="--task-priority-pin--"] {
+    display: none !important;
+}
+
 [id^="pywebio-scope-arg_container-storage-"] {
     grid-auto-flow: column;
     grid-template-columns: 1fr auto;

@@ -8,6 +8,8 @@ from module.logger import logger
 from module.ocr.ocr import DigitCounter, Duration
 from datetime import datetime, timedelta
 
+from module.config.time_source import now as current_time
+
 class IslandDailyOrder(Island):
     """
     每日订单功能。
@@ -68,11 +70,11 @@ class IslandDailyOrder(Island):
         self.device.screenshot()
         urgent_remaining = self._ocr_urgent_remaining()
         if urgent_remaining is None:
-            logger.warning('本周剩余紧急委托次数 OCR 失败，继续保留紧急委托检测')
+            logger.warning('[岛屿-每日订单] 本周剩余紧急委托次数 OCR 失败，继续保留紧急委托检测')
         elif urgent_remaining == 0:
             next_monday = self._next_weekday(0)
             self.config.IslandDailyOrder_UrgentDetectRefreshTime = next_monday
-            logger.info(f'紧急委托次数已用尽，下次检测: {next_monday}')
+            logger.info(f'[岛屿-每日订单] 紧急委托次数已用尽，下次检测: {next_monday}')
 
         # 主流程
         self._first_right_panel_check = True
@@ -83,7 +85,7 @@ class IslandDailyOrder(Island):
         self._main_loop()
 
         self.config.IslandDailyOrder_RejectCount = self.reject_count
-        logger.info('每日订单执行完成')
+        logger.info('[岛屿-每日订单] 每日订单执行完成')
 
     # ==================== OCR 辅助 ====================
 
@@ -102,14 +104,14 @@ class IslandDailyOrder(Island):
         try:
             current, _, total = ocr.ocr(self.device.image)
         except (ValueError, TypeError):
-            logger.warning('本周剩余紧急委托次数 OCR 异常')
+            logger.warning('[岛屿-每日订单] 本周剩余紧急委托次数 OCR 异常')
             return None
 
         if total != self.URGENT_TOTAL_COUNT:
-            logger.warning(f'本周剩余紧急委托次数 OCR 总次数无效: {current}/{total}')
+            logger.warning(f'[岛屿-每日订单] 本周剩余紧急委托次数 OCR 总次数无效: {current}/{total}')
             return None
 
-        logger.info(f'本周剩余紧急委托次数: {current}/{total}')
+        logger.info(f'[岛屿-每日订单] 本周剩余紧急委托次数: {current}/{total}')
         return current
 
     def _ocr_cooldown_seconds(self, area=None):
@@ -162,10 +164,10 @@ class IslandDailyOrder(Island):
         )
         seconds = self._ocr_cooldown_seconds(area=ocr_area)
         if seconds is not None and seconds >= 60:
-            logger.info(f'OCR 冷却时间: {seconds}秒')
+            logger.info(f'[岛屿-每日订单] OCR 冷却时间: {seconds}秒')
             return seconds
         else:
-            logger.warning(f'OCR 冷却时间{"失败" if seconds is None else f"过短({seconds}秒)"}，回退到 8 小时')
+            logger.warning(f'[岛屿-每日订单] OCR 冷却时间{"失败" if seconds is None else f"过短({seconds}秒)"}，回退到 8 小时')
             return 8 * 3600
 
     def _get_urgent_refresh_time(self):
@@ -188,10 +190,10 @@ class IslandDailyOrder(Island):
                 try:
                     refresh_time = datetime.fromisoformat(value)
                 except ValueError:
-                    logger.warning(f'紧急刷新时间格式无效: {value}')
+                    logger.warning(f'[岛屿-每日订单] 紧急刷新时间格式无效: {value}')
                     return None
         else:
-            logger.warning(f'紧急刷新时间类型无效: {type(value).__name__}')
+            logger.warning(f'[岛屿-每日订单] 紧急刷新时间类型无效: {type(value).__name__}')
             return None
 
         refresh_time = refresh_time.replace(microsecond=0)
@@ -254,16 +256,16 @@ class IslandDailyOrder(Island):
             bool | None: True 表示交付成功，False 表示资源不足，None 表示按钮未检测到。
         """
         if button is None:
-            logger.warning('未配置交付按钮')
+            logger.warning('[岛屿-每日订单] 未配置交付按钮')
             return None
         if must_appear and not self.appear(button):
-            logger.warning(f'未检测到交付按钮: {button}')
+            logger.warning(f'[岛屿-每日订单] 未检测到交付按钮: {button}')
             return None
         self.device.click(button)
         self.device.sleep(self.FAST_POPUP_CHECK_INTERVAL)
         self.device.screenshot()
         if self.appear(POPUP_RESOURCE_INSUFFICIENT, offset=30):
-            logger.info('订单资源不足')
+            logger.info('[岛屿-每日订单] 订单资源不足')
             self.device.sleep(3)
             return False
         self._handle_order_reward_popups()
@@ -343,18 +345,18 @@ class IslandDailyOrder(Island):
         """
         # 检查刷新时间
         refresh_time = self._get_urgent_refresh_time()
-        if refresh_time and datetime.now() < refresh_time:
-            logger.info(f'紧急刷新时间未到 ({refresh_time})，跳到 ②')
+        if refresh_time and current_time() < refresh_time:
+            logger.info(f'[岛屿-每日订单] 紧急刷新时间未到 ({refresh_time})，跳到 ②')
             return 'next'
 
         # 检测紧急图标，模板漏检时使用固定位置按钮兜底。
         urgent_match = self._template_click_urgent()
         if urgent_match:
-            logger.info('检测到紧急委托')
+            logger.info('[岛屿-每日订单] 检测到紧急委托')
         elif self.appear_then_click(DAILY_ORDER_URGENT_SPECIAL_CHECK, interval=2):
-            logger.info('通过固定位置检测到紧急委托')
+            logger.info('[岛屿-每日订单] 通过固定位置检测到紧急委托')
         else:
-            logger.info('未检测到紧急图标，跳到 ②')
+            logger.info('[岛屿-每日订单] 未检测到紧急图标，跳到 ②')
             return 'next'
         urgent_deliver_button = self._get_urgent_deliver_button()
 
@@ -363,35 +365,35 @@ class IslandDailyOrder(Island):
         # 紧急委托没有驳回按钮，先用右侧按钮状态确认已切到紧急委托页。
         self.device.screenshot()
         if self._has_reject_button():
-            logger.warning('选中紧急图标后仍检测到驳回按钮，跳到 ②')
+            logger.warning('[岛屿-每日订单] 选中紧急图标后仍检测到驳回按钮，跳到 ②')
             return 'next'
 
         # 点击交付（紧急委托有专用交付按钮）
         submit_result = self._submit_order(urgent_deliver_button, must_appear=True)
         if submit_result is None:
-            logger.warning('紧急委托交付按钮未检测到，跳到 ②')
+            logger.warning('[岛屿-每日订单] 紧急委托交付按钮未检测到，跳到 ②')
             return 'next'
         if not submit_result:
-            logger.info('紧急委托资源不足')
+            logger.info('[岛屿-每日订单] 紧急委托资源不足')
             # OCR 冷却时间（从模板匹配位置下方偏移）
             if urgent_match:
                 mx, my, mw, mh = urgent_match
                 cooldown = self._ocr_cooldown_below_urgent(mx, my, mw, mh)
             else:
                 cooldown = 8 * 3600
-            refresh = datetime.now() + timedelta(seconds=cooldown)
+            refresh = current_time() + timedelta(seconds=cooldown)
             self.config.IslandDailyOrder_UrgentDetectRefreshTime = \
                 refresh.replace(microsecond=0)
-            logger.info(f'紧急冷却: {cooldown}秒，刷新时间: {refresh}')
+            logger.info(f'[岛屿-每日订单] 紧急冷却: {cooldown}秒，刷新时间: {refresh}')
             return 'continue'
 
         # 交付成功
-        logger.info('紧急交付成功')
+        logger.info('[岛屿-每日订单] 紧急交付成功')
 
         # 检测右侧是否为空
         self.device.screenshot()
         if self._is_right_panel_empty():
-            logger.info('紧急交付后右侧为空，退出重进')
+            logger.info('[岛屿-每日订单] 紧急交付后右侧为空，退出重进')
             return 'reenter'
 
         return 'next'
@@ -411,37 +413,37 @@ class IslandDailyOrder(Island):
         if self._is_right_panel_empty():
             if self._first_right_panel_check:
                 self._first_right_panel_check = False
-                logger.info('首次进入右侧为空，延时到第二天')
+                logger.info('[岛屿-每日订单] 首次进入右侧为空，延时到第二天')
                 return 'next_day'
             else:
-                logger.info('右侧为空，退出重进')
+                logger.info('[岛屿-每日订单] 右侧为空，退出重进')
                 return 'reenter'
 
         self._first_right_panel_check = False
 
         # 2) 没有驳回按钮 → 当前是紧急委托页面
         if not self._has_reject_button():
-            logger.info('右侧无驳回按钮（紧急委托页面），跳到 ③')
+            logger.info('[岛屿-每日订单] 右侧无驳回按钮（紧急委托页面），跳到 ③')
             return 'to_step3'
 
         # 3) 命中过滤物品则直接驳回，否则尝试交付。
         if self._check_items_for_reject():
-            logger.info('订单命中驳回物品过滤，执行驳回')
+            logger.info('[岛屿-每日订单] 订单命中驳回物品过滤，执行驳回')
         else:
-            logger.info('尝试交付订单')
+            logger.info('[岛屿-每日订单] 尝试交付订单')
             if self._submit_order(DAILY_ORDER_DELIVER):
-                logger.info('订单交付成功')
+                logger.info('[岛屿-每日订单] 订单交付成功')
 
                 # 交付后检测右侧是否为空
                 self.device.screenshot()
                 if self._is_right_panel_empty():
-                    logger.info('交付后右侧为空，退出重进')
+                    logger.info('[岛屿-每日订单] 交付后右侧为空，退出重进')
                     return 'reenter'
                 else:
-                    logger.info('交付后右侧非空，退出重进刷新状态')
+                    logger.info('[岛屿-每日订单] 交付后右侧非空，退出重进刷新状态')
                     return 'reenter'
 
-            logger.info('订单资源不足，执行驳回')
+            logger.info('[岛屿-每日订单] 订单资源不足，执行驳回')
 
         self.appear_then_click(DAILY_ORDER_REJECT, interval=2)
         self.device.sleep(self.FAST_POPUP_CHECK_INTERVAL)
@@ -449,13 +451,13 @@ class IslandDailyOrder(Island):
         # 检测驳回失败弹窗（当前不可替换）
         self.device.screenshot()
         if self.appear(POPUP_ORDER_CANNOT_REPLACE, offset=30):
-            logger.info('驳回失败（当前不可替换），跳到 ③')
+            logger.info('[岛屿-每日订单] 驳回失败（当前不可替换），跳到 ③')
             self.device.sleep(3)  # 等待弹窗自动关闭
             return 'to_step3'
 
         # 驳回成功
         self.reject_count += 1
-        logger.info(f'驳回成功，当前驳回次数: {self.reject_count}')
+        logger.info(f'[岛屿-每日订单] 驳回成功，当前驳回次数: {self.reject_count}')
         return 'to_step3'
 
     # ==================== ③ 挑战/轻松检测 ====================
@@ -479,19 +481,19 @@ class IslandDailyOrder(Island):
 
         if not all_matches:
             if self.appear_then_click(DAILY_ORDER_CHALLENGE_EASY_SPECIAL_CHECK, interval=2):
-                logger.info('通过固定位置检测到挑战/轻松委托')
+                logger.info('[岛屿-每日订单] 通过固定位置检测到挑战/轻松委托')
                 self.device.sleep(1)
                 self.device.screenshot()
                 if self._is_preparing():
-                    logger.info('挑战/轻松委托筹备中，进入退出判断')
+                    logger.info('[岛屿-每日订单] 挑战/轻松委托筹备中，进入退出判断')
                     return 'to_step4'
                 elif self._has_reject_button():
-                    logger.info('挑战/轻松委托已选中，跳到 ② 尝试交付')
+                    logger.info('[岛屿-每日订单] 挑战/轻松委托已选中，跳到 ② 尝试交付')
                     return 'to_step2'
                 else:
-                    logger.warning('挑战/轻松委托状态未知，进入退出判断')
+                    logger.warning('[岛屿-每日订单] 挑战/轻松委托状态未知，进入退出判断')
                     return 'to_step4'
-            logger.info('没有更多挑战/轻松图标')
+            logger.info('[岛屿-每日订单] 没有更多挑战/轻松图标')
             return 'to_step4'
 
         # 逐个处理
@@ -502,24 +504,24 @@ class IslandDailyOrder(Island):
                 continue
             processed_positions.add(pos_key)
 
-            logger.info(f'处理 {label} 图标 (pos={pos_key})')
+            logger.info(f'[岛屿-每日订单] 处理 {label} 图标 (pos={pos_key})')
             self._click_position(pos[0], pos[1])
             self.device.sleep(1)
 
             # 检测右侧状态
             self.device.screenshot()
             if self._is_preparing():
-                logger.info(f'{label} 筹备中，继续检测下一个')
+                logger.info(f'[岛屿-每日订单] {label} 筹备中，继续检测下一个')
                 continue
             elif self._has_reject_button():
-                logger.info(f'{label} 已选中，跳到 ② 尝试交付')
+                logger.info(f'[岛屿-每日订单] {label} 已选中，跳到 ② 尝试交付')
                 return 'to_step2'
             else:
-                logger.warning(f'{label} 状态未知，继续下一个')
+                logger.warning(f'[岛屿-每日订单] {label} 状态未知，继续下一个')
                 continue
 
         # 所有图标处理完毕
-        logger.info('所有挑战/轻松图标已处理')
+        logger.info('[岛屿-每日订单] 所有挑战/轻松图标已处理')
         return 'to_step4'
 
     # ==================== ④ 退出判断 ====================
@@ -534,18 +536,18 @@ class IslandDailyOrder(Island):
         self.device.screenshot()
 
         if self._is_preparing():
-            logger.info('右侧有筹备中订单，OCR 等待时间')
+            logger.info('[岛屿-每日订单] 右侧有筹备中订单，OCR 等待时间')
             seconds = self._ocr_cooldown_seconds()
             if seconds and seconds > 0:
-                target = datetime.now() + timedelta(seconds=seconds)
+                target = current_time() + timedelta(seconds=seconds)
                 self.config.task_delay(target=target)
-                logger.info(f'筹备等待 {seconds}秒')
+                logger.info(f'[岛屿-每日订单] 筹备等待 {seconds}秒')
             else:
-                logger.warning('OCR 筹备时间失败，改用 1 小时')
+                logger.warning('[岛屿-每日订单] OCR 筹备时间失败，改用 1 小时')
                 self.config.task_delay(minute=60)
             return 'wait'
         else:
-            logger.info('右侧不是筹备中，延时到第二天')
+            logger.info('[岛屿-每日订单] 右侧不是筹备中，延时到第二天')
             return 'next_day'
 
     # ==================== 辅助方法 ====================
@@ -602,7 +604,7 @@ class IslandDailyOrder(Island):
             match = self._template_match_urgent(template, similarity=similarity)
             if not match:
                 continue
-            logger.info(f'紧急委托模板匹配: {name}')
+            logger.info(f'[岛屿-每日订单] 紧急委托模板匹配: {name}')
             mx, my, tw, th = match
             self._click_position(mx + tw // 2, my + th // 2)
             return match
@@ -610,11 +612,11 @@ class IslandDailyOrder(Island):
 
     def _enter_daily_order(self):
         """从岛屿手机页面进入每日订单界面。"""
-        logger.info('进入每日订单界面')
+        logger.info('[岛屿-每日订单] 进入每日订单界面')
         while 1:
             self.device.screenshot()
             if self.appear(DAILY_ORDER_CHECK):
-                logger.info('已进入每日订单界面')
+                logger.info('[岛屿-每日订单] 已进入每日订单界面')
                 break
             if self.appear_then_click(ISLAND_PHONE_DAILY_ORDER, interval=2):
                 continue
@@ -624,7 +626,7 @@ class IslandDailyOrder(Island):
 
     def _reenter(self):
         """退出每日订单界面并重新进入。"""
-        logger.info('退出重进每日订单界面')
+        logger.info('[岛屿-每日订单] 退出重进每日订单界面')
         # 点击返回按钮回到岛屿手机页面
         self._back_to_island_phone()
         # 重新进入
@@ -634,11 +636,11 @@ class IslandDailyOrder(Island):
 
     def _back_to_island_phone(self):
         """点击返回按钮回到岛屿手机页面。"""
-        logger.info('返回岛屿手机页面')
+        logger.info('[岛屿-每日订单] 返回岛屿手机页面')
         while 1:
             self.device.screenshot()
             if self.ui_page_appear(page_island_phone):
-                logger.info('已回到岛屿手机页面')
+                logger.info('[岛屿-每日订单] 已回到岛屿手机页面')
                 break
             if self.appear_then_click(ISLAND_BACK, interval=2):
                 continue
@@ -648,24 +650,24 @@ class IslandDailyOrder(Island):
 
     def _delay_to_next_day(self):
         """延时到第二天。"""
-        tomorrow = datetime.now().replace(
+        tomorrow = current_time().replace(
             hour=0, minute=0, second=0, microsecond=0
         ) + timedelta(days=1)
         self.config.task_delay(target=tomorrow)
-        logger.info(f'延时到 {tomorrow}')
+        logger.info(f'[岛屿-每日订单] 延时到 {tomorrow}')
 
     def _handle_popups(self):
         """处理弹窗。"""
         if self.appear(POPUP_RESOURCE_INSUFFICIENT, offset=30):
-            logger.info('资源不足弹窗，等待自动关闭')
+            logger.info('[岛屿-每日订单] 资源不足弹窗，等待自动关闭')
             self.device.sleep(3)
             return True
         if self.appear(POPUP_ORDER_CANNOT_REPLACE, offset=30):
-            logger.info('当前不可替换弹窗，等待自动关闭')
+            logger.info('[岛屿-每日订单] 当前不可替换弹窗，等待自动关闭')
             self.device.sleep(3)
             return True
         if self.appear(DAILY_ORDER_LEVEL_UP):
-            logger.info('检测到订单等级升级，点击安全区域关闭')
+            logger.info('[岛屿-每日订单] 检测到订单等级升级，点击安全区域关闭')
             self.device.click(ISLAND_CLICK_SAFE_AREA)
             return True
         if self.appear(ISLAND_GET, offset=30):
@@ -680,7 +682,7 @@ class IslandDailyOrder(Island):
             self.device.sleep(self.REWARD_POPUP_CHECK_INTERVAL)
             self.device.screenshot()
             if self.appear(DAILY_ORDER_LEVEL_UP):
-                logger.info('检测到订单等级升级，点击安全区域关闭')
+                logger.info('[岛屿-每日订单] 检测到订单等级升级，点击安全区域关闭')
                 self.device.click(ISLAND_CLICK_SAFE_AREA)
                 handled = True
                 continue
@@ -705,17 +707,17 @@ class IslandDailyOrder(Island):
             slot_image = self.image_crop(slot_area, copy=False)
             if reject_cheese and \
                     TEMPLATE_CHEESE.match(slot_image, similarity=0.80):
-                logger.info(f'格子 {slot_index + 1} 检测到芝士')
+                logger.info(f'[岛屿-每日订单] 格子 {slot_index + 1} 检测到芝士')
                 return True
             if reject_tofu and \
                     TEMPLATE_TOFU.match(slot_image, similarity=0.80):
-                logger.info(f'格子 {slot_index + 1} 检测到豆腐')
+                logger.info(f'[岛屿-每日订单] 格子 {slot_index + 1} 检测到豆腐')
                 return True
         return False
 
     @staticmethod
     def _next_weekday(target_weekday):
-        today = datetime.now()
+        today = current_time()
         days_ahead = target_weekday - today.weekday()
         if days_ahead <= 0:
             days_ahead += 7

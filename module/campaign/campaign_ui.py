@@ -492,7 +492,7 @@ class CampaignUI(MapOperation, CampaignEvent, CampaignOcr):
             if self.handle_campaign_ui_additional():
                 continue
 
-        logger.warning('战役名称错误')
+        logger.warning('[战役] 战役名称错误')
         raise ScriptEnd('Campaign name error')
 
     def commission_notice_show_at_campaign(self):

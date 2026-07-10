@@ -40,10 +40,10 @@ def analyze_exception(config, e):
     if error_hash in _analyzed_errors_cache:
         cached_result = _analyzed_errors_cache[error_hash]
         model = getattr(config, 'Error_LlmModel', 'gpt-4o-mini')
-        logger.hr('LLM 错误分析（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）', level=1)
-        logger.info('该错误已被 LLM 分析过，直接复用上次的分析结果以节省 API （严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊） ...')
-        logger.info(f"\n[LLM 分析报告 (由 {model} 提供, 复用缓存)（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）]\n{cached_result}\n")
-        logger.hr('LLM 分析结束', level=1)
+        logger.hr('[LLM] LLM 错误分析（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）', level=1)
+        logger.info('[LLM] 该错误已被 LLM 分析过，直接复用上次的分析结果以节省 API （严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊） ...')
+        logger.info(f"[LLM] \n[LLM 分析报告 (由 {model} 提供, 复用缓存)（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）]\n{cached_result}\n")
+        logger.hr('[LLM] LLM 分析结束', level=1)
         return
         
     api_key = getattr(config, 'Error_LlmApiKey', '')
@@ -51,7 +51,7 @@ def analyze_exception(config, e):
     model = getattr(config, 'Error_LlmModel', 'gpt-4o-mini')
     
     if not api_key:
-        logger.warning('LLM 错误分析已启用，但 API Key 未配置。')
+        logger.warning('[LLM] LLM 错误分析已启用，但 API Key 未配置。')
         logger.warning(LLM_CONFIG_WARNING)
         return
 
@@ -60,8 +60,8 @@ def analyze_exception(config, e):
         _analyzed_errors_cache.clear()
         _analyzed_errors_cache[error_hash] = "该错误正在被 LLM 分析中，暂无结果。（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）"
 
-    logger.hr('LLM 错误分析（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）', level=1)
-    logger.info('正在调用 LLM 分析异常原因...')
+    logger.hr('[LLM] LLM 错误分析（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）', level=1)
+    logger.info('[LLM] 正在调用 LLM 分析异常原因...')
     
     try:
         from openai import OpenAI
@@ -117,19 +117,19 @@ def analyze_exception(config, e):
             _analyzed_errors_cache.pop(error_hash, None)
             logger.warning(LLM_EMPTY_RESULT_WARNING)
             logger.warning(LLM_CONFIG_WARNING)
-            logger.hr('LLM 分析结束', level=1)
+            logger.hr('[LLM] LLM 分析结束', level=1)
             return
 
         # 覆写真正的成果进字典
         _analyzed_errors_cache[error_hash] = analysis
-        logger.info(f"\n[LLM 分析报告 (由 {model} 提供)]\n{analysis}\n")
-        logger.hr('LLM 分析结束', level=1)
+        logger.info(f"[LLM] \n[LLM 分析报告 (由 {model} 提供)]\n{analysis}\n")
+        logger.hr('[LLM] LLM 分析结束', level=1)
         
     except ImportError:
         _analyzed_errors_cache.pop(error_hash, None)
-        logger.error('未安装 openai 库，无法进行 LLM 错误分析。')
+        logger.error('[LLM] 未安装 openai 库，无法进行 LLM 错误分析。')
     except Exception as ex:
         _analyzed_errors_cache.pop(error_hash, None)
         # 避免循环日志问题，LLM 本身失败时使用简化的错误日志
-        logger.error(f'LLM 分析调用失败（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）: {ex}')
+        logger.error(f'[LLM] LLM 分析调用失败（严禁提交此模块的相关日志 群内机器人检测到将自动移出群聊）: {ex}')
         logger.warning(LLM_CONFIG_WARNING)

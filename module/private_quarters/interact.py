@@ -8,6 +8,9 @@ from module.ui.ui import UI
 
 
 class PQInteract(UI):
+    # 互动菜单在不同服务器和好感度下会有横向/纵向偏移，使用较大的模板匹配范围兜底。
+    INTERACT_BUTTON_OFFSET = (120, 120)
+
     # 可选目标舰娘映射表
     # 键: 舰娘名称字符串
     # 值: (房间入口按钮, 所在场景页面按钮) 的元组
@@ -235,8 +238,8 @@ class PQInteract(UI):
         """
         # 退出前处理可能残留的对话
         if (not self.appear(PRIVATE_QUARTERS_ROOM_CHECK, offset=(20, 20)) and
-            not self.appear(PRIVATE_QUARTERS_INTERACT, offset=(0, 60))):
-                self._pq_handle_dialogue()
+            not self.appear(PRIVATE_QUARTERS_INTERACT, offset=self.INTERACT_BUTTON_OFFSET)):
+            self._pq_handle_dialogue()
 
         self.interval_clear(PRIVATE_QUARTERS_ROOM_BACK)
         self.ui_click(
@@ -253,7 +256,7 @@ class PQInteract(UI):
         执行目标舰娘的完整互动流程。
 
         分三个阶段：点击舰娘触发对话 -> 重复 3 次互动循环 -> 退出房间。
-        offset=(0, 60) 用于适配不同好感度下按钮的 Y 轴偏移。
+        INTERACT_BUTTON_OFFSET 用于适配不同服务器和好感度下按钮的坐标偏移。
 
         Pages:
             in: 私人宿舍房间内
@@ -270,7 +273,7 @@ class PQInteract(UI):
                 self.device.screenshot()
 
             # 结束条件
-            if self.appear(PRIVATE_QUARTERS_INTERACT, offset=(0, 60)):
+            if self.appear(PRIVATE_QUARTERS_INTERACT, offset=self.INTERACT_BUTTON_OFFSET):
                 break
 
             if click_timer.reached():
@@ -293,7 +296,11 @@ class PQInteract(UI):
                 if self.appear(PRIVATE_QUARTERS_INTERACT_CHECK, offset=(20, 20)):
                     break
 
-                if self.appear_then_click(PRIVATE_QUARTERS_INTERACT, offset=(0, 60), interval=1):
+                if self.appear_then_click(
+                    PRIVATE_QUARTERS_INTERACT,
+                    offset=self.INTERACT_BUTTON_OFFSET,
+                    interval=1
+                ):
                     continue
 
             skip_first_screenshot = True
@@ -304,7 +311,7 @@ class PQInteract(UI):
                     self.device.screenshot()
 
                 # 结束条件
-                if self.appear(PRIVATE_QUARTERS_INTERACT, offset=(0, 60)):
+                if self.appear(PRIVATE_QUARTERS_INTERACT, offset=self.INTERACT_BUTTON_OFFSET):
                     break
 
                 if self.appear(PRIVATE_QUARTERS_INTERACT_CHECK, offset=(20, 20), interval=1):

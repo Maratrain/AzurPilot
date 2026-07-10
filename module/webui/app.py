@@ -12,13 +12,14 @@ import threading
 import time
 import re
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from functools import partial
 from typing import Dict, List, Optional, Any
 
 # 在导入 pywebio 之前导入伪造模块，避免加载不必要的 PIL 模块
 from module.webui.fake_pil_module import import_fake_pil_module
+from module.config.time_source import now as current_time, status as time_source_status
 from module.statistics.azurstats import AzurStats
 from module.os_simulator.simulator import OSSimulator
 
@@ -233,7 +234,7 @@ def ensure_public_webui_password(key):
 
         atomic_write(WEBUI_AUTO_PASSWORD_FILE, f"{password}\n")
         State.deploy_config.Password = password
-        logger.warning(f"WebUI 已自动生成密码，请在根目录 {WEBUI_AUTO_PASSWORD_FILE} 查看。")
+        logger.warning(f"[WebUI] WebUI 已自动生成密码，请在根目录 {WEBUI_AUTO_PASSWORD_FILE} 查看。")
         return password, None
     except Exception as e:
         logger.exception(f"WebUI 自动生成密码失败: {e}")
@@ -445,7 +446,7 @@ class AlasGUI(Frame):
     def set_aside(self) -> None:
         # TODO: 更新 put_icon_buttons()
 
-        current_date = datetime.now().date()
+        current_date = current_time().date()
         if current_date.month == 4 and current_date.day == 1:
             self.af_flag = True
 
@@ -552,6 +553,26 @@ class AlasGUI(Frame):
         elif state == 4:
             put_loading_text(t("Gui.Status.Updating"), shape="grow", color="success")
 
+    @staticmethod
+    def _format_tz_offset(offset: timedelta) -> str:
+        seconds = int(offset.total_seconds())
+        sign = '+' if seconds >= 0 else '-'
+        seconds = abs(seconds)
+        hours, seconds = divmod(seconds, 3600)
+        minutes = seconds // 60
+        return f'UTC{sign}{hours:02d}:{minutes:02d}'
+
+    def _time_status_text(self) -> str:
+        data = time_source_status()
+        local_offset = current_time(timezone.utc).astimezone().utcoffset()
+        local_tz = self._format_tz_offset(local_offset or timedelta(0))
+        sync_text = '已同步' if data['synced'] else '本机时间'
+        enabled_text = 'NTP' if data['enabled'] else 'NTP关闭'
+        return (
+            f"{enabled_text} {sync_text} · 偏移 {data['offset']:+.3f}s · "
+            f"本机 {local_tz}"
+        )
+
     @classmethod
     def set_theme(cls, theme="default") -> None:
         cls.theme = theme
@@ -641,8 +662,8 @@ class AlasGUI(Frame):
             try:
                 from module.statistics.opsi_month import (
                     get_ap_timeline,
+                    get_asset_timeline,
                     get_coins_timeline,
-                    get_virtual_asset_timeline,
                 )
 
                 instance_name = getattr(self, "alas_name", None)
@@ -653,9 +674,7 @@ class AlasGUI(Frame):
                     instance_name = all_instances[0] if all_instances else None
                 timeline = get_ap_timeline(instance_name=instance_name)
                 coins_timeline = get_coins_timeline(instance_name=instance_name)
-                virtual_asset_timeline = get_virtual_asset_timeline(
-                    instance_name=instance_name
-                )
+                asset_timeline = get_asset_timeline(instance_name=instance_name)
             except Exception as e:
                 with use_scope("ap_chart", clear=True):
                     put_text(t("Gui.Stat.LoadApDataFailed", e=e))
@@ -668,23 +687,6 @@ class AlasGUI(Frame):
                         t("Gui.Stat.Refresh"), onclick=_render_ap_chart, color="off"
                     )
                 return
-
-            def _get_cl5_efficiency():
-                default = 1700.0 / 30.0
-                try:
-                    config = getattr(self, "alas_config", None)
-                    if config is None or not hasattr(config, "cross_get"):
-                        return default
-                    meow5_coin = config.cross_get(
-                        "OpsiSimulator.OpsiSimulatorParameters.Meow5Coin"
-                    )
-                    if meow5_coin is not None:
-                        meow5_coin_float = float(meow5_coin)
-                        if meow5_coin_float > 0:
-                            return meow5_coin_float / 30.0
-                except (AttributeError, TypeError, ValueError):
-                    pass
-                return default
 
             def _snapshot_float(point, key):
                 value = point.get(key)
@@ -727,7 +729,7 @@ class AlasGUI(Frame):
             chart_points = []
             is_detail_mode = False
 
-            today = datetime.now().date()
+            today = current_time().date()
             today_points = [p for p in raw_points if p["dt"].date() == today]
             if not today_points and raw_points:
                 last_date = raw_points[-1]["dt"].date()
@@ -841,8 +843,6 @@ class AlasGUI(Frame):
 
             distance_list = []
 
-            virtual_asset_list = []
-            virtual_asset_ts_list = []
             asset_list = []
             asset_ts_list = []
             show_coins = False
@@ -907,9 +907,7 @@ class AlasGUI(Frame):
 
                     valid_yellow_coins = [v for v in yellow_coins_list if v is not None]
                     valid_purple_coins = [v for v in purple_coins_list if v is not None and v > 0]
-                    show_coins = bool(
-                        valid_yellow_coins or valid_purple_coins or virtual_asset_list
-                    )
+                    show_coins = bool(valid_yellow_coins or valid_purple_coins)
 
                     if valid_yellow_coins:
                         yc_cur = valid_yellow_coins[-1]
@@ -977,61 +975,23 @@ class AlasGUI(Frame):
                         d_min = min(valid_distance)
 
                         coins_stats_html += f'<div style="display:grid; grid-template-columns:150px 100px 90px 90px 90px; gap:8px; margin-bottom:2px; font-size:12px; color:#aaa;"><span>海里数: <b style="color:#1565c0">{d_cur}</b></span><span>变化: <b style="color:{d_change_color}">{d_change_sign}{d_change}</b></span><span>最高: <b style="color:#ef5350">{d_max}</b></span><span>最低: <b style="color:#26a69a">{d_min}</b></span><span></span></div>'
-                        coins_legend_html += '<span class="ap-legend-item" data-series="5" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:2px; background:#1565c0; border-radius:1px;"></span>海里数</span>'
+                        coins_legend_html += '<span class="ap-legend-item" data-series="4" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:2px; background:#1565c0; border-radius:1px;"></span>海里数</span>'
 
-            # 处理虚拟资产时间线
-            if virtual_asset_timeline and current_view in ("line", "detail"):
-                from calendar import monthrange as _monthrange
-
-                for pt in virtual_asset_timeline:
+            # 处理资产时间线
+            if asset_timeline and current_view in ("line", "detail"):
+                for pt in asset_timeline:
                     ts_raw = pt.get("ts", "")
                     if ts_raw:
                         try:
                             va_dt = datetime.fromisoformat(ts_raw)
                             asset_value = _snapshot_float(pt, "asset")
-                            virtual_asset_value = _snapshot_float(pt, "virtual_asset")
                             if asset_value is None:
-                                ap_for_asset = int(pt.get("ap_total", pt.get("ap", 0)) or 0)
-                                yellow_coin_for_asset = int(pt.get("yellow_coin", 0) or 0)
-                                asset_value = (
-                                    ap_for_asset * _get_cl5_efficiency()
-                                    + yellow_coin_for_asset
-                                )
-                            if virtual_asset_value is None:
-                                month_end = va_dt.replace(
-                                    day=_monthrange(va_dt.year, va_dt.month)[1],
-                                    hour=23,
-                                    minute=59,
-                                    second=59,
-                                    microsecond=0,
-                                )
-                                virtual_asset_value = asset_value + max(
-                                    0,
-                                    (month_end - va_dt).total_seconds(),
-                                ) / 600.0 * _get_cl5_efficiency()
-                            virtual_asset_list.append(virtual_asset_value)
-                            virtual_asset_ts_list.append(int(va_dt.timestamp() * 1000))
+                                continue
                             asset_list.append(asset_value)
                             asset_ts_list.append(int(va_dt.timestamp() * 1000))
                         except (TypeError, ValueError):
                             continue
 
-                if virtual_asset_list:
-                    valid_va = [v for v in virtual_asset_list if v is not None]
-                    if valid_va:
-                        va_cur = valid_va[-1]
-                        va_change = (
-                            valid_va[-1] - valid_va[0] if len(valid_va) >= 2 else 0
-                        )
-                        va_change_color = "#ef5350" if va_change >= 0 else "#26a69a"
-                        va_change_sign = "+" if va_change >= 0 else ""
-                        va_max = max(valid_va)
-                        va_min = min(valid_va)
-
-                        coins_stats_html += f'<div style="display:grid; grid-template-columns:150px 100px 90px 90px 90px; gap:8px; margin-bottom:2px; font-size:12px; color:#aaa;"><span>虚拟资产: <b style="color:#06b6d4">{va_cur:.1f}</b></span><span>变化: <b style="color:{va_change_color}">{va_change_sign}{va_change:.1f}</b></span><span>最高: <b style="color:#ef5350">{va_max:.1f}</b></span><span>最低: <b style="color:#26a69a">{va_min:.1f}</b></span><span></span></div>'
-                        coins_legend_html += '<span class="ap-legend-item" data-series="3" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:2px; background:#06b6d4; border-radius:1px; border-top:1px dashed #06b6d4;"></span>虚拟资产</span>'
-
-            # 处理资产时间线（来自相同的 ap_snapshots）
             if asset_list:
                 valid_asset = [v for v in asset_list if v is not None]
                 if valid_asset:
@@ -1044,13 +1004,12 @@ class AlasGUI(Frame):
                     a_max = max(valid_asset)
                     a_min = min(valid_asset)
 
-                    coins_stats_html += f'<div style="display:grid; grid-template-columns:150px 100px 90px 90px 90px; gap:8px; margin-bottom:2px; font-size:12px; color:#aaa;"><span>资产: <b style="color:#65996D">{a_cur:.1f}</b></span><span>变化: <b style="color:{a_change_color}">{a_change_sign}{a_change:.1f}</b></span><span>最高: <b style="color:#ef5350">{a_max:.1f}</b></span><span>最低: <b style="color:#26a69a">{a_min:.1f}</b></span><span></span></div>'
-                    coins_legend_html += '<span class="ap-legend-item" data-series="4" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:2px; background:#65996D; border-radius:1px;"></span>资产</span>'
+                    coins_stats_html += f'<div style="display:grid; grid-template-columns:150px 100px 90px 90px 90px; gap:8px; margin-bottom:2px; font-size:12px; color:#aaa;"><span>资产: <b style="color:#22d3ee">{a_cur:.1f}</b></span><span>变化: <b style="color:{a_change_color}">{a_change_sign}{a_change:.1f}</b></span><span>最高: <b style="color:#ef5350">{a_max:.1f}</b></span><span>最低: <b style="color:#26a69a">{a_min:.1f}</b></span><span></span></div>'
+                    coins_legend_html += '<span class="ap-legend-item" data-series="3" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:2px; background:#22d3ee; border-radius:1px;"></span>资产</span>'
 
-            # 确保 show_coins 在资产/虚拟资产存在时也为 True，以启用右轴绘制
+            # 确保 show_coins 在资产存在时也为 True，以启用右轴绘制
             if not show_coins and (
-                virtual_asset_list
-                or asset_list
+                asset_list
                 or yellow_coins_list
                 or purple_coins_list
                 or distance_list
@@ -1103,8 +1062,6 @@ class AlasGUI(Frame):
                 .replace("__YELLOW_COINS__", json.dumps(yellow_coins_list))
                 .replace("__PURPLE_COINS__", json.dumps(purple_coins_list))
                 .replace("__COINS_SOURCES__", json.dumps(coins_sources_list))
-                .replace("__VIRTUAL_ASSET__", json.dumps(virtual_asset_list))
-                .replace("__VIRTUAL_ASSET_TS__", json.dumps(virtual_asset_ts_list))
                 .replace("__ASSET__", json.dumps(asset_list))
                 .replace("__ASSET_TS__", json.dumps(asset_ts_list))
                 .replace("__DISTANCE__", json.dumps(distance_list))
@@ -1808,7 +1765,7 @@ class AlasGUI(Frame):
                 try:
                     from datetime import datetime
 
-                    now = datetime.now()
+                    now = current_time()
                     for hazard_level in (3, 5):
                         meow_data = cl1_db.get_meow_stats(
                             instance_name or "default",
@@ -1933,214 +1890,6 @@ class AlasGUI(Frame):
 
                 _render_meowofficer_farming()
 
-                # ========== 短猫提前开始建议 ==========
-                try:
-                    from module.os.tasks.scheduling import OpsiScheduling
-
-                    # 创建临时实例来调用计算方法
-                    config_for_stat = (
-                        self.alas_config if hasattr(self, "alas_config") else None
-                    )
-                    if config_for_stat is not None:
-                        scheduling = OpsiScheduling(
-                            config_for_stat, task="OpsiScheduling"
-                        )
-                        advance_calc = scheduling.get_meow_advance_calculation()
-                    else:
-                        advance_calc = {}
-                except Exception as e:
-                    logger.warning(f"短猫提前建议计算失败，使用WebUI兜底计算: {e}")
-                    advance_calc = {}
-
-                # 兜底：即使调度实例初始化失败，也尽量从统计快照计算建议，避免显示全为空
-                if not advance_calc:
-                    try:
-                        from datetime import datetime, timedelta
-                        from module.config.utils import get_os_next_reset
-                        from module.statistics.cl1_database import db as cl1_db
-                        from module.statistics.opsi_month import get_ap_timeline
-
-                        config_for_stat = (
-                            self.alas_config if hasattr(self, "alas_config") else None
-                        )
-                        mode = "balanced"
-                        if config_for_stat is not None and hasattr(
-                            config_for_stat, "cross_get"
-                        ):
-                            mode = (
-                                config_for_stat.cross_get(
-                                    keys="OpsiScheduling.OpsiScheduling.MeowStartEarlyMode"
-                                )
-                                or "balanced"
-                            )
-
-                        mode_names = {
-                            "aggressive": "激进",
-                            "balanced": "均衡",
-                            "conservative": "保守",
-                        }
-                        multiplier_map = {
-                            "aggressive": 0.8,
-                            "balanced": 1.2,
-                            "conservative": 1.5,
-                        }
-                        multiplier = multiplier_map.get(mode, 1.2)
-
-                        instance_name_stat = getattr(self, "alas_name", None)
-                        if not instance_name_stat:
-                            from module.config.utils import alas_instance
-
-                            _all_instances = alas_instance()
-                            instance_name_stat = (
-                                _all_instances[0] if _all_instances else "default"
-                            )
-                        meow_data_fallback = cl1_db.get_meow_stats(instance_name_stat)
-                        avg_meow_round_time = float(
-                            meow_data_fallback.get("avg_round_time", 0) or 0
-                        )
-
-                        ap_timeline = get_ap_timeline(instance_name=instance_name_stat)
-                        current_ap = (
-                            int(ap_timeline[-1].get("ap_total", ap_timeline[-1].get("ap", 0)))
-                            if ap_timeline
-                            else 0
-                        )
-
-                        meow_round_ap = 30
-                        available_rounds = (
-                            (current_ap / meow_round_ap) if meow_round_ap else 0
-                        )
-                        base_hours_ahead = (
-                            (available_rounds * avg_meow_round_time) / 3600
-                            if avg_meow_round_time > 0
-                            else 0
-                        )
-                        hours_ahead = max(0, min(base_hours_ahead * multiplier, 168))
-
-                        now = datetime.now()
-                        next_reset = get_os_next_reset()
-                        start_cleanup_dt = next_reset - timedelta(hours=hours_ahead)
-                        if start_cleanup_dt < now:
-                            start_cleanup_dt = now
-
-                        if avg_meow_round_time == 0:
-                            recommendation = "数据不足，无法计算建议"
-                        elif current_ap < meow_round_ap:
-                            recommendation = "行动力不足一轮短猫消耗"
-                        else:
-                            recommendation = (
-                                f"当前AP {current_ap} 可运行 {available_rounds:.1f} 轮短猫，"
-                                f"约 {base_hours_ahead:.1f} 小时"
-                            )
-
-                        advance_calc = {
-                            "mode": mode,
-                            "mode_name": mode_names.get(mode, "均衡"),
-                            "multiplier": multiplier,
-                            "current_ap": current_ap,
-                            "meow_round_ap": meow_round_ap,
-                            "avg_meow_round_time": round(avg_meow_round_time, 1)
-                            if avg_meow_round_time
-                            else 0,
-                            "available_rounds": round(available_rounds, 1),
-                            "hours_ahead": round(hours_ahead, 1),
-                            "start_cleanup_time": start_cleanup_dt.strftime(
-                                "%m-%d %H:%M"
-                            ),
-                            "next_os_reset_time": next_reset.strftime("%m-%d %H:%M"),
-                            "recommendation": f"{recommendation}（WebUI兜底计算）",
-                        }
-                    except Exception as e:
-                        logger.warning(f"WebUI兜底计算短猫建议失败: {e}")
-                        advance_calc = {}
-
-                config_for_stat = (
-                    self.alas_config if hasattr(self, "alas_config") else None
-                )
-                meow_advance_enable = False
-                if config_for_stat is not None and hasattr(
-                    config_for_stat, "cross_get"
-                ):
-                    meow_advance_enable = (
-                        config_for_stat.cross_get(
-                            keys="OpsiScheduling.OpsiScheduling.MeowStartEarlyEnable"
-                        )
-                        or False
-                    )
-                mode_name = advance_calc.get("mode_name", "-")
-                current_ap = advance_calc.get("current_ap", "-")
-                meow_round_ap = advance_calc.get("meow_round_ap", "-")
-                avg_meow_round_time = advance_calc.get("avg_meow_round_time", 0)
-                available_rounds = advance_calc.get("available_rounds", 0)
-                hours_ahead = advance_calc.get("hours_ahead", 0)
-                start_cleanup_time = advance_calc.get("start_cleanup_time", "-")
-                next_os_reset_time = advance_calc.get("next_os_reset_time", "-")
-                recommendation = advance_calc.get(
-                    "recommendation", "数据不足，无法计算建议"
-                )
-
-                if not meow_advance_enable:
-                    recommendation = (
-                        f"{recommendation}（当前未开启自动提前清理，仅供参考）"
-                    )
-
-                put_html(
-                    build_title_block(
-                        t("Gui.Stat.MeowAdvanceAdviceTitle"),
-                        margin_top=20,
-                        margin_bottom=8,
-                    )
-                )
-                put_row(
-                    [
-                        put_text(t("Gui.Stat.CurrentAP", value=current_ap)),
-                        put_text(t("Gui.Stat.ApPerRound", value=meow_round_ap)),
-                        put_text(
-                            t(
-                                "Gui.Stat.AvailableRounds",
-                                value=f"{available_rounds:.1f}",
-                                unit=t("Gui.Stat.RoundUnit"),
-                            )
-                        ),
-                    ]
-                )
-                put_row(
-                    [
-                        put_text(
-                            t(
-                                "Gui.Stat.AvgRoundDuration",
-                                value=f"{avg_meow_round_time:.1f}",
-                                unit=t("Gui.Stat.SecondUnit"),
-                            )
-                        ),
-                        put_text(t("Gui.Stat.CurrentMode", value=mode_name)),
-                        put_text(
-                            t(
-                                "Gui.Stat.RecommendAhead",
-                                value=f"{hours_ahead:.1f}",
-                                unit=t("Gui.Stat.HourUnit"),
-                            )
-                        ),
-                    ]
-                )
-                put_row(
-                    [
-                        put_text(
-                            t("Gui.Stat.StartCleanupTime", value=start_cleanup_time)
-                        ),
-                        put_text(t("Gui.Stat.NextOsReset", value=next_os_reset_time)),
-                        put_text(
-                            t(
-                                "Gui.Stat.MeowAutoCleanupStatus",
-                                value=t("Gui.Misc.Enabled")
-                                if meow_advance_enable
-                                else t("Gui.Misc.Disabled"),
-                            )
-                        ),
-                    ]
-                )
-                put_text(recommendation)
-
                 def export_opsi_csv(save_to_desktop: bool = True):
                     import io
 
@@ -2162,7 +1911,7 @@ class AlasGUI(Frame):
                     except Exception:
                         s_local = {}
 
-                    month_local = s_local.get("month") or datetime.now().strftime(
+                    month_local = s_local.get("month") or current_time().strftime(
                         "%Y-%m"
                     )
                     total_battles_local = int(s_local.get("total_battles") or 0)
@@ -2818,7 +2567,7 @@ class AlasGUI(Frame):
         next_run = deep_get(config, f"{task}.Scheduler.NextRun")
         if not isinstance(next_run, datetime):
             return False
-        return next_run.date() > datetime.now().date()
+        return next_run.date() > current_time().date()
 
     @staticmethod
     def _split_stage_filter(value: Any) -> List[str]:
@@ -3166,6 +2915,10 @@ class AlasGUI(Frame):
             if arg_help == "" or not arg_help:
                 arg_help = None
             output_kwargs["help"] = arg_help
+            if group_name == "Scheduler" and arg_name == "NextRun":
+                output_kwargs["after"] = put_text(self._time_status_text()).style(
+                    "font-size: .75rem; opacity: .68; margin: .2rem .25rem 0;"
+                )
             # Invalid feedback
             output_kwargs["invalid_feedback"] = t("Gui.Text.InvalidFeedBack", value)
 
@@ -3213,7 +2966,7 @@ class AlasGUI(Frame):
 
     def _simulator_start(self):
         if is_demo_mode():
-            logger.info("DEMO=1，跳过大世界模拟器启动。")
+            logger.info("[WebUI] DEMO=1，跳过大世界模拟器启动。")
             return
         self.simulator.start()
 
@@ -3485,7 +3238,7 @@ class AlasGUI(Frame):
             valid = []
             invalid = []
             config = config_updater.read_file(config_name)
-            n = datetime.now()
+            n = current_time()
             for p, v in deep_iter(config, depth=3):
                 if p[-1].endswith("un") and not isinstance(v, bool):
                     if (v - n).days >= 31:
@@ -3648,7 +3401,7 @@ class AlasGUI(Frame):
             if groups_to_display is None
             else groups_to_display
         )
-        time_now = datetime.now().replace(microsecond=0)
+        time_now = current_time().replace(microsecond=0)
         for group_name in _arg_group:
             group = LogRes(self.alas_config).group(group_name)
             if group is None:
@@ -4779,6 +4532,16 @@ class AlasGUI(Frame):
         def u(state):
             if state == -1:
                 return
+            status_map = {
+                "direct_p2p": t("Gui.Remote.StatusDirect"),
+                "turn_relay": t("Gui.Remote.StatusTurn"),
+                "ssh_forward": t("Gui.Remote.StatusSsh"),
+                "waiting_peer": t("Gui.Remote.StatusSignaling"),
+                "signaling": t("Gui.Remote.StatusSignaling"),
+                "starting": t("Gui.Remote.StatusStarting"),
+                "dependency_missing": t("Gui.Remote.StatusSsh"),
+                "failed": t("Gui.Remote.StatusFailed"),
+            }
             clear("remote_loading")
             clear("remote_state")
             clear("remote_info")
@@ -4786,7 +4549,11 @@ class AlasGUI(Frame):
                 put_loading("grow", "success", "remote_loading").style(
                     "--loading-grow--"
                 )
-                put_text(t("Gui.Remote.Running"), scope="remote_state")
+                remote_status = RemoteAccess.get_connection_state()
+                put_text(
+                    f"{t('Gui.Remote.Running')} · {status_map.get(remote_status, remote_status)}",
+                    scope="remote_state",
+                )
                 put_text(t("Gui.Remote.EntryPoint"), scope="remote_info")
                 entrypoint = RemoteAccess.get_entry_point()
                 if entrypoint:
@@ -4798,7 +4565,10 @@ class AlasGUI(Frame):
                         put_link(name=entrypoint, url=entrypoint, scope="remote_info")
                 else:
                     put_text("Loading...", scope="remote_info")
-            elif state in (0, 3):
+                remote_error = RemoteAccess.get_error()
+                if remote_error and remote_status in ("dependency_missing", "failed"):
+                    put_warning(remote_error, closable=False, scope="remote_info")
+            elif state in (0, 3, 4):
                 put_loading("border", "secondary", "remote_loading").style(
                     "--loading-border-fill--"
                 )
@@ -5245,7 +5015,7 @@ class AlasGUI(Frame):
             add_css(filepath_css("light-alas"))
 
         # 儿童节背景 Emoji 雨自动掉落逻辑（支持所有主题）
-        current_date = datetime.now().date()
+        current_date = current_time().date()
         is_children_day = (current_date.month == 6 and current_date.day == 1)
         
         EMOJI_RAIN_PREVIEW = False
@@ -5414,7 +5184,7 @@ class AlasGUI(Frame):
         def announcement_checker():
             from module.base.api_client import ApiClient
 
-            logger.info("公告检查任务启动")
+            logger.info("[WebUI] 公告检查任务启动")
             th = yield  # 获取任务处理器引用
             # 首次检查：触发异步获取
             self._start_announcement_fetch(force=False)
@@ -5660,8 +5430,7 @@ def app():
 
     # Apply config
     theme = State.deploy_config.Theme
-    from datetime import datetime
-    current_date = datetime.now().date()
+    current_date = current_time().date()
     if theme == "default" and (
         (current_date.month == 6 and current_date.day == 1) or
         (current_date.month == 5 and current_date.day == 31) or

@@ -248,7 +248,7 @@ class AzurStats:
                     out_data[i, j] /= out_data[i, 2]
 
         AzurStats._write_meowofficer_farming(out_data)
-        logger.info('本地统计数据更新成功: azurstat_meowofficer_farming.csv')
+        logger.info('[Statistics] 本地统计数据更新成功: azurstat_meowofficer_farming.csv')
 
     @staticmethod
     def _ensure_local_parser():

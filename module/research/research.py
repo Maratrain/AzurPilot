@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import numpy as np
 
 from module.base.timer import Timer
 from module.base.utils import rgb2gray
+from module.config.time_source import now as current_time
 from module.exception import GameTooManyClickError
 from module.logger import logger
 from module.ocr.ocr import Duration
@@ -154,9 +155,9 @@ class RewardResearch(ResearchSelector, ResearchQueue, StorageHandler):
             if slot < 4:
                 return True
             if slot == 4:
-                if self.end_time <= datetime.now():
+                if self.end_time <= current_time():
                     return True
-                elif self.end_time + timedelta(minutes=-10) > datetime.now():
+                elif self.end_time + timedelta(minutes=-10) > current_time():
                     return True
 
         return False
@@ -590,7 +591,7 @@ class RewardResearch(ResearchSelector, ResearchQueue, StorageHandler):
             # 队列为空，无法启动任何科研
             self.config.task_delay(server_update=True)
             return
-        elif self.end_time <= datetime.now():
+        elif self.end_time <= current_time():
             # 获取新启动项目的剩余时间
             self.queue_enter()
             self.end_time = self.get_research_ended()

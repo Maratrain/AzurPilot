@@ -1,5 +1,11 @@
 import os
 import re
+import shutil
+import stat
+import sys
+import urllib.request
+import zipfile
+from pathlib import Path
 
 import adbutils
 import uiautomator2 as u2
@@ -14,6 +20,19 @@ from module.exception import RequestHumanTakeover
 from module.logger import logger
 
 
+def platform_tools_url():
+    """
+    返回当前平台对应的 Android platform-tools 下载地址。
+    """
+    if sys.platform == 'win32':
+        return 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip'
+    if sys.platform == 'darwin':
+        return 'https://dl.google.com/android/repository/platform-tools-latest-darwin.zip'
+    if sys.platform.startswith('linux'):
+        return 'https://dl.google.com/android/repository/platform-tools-latest-linux.zip'
+    return None
+
+
 class ConnectionAttr:
     config: AzurLaneConfig
     serial: str
@@ -24,6 +43,72 @@ class ConnectionAttr:
         './bin/adb/adb.exe',
         '/usr/bin/adb'
     ]
+
+    def download_adb_binary(self, target):
+        """
+        下载官方 Android platform-tools，并把 adb 放到目标路径。
+
+        Args:
+            target (str): 期望的 adb 可执行文件路径，通常是 .venv/bin/adb。
+
+        Returns:
+            str | None: 安装成功后的 adb 绝对路径。
+        """
+        url = platform_tools_url()
+        if url is None:
+            logger.warning(f'[Device] 当前平台不支持自动下载 ADB: {sys.platform}')
+            return None
+
+        if not target:
+            logger.warning('[Device] ADB 下载失败，目标路径为空')
+            return None
+
+        target = Path(target).resolve()
+        download_dir = target.parent
+        if target.parent.name in ['Scripts', 'bin'] and target.parent.parent.name == '.venv':
+            download_dir = target.parent.parent
+        tools_dir = download_dir / 'platform-tools'
+        archive = download_dir / 'platform-tools.zip'
+        executable = 'adb.exe' if os.name == 'nt' else 'adb'
+        source = tools_dir / executable
+
+        logger.hr('Download ADB', level=2)
+        logger.warning(f'[Device] 未找到 ADB，正在下载 Android platform-tools: {url}')
+        tools_dir.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            urllib.request.urlretrieve(url, archive)
+        except Exception as e:
+            archive.unlink(missing_ok=True)
+            logger.warning(f'[Device] ADB 下载失败: {e}')
+            return None
+
+        if tools_dir.exists():
+            shutil.rmtree(tools_dir)
+        try:
+            with zipfile.ZipFile(archive, 'r') as z:
+                z.extractall(tools_dir.parent)
+        finally:
+            archive.unlink(missing_ok=True)
+
+        if not source.exists():
+            logger.warning(f'[Device] ADB 下载失败，未找到 {source}')
+            return None
+
+        if os.name != 'nt':
+            source.chmod(source.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            target.unlink()
+        shutil.copy2(source, target)
+        if os.name == 'nt':
+            for dll in tools_dir.glob('*.dll'):
+                shutil.copy2(dll, target.parent / dll.name)
+        else:
+            target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+        logger.info(f'[Device] ADB 已安装: {target}')
+        return str(target).replace('\\\\', '/').replace('\\', '/')
 
     def __init__(self, config):
         """
@@ -289,17 +374,33 @@ class ConnectionAttr:
 
     @cached_property
     def adb_binary(self):
-        # Try adb in deploy.yaml
-        from module.webui.setting import State
-        file = State.deploy_config.AdbExecutable
-        file = file.replace('\\', '/')
-        if os.path.exists(file):
-            return os.path.abspath(file)
+        """
+        获取 ADB 可执行文件路径。
 
-        # Try existing adb.exe
-        for file in self.adb_binary_list:
-            if os.path.exists(file):
-                return os.path.abspath(file)
+        检查顺序：
+        1. deploy.yaml 配置的路径（绝对路径）
+        2. 预定义的候选路径列表
+        3. Python 环境中的 adb
+        4. 系统 PATH 中的 adb
+        5. 自动下载到配置路径
+
+        Returns:
+            str: ADB 可执行文件的绝对路径。
+        """
+        from module.webui.setting import State
+
+        # 统一使用绝对路径检查，避免相对路径导致的 CWD 问题
+        # deploy.yaml 中的路径是相对于项目根目录的
+        deploy_adb = State.deploy_config.AdbExecutable
+        root = State.deploy_config.root_filepath
+        deploy_adb_file = os.path.abspath(os.path.join(root, deploy_adb)).replace('\\', '/')
+        if os.path.exists(deploy_adb_file):
+            return deploy_adb_file
+
+        # Try existing adb.exe in predefined list
+        for candidate in self.adb_binary_list:
+            if os.path.exists(candidate):
+                return os.path.abspath(candidate).replace('\\', '/')
 
         # Try adb in python environment
         import sys
@@ -312,8 +413,17 @@ class ConnectionAttr:
             return file
 
         # Use adb in system PATH
-        file = 'adb'
-        return file
+        path_adb = shutil.which('adb')
+        if path_adb:
+            return os.path.abspath(path_adb).replace('\\', '/')
+
+        # Download adb only when all local candidates are missing
+        # 使用绝对路径下载，确保后续实例能找到文件
+        downloaded = self.download_adb_binary(deploy_adb_file)
+        if downloaded:
+            return downloaded
+
+        return 'adb'
 
     @cached_property
     def adb_client(self) -> AdbClient:

@@ -1,6 +1,7 @@
 import copy
 # 此文件定义了 WebUI 中使用的各种自定义交互图形组件（Widgets）。
 # 包含彩色实时日志渲染器（RichLog）、状态感知切换按钮以及图标按钮组等高度定制化的可视化组件。
+import html
 import json
 import pywebio.pin
 import random
@@ -8,11 +9,18 @@ import string
 from typing import Any, Callable, Dict, Generator, List, Optional, TYPE_CHECKING, Union
 
 from pywebio.exceptions import SessionException
+from pywebio.io_ctrl import output_register_callback
 from pywebio.io_ctrl import Output
 from pywebio.output import *
 from pywebio.session import eval_js, local, run_js
 from rich.console import ConsoleRenderable
 
+from module.config.deep import deep_get
+from module.config.task_priority import (
+    get_scheduler_tasks,
+    merge_task_priority,
+    parse_task_priority,
+)
 from module.logger import HTMLConsole, Highlighter, WEB_THEME
 from module.webui.lang import t
 from module.webui.pin import put_checkbox, put_input, put_select, put_textarea
@@ -356,15 +364,19 @@ def get_title_help(kwargs: T_Output_Kwargs) -> Output:
 # 参数输入组件
 def put_arg_input(kwargs: T_Output_Kwargs) -> Output:
     name: str = kwargs["name"]
+    after: Optional[Output] = kwargs.pop("after", None)
     options: List = kwargs.get("options")
     if options is not None:
         kwargs.setdefault("datalist", options)
+    input_output = put_input(**kwargs).style("--input--")
+    if after is not None:
+        input_output = put_column([input_output, after], size="auto auto")
 
     return put_scope(
         f"arg_container-input-{name}",
         [
             get_title_help(kwargs),
-            put_input(**kwargs).style("--input--"),
+            input_output,
         ],
     )
 
@@ -478,6 +490,342 @@ def put_arg_textarea(kwargs: T_Output_Kwargs) -> Output:
     )
 
 
+def put_arg_task_priority(kwargs: T_Output_Kwargs) -> Output:
+    name: str = kwargs["name"]
+    value: str = kwargs.get("value", "")
+    alasgui: "AlasGUI" = local.gui
+    path = ".".join(name.split("_"))
+    default = deep_get(alasgui.ALAS_ARGS, f"{path}.value", "")
+    available_tasks = get_scheduler_tasks(alasgui.ALAS_ARGS)
+    value = merge_task_priority(value, default, available_tasks)
+    ordered_tasks = parse_task_priority(value)
+    hidden_pin = put_textarea(name=name, value=value).style("display:none;--task-priority-pin--")
+
+    task_set = set(ordered_tasks)
+    task_items = []
+    for index, task in enumerate(ordered_tasks, start=1):
+        display_name = t(f"Task.{task}.name")
+        if display_name == f"Task.{task}.name":
+            display_name = task
+        task_items.append(
+            f"""
+            <li class="task-priority-item" data-task="{html.escape(task, quote=True)}">
+                <span class="task-priority-rank">{index}</span>
+                <span class="task-priority-handle" aria-hidden="true">≡</span>
+                <span class="task-priority-name">{html.escape(display_name)}</span>
+                <span class="task-priority-code">{html.escape(task)}</span>
+            </li>
+            """
+        )
+    missing_tasks = [task for task in available_tasks if task not in task_set]
+    for task in missing_tasks:
+        display_name = t(f"Task.{task}.name")
+        if display_name == f"Task.{task}.name":
+            display_name = task
+        task_items.append(
+            f"""
+            <li class="task-priority-item task-priority-item-new" data-task="{html.escape(task, quote=True)}">
+                <span class="task-priority-rank"></span>
+                <span class="task-priority-handle" aria-hidden="true">≡</span>
+                <span class="task-priority-name">{html.escape(display_name)}</span>
+                <span class="task-priority-code">{html.escape(task)}</span>
+            </li>
+            """
+        )
+
+    container_id = f"task-priority-{name}"
+    content_id = f"task_priority_content_{name}"
+    outer_id = f"task_priority_container_{name}"
+
+    def save_priority(new_value):
+        local.gui.modified_config_queue.put({"name": path, "value": str(new_value or "")})
+
+    callback_id = output_register_callback(save_priority)
+    html_output = put_html(
+        f"""
+        <ol id="{container_id}" class="task-priority-list" data-pin-name="{html.escape(name, quote=True)}" data-callback-id="{html.escape(callback_id, quote=True)}">
+            {''.join(task_items)}
+        </ol>
+        """
+    )
+    run_js(
+        r"""
+        (function(containerId, outerId, contentId) {
+            var attempts = 0;
+
+            function setup() {
+                var list = document.getElementById(containerId);
+                if (!list) {
+                    attempts += 1;
+                    if (attempts < 80) setTimeout(setup, 50);
+                    return;
+                }
+                if (list.dataset.ready === "1") return;
+                list.dataset.ready = "1";
+
+                var outer = document.getElementById("pywebio-scope-" + outerId);
+                var content = document.getElementById("pywebio-scope-" + contentId);
+                var pinWrapper = content ? content.querySelector('*[style*="--task-priority-pin--"]') : null;
+                if (pinWrapper) {
+                    pinWrapper.classList.add("task-priority-pin");
+                    pinWrapper.style.setProperty("display", "none", "important");
+                }
+                if (outer) {
+                    outer.classList.add("task-priority-container");
+                    outer.style.setProperty("display", "grid", "important");
+                    outer.style.setProperty("grid-template-columns", "minmax(0, 1fr)", "important");
+                    outer.style.setProperty("width", "100%", "important");
+                    outer.style.setProperty("min-width", "0", "important");
+                }
+                if (content) {
+                    content.classList.add("task-priority-content");
+                    content.style.setProperty("width", "100%", "important");
+                    content.style.setProperty("min-width", "0", "important");
+                }
+
+                function renumber() {
+                    Array.prototype.forEach.call(list.querySelectorAll(".task-priority-item"), function(item, index) {
+                        var rank = item.querySelector(".task-priority-rank");
+                        if (rank) rank.textContent = String(index + 1);
+                    });
+                }
+
+                function serialize() {
+                    return Array.prototype.map.call(list.querySelectorAll(".task-priority-item"), function(item) {
+                        return item.dataset.task;
+                    }).filter(Boolean).join("\n> ");
+                }
+
+                function syncPin(shouldNotify) {
+                    renumber();
+                    var pinName = list.dataset.pinName;
+                    var value = serialize();
+                    var input = document.querySelector('[name="' + pinName + '"]');
+                    if (input) {
+                        input.value = value;
+                    }
+                    if (shouldNotify) {
+                        if (input) {
+                            input.dispatchEvent(new Event("change", { bubbles: true }));
+                        }
+                        if (window.WebIO && list.dataset.callbackId) {
+                            WebIO.pushData(value, list.dataset.callbackId);
+                        }
+                    }
+                }
+
+                var autoScrollTimer = null;
+                var autoScrollSpeed = 0;
+                var dragState = null;
+                var framePending = false;
+                var latestClientY = 0;
+
+                function stopAutoScroll() {
+                    autoScrollSpeed = 0;
+                    if (autoScrollTimer !== null) {
+                        clearInterval(autoScrollTimer);
+                        autoScrollTimer = null;
+                    }
+                }
+
+                function startAutoScroll(speed) {
+                    autoScrollSpeed = speed;
+                    if (autoScrollTimer !== null) return;
+                    autoScrollTimer = setInterval(function() {
+                        if (!autoScrollSpeed) {
+                            stopAutoScroll();
+                            return;
+                        }
+                        list.scrollTop += autoScrollSpeed;
+                        scheduleMove(latestClientY);
+                    }, 16);
+                }
+
+                function updateAutoScroll(clientY) {
+                    var rect = list.getBoundingClientRect();
+                    var threshold = Math.min(120, Math.max(48, rect.height * 0.18));
+                    var topDistance = clientY - rect.top;
+                    var bottomDistance = rect.bottom - clientY;
+                    var speed = 0;
+                    if (topDistance < threshold) {
+                        speed = -Math.ceil((threshold - topDistance) / threshold * 24);
+                    } else if (bottomDistance < threshold) {
+                        speed = Math.ceil((threshold - bottomDistance) / threshold * 24);
+                    }
+
+                    if (speed) {
+                        startAutoScroll(speed);
+                    } else {
+                        stopAutoScroll();
+                    }
+                }
+
+                function getInsertBefore(y) {
+                    var candidates = Array.prototype.filter.call(
+                        list.querySelectorAll(".task-priority-item:not(.task-priority-floating)"),
+                        function(item) { return item.offsetParent !== null; }
+                    );
+                    return candidates.reduce(function(closest, child) {
+                        var box = child.getBoundingClientRect();
+                        var offset = y - box.top - box.height / 2;
+                        if (offset < 0 && offset > closest.offset) {
+                            return { offset: offset, element: child };
+                        }
+                        return closest;
+                    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+                }
+
+                function clearFloatingStyle(item) {
+                    item.style.position = "";
+                    item.style.left = "";
+                    item.style.top = "";
+                    item.style.width = "";
+                    item.style.height = "";
+                    item.style.zIndex = "";
+                    item.style.transform = "";
+                    item.style.pointerEvents = "";
+                }
+
+                function scheduleMove(clientY) {
+                    latestClientY = clientY;
+                    if (framePending || !dragState) return;
+                    framePending = true;
+                    requestAnimationFrame(function() {
+                        framePending = false;
+                        if (!dragState) return;
+
+                        var dy = latestClientY - dragState.startY;
+                        dragState.item.style.transform = "translate3d(0, " + dy + "px, 0)";
+                        updateAutoScroll(latestClientY);
+
+                        var before = getInsertBefore(latestClientY);
+                        var placeholder = dragState.placeholder;
+                        if (before === placeholder || before === placeholder.nextSibling) return;
+                        if (before == null) {
+                            if (placeholder.nextSibling !== null) {
+                                list.appendChild(placeholder);
+                            }
+                        } else {
+                            list.insertBefore(placeholder, before);
+                        }
+                    });
+                }
+
+                function cleanupDrag(shouldNotify) {
+                    if (!dragState) return;
+                    var state = dragState;
+                    dragState = null;
+                    stopAutoScroll();
+                    window.removeEventListener("pointermove", onPointerMove);
+                    window.removeEventListener("pointerup", onPointerUp);
+                    window.removeEventListener("pointercancel", onPointerCancel);
+                    document.body.classList.remove("task-priority-drag-active");
+                    try {
+                        state.item.releasePointerCapture(state.pointerId);
+                    } catch (error) {}
+                    if (shouldNotify) {
+                        state.placeholder.replaceWith(state.item);
+                    } else {
+                        state.placeholder.remove();
+                    }
+                    clearFloatingStyle(state.item);
+                    state.item.classList.remove("task-priority-floating");
+                    if (shouldNotify) {
+                        syncPin(true);
+                    } else {
+                        renumber();
+                    }
+                }
+
+                function onPointerMove(event) {
+                    if (!dragState || event.pointerId !== dragState.pointerId) return;
+                    event.preventDefault();
+                    scheduleMove(event.clientY);
+                }
+
+                function onPointerUp(event) {
+                    if (!dragState || event.pointerId !== dragState.pointerId) return;
+                    event.preventDefault();
+                    cleanupDrag(true);
+                }
+
+                function onPointerCancel(event) {
+                    if (!dragState || event.pointerId !== dragState.pointerId) return;
+                    cleanupDrag(false);
+                }
+
+                function beginDrag(event) {
+                    if (dragState) return;
+                    if (event.button !== undefined && event.button !== 0) return;
+                    var item = event.target.closest(".task-priority-item");
+                    if (!item) return;
+                    event.preventDefault();
+
+                    var rect = item.getBoundingClientRect();
+                    var placeholder = document.createElement("li");
+                    placeholder.className = "task-priority-placeholder";
+                    placeholder.style.height = rect.height + "px";
+                    item.after(placeholder);
+
+                    item.classList.add("task-priority-floating");
+                    item.style.position = "fixed";
+                    item.style.left = rect.left + "px";
+                    item.style.top = rect.top + "px";
+                    item.style.width = rect.width + "px";
+                    item.style.height = rect.height + "px";
+                    item.style.zIndex = "2147483646";
+                    item.style.pointerEvents = "none";
+                    item.style.transform = "translate3d(0, 0, 0)";
+
+                    dragState = {
+                        item: item,
+                        placeholder: placeholder,
+                        pointerId: event.pointerId,
+                        startY: event.clientY
+                    };
+                    latestClientY = event.clientY;
+                    document.body.classList.add("task-priority-drag-active");
+                    try {
+                        item.setPointerCapture(event.pointerId);
+                    } catch (error) {}
+                    window.addEventListener("pointermove", onPointerMove, { passive: false });
+                    window.addEventListener("pointerup", onPointerUp, { passive: false });
+                    window.addEventListener("pointercancel", onPointerCancel, { passive: false });
+                }
+
+                list.addEventListener("pointerdown", beginDrag);
+                list.addEventListener("dragstart", function(event) {
+                    event.preventDefault();
+                });
+
+                renumber();
+                syncPin(false);
+            }
+
+            setup();
+        })(containerId, outerId, contentId);
+        """,
+        containerId=container_id,
+        outerId=outer_id,
+        contentId=content_id,
+    )
+    priority_content = put_scope(
+        content_id,
+        [
+            hidden_pin,
+            html_output,
+        ],
+    ).style("width:100%;min-width:0;box-sizing:border-box;")
+
+    return put_scope(
+        outer_id,
+        [
+            get_title_help(kwargs),
+            priority_content,
+        ],
+    ).style("--task-priority-container--")
+
+
 def put_arg_checkbox(kwargs: T_Output_Kwargs) -> Output:
     # 非真正复选框，用作开关（开/关）
     name: str = kwargs["name"]
@@ -575,6 +923,7 @@ _widget_type_to_func: Dict[str, Callable] = {
     "select": put_arg_select,
     "multiselect": put_arg_multiselect,
     "textarea": put_arg_textarea,
+    "task_priority": put_arg_task_priority,
     "checkbox": put_arg_checkbox,
     "storage": put_arg_storage,
     "state": put_arg_state,

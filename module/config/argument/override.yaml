@@ -49,6 +49,8 @@ GemsFarming:
     Fleet1Control: prevent_red_face
     Fleet1Recover: not_in_dormitory
     Fleet1Oath: false
+    Fleet2Value: 119
+    Fleet2Record: 2020-01-01 00:00:00
     Fleet2Control: prevent_red_face
     Fleet2Recover: not_in_dormitory
     Fleet2Oath: false
@@ -344,9 +346,9 @@ Coalition:
     UseAutoSearch: false
     Use2xBook: false
     AmbushEvade: true
-#  Coalition:
-#    Mode:
-#      option: [ easy, normal, hard, ex ]
+  Coalition:
+    Mode:
+      option: [ tc1, tc2, tc3, ex ]
   StopCondition:
     MapAchievement: non_stop
     StageIncrease: false
@@ -580,18 +582,9 @@ OpsiHazard1Leveling:
     Submarine: false
 OpsiScheduling:
   Scheduler:
-    NextRun:
-      type: stored
-      display: hide
-    SuccessInterval:
-      value: 1440
-      display: hide
-    FailureInterval:
-      value: 1440
-      display: hide
-    ServerUpdate:
-      value: 00:00
-      display: hide
+    SuccessInterval: 30
+    FailureInterval: 30
+    ServerUpdate: 00:00
 
 # ==================== Tool ====================
 

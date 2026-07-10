@@ -16,7 +16,8 @@ from module.ocr.al_ocr import AlOcr
 class OcrBenchmark:
     # Each entry: (model_name, dataset_prefix, subfolder_name)
     BENCHMARKS = [
-        ('en', 'sets_num', 'sets_num'),
+        ('azur_lane', 'sets_num', 'sets_num'),
+        ('azur_lane_jp', 'sets_azur_lane_jp', 'azur_lane_jp'),
         ('cn', 'sets_zhcn', 'sets_zhcn'),
     ]
 
@@ -49,7 +50,9 @@ class OcrBenchmark:
                         continue
                     parts = line.split(None, 1)
                     if len(parts) == 2:
-                        img_path = os.path.join(val_root, 'imgs', parts[0])
+                        img_path = os.path.join(val_root, parts[0])
+                        if not os.path.exists(img_path):
+                            img_path = os.path.join(val_root, 'imgs', parts[0])
                         test_cases.append((img_path, parts[1]))
         return test_cases
 
@@ -222,7 +225,7 @@ class OcrBenchmark:
 
         logger.hr('OCR Benchmark Summary', level=1)
         logger.print(table, justify='center')
-        logger.info('如果您的 Status 显示 Error 或 Warning，请使用 CPU 运行 OCR')
+        logger.info('[Daemon] 如果您的 Status 显示 Error 或 Warning，请使用 CPU 运行 OCR')
 
     def run_simple_ocr_benchmark(self):
         """
@@ -249,7 +252,7 @@ class OcrBenchmark:
                 logger.info('Testing OCR with GPU (DirectML)...')
                 device = 'gpu'
 
-        res = self._run_single('en', 'sets_num', 'sets_num', ocr_device=device)
+        res = self._run_single('azur_lane', 'sets_num', 'sets_num', ocr_device=device)
 
         if res and res['accuracy'] >= 100.0:
             logger.info(f'OCR accuracy is 100% with {device.upper()}, use {device.upper()}.')
@@ -264,5 +267,5 @@ def run_ocr_benchmark(config):
         OcrBenchmark(config, task='OcrBenchmark').run()
         return True
     except RequestHumanTakeover:
-        logger.critical('错误 请求人类接管')
+        logger.critical('[Daemon] 错误 请求人类接管')
         return False

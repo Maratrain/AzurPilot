@@ -4,6 +4,8 @@ from module.ui.page import *
 from module.handler.login import LoginHandler
 from module.config.utils import *
 from module.island.warehouse import *
+from datetime import timedelta
+from module.config.time_source import now as current_time
 
 
 class IslandMineForest(Island,LoginHandler):
@@ -141,7 +143,7 @@ class IslandMineForest(Island,LoginHandler):
                     break
 
             if matched_name is None:
-                logger.info(f"  pos{idx}: 识别到'{text}' → 无法匹配已知物品，跳过")
+                logger.info(f"[岛屿-矿山林场]   pos{idx}: 识别到'{text}' → 无法匹配已知物品，跳过")
                 continue
 
             # 只统计当前分类的物品
@@ -193,11 +195,11 @@ class IslandMineForest(Island,LoginHandler):
                     needs[category].append(name)
                     need_count = threshold - effective_count
                     self.needs_count[(category, name)] = need_count
-                    logger.info(f"  {name}: 仓库{warehouse_count}+生产中{in_production}={effective_count} < {threshold} → 缺 {need_count}")
+                    logger.info(f"[岛屿-矿山林场]   {name}: 仓库{warehouse_count}+生产中{in_production}={effective_count} < {threshold} → 缺 {need_count}")
                 else:
-                    logger.info(f"  {name}: 仓库{warehouse_count}+生产中{in_production}={effective_count} ≥ {threshold} → 不缺")
+                    logger.info(f"[岛屿-矿山林场]   {name}: 仓库{warehouse_count}+生产中{in_production}={effective_count} ≥ {threshold} → 不缺")
 
-        logger.info(f"需要生产的产物: {needs}")
+        logger.info(f"[岛屿-矿山林场] 需要生产的产物: {needs}")
         return needs
 
     # ==================== 岗位检测（模仿农田 decided_lists） ====================
@@ -224,11 +226,11 @@ class IslandMineForest(Island,LoginHandler):
                                 alphabet='0123456789')
         number = ocr_post_number.ocr(self.device.image)
         self.posts[post_id]['runs'] = number if number else 0
-        logger.info(f"  {post_id}: 正在生产 {product_name or '未知'}，剩余 {self.posts[post_id]['runs']} 次")
+        logger.info(f"[岛屿-矿山林场]   {post_id}: 正在生产 {product_name or '未知'}，剩余 {self.posts[post_id]['runs']} 次")
 
         time_work = Duration(ISLAND_WORKING_TIME)
         time_value = time_work.ocr(self.device.image)
-        finish_time = datetime.now() + time_value if time_value is not None else None
+        finish_time = current_time() + time_value if time_value is not None else None
         setattr(self, time_var_name, finish_time)
 
     def collect_and_detect_post(self, post_button, post_id, category, time_var_name):
@@ -253,7 +255,7 @@ class IslandMineForest(Island,LoginHandler):
                 self.posts[post_id]['runs'] = 0
                 self.posts[post_id]['state'] = 'idle'
                 setattr(self, time_var_name, None)
-                logger.info(f"  {post_id}: 收获完成，空闲")
+                logger.info(f"[岛屿-矿山林场]   {post_id}: 收获完成，空闲")
             elif self.appear(ISLAND_WORKING):
                 self._record_working_post(post_id, category, time_var_name)
             else:
@@ -262,12 +264,12 @@ class IslandMineForest(Island,LoginHandler):
                     self.posts[post_id]['runs'] = 0
                     self.posts[post_id]['state'] = 'idle'
                     setattr(self, time_var_name, None)
-                    logger.warning(f"  {post_id}: 收取后状态未识别，按收取前完成态视为空闲")
+                    logger.warning(f"[岛屿-矿山林场]   {post_id}: 收取后状态未识别，按收取前完成态视为空闲")
                 else:
                     self.posts[post_id]['crop'] = 'unknown'
                     self.posts[post_id]['runs'] = 0
                     self.posts[post_id]['state'] = 'working'
-                    logger.warning(f"  {post_id}: 岗位状态未识别，按工作中处理")
+                    logger.warning(f"[岛屿-矿山林场]   {post_id}: 岗位状态未识别，按工作中处理")
 
         elif self.appear(ISLAND_WORKING):
             # 正在工作 → 检测产物
@@ -279,7 +281,7 @@ class IslandMineForest(Island,LoginHandler):
             self.posts[post_id]['runs'] = 0
             self.posts[post_id]['state'] = 'idle'
             setattr(self, time_var_name, None)
-            logger.info(f"  {post_id}: 空闲")
+            logger.info(f"[岛屿-矿山林场]   {post_id}: 空闲")
 
         self.post_close()
         return collected
@@ -313,7 +315,7 @@ class IslandMineForest(Island,LoginHandler):
         else:
             runs = max_runs
             target_units = max_units  # 默认满产
-        logger.info(f"  {product}: 缺 {need_count or '满产'} 单位，安排 {runs}/{max_runs} 次生产 ({target_units} 单位)")
+        logger.info(f"[岛屿-矿山林场]   {product}: 缺 {need_count or '满产'} 单位，安排 {runs}/{max_runs} 次生产 ({target_units} 单位)")
 
         while 1:
             self.device.screenshot()
@@ -328,7 +330,7 @@ class IslandMineForest(Island,LoginHandler):
                         self.back_to_postmanage_from_dispatch()
                         return False
                 else:
-                    logger.warning(f"{product}生产派遣无可用角色: {character_filter}")
+                    logger.warning(f"[岛屿-矿山林场] {product}生产派遣无可用角色: {character_filter}")
                     self.back_to_postmanage_from_dispatch()
                     return False
                 continue
@@ -342,7 +344,7 @@ class IslandMineForest(Island,LoginHandler):
                 if selection_check is not None:
                     self.device.screenshot()
                     if not self.match_template_color(selection_check, offset=20, similarity=0.85, threshold=10):
-                        logger.warning(f"产物 {product} 选择未被确认，可能需要滑动查找")
+                        logger.warning(f"[岛屿-矿山林场] 产物 {product} 选择未被确认，可能需要滑动查找")
                         self.device.swipe_vector(vector=(0, -200), box=(333, 142, 431, 602), name="SelectionUpSwipe")
                         self.device.sleep(0.3)
                         self.device.click(SELECT_PRODUCT_INERTIA_STOP)
@@ -367,7 +369,7 @@ class IslandMineForest(Island,LoginHandler):
         self.device.screenshot()
         time_work = Duration(ISLAND_WORKING_TIME)
         time_value = time_work.ocr(self.device.image)
-        finish_time = datetime.now() + time_value
+        finish_time = current_time() + time_value
         setattr(self, time_var_name, finish_time)
 
         # 更新岗位记录
@@ -415,7 +417,7 @@ class IslandMineForest(Island,LoginHandler):
             self.posts[pid] = {'button': FOREST_POST_BUTTONS[i], 'crop': None, 'runs': 0, 'state': 'unknown'}
 
         # ===== 步骤1：进入管理 → 收获 + 检测所有岗位 =====
-        logger.info("进入管理页面，收获已完成产物并检测岗位状态")
+        logger.info("[岛屿-矿山林场] 进入管理页面，收获已完成产物并检测岗位状态")
         self.goto_postmanage()
         self.post_manage_mode(POST_MANAGE_PRODUCTION)
         self.post_close()
@@ -445,12 +447,12 @@ class IslandMineForest(Island,LoginHandler):
                 collected_posts.append(pid)
 
         if collected_posts:
-            logger.info(f"首轮岗位检查已收取完成产物: {collected_posts}")
+            logger.info(f"[岛屿-矿山林场] 首轮岗位检查已收取完成产物: {collected_posts}")
         else:
-            logger.info("首轮岗位检查没有发现可收取产物")
+            logger.info("[岛屿-矿山林场] 首轮岗位检查没有发现可收取产物")
 
         # ===== 步骤2：退出管理 → 去仓库检查库存 =====
-        logger.info("退出管理，检查仓库库存")
+        logger.info("[岛屿-矿山林场] 退出管理，检查仓库库存")
         self.ui_goto(page_island_management)
         needs = self.check_inventory_and_prepare_lists()
         # 检查库存后回到管理页面
@@ -466,7 +468,7 @@ class IslandMineForest(Island,LoginHandler):
                 if self._post_available_for_dispatch(self.posts[pid]):
                     idle_posts[category].append(pid)
 
-        logger.info(f"空闲岗位: 矿山 {len(idle_posts['mine'])} 个, 林场 {len(idle_posts['forest'])} 个")
+        logger.info(f"[岛屿-矿山林场] 空闲岗位: 矿山 {len(idle_posts['mine'])} 个, 林场 {len(idle_posts['forest'])} 个")
 
         # 产物有缺口的先分配，剩下的默认
         all_to_plant = {'mine': [], 'forest': []}
@@ -494,7 +496,7 @@ class IslandMineForest(Island,LoginHandler):
                     all_to_plant['forest'].append('Elegant')
 
             if all_to_plant[category]:
-                logger.info(f"{category} 需要种植: {all_to_plant[category]}")
+                logger.info(f"[岛屿-矿山林场] {category} 需要种植: {all_to_plant[category]}")
 
         # ===== 步骤4：执行种植（无需买种子） =====
         if any(all_to_plant.values()):
@@ -510,7 +512,7 @@ class IslandMineForest(Island,LoginHandler):
                 product = all_to_plant['mine'][i]
                 need_count = self.needs_count.get(('mine', product), None)
                 time_var = f'time_{pid}'
-                logger.info(f"种植矿山 {pid}: {product}")
+                logger.info(f"[岛屿-矿山林场] 种植矿山 {pid}: {product}")
                 self.post_plant(self.posts[pid]['button'], product, 'mine', time_var, need_count=need_count)
 
             # 滑动到林场
@@ -525,7 +527,7 @@ class IslandMineForest(Island,LoginHandler):
                 product = all_to_plant['forest'][i]
                 need_count = self.needs_count.get(('forest', product), None)
                 time_var = f'time_{pid}'
-                logger.info(f"种植林场 {pid}: {product}")
+                logger.info(f"[岛屿-矿山林场] 种植林场 {pid}: {product}")
                 self.post_plant(self.posts[pid]['button'], product, 'forest', time_var, need_count=need_count)
 
         # ===== 收集完成时间 =====
@@ -538,11 +540,11 @@ class IslandMineForest(Island,LoginHandler):
                 if ft is not None:
                     future_finish.append(ft)
 
-        six_hours_later = datetime.now() + timedelta(hours=6)
+        six_hours_later = current_time() + timedelta(hours=6)
         future_finish.append(six_hours_later)
         future_finish.sort()
         self.config.task_delay(target=future_finish)
-        logger.info(f'下次运行时间: {future_finish[0]}')
+        logger.info(f'[岛屿-矿山林场] 下次运行时间: {future_finish[0]}')
 
         if self.island_error:
             from module.exception import GameBugError

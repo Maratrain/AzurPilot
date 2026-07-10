@@ -28,7 +28,7 @@ class Ocr:
 
         Args:
             buttons: OCR 区域，支持 Button、坐标元组、Button 列表或坐标元组列表。
-            lang: 语言模型，'azur_lane' 或 'cnocr'。
+            lang: 语言模型，如 'azur_lane'、'ppocr_v6'、'cnocr'、'jp'、'tw'。
             letter: 字母 RGB 颜色值元组。
             threshold: 二值化阈值。
             alphabet: 字母白名单。

@@ -1,11 +1,10 @@
-from datetime import datetime
-
 import module.config.server as server
 from module.base.button import Button, ButtonGrid
 from module.base.filter import Filter
 from module.base.timer import Timer
 from module.base.utils import *
 from module.combat.level import LevelOcr
+from module.config.time_source import now as current_time
 from module.config.utils import get_server_next_update
 from module.exception import ScriptError
 from module.handler.assets import GET_MISSION, MISSION_POPUP_ACK, MISSION_POPUP_GO, POPUP_CANCEL, POPUP_CONFIRM
@@ -476,7 +475,7 @@ class RewardTacticalClass(Dock):
         remains = ocr.ocr(self.device.image)
         remains = remains if isinstance(remains, list) else [remains]
 
-        now = datetime.now()
+        now = current_time()
         self.tactical_finish = [(now + remain).replace(microsecond=0) for remain in remains if remain.total_seconds()]
         logger.info(f'Tactical finish: {[str(f) for f in self.tactical_finish]}')
         return self.tactical_finish
@@ -769,7 +768,7 @@ class RewardTacticalClass(Dock):
 
         # 重置筛选器；自然跳过 META 舰船
         self.dock_filter_set(
-            faction=[v for k, v in self.dock_filter.settings if k == 'faction' and v not in ['all', 'meta']]
+            faction=[v for k, v in self.dock_filter.settings if k == 'faction' and v not in ['all', 'meta', 'not_available']]
         )
 
         # 船坞中没有舰船

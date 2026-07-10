@@ -2,15 +2,37 @@
 
 set -euo pipefail
 
+detect_owner_home() {
+    if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        local owner_home
+        if command -v getent >/dev/null 2>&1; then
+            owner_home="$(getent passwd "${SUDO_USER}" | cut -d: -f6 || true)"
+            if [ -n "${owner_home}" ]; then
+                printf '%s\n' "${owner_home}"
+                return
+            fi
+        fi
+        if [ -r /etc/passwd ]; then
+            owner_home="$(awk -F: -v user="${SUDO_USER}" '$1 == user { print $6; found = 1 } END { exit !found }' /etc/passwd || true)"
+            if [ -n "${owner_home}" ]; then
+                printf '%s\n' "${owner_home}"
+                return
+            fi
+        fi
+    fi
+    printf '%s\n' "${HOME}"
+}
+
 REPOSITORY="${REPOSITORY:-https://gitcode.com/ddl2/AzurLaneAutoScript}"
 IMAGE="${IMAGE:-crpi-gukwnnx8iuh9qpez.cn-shanghai.personal.cr.aliyuncs.com/hajiming/ap:latest}"
-APP_DIR="${HOME}/AP"
+OWNER_HOME="${OWNER_HOME:-$(detect_owner_home)}"
+APP_DIR="${APP_DIR:-${OWNER_HOME}/AP}"
 CONTAINER="AzurPilot"
 WEBUI_PORT="${WEBUI_PORT:-}"
 DEFAULT_WEBUI_PORT=25548
 APP_WORKDIR="/app/AzurPilot"
 VENV_VOLUME="${CONTAINER}-venv"
-AP_DOCKER_CONFIG="${AP_DOCKER_CONFIG:-${HOME}/.azurpilot/docker}"
+AP_DOCKER_CONFIG="${AP_DOCKER_CONFIG:-${OWNER_HOME}/.azurpilot/docker}"
 TOTAL_STEPS=8
 CURRENT_STEP=0
 LANGUAGE="${LANGUAGE:-}"
@@ -317,8 +339,16 @@ install_docker_debian() {
 install_docker_rhel() {
     info "$(t docker_install)"
     if command -v dnf >/dev/null 2>&1; then
-        run_as_root dnf install -y yum-utils
-        run_as_root dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+        . /etc/os-release
+        local repo="https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo"
+        if [ "${ID}" = "fedora" ]; then
+            repo="https://mirrors.aliyun.com/docker-ce/linux/fedora/docker-ce.repo"
+        fi
+
+        run_as_root dnf install -y dnf-plugins-core
+        if ! run_as_root dnf config-manager addrepo --from-repofile "${repo}"; then
+            run_as_root dnf config-manager --add-repo "${repo}"
+        fi
         run_as_root dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     else
         run_as_root yum install -y yum-utils
@@ -382,12 +412,47 @@ docker_cmd() {
 }
 
 prepare_docker_config() {
-    mkdir -p "${AP_DOCKER_CONFIG}"
+    run_as_owner mkdir -p "${AP_DOCKER_CONFIG}"
     if [ ! -f "${AP_DOCKER_CONFIG}/config.json" ]; then
-        printf '{}\n' > "${AP_DOCKER_CONFIG}/config.json"
+        run_as_owner sh -c 'printf "{}\n" > "$1"' sh "${AP_DOCKER_CONFIG}/config.json"
     fi
     export DOCKER_CONFIG="${AP_DOCKER_CONFIG}"
     info "$(t docker_config)：${DOCKER_CONFIG}"
+}
+
+detect_host_timezone() {
+    if [ -n "${TZ:-}" ]; then
+        printf '%s\n' "${TZ}"
+        return
+    fi
+    if [ -f /etc/timezone ]; then
+        sed -n '1p' /etc/timezone | tr -d '\r\n'
+        return
+    fi
+    if [ -L /etc/localtime ]; then
+        local localtime
+        localtime="$(readlink -f /etc/localtime 2>/dev/null || readlink /etc/localtime)"
+        printf '%s\n' "${localtime}" | sed 's#^/usr/share/zoneinfo/##'
+        return
+    fi
+    if command -v timedatectl >/dev/null 2>&1; then
+        timedatectl show -p Timezone --value 2>/dev/null || true
+    fi
+}
+
+prepare_timezone_args() {
+    DOCKER_TIMEZONE_ARGS=()
+    local host_tz
+    host_tz="$(detect_host_timezone)"
+    if [ -n "${host_tz}" ]; then
+        DOCKER_TIMEZONE_ARGS+=(-e "TZ=${host_tz}")
+    fi
+    if [ -f /etc/localtime ]; then
+        DOCKER_TIMEZONE_ARGS+=(-v "/etc/localtime:/etc/localtime:ro")
+    fi
+    if [ -f /etc/timezone ]; then
+        DOCKER_TIMEZONE_ARGS+=(-v "/etc/timezone:/etc/timezone:ro")
+    fi
 }
 
 get_public_ip() {
@@ -517,10 +582,12 @@ else
 fi
 
 step "$(t container_start)"
+prepare_timezone_args
 run_with_spinner "$(t container_start)" docker_cmd run -d \
     --name "${CONTAINER}" \
     --restart unless-stopped \
     -p "${WEBUI_PORT}:${WEBUI_PORT}" \
+    "${DOCKER_TIMEZONE_ARGS[@]}" \
     -v "${APP_DIR}:${APP_WORKDIR}:rw" \
     -v "${VENV_VOLUME}:${APP_WORKDIR}/.venv" \
     -w "${APP_WORKDIR}" \

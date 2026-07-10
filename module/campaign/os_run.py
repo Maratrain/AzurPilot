@@ -7,6 +7,8 @@ from module.os_handler.action_point import ActionPointLimit
 
 
 class OSCampaignRun(OSMapOperation):
+    PREVENT_AP_OVERFLOW_TASK = 'OpsiPreventActionPointOverflow'
+
     def load_campaign(self, cls=OperationSiren):
         config = self.config.merge(OSConfig())
         campaign = cls(config=config, device=self.device)
@@ -19,73 +21,75 @@ class OSCampaignRun(OSMapOperation):
             logger.info(f'Delay OpSi AP tasks for {delay_minutes} minutes until action points recover')
         self.config.opsi_task_delay(ap_limit=True, ap_limit_minutes=delay_minutes)
 
-    def adjust_scheduling_after_ap_limit(self, error):
-        """行动力不足结束大世界任务后，按自然行动力校准智能调度。"""
+    def _run_opsi_task_with_ap_overflow_guard(self, runner):
+        """运行普通大世界任务时临时关闭防溢出任务，并在结束时恢复调度。"""
+        campaign = None
+        prevent_enabled = self.config.is_task_enabled(self.PREVENT_AP_OVERFLOW_TASK)
+        if prevent_enabled:
+            logger.info('[战役] 临时关闭防止行动力溢出任务')
+            self.config.cross_set(keys=f'{self.PREVENT_AP_OVERFLOW_TASK}.Scheduler.Enable', value=False)
+
         try:
-            from module.os.tasks.scheduling import CoinTaskMixin
-            helper = CoinTaskMixin()
-            helper.config = self.config
-            helper._schedule_by_natural_ap(getattr(error, 'current', 0))
-        except Exception:
-            logger.debug('行动力不足后校准智能调度失败', exc_info=True)
+            campaign = self.load_campaign()
+            return runner(campaign)
+        finally:
+            if prevent_enabled:
+                if campaign is not None:
+                    try:
+                        campaign.update_prevent_action_point_overflow_schedule(enable=True)
+                    except Exception:
+                        logger.debug('恢复防止行动力溢出任务调度失败，直接重新启用任务', exc_info=True)
+                        self.config.cross_set(keys=f'{self.PREVENT_AP_OVERFLOW_TASK}.Scheduler.Enable', value=True)
+                else:
+                    self.config.cross_set(keys=f'{self.PREVENT_AP_OVERFLOW_TASK}.Scheduler.Enable', value=True)
 
     def opsi_explore(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_explore()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_explore())
         except ActionPointLimit as e:
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_shop(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_shop()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_shop())
         except ActionPointLimit as e:
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_voucher(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_voucher()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_voucher())
         except ActionPointLimit as e:
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_daily(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_daily()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_daily())
         except ActionPointLimit as e:
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_meowfficer_farming(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_meowfficer_farming()
-        except ActionPointLimit as e:
-            self.adjust_scheduling_after_ap_limit(e)
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_meowfficer_farming())
+        except ActionPointLimit:
             if get_os_reset_remain() > 0:
                 self.config.task_delay(server_update=True)
                 self.config.task_call('Reward', force_call=False)
-                self.cl1_task_call()
             else:
                 logger.info('Just less than 1 day to OpSi reset, delay 2.5 hours')
                 self.config.task_delay(minute=150, server_update=True)
 
     def opsi_hazard1_leveling(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_check_leveling()
-            campaign.os_hazard1_leveling()
-        except ActionPointLimit as e:
-            self.adjust_scheduling_after_ap_limit(e)
+            self._run_opsi_task_with_ap_overflow_guard(
+                lambda campaign: (campaign.os_check_leveling(), campaign.os_hazard1_leveling())
+            )
+        except ActionPointLimit:
             self.config.task_delay(server_update=True)
 
     def opsi_obscure(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_obscure()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_obscure())
         except ActionPointLimit as e:
-            self.adjust_scheduling_after_ap_limit(e)
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_month_boss(self):
@@ -96,41 +100,37 @@ class OSCampaignRun(OSMapOperation):
             self.config.task_stop()
             return
         try:
-            campaign = self.load_campaign()
-            campaign.clear_month_boss()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.clear_month_boss())
         except ActionPointLimit as e:
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_abyssal(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_abyssal()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_abyssal())
         except ActionPointLimit as e:
-            self.adjust_scheduling_after_ap_limit(e)
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_archive(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_archive()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_archive())
         except ActionPointLimit as e:
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_stronghold(self):
         try:
-            campaign = self.load_campaign()
-            campaign.os_stronghold()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_stronghold())
         except ActionPointLimit as e:
-            self.adjust_scheduling_after_ap_limit(e)
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_scheduling(self):
+        self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.run_smart_scheduling())
+
+    def opsi_prevent_action_point_overflow(self):
         campaign = self.load_campaign()
-        campaign.run_smart_scheduling()
+        campaign.os_prevent_action_point_overflow()
 
     def opsi_cross_month(self):
-        campaign = self.load_campaign()
         try:
-            campaign.os_cross_month()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_cross_month())
         except ActionPointLimit:
-            campaign.os_cross_month_end()
+            self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.os_cross_month_end())

@@ -129,7 +129,7 @@ class Cl1Database:
         try:
             self.db_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            logger.error(f"创建数据库目录失败: {e}")
+            logger.error(f"[Statistics] 创建数据库目录失败: {e}")
 
     def _init_db(self):
         """初始化数据库表，并兼容旧版 encrypted_blob 结构。"""
@@ -198,7 +198,7 @@ class Cl1Database:
                 if not rows:
                     return
 
-                logger.info(f"开始解密旧版 CL1 数据库，条目数: {len(rows)}")
+                logger.info(f"[Statistics] 开始解密旧版 CL1 数据库，条目数: {len(rows)}")
                 updated_rows = []
                 clear_rows = []
                 failed_rows = []
@@ -236,13 +236,13 @@ class Cl1Database:
 
                 migrated = len(updated_rows) + len(clear_rows)
                 if migrated:
-                    logger.info(f"旧版 CL1 数据库解密迁移完成，条目数: {migrated}")
+                    logger.info(f"[Statistics] 旧版 CL1 数据库解密迁移完成，条目数: {migrated}")
                 if failed_rows:
                     logger.warning(
-                        f"旧版 CL1 数据库有 {len(failed_rows)} 条记录解密失败"
+                        f"[Statistics] 旧版 CL1 数据库有 {len(failed_rows)} 条记录解密失败"
                     )
         except Exception as e:
-            logger.error(f"解密旧版 CL1 数据库失败: {e}")
+            logger.error(f"[Statistics] 解密旧版 CL1 数据库失败: {e}")
 
     def _move_legacy_db(self):
         """将旧位置的 CL1 数据库移动到 config 目录后再初始化表结构。"""
@@ -259,7 +259,7 @@ class Cl1Database:
                     f"已移动旧版 CL1 数据库: {old_db_path} -> {self.db_path}"
                 )
             except Exception as e:
-                logger.error(f"移动旧版 CL1 数据库失败: {e}")
+                logger.error(f"[Statistics] 移动旧版 CL1 数据库失败: {e}")
 
     def _serialize_data(self, data: Dict[str, Any]) -> str:
         """将统计数据序列化为明文 JSON。"""
@@ -272,7 +272,7 @@ class Cl1Database:
         try:
             data = json.loads(data_json)
         except Exception as e:
-            logger.warning(f"读取 CL1 明文 JSON 失败: {e}")
+            logger.warning(f"[Statistics] 读取 CL1 明文 JSON 失败: {e}")
             return None
         return data if isinstance(data, dict) else None
 
@@ -321,7 +321,7 @@ class Cl1Database:
                         self.save_stats(instance, month, data)
                         return data
         except Exception as e:
-            logger.error(f"查询统计数据失败 {instance} {month}: {e}")
+            logger.error(f"[Statistics] 查询统计数据失败 {instance} {month}: {e}")
 
         return self._empty_data(month)
 
@@ -565,7 +565,7 @@ class Cl1Database:
                     )
                 return [(row[0], row[1]) for row in cursor.fetchall()]
         except Exception as e:
-            logger.error(f"列出统计数据失败: {e}")
+            logger.error(f"[Statistics] 列出统计数据失败: {e}")
             return []
 
     def backfill_meow_stats(
@@ -636,7 +636,7 @@ class Cl1Database:
                 )
                 conn.commit()
         except Exception as e:
-            logger.error(f"保存统计数据失败 {instance} {month}: {e}")
+            logger.error(f"[Statistics] 保存统计数据失败 {instance} {month}: {e}")
 
     def increment_battle_count(self, instance: str, delta: int = 1):
         """增加战斗次数"""
@@ -675,7 +675,7 @@ class Cl1Database:
         self.save_stats(instance, month, data)
 
     def add_ap_snapshot(self, instance: str, ap_current: int, source: str = "cl1", distance: int = None, ap_total: int = None):
-        """记录行动力快照（真实剩余体力），并计算虚拟资产
+        """记录行动力快照（真实剩余体力），并计算资产
 
         Args:
             instance: 实例名称
@@ -688,18 +688,8 @@ class Cl1Database:
         data = self.get_stats(instance, month)
         now = datetime.now()
 
-        # 计算虚拟资产
-        # 虚拟资产 = AP × (1700/30) + YellowCoins + (到月底时间/10分钟) × (1700/30)
-        from calendar import monthrange
-
-        year, month_num = now.year, now.month
-        last_day = monthrange(year, month_num)[1]
-        month_end = datetime(year, month_num, last_day, 23, 59, 59)
-        time_to_month_end_sec = (month_end - now).total_seconds()
-
         # CL5 效率：1700 / 30 ≈ 56.67
         cl5_efficiency = 1700.0 / 30.0
-        virtual_asset_added = (time_to_month_end_sec / 600.0) * cl5_efficiency
 
         # 获取最近的黄币值
         yellow_coin = 0
@@ -714,15 +704,12 @@ class Cl1Database:
             ap_total = self._coerce_int(ap_total)
         ap_for_asset = ap_total if ap_total is not None else ap_current
         asset = ap_for_asset * cl5_efficiency + yellow_coin
-        # 虚拟资产 = 资产 + 时间加成
-        virtual_asset = asset + virtual_asset_added
 
         snapshot = {
             "ts": now.isoformat(),
             "ap": ap_current,
             "yellow_coin": yellow_coin,
             "asset": round(asset, 2),
-            "virtual_asset": round(virtual_asset, 2),
             "source": source,
         }
         if distance is not None:
@@ -878,7 +865,7 @@ class Cl1Database:
         if not json_path.exists():
             return
 
-        logger.info(f"开始从 JSON 迁移 CL1 数据: {json_path}, instance={instance}")
+        logger.info(f"[Statistics] 开始从 JSON 迁移 CL1 数据: {json_path}, instance={instance}")
         try:
             with json_path.open("r", encoding="utf-8") as f:
                 old_data = json.load(f)
@@ -904,7 +891,7 @@ class Cl1Database:
                     )
                     if c.fetchone():
                         logger.info(
-                            f"数据库中已存在 {instance} {month}，跳过迁移"
+                            f"[Statistics] 数据库中已存在 {instance} {month}，跳过迁移"
                         )
                         continue
 
@@ -917,12 +904,12 @@ class Cl1Database:
                 )
 
                 self.save_stats(instance, month, new_stats)
-                logger.info(f"已迁移 {instance} {month}")
+                logger.info(f"[Statistics] 已迁移 {instance} {month}")
 
             # 迁移成功后可以删除 JSON 或重命名 (此处建议重命名为 .bak 以防万一)
             bak_path = json_path.with_suffix(".json.bak")
             json_path.replace(bak_path)
-            logger.info(f"已将旧 JSON 重命名为 {bak_path}")
+            logger.info(f"[Statistics] 已将旧 JSON 重命名为 {bak_path}")
 
         except Exception as e:
             logger.exception(f"从 JSON 迁移 CL1 数据失败: {e}")

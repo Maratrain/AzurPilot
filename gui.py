@@ -97,15 +97,15 @@ def func(ev: Optional[Event]):
     # Electron客户端特定处理
     if State.electron:
         # https://github.com/LmeSzinc/AzurLaneAutoScript/issues/2051
-        logger.info("检测到 Electron，移除标准输出日志处理器")
+        logger.info("[GUI] 检测到 Electron，移除标准输出日志处理器")
         from module.logger import console_hdlr
         logger.removeHandler(console_hdlr)
 
     # 验证SSL配置
     if ssl_cert is None and ssl_key is not None:
-        logger.error("提供了SSL密钥但未提供证书。请同时提供SSL密钥和证书。")
+        logger.error("[GUI] 提供了SSL密钥但未提供证书。请同时提供SSL密钥和证书。")
     elif ssl_key is None and ssl_cert is not None:
-        logger.error("提供了SSL证书但未提供密钥。请同时提供SSL密钥和证书。")
+        logger.error("[GUI] 提供了SSL证书但未提供密钥。请同时提供SSL密钥和证书。")
 
     # 启动uvicorn服务器
     try:
@@ -121,7 +121,7 @@ def func(ev: Optional[Event]):
         else:
             uvicorn.run("module.webui.app:app", host=host, port=port, factory=True)
     except Exception as e:
-        logger.error(f"Uvicorn服务崩溃: {str(e)}")
+        logger.error(f"[GUI] Uvicorn服务崩溃: {str(e)}")
         raise
 def _stop_process(process, timeout=5):
     """
@@ -136,12 +136,12 @@ def _stop_process(process, timeout=5):
     if not process or not process.is_alive():
         return
 
-    logger.info(f"正在停止服务进程 (PID: {process.pid})...")
+    logger.info(f"[GUI] 正在停止服务进程 (PID: {process.pid})...")
     process.terminate()
     process.join(timeout=timeout)
 
     if process.is_alive():
-        logger.warning(f"服务进程 (PID: {process.pid}) 超时未退出，强制终止...")
+        logger.warning(f"[GUI] 服务进程 (PID: {process.pid}) 超时未退出，强制终止...")
         process.kill()
         process.join(timeout=3)
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
         if os.name == "posix" and sys.platform == "darwin":
             os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
     except RuntimeError:
-        logger.warning("无法设置spawn启动方式，可能使用fork（macOS上不推荐）")
+        logger.warning("[GUI] 无法设置spawn启动方式，可能使用fork（macOS上不推荐）")
 
     # 启用热重载模式
     if State.deploy_config.EnableReload:
@@ -163,27 +163,27 @@ if __name__ == "__main__":
             event = Event()
             process = Process(target=func, args=(event,), name="gui")
             process.start()
-            logger.info(f"启动AzurPilot Web服务 (PID: {process.pid})")
+            logger.info(f"[GUI] 启动AzurPilot Web服务 (PID: {process.pid})")
 
             while not should_exit:
                 try:
                     # 等待重启事件，超时1秒
                     restart_triggered = event.wait(1)
                 except KeyboardInterrupt:
-                    logger.info("收到KeyboardInterrupt，退出中...")
+                    logger.info("[GUI] 收到KeyboardInterrupt，退出中...")
                     should_exit = True
                     break
                 except Exception as e:
-                    logger.error(f"等待重启事件时出错: {str(e)}")
+                    logger.error(f"[GUI] 等待重启事件时出错: {str(e)}")
                     should_exit = True
                     break
 
                 if restart_triggered:
-                    logger.info("重启事件触发，终止当前服务...")
+                    logger.info("[GUI] 重启事件触发，终止当前服务...")
                     _stop_process(process)
                     break
                 elif not process.is_alive():
-                    logger.error("AzurPilot Web服务意外退出")
+                    logger.error("[GUI] AzurPilot Web服务意外退出")
                     should_exit = True
 
             # 确保子进程完全退出
@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
         # 最终清理（预防性）
         _stop_process(process)
-        logger.info("AzurPilot Web服务已成功退出")
+        logger.info("[GUI] AzurPilot Web服务已成功退出")
     else:
         # 非重载模式：直接运行
         func(None)

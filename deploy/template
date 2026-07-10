@@ -153,6 +153,13 @@ Deploy:
     # 详情请参阅 https://app.azurlane.cloud/
     # See here (http://app.azurlane.cloud/en.html) for more infomation.
     EnableRemoteAccess: true
+    # 远程访问模式
+    # Remote access mode
+    # [自动] auto（优先 P2P/TURN，失败回退 SSH 转发）
+    # [Auto] auto (prefer P2P/TURN and fall back to SSH forwarding)
+    # [SSH] ssh（仅使用旧版 SSH 反向隧道）
+    # [WebRTC] webrtc（P2P 优先，仍依赖 SSH 获取 fallback 入口）
+    RemoteAccessMode: auto
     # SSH 服务器登录用户名
     # Username when login into ssh server
     # [默认] null（启动时会随机生成一个）
@@ -172,6 +179,24 @@ Deploy:
     # 如果没有，请安装 OpenSSH 或在此下载 (https://github.com/PowerShell/Win32-OpenSSH/releases)
     # If you don't have one, install OpenSSH or download it here (https://github.com/PowerShell/Win32-OpenSSH/releases)
     SSHExecutable: ssh
+    # 允许 SSH 调度重定向的目标域名，JSON 数组或逗号分隔；留空时默认允许 SSHServer 同域和上级域通配符
+    # Allowed SSH redirect target hosts, JSON array or comma separated. Empty allows SSHServer domain and parent-domain wildcards.
+    AllowedRedirectHosts: null
+    # 单次远程访问启动最多跟随多少次 SSH 调度重定向
+    # Maximum SSH scheduling redirects followed during one startup
+    MaxRedirects: 2
+    # WebRTC 信令服务器，留空时从 SSHServer 自动推导为 wss://host/signal
+    # WebRTC signaling server, empty means deriving wss://host/signal from SSHServer
+    SignalingServer: null
+    # STUN 服务器 JSON 数组或逗号分隔字符串
+    # STUN servers as JSON array or comma separated string
+    StunServers: '["stun:stun.l.google.com:19302"]'
+    # TURN 服务器 JSON 数组或逗号分隔字符串，留空则不配置 TURN
+    # TURN servers as JSON array or comma separated string, empty to disable TURN
+    TurnServers: null
+    # TURN 凭证模式，当前支持 static，预留 ephemeral
+    # TURN credential mode, currently static, ephemeral is reserved
+    TurnCredentialMode: static
 
   Webui:
     # --host. 监听的主机地址

@@ -74,9 +74,9 @@ def retry(func):
                     pass
 
         if func.__name__ in ['screenshot_ascreencap', 'screenshot_ascreencap_nc']:
-            logger.critical(f'重试 {func.__name__}() 失败')
+            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
-        logger.critical(f'重试 {func.__name__}() 失败')
+        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -110,7 +110,7 @@ class AScreenCap(Connection):
             self.ascreencap_available = False
             logger.error('No suitable version of aScreenCap lib available for this device, '
                          'please use other screenshot methods instead')
-            logger.error('该设备没有可用的 aScreenCap 库，请使用其他截图方案。')
+            logger.error('[Device] 该设备没有可用的 aScreenCap 库，请使用其他截图方案。')
             raise RequestHumanTakeover
 
         logger.info(f'pushing {filepath}')

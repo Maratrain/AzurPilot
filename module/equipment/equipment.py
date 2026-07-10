@@ -2,31 +2,30 @@ from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.equipment.assets import *
+from module.equipment.equipment_code import EquipmentCodeHandler
 from module.logger import logger
 from module.retire.assets import DOCK_CHECK, EQUIP_CONFIRM as RETIRE_EQUIP_CONFIRM
-from module.storage.storage import StorageHandler
 from module.ui.assets import BACK_ARROW
 from module.ui.navbar import Navbar
 from module.ui.switch import Switch
 
+SWIPE_DISTANCE = 250
+SWIPE_RANDOM_RANGE = (-40, -20, 40, 20)
 equipping_filter = Switch('Equiping_filter')
 equipping_filter.add_state('on', check_button=EQUIPPING_ON)
 equipping_filter.add_state('off', check_button=EQUIPPING_OFF)
-
-SWIPE_DISTANCE = 250
-SWIPE_RANDOM_RANGE = (-40, -20, 40, 20)
 # patch to handle both blue (folded) and orange (expanded) button
 EQUIPMENT_OPEN.match = EQUIPMENT_OPEN.match_luma
 
 
-class Equipment(StorageHandler):
+class Equipment(EquipmentCodeHandler):
     equipment_has_take_on = False
 
     def equipping_set(self, enable=False):
         if equipping_filter.set('on' if enable else 'off', main=self):
             self.wait_until_stable(SWIPE_AREA)
 
-    def _equip_view_swipe(self, distance, check_button=EQUIPMENT_OPEN):
+    def _ship_view_swipe(self, distance, check_button=EQUIPMENT_OPEN):
         swipe_count = 0
         swipe_timer = Timer(5, count=10)
         self.handle_info_bar()
@@ -37,7 +36,7 @@ class Equipment(StorageHandler):
             if not swipe_timer.started() or swipe_timer.reached():
                 swipe_timer.reset()
                 self.device.swipe_vector(vector=(distance, 0), box=SWIPE_AREA.area, random_range=SWIPE_RANDOM_RANGE,
-                                         padding=0, duration=(0.1, 0.12), name='EQUIP_SWIPE')
+                                         padding=0, duration=(0.1, 0.12), name='SHIP_SWIPE')
                 # self.wait_until_appear(check_button, offset=(30, 30))
                 skip_first_screenshot = True
                 while 1:
@@ -48,7 +47,7 @@ class Equipment(StorageHandler):
                     if self.appear(check_button, offset=(30, 30)):
                         break
                     if self.appear(RETIRE_EQUIP_CONFIRM, offset=(30, 30)):
-                        logger.info('RETIRE_EQUIP_CONFIRM popup in _equip_view_swipe()')
+                        logger.info('RETIRE_EQUIP_CONFIRM popup in _ship_view_swipe()')
                         return False
                     # Popup when enhancing a NPC ship
                     if self.handle_popup_confirm('SHIP_VIEW_SWIPE'):
@@ -58,7 +57,7 @@ class Equipment(StorageHandler):
             self.device.screenshot()
 
             if self.appear(RETIRE_EQUIP_CONFIRM, offset=(30, 30)):
-                logger.info('RETIRE_EQUIP_CONFIRM popup in _equip_view_swipe()')
+                logger.info('RETIRE_EQUIP_CONFIRM popup in _ship_view_swipe()')
                 return False
             if SWIPE_CHECK.match(self.device.image):
                 if swipe_count > 1:
@@ -70,29 +69,29 @@ class Equipment(StorageHandler):
                 logger.info('New ship detected on swipe')
                 return True
 
-    def equip_view_next(self, check_button=EQUIPMENT_OPEN):
-        return self._equip_view_swipe(distance=-SWIPE_DISTANCE, check_button=check_button)
+    def ship_view_next(self, check_button=EQUIPMENT_OPEN):
+        return self._ship_view_swipe(distance=-SWIPE_DISTANCE, check_button=check_button)
 
-    def equip_view_prev(self, check_button=EQUIPMENT_OPEN):
-        return self._equip_view_swipe(distance=SWIPE_DISTANCE, check_button=check_button)
+    def ship_view_prev(self, check_button=EQUIPMENT_OPEN):
+        return self._ship_view_swipe(distance=SWIPE_DISTANCE, check_button=check_button)
 
-    def equip_enter(self, click_button, check_button=EQUIPMENT_OPEN, long_click=True, skil_first_screenshot=True):
+    def ship_info_enter(self, click_button, check_button=EQUIPMENT_OPEN, long_click=True, skip_first_screenshot=True):
         enter_timer = Timer(10)
 
         while 1:
-            if skil_first_screenshot:
-                skil_first_screenshot = False
+            if skip_first_screenshot:
+                skip_first_screenshot = False
             else:
                 self.device.screenshot()
 
             # End
-            if self.appear(check_button):
+            if self.appear(check_button, offset=(5, 5)):
                 break
 
             # Long click accidentally became normal click, exit from dock
             if long_click:
                 if self.appear(DOCK_CHECK, offset=(20, 20), interval=3):
-                    logger.info(f'equip_enter {DOCK_CHECK} -> {BACK_ARROW}')
+                    logger.info(f'ship_info_enter {DOCK_CHECK} -> {BACK_ARROW}')
                     self.device.click(BACK_ARROW)
                     continue
             if enter_timer.reached():
@@ -105,7 +104,7 @@ class Equipment(StorageHandler):
                 continue
 
     @cached_property
-    def _equip_side_navbar(self):
+    def _ship_side_navbar(self):
         """
         pry_sidebar 3 options
             research.
@@ -125,14 +124,14 @@ class Equipment(StorageHandler):
             equipment.
             detail.
         """
-        equip_side_navbar = ButtonGrid(
-            origin=(21, 118), delta=(0, 94.5), button_shape=(60, 75), grid_shape=(1, 5), name='DETAIL_SIDE_NAVBAR')
+        ship_side_navbar = ButtonGrid(
+            origin=(21, 118), delta=(0, 94.5), button_shape=(60, 75), grid_shape=(1, 5), name='SHIP_SIDE_NAVBAR')
 
-        return Navbar(grids=equip_side_navbar,
+        return Navbar(grids=ship_side_navbar,
                       active_color=(247, 255, 173), active_threshold=221,
                       inactive_color=(140, 162, 181), inactive_threshold=221)
 
-    def equip_side_navbar_ensure(self, upper=None, bottom=None):
+    def ship_side_navbar_ensure(self, upper=None, bottom=None):
         """
         Ensure able to transition to page
         Whether page has completely loaded is handled
@@ -159,14 +158,37 @@ class Equipment(StorageHandler):
         Returns:
             bool: if side_navbar set ensured
         """
-        if self._equip_side_navbar.get_total(main=self) == 3:
+        if self._ship_side_navbar.get_total(main=self) == 3:
             if upper == 1 or bottom == 3:
                 logger.warning('Transitions to "research" is not supported')
                 return False
 
-        if self._equip_side_navbar.set(self, upper=upper, bottom=bottom):
+        if self._ship_side_navbar.set(self, upper=upper, bottom=bottom):
             return True
         return False
+
+    def equip_view_next(self, check_button=EQUIPMENT_OPEN):
+        return self.ship_view_next(check_button=check_button)
+
+    def equip_view_prev(self, check_button=EQUIPMENT_OPEN):
+        return self.ship_view_prev(check_button=check_button)
+
+    def equip_enter(self, click_button, check_button=EQUIPMENT_OPEN, long_click=True, skil_first_screenshot=True):
+        return self.ship_info_enter(
+            click_button=click_button,
+            check_button=check_button,
+            long_click=long_click,
+            skip_first_screenshot=skil_first_screenshot
+        )
+
+    def equip_side_navbar_ensure(self, upper=None, bottom=None):
+        return self.ship_side_navbar_ensure(upper=upper, bottom=bottom)
+
+    def ship_equipment_take_off(self, name=None):
+        self.code_clear(name=name)
+
+    def ship_equipment_take_on(self, name=None):
+        self.code_apply(name=name)
 
     def _equip_take_off_one(self, skip_first_screenshot=True):
         logger.info('Equipment take off')
@@ -180,16 +202,13 @@ class Equipment(StorageHandler):
             else:
                 self.device.screenshot()
 
-            # End
-            # if self.handle_info_bar():
-            #     break
             if off_timer.started() and self.info_bar_count():
                 break
 
             if self.handle_storage_full():
                 continue
 
-            if confirm_timer.reached() and self.handle_popup_confirm():
+            if confirm_timer.reached() and self.handle_popup_confirm('EQUIPMENT_TAKE_OFF'):
                 confirm_timer.reset()
                 off_timer.reset()
                 bar_timer.reset()
@@ -241,15 +260,11 @@ class Equipment(StorageHandler):
             else:
                 self.device.screenshot()
 
-            # End
-            # if self.handle_info_bar():
-            #     break
             if on_timer.started() and self.info_bar_count():
                 break
 
             if bar_timer.reached() and not self.appear(EQUIP_1, offset=10):
                 self.device.click(EQUIPMENT_OPEN)
-                # self.device.sleep(0.3)
                 bar_timer.reset()
                 continue
 

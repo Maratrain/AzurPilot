@@ -13,6 +13,7 @@ from module.config.config_generated import GeneratedConfig
 from module.config.config_manual import ManualConfig, OutputConfig
 from module.config.config_updater import ConfigUpdater, ensure_time, get_server_next_update, nearest_future
 from module.config.deep import deep_get, deep_set
+from module.config.time_source import now as current_time
 from module.config.utils import DEFAULT_TIME, dict_to_kv, filepath_config, get_os_reset_remain, path_to_arg, is_good_gpu
 from module.config.watcher import ConfigWatcher
 from module.exception import RequestHumanTakeover, ScriptError
@@ -202,6 +203,21 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             return 'onnxruntime'
         return val
 
+    def ocr_model_version(self, name: str) -> str:
+        if self.ocr_backend == 'ncnn':
+            return 'ncnn'
+
+        if name == 'azur_lane':
+            return self.Optimization_OcrModelVersionEnglish
+        elif name == 'cn':
+            return self.Optimization_OcrModelVersionChinese
+        elif name in ['azur_lane_jp', 'jp']:
+            return self.Optimization_OcrModelVersionJapanese
+        elif name == 'tw':
+            return self.Optimization_OcrModelVersionTraditionalChinese
+        else:
+            return 'auto'
+
     @property
     def ocr_device(self) -> str:
         val = self.Optimization_OcrDevice
@@ -240,7 +256,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         pending = []
         waiting = []
         error = []
-        now = datetime.now()
+        now = current_time()
         if AzurLaneConfig.is_hoarding_task:
             now -= self.hoarding
         for func in self.data.values():
@@ -291,8 +307,8 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             logger.attr("Task", task)
             return task
         else:
-            logger.critical("没有等待或待处理的任务")
-            logger.critical("请启用至少一个任务")
+            logger.critical("[Config] 没有等待或待处理的任务")
+            logger.critical("[Config] 请启用至少一个任务")
             raise RequestHumanTakeover
 
     def save(self, mod_name='alas'):
@@ -312,11 +328,11 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
     def update(self):
         self.load()
         self.config_override()
-        self.bind(self.task)
+        self.bind(getattr(self, '_bind_task_override', self.task))
         self.save()
 
     def override(self, **kwargs):
-        now = datetime.now().replace(microsecond=0)
+        now = current_time().replace(microsecond=0)
         limited = set()
 
         def limit_next_run(tasks, limit):
@@ -335,13 +351,13 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         limit_next_run(["OpsiExplore", "OpsiCrossMonth", "OpsiVoucher", "OpsiMonthBoss", "OpsiShop"],
                        limit=now + timedelta(days=31, seconds=-1))
         limit_next_run(["OpsiArchive"], limit=now + timedelta(days=7, seconds=-1))
-        # 智能调度会按自然行动力恢复到 200 的时间延后，最长可能超过 24 小时。
-        limit_next_run(["OpsiScheduling"], limit=now + timedelta(hours=48, seconds=-1))
+        # 防溢出任务会按当前行动力恢复到 200 的时间延后，最长可能超过 24 小时。
+        limit_next_run(["OpsiPreventActionPointOverflow"], limit=now + timedelta(hours=48, seconds=-1))
         # IslandPearlSell 按周调度，合法 NextRun 可能超过 24 小时。
         limit_next_run(["IslandPearlSell"], limit=now + timedelta(days=8, seconds=-1))
         # 通用兜底保留 24 小时调度的少量误差空间，避免刚好延后一天的任务被重置。
         limit_next_run(
-            [task for task in self.args.keys() if task != "OpsiScheduling"],
+            [task for task in self.args.keys() if task != "OpsiPreventActionPointOverflow"],
             limit=now + timedelta(hours=25, seconds=-1),
         )
 
@@ -368,7 +384,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             for arg, value in kwargs.items():
                 record = arg.replace("Value", "Record")
                 self.__setattr__(arg, value)
-                self.__setattr__(record, datetime.now().replace(microsecond=0))
+                self.__setattr__(record, current_time().replace(microsecond=0))
 
     def multi_set(self):
         """批量设置多个参数，但只保存一次。
@@ -433,7 +449,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
                 if success
                 else self.Scheduler_FailureInterval
             )
-            run.append(datetime.now() + ensure_delta(interval))
+            run.append(current_time() + ensure_delta(interval))
         if server_update is not None:
             if server_update is True:
                 server_update = self.Scheduler_ServerUpdate
@@ -443,7 +459,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             target = nearest_future(target)
             run.append(target)
         if minute is not None:
-            run.append(datetime.now() + ensure_delta(minute))
+            run.append(current_time() + ensure_delta(minute))
 
         if len(run):
             run = min(run).replace(microsecond=0)
@@ -497,7 +513,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         )
 
         def delay_tasks(task_list, minutes):
-            next_run = datetime.now().replace(microsecond=0) + timedelta(
+            next_run = current_time().replace(microsecond=0) + timedelta(
                 minutes=minutes
             )
             for task in task_list:
@@ -609,7 +625,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
 
         if force_call or self.is_task_enabled(task):
             logger.info(f"Task call: {task}")
-            self.modified[f"{task}.Scheduler.NextRun"] = datetime.now().replace(
+            self.modified[f"{task}.Scheduler.NextRun"] = current_time().replace(
                 microsecond=0
             )
             self.modified[f"{task}.Scheduler.Enable"] = True
@@ -648,7 +664,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         if self.stop_event is not None:
             if self.stop_event.is_set():
                 return True
-        prev = self.task
+        prev = getattr(self, '_task_switch_owner', self.task)
         self.load()
         new = self.get_next()
         if prev == new:

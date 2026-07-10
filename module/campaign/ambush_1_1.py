@@ -192,10 +192,10 @@ class Ambush11(GemsFarming):
         self.run_count = 0
         self.run_limit = self.config.StopCondition_RunCount
         
-        self.config.STOP_IF_REACH_LV32 = self.change_flagship and not self.config.GemsFarming_ALLowHighFlagshipLevel
+        self.config.STOP_IF_REACH_LV32 = self.change_flagship and not self.config.GemsFarming_AllowHighFlagshipLevel
         initial_check = (
             self.change_flagship
-            and not self.config.GemsFarming_ALLowHighFlagshipLevel
+            and not self.config.GemsFarming_AllowHighFlagshipLevel
             and not self._initial_flagship_check_done
         )
         self._initial_flagship_check_done = True
@@ -266,7 +266,7 @@ class Ambush11(GemsFarming):
                     success = self.flagship_change()
                 if self.change_vanguard and success:
                     success = self.vanguard_change()
-                    if not success and self.config.GemsFarming_ALLowHighFlagshipLevel:
+                    if not success and self.config.GemsFarming_AllowHighFlagshipLevel:
                         self.set_emotion(emotion)
                 
                 if is_limit and self.config.StopCondition_RunCount <= 0:

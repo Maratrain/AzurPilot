@@ -71,7 +71,14 @@ uv sync --frozen --no-dev
 uv run python gui.py
 ```
 
-依赖声明在 `pyproject.toml` 中，锁定结果提交在 `uv.lock`。不要再维护或生成 `requirements*.txt`。
+
+## Linux一键部署
+
+欢迎使用一键部署命令
+
+```shell
+curl -fsSL https://alas.nanoda.work/install/deploy-image.sh | sudo -E bash
+```
 
 ## 重要说明
 

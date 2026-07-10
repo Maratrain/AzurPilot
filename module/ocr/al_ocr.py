@@ -1,6 +1,9 @@
 import os
 import queue
 import threading
+import time
+from pathlib import Path
+
 import numpy as np
 import cv2
 from PIL import Image
@@ -14,10 +17,10 @@ from module.config.utils import DEFAULT_CONFIG_NAME
 def handle_ocr_error(e):
     logger.critical(f"Failed to load OCR dependencies: {e}")
     logger.critical(
-        "无法加载 OCR 依赖，请安装微软 C++ 运行库 https://aka.ms/vs/17/release/vc_redist.x64.exe"
+        "[OCR] 无法加载 OCR 依赖，请安装微软 C++ 运行库 https://aka.ms/vs/17/release/vc_redist.x64.exe"
     )
-    logger.critical("也有可能是 GPU 不支持加速引起，请尝试关闭 GPU 加速")
-    logger.critical("如果上述方法都无法解决，请加群获取支持")
+    logger.critical("[OCR] 也有可能是 GPU 不支持加速引起，请尝试关闭 GPU 加速")
+    logger.critical("[OCR] 如果上述方法都无法解决，请加群获取支持")
     raise RequestHumanTakeover
 
 
@@ -25,6 +28,7 @@ try:
     from rapidocr import RapidOCR, OCRVersion
     from rapidocr.utils.output import RapidOCROutput
     from rapidocr.ch_ppocr_rec import TextRecognizer
+    from rapidocr.ch_ppocr_rec.typings import TextRecOutput
     from rapidocr.cal_rec_boxes import CalRecBoxes
     from rapidocr.ch_ppocr_det import TextDetector, TextDetOutput
     from rapidocr.utils.load_image import LoadImage
@@ -35,7 +39,25 @@ except Exception as e:
 
 
 DET_DEBUG = False
+REPO_ROOT = Path(__file__).resolve().parents[2]
 PPOCRV6_EN_REC_KEYS_PATH = "bin/ocr_models/ppocr-v6/ppocrv6_en_dict.txt"
+OCR_MODEL_VERSION_AUTO = 'auto'
+ALAS_CTC_MODEL_VERSION = "alocr_en_900k"
+ALAS_CTC_MODEL_PATH = "bin/ocr_models/azur_lane/alocr-en-us-900k-w768.dml.onnx"
+ALAS_CTC_CHARSET = "0123456789:-/ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+ALAS_CTC_BLANK_ID = 0
+ALAS_CTC_IMAGE_HEIGHT = 48
+ALAS_CTC_MAX_WIDTH = 768
+GENERIC_PPOCR_V6_PARAMS = (
+    "bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx",
+    "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
+    OCRVersion.PPOCRV6,
+)
+AZUR_LANE_JP_V6_PARAMS = (
+    "bin/ocr_models/azur_lane_jp/ap_azurlane_jp-v6_small_rec_nvidia.onnx",
+    "bin/ocr_models/azur_lane_jp/ppocrv6_azurlane_jp_dict.txt",
+    OCRVersion.PPOCRV6,
+)
 
 
 class RecOnlyOCR(RapidOCR):
@@ -66,6 +88,152 @@ class RecOnlyOCR(RapidOCR):
         self.return_word_box = cfg.Global.return_word_box
         self.return_single_char_box = cfg.Global.return_single_char_box
         self.cfg = cfg
+
+
+class AlOcrCtcRecOCR:
+    """900k 参数 CNN-CTC 英文识别模型，直接使用 ONNXRuntime 推理。"""
+
+    def __init__(self, model_path, device="cpu"):
+        try:
+            import onnxruntime as ort
+        except Exception as exc:
+            handle_ocr_error(exc)
+
+        self.model_path = self._resolve_path(model_path)
+        if not self.model_path.is_file():
+            raise FileNotFoundError(f"OCR model not found: {self.model_path}")
+
+        self.device = device
+        self.charset = ALAS_CTC_CHARSET
+        self.blank_id = ALAS_CTC_BLANK_ID
+        self.image_height = ALAS_CTC_IMAGE_HEIGHT
+        self.max_width = ALAS_CTC_MAX_WIDTH
+        self.load_image = LoadImage()
+
+        providers = self._select_providers(ort)
+        self.session = ort.InferenceSession(str(self.model_path), providers=providers)
+        self.input_names = [item.name for item in self.session.get_inputs()]
+        logger.info(
+            f"Loaded OCR model '{ALAS_CTC_MODEL_VERSION}' on "
+            f"{', '.join(self.session.get_providers())}"
+        )
+
+    @staticmethod
+    def _resolve_path(model_path):
+        path = Path(model_path)
+        if path.is_absolute():
+            return path
+        return REPO_ROOT / path
+
+    def _select_providers(self, ort):
+        available = ort.get_available_providers()
+        providers = []
+        if os.name == 'nt' and self.device == 'gpu':
+            if "DmlExecutionProvider" in available:
+                providers.append("DmlExecutionProvider")
+            else:
+                logger.warning(
+                    "DmlExecutionProvider is not available, falling back to CPU"
+                )
+        providers.append("CPUExecutionProvider")
+        return providers
+
+    def close(self):
+        self.session = None
+
+    def __call__(self, image_or_path):
+        if self.session is None:
+            raise RuntimeError("OCR model has been closed")
+
+        start_time = time.perf_counter()
+        image, width, original = self._preprocess(image_or_path)
+        scores, lengths = self.session.run(
+            None,
+            {
+                self.input_names[0]: image,
+                self.input_names[1]: np.array([width], dtype=np.int64),
+            },
+        )
+        text, score = self._decode(scores, lengths)
+        return TextRecOutput(
+            imgs=[original],
+            txts=(text,),
+            scores=(score,),
+            word_results=(),
+            elapse=time.perf_counter() - start_time,
+        )
+
+    def _preprocess(self, image_or_path):
+        img = self.load_image(image_or_path)
+        gray = self._to_gray(img)
+
+        height, width = gray.shape[:2]
+        if height <= 0 or width <= 0:
+            raise ValueError(f"Invalid OCR image shape: {gray.shape}")
+
+        scaled_width = max(1, int(round(width * (self.image_height / height))))
+        scaled_width = min(scaled_width, self.max_width)
+        resized = cv2.resize(gray, (scaled_width, self.image_height))
+
+        canvas = np.full(
+            (self.image_height, self.max_width),
+            255,
+            dtype=np.float32,
+        )
+        canvas[:, :scaled_width] = resized.astype(np.float32)
+        array = canvas / 255.0
+        array = (array - 0.5) / 0.5
+        array = array[np.newaxis, np.newaxis, :, :].astype(np.float32)
+        return array, scaled_width, img
+
+    @staticmethod
+    def _to_gray(img):
+        arr = np.asarray(img)
+        if arr.ndim == 2:
+            gray = arr
+        elif arr.ndim == 3 and arr.shape[2] == 1:
+            gray = arr[:, :, 0]
+        elif arr.ndim == 3 and arr.shape[2] == 4:
+            gray = cv2.cvtColor(arr, cv2.COLOR_BGRA2GRAY)
+        elif arr.ndim == 3:
+            gray = cv2.cvtColor(arr, cv2.COLOR_BGR2GRAY)
+        else:
+            raise ValueError(f"Unsupported OCR image shape: {arr.shape}")
+
+        if gray.dtype != np.uint8:
+            gray = gray.astype(np.float32)
+            if gray.size and gray.max() <= 1.0:
+                gray *= 255.0
+            gray = np.clip(gray, 0, 255).astype(np.uint8)
+        return gray
+
+    def _decode(self, scores, lengths):
+        logits = np.asarray(scores, dtype=np.float32)[0]
+        length = int(np.asarray(lengths).reshape(-1)[0])
+        length = max(0, min(length, logits.shape[0]))
+        logits = logits[:length]
+        if logits.size == 0:
+            return "", 0.0
+
+        best = logits.argmax(axis=1)
+        shifted = logits - logits.max(axis=1, keepdims=True)
+        exp = np.exp(shifted)
+        probs = exp / exp.sum(axis=1, keepdims=True)
+
+        chars = []
+        char_scores = []
+        prev = self.blank_id
+        for pos, idx in enumerate(best):
+            idx = int(idx)
+            if idx != self.blank_id and idx != prev:
+                char_index = idx - 1
+                if 0 <= char_index < len(self.charset):
+                    chars.append(self.charset[char_index])
+                    char_scores.append(float(probs[pos, idx]))
+            prev = idx
+
+        score = float(np.mean(char_scores)) if char_scores else 0.0
+        return "".join(chars), score
 
 
 config_name = os.environ.get("ALAS_CONFIG_NAME") or DEFAULT_CONFIG_NAME
@@ -134,40 +302,129 @@ def _run_ocr_queued(func, *args, **kwargs):
     return job.result
 
 
+ONNX_MODEL_PARAMS = {
+    "azur_lane": {
+        "azur_lane_v6_6": (
+            "bin/ocr_models/azur_lane/ap_azurlane-v6.6_small_rec_dcu.onnx",
+            "bin/ocr_models/azur_lane/ppocrv6_azurlane_dict.txt",
+            OCRVersion.PPOCRV6,
+        ),
+        "azur_lane_v6_5": (
+            "bin/ocr_models/azur_lane/ap_azurlane-v6.5_small_rec_nvidia.onnx",
+            "bin/ocr_models/azur_lane/ppocrv6_azurlane_dict.txt",
+            OCRVersion.PPOCRV6,
+        ),
+        "ppocr_v6": GENERIC_PPOCR_V6_PARAMS,
+        "alocr_en_v2_6": (
+            "bin/ocr_models/azur_lane/alocr-en-us-v2.6.nvc.onnx",
+            "bin/ocr_models/azur_lane/en_dict.txt",
+            OCRVersion.PPOCRV4,
+        ),
+        "alocr_en_v2_0": (
+            "bin/ocr_models/azur_lane/alocr-en-us-v2.0.nvc.onnx",
+            "bin/ocr_models/azur_lane/en_dict.txt",
+            OCRVersion.PPOCRV4,
+        ),
+        "alocr_en_v1_0": (
+            "bin/ocr_models/azur_lane/alocr-en-v1.0.onnx",
+            "bin/ocr_models/azur_lane/en_dict.txt",
+            OCRVersion.PPOCRV4,
+        ),
+    },
+    "azur_lane_jp": {
+        "azur_lane_jp_v6": AZUR_LANE_JP_V6_PARAMS,
+        "ppocr_v6": GENERIC_PPOCR_V6_PARAMS,
+    },
+    "ppocr_v6": {
+        "ppocr_v6": GENERIC_PPOCR_V6_PARAMS,
+    },
+    "cn": {
+        "cn_v6_1": (
+            "bin/ocr_models/zh-CN/ap_zh-cn-v6.1_small_rec_dcu.onnx",
+            "bin/ocr_models/zh-CN/ppocrv6_cn_dict.txt",
+            OCRVersion.PPOCRV6,
+        ),
+        "cn_v6": (
+            "bin/ocr_models/zh-CN/ap_zh-cn-v6_small_rec_dcu.onnx",
+            "bin/ocr_models/zh-CN/ppocrv6_cn_dict.txt",
+            OCRVersion.PPOCRV6,
+        ),
+        "ppocr_v6": GENERIC_PPOCR_V6_PARAMS,
+        "alocr_cn_v3": (
+            "bin/ocr_models/zh-CN/alocr-zh-cn-v3.dtk.onnx",
+            "bin/ocr_models/zh-CN/cn.txt",
+            OCRVersion.PPOCRV5,
+        ),
+        "alocr_cn_v2_5": (
+            "bin/ocr_models/zh-CN/alocr-zh-cn-v2.5.dtk.onnx",
+            "bin/ocr_models/zh-CN/cn.txt",
+            OCRVersion.PPOCRV5,
+        ),
+    },
+    "jp": {
+        "azur_lane_jp_v6": AZUR_LANE_JP_V6_PARAMS,
+        "ppocr_v6": GENERIC_PPOCR_V6_PARAMS,
+    },
+    "tw": {
+        "ppocr_v6": GENERIC_PPOCR_V6_PARAMS,
+    },
+}
+
+CUSTOM_CTC_MODEL_PARAMS = {
+    "azur_lane": {
+        ALAS_CTC_MODEL_VERSION: ALAS_CTC_MODEL_PATH,
+    },
+}
+
+DEFAULT_ONNX_MODEL_VERSION = {
+    "azur_lane": "alocr_en_v2_6",
+    "azur_lane_jp": "azur_lane_jp_v6",
+    "ppocr_v6": "ppocr_v6",
+    "cn": "cn_v6_1",
+    "jp": "ppocr_v6",
+    "tw": "ppocr_v6",
+}
+
+
+def _resolve_onnx_model_version(name):
+    specs = ONNX_MODEL_PARAMS.get(name)
+    custom_specs = CUSTOM_CTC_MODEL_PARAMS.get(name, {})
+    if specs is None and not custom_specs:
+        raise ValueError(f"Unsupported OCR model: {name}")
+
+    requested = config.ocr_model_version(name)
+    if requested == OCR_MODEL_VERSION_AUTO:
+        return DEFAULT_ONNX_MODEL_VERSION[name]
+    if requested in specs or requested in custom_specs:
+        return requested
+
+    fallback = DEFAULT_ONNX_MODEL_VERSION[name]
+    logger.warning(
+        f"OCR model version '{requested}' is not available for '{name}', "
+        f"using '{fallback}'"
+    )
+    return fallback
+
+
 def _get_onnx_model_params(name):
     """
-    返回指定语言的 ONNX 模型参数。
+    按配置选择 ONNX 识别模型版本。
 
     Args:
-        name: 语言名称，如 'cn'、'jp'、'tw'、'en'。
+        name: 模型名称，如 'azur_lane'、'azur_lane_jp'、'ppocr_v6'、'cn'、'jp'、'tw'。
 
     Returns:
         (model_path, rec_keys_path, ocr_version) 三元组。
     """
-    if name in ("cn", "zhcn"):
-        return (
-            "bin/ocr_models/ppocr-v6/ap_zh-cn-v6.1_small_rec_dcu.onnx",
-            "bin/ocr_models/ppocr-v6/ppocrv6_cn_dict.txt",
-            OCRVersion.PPOCRV6,
+    version = _resolve_onnx_model_version(name)
+    if version in CUSTOM_CTC_MODEL_PARAMS.get(name, {}):
+        fallback = "azur_lane_v6_6" if name == "azur_lane" else DEFAULT_ONNX_MODEL_VERSION[name]
+        logger.info(
+            f"OCR model '{version}' is recognition-only, using '{fallback}' "
+            f"for RapidOCR-compatible pipeline"
         )
-    elif name == "jp":
-        return (
-            "bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx",
-            "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
-            OCRVersion.PPOCRV6,
-        )
-    elif name == "tw":
-        return (
-            "bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx",
-            "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
-            OCRVersion.PPOCRV6,
-        )
-    else:
-        return (
-            "bin/ocr_models/en-US/alocr-en-us-v2.6.nvc.onnx",
-            "bin/ocr_models/en-US/en.txt",
-            OCRVersion.PPOCRV4,
-        )
+        return ONNX_MODEL_PARAMS[name][fallback]
+    return ONNX_MODEL_PARAMS[name][version]
 
 
 def _create_ocr(name):
@@ -181,6 +438,11 @@ def _create_ocr(name):
         ocr_device = config.ocr_device
         use_dml = os.name == 'nt' and ocr_device == 'gpu'
         use_coreml = ocr_device == 'ane'
+        version = _resolve_onnx_model_version(name)
+        custom_model_path = CUSTOM_CTC_MODEL_PARAMS.get(name, {}).get(version)
+        if custom_model_path is not None:
+            return AlOcrCtcRecOCR(custom_model_path, device=ocr_device)
+
         model_path, rec_keys_path, ocr_version = _get_onnx_model_params(name)
         params = {
             "Global.use_det": False,
@@ -198,33 +460,26 @@ def _create_ocr(name):
 
 
 # 懒加载：模块级不再创建模型，首次 init() 时才加载
-_cn_model = None
-_en_model = None
-_jp_model = None
-_tw_model = None
+_model_cache = {}
+
+
+def _model_cache_key(name):
+    return (
+        name,
+        config.ocr_backend,
+        config.ocr_device,
+        config.ocr_model_version(name),
+    )
 
 
 def _get_model(name):
-    global _cn_model, _en_model, _jp_model, _tw_model
-    if name in ("cn", "zhcn"):
-        if _cn_model is None:
-            _cn_model = _create_ocr("cn")
-        return _cn_model
-    elif name == "jp":
-        if _jp_model is None:
-            _jp_model = _create_ocr("jp")
-        return _jp_model
-    elif name == "tw":
-        if _tw_model is None:
-            _tw_model = _create_ocr("tw")
-        return _tw_model
-    else:
-        if _en_model is None:
-            _en_model = _create_ocr("en")
-        return _en_model
+    key = _model_cache_key(name)
+    if key not in _model_cache:
+        _model_cache[key] = _create_ocr(name)
+    return _model_cache[key]
 
 
-DET_MODEL_PATH = "bin/ocr_models/det/PP-OCRv5_mobile_det.onnx"
+DET_MODEL_PATH = "bin/ocr_models/det/PP-OCRv6_tiny_det.onnx"
 
 _det_model_cache = {}
 
@@ -299,28 +554,25 @@ def _get_det_model(name):
     """
     backend = config.ocr_backend
     if backend == 'ncnn':
-        key = "det"
+        key = _model_cache_key("det")
         if key not in _det_model_cache:
             _det_model_cache[key] = _create_det_ocr_for_ncnn()
         return _det_model_cache[key]
     else:
-        if name not in _det_model_cache:
-            _det_model_cache[name] = _create_det_ocr_for_onnx(name)
-        return _det_model_cache[name]
+        key = _model_cache_key(name)
+        if key not in _det_model_cache:
+            _det_model_cache[key] = _create_det_ocr_for_onnx(name)
+        return _det_model_cache[key]
 
 
 def reset_ocr_model():
     def _reset():
-        global _cn_model, _en_model, _jp_model, _tw_model
         logger.info("Resetting OCR models")
-        for model in (_cn_model, _en_model, _jp_model, _tw_model):
+        for model in _model_cache.values():
             close = getattr(model, "close", None)
             if close is not None:
                 close()
-        _cn_model = None
-        _en_model = None
-        _jp_model = None
-        _tw_model = None
+        _model_cache.clear()
         _det_model_cache.clear()
 
     return _run_ocr_queued(_reset)

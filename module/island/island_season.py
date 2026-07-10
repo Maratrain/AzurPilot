@@ -160,7 +160,7 @@ class SeasonConfig:
     def refresh(self):
         """刷新季节配置（从最新配置重新读取）"""
         self._update_season()
-        logger.info(f"季节配置已刷新，当前季节: {self.season_name}")
+        logger.info(f"[岛屿] 季节配置已刷新，当前季节: {self.season_name}")
 
     def __str__(self):
         return f"SeasonConfig(season={self._season}, name={self.season_name})"

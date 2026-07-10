@@ -1,9 +1,6 @@
-from datetime import timedelta
-
-from module.config.utils import get_os_next_reset, DEFAULT_TIME, get_os_reset_remain
+from module.config.utils import get_os_next_reset, DEFAULT_TIME
 from module.exception import GameStuckError, ScriptError
 from module.logger import logger
-from module.map.map_grids import SelectedGrids
 from module.os.globe_operation import OSExploreError
 from module.os.map import OSMap
 
@@ -19,8 +16,15 @@ class OpsiExplore(OSMap):
         logger.info('Delay other OpSi tasks during OpsiExplore')
         with self.config.multi_set():
             next_run = self.config.Scheduler_NextRun
-            for task in ['OpsiObscure', 'OpsiAbyssal', 'OpsiArchive', 'OpsiStronghold', 'OpsiMeowfficerFarming',
-                         'OpsiMonthBoss', 'OpsiShop', 'OpsiHazard1Leveling']:
+            delay_tasks = ['OpsiObscure', 'OpsiAbyssal', 'OpsiArchive', 'OpsiStronghold', 'OpsiMeowfficerFarming',
+                         'OpsiMonthBoss', 'OpsiShop', 'OpsiScheduling']
+            can_hazard1_leveling = (
+                self.config.OpsiExplore_AllowHazard1Leveling and
+                self.name_to_zone(self.config.OpsiExplore_LastZone).zone_id not in [0, 44, 24]
+            )
+            if not can_hazard1_leveling:
+                delay_tasks.append('OpsiHazard1Leveling')
+            for task in delay_tasks:
                 keys = f'{task}.Scheduler.NextRun'
                 current = self.config.cross_get(keys=keys, default=DEFAULT_TIME)
                 if current < next_run:
@@ -51,7 +55,6 @@ class OpsiExplore(OSMap):
                 self.config.task_delay(target=next_reset)
                 self.config.task_call('OpsiDaily', force_call=False)
                 self.config.task_call('OpsiShop', force_call=False)
-                self.config.task_call('OpsiHazard1Leveling', force_call=False)
             self.config.task_stop()
 
         logger.hr('OS explore', level=1)
@@ -135,5 +138,5 @@ class OpsiExplore(OSMap):
         failed_zone = [self.name_to_zone(zone) for zone in self._os_explore_failed_zone]
         logger.error(f'OpsiExplore failed at these zones, please check you game settings '
                      f'and check if there is any unfinished event in them: {failed_zone}')
-        logger.critical('无法解锁该区域')
+        logger.critical('[大世界-开荒] 无法解锁该区域')
         raise GameStuckError

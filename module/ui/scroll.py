@@ -158,7 +158,7 @@ class Scroll:
                 self.drag_timeout.reset()
             else:
                 if self.drag_timeout.reached():
-                    logger.warning('滚动条消失，假定已设置完成')
+                    logger.warning('[UI] 滚动条消失，假定已设置完成')
                     break
                 else:
                     continue

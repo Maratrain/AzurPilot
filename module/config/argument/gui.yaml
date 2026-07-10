@@ -156,6 +156,12 @@ Remote:
   NotRunning:
   NotEnable:
   EntryPoint:
+  StatusDirect:
+  StatusTurn:
+  StatusSsh:
+  StatusSignaling:
+  StatusStarting:
+  StatusFailed:
   ConfigureHint:
   SSHNotInstall:
 
@@ -237,12 +243,26 @@ DeploySetting:
   DiscordRichPresenceHelp:
   EnableRemoteAccess:
   EnableRemoteAccessHelp:
+  RemoteAccessMode:
+  RemoteAccessModeHelp:
   SSHUser:
   SSHUserHelp:
   SSHServer:
   SSHServerHelp:
   SSHExecutable:
   SSHExecutableHelp:
+  AllowedRedirectHosts:
+  AllowedRedirectHostsHelp:
+  MaxRedirects:
+  MaxRedirectsHelp:
+  SignalingServer:
+  SignalingServerHelp:
+  StunServers:
+  StunServersHelp:
+  TurnServers:
+  TurnServersHelp:
+  TurnCredentialMode:
+  TurnCredentialModeHelp:
   WebuiHost:
   WebuiHostHelp:
   WebuiPort:
@@ -342,13 +362,6 @@ Stat:
   AvgMeowRoundTime:
   MeowLootTitle:
   NoMeowDataNotice:
-  MeowAdvanceAdviceTitle:
-  CurrentAP:
-  ApPerRound:
-  AvailableRounds:
-  AvgRoundDuration:
-  CurrentMode:
-  RecommendAhead:
   RoundUnit:
   SecondUnit:
   HourUnit:
@@ -371,9 +384,6 @@ Stat:
   TargetExpRequired:
   BattlesCompleted:
   ExpRemaining:
-  StartCleanupTime:
-  NextOsReset:
-  MeowAutoCleanupStatus:
   CommissionIncomeTitle:
   CommissionIncomeMonth:
   CommissionIncomeWeek:
@@ -402,15 +412,13 @@ OpsiScheduling:
   UseSmartSchedulingOperationCoinsPreserve:
   OperationCoinsPreserve:
   ActionPointPreserve:
-  ActionPointEarlyTriggerEnable:
-  ActionPointEarlyTriggerThreshold:
 
   OperationCoinsReturnThreshold:
   EnableMeowfficerFarming:
   EnableObscure:
   EnableAbyssal:
   EnableStronghold:
-  MeowStartEarlyMode:
+  TaskPriority:
     
 Misc:
   Enabled:

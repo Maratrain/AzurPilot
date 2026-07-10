@@ -9,6 +9,7 @@ from module.base.timer import timer
 from module.config.deep import deep_default, deep_get, deep_iter, deep_set
 from module.config.env import IS_ON_PHONE_CLOUD
 from module.config.server import VALID_CHANNEL_PACKAGE, VALID_PACKAGE, VALID_SERVER_LIST, to_package, to_server
+from module.config.task_priority import get_scheduler_tasks, merge_task_priority
 from module.config.utils import *
 from module.config.redirect_utils.utils import *
 
@@ -634,6 +635,14 @@ class ConfigUpdater:
         # 2025.06.26
         # ('Coalition.Coalition.Mode', 'Coalition.Coalition.Mode', coalition_to_little_academy),
     ]
+    redirection += [
+        (f'{task}.GemsFarming.ALLowHighFlagshipLevel', f'{task}.GemsFarming.AllowHighFlagshipLevel')
+        for task in [*GEMS_FARMINGS, 'Ambush11']
+    ]
+    redirection += [
+        (f'{task}.GemsFarming.ALLowLowVanguardLevel', f'{task}.GemsFarming.AllowLowVanguardLevel')
+        for task in [*GEMS_FARMINGS, 'Ambush11']
+    ]
 
     # redirection += [
     #     (
@@ -733,6 +742,12 @@ class ConfigUpdater:
                     ) == template_priority
             ):
                 deep_set(new, 'General.YukikazeTaskManager.TaskPriorityAdjustment', template_priority)
+            else:
+                deep_set(
+                    new,
+                    'General.YukikazeTaskManager.TaskPriorityAdjustment',
+                    merge_task_priority(new_priority, template_priority, get_scheduler_tasks(self.args)),
+                )
         new = self._override(new)
 
         return new
@@ -830,21 +845,6 @@ class ConfigUpdater:
         elif key == 'OpsiHazard1Leveling.OpsiHazard1Leveling.OperationCoinsPreserve':
             yield 'OpsiScheduling.OpsiScheduling.OperationCoinsPreserve', value
         
-        # 智能调度与侵蚀1虚拟资产保留双向同步
-        if key == 'OpsiScheduling.OpsiScheduling.VirtualAssetPreserve':
-            yield 'OpsiHazard1Leveling.OpsiHazard1Leveling.PreserveVirtualAsset', value
-        elif key == 'OpsiHazard1Leveling.OpsiHazard1Leveling.PreserveVirtualAsset':
-            yield 'OpsiScheduling.OpsiScheduling.VirtualAssetPreserve', value
-        
-        # 智能调度与短猫行动力保留双向同步
-        # 只有当值 > 0 时才同步（值为0表示不覆盖，使用各任务自己的配置）
-        if key == 'OpsiScheduling.OpsiScheduling.ActionPointPreserve':
-            if value and int(value) > 0:
-                yield 'OpsiMeowfficerFarming.OpsiMeowfficerFarming.ActionPointPreserve', value
-        elif key == 'OpsiMeowfficerFarming.OpsiMeowfficerFarming.ActionPointPreserve':
-            if value and int(value) > 0:
-                yield 'OpsiScheduling.OpsiScheduling.ActionPointPreserve', value
-
         # 注意：动态下拉菜单更新仅在 pywebio > 1.8.0 时可用
         # elif key == 'Alas.Emulator.ScreenshotMethod' and value == 'nemu_ipc':
         #     yield 'Alas.Emulator.ControlMethod', 'nemu_ipc'

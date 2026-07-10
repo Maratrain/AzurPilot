@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
+from module.config.time_source import now as current_time
 from module.config.utils import get_os_next_reset, get_server_last_update
 from module.logger import logger
 from module.os_handler.assets import TARGET_ENTER, TARGET_ALL_ON, TARGET_RED_DOT
@@ -10,7 +11,7 @@ from module.os.tasks.voucher import OpsiVoucher
 from module.os.tasks.meowfficer_farming import OpsiMeowfficerFarming
 from module.os.tasks.hazard_leveling import OpsiHazard1Leveling
 from module.os.tasks.fleet_auto_change import OpsiFleetAutoChange
-from module.os.tasks.scheduling import OpsiScheduling
+from module.os.tasks.prevent_action_point_overflow import OpsiPreventActionPointOverflow
 from module.os.tasks.obscure import OpsiObscure
 from module.os.tasks.abyssal import OpsiAbyssal
 from module.os.tasks.archive import OpsiArchive
@@ -22,7 +23,7 @@ from module.os.tasks.cross_month import OpsiCrossMonth
 
 class OperationSiren(
     OpsiDaily, OpsiShop, OpsiVoucher, OpsiMeowfficerFarming,
-    OpsiHazard1Leveling, OpsiFleetAutoChange, OpsiScheduling, OpsiObscure, OpsiAbyssal,
+    OpsiHazard1Leveling, OpsiFleetAutoChange, OpsiPreventActionPointOverflow, OpsiObscure, OpsiAbyssal,
     OpsiArchive, OpsiStronghold, OpsiMonthBoss, OpsiExplore,
     OpsiCrossMonth,
 ):
@@ -40,7 +41,7 @@ class OperationSiren(
 
     def os_target_receive(self):
         next_reset = get_os_next_reset()
-        now = datetime.now()
+        now = current_time()
         logger.attr('OpsiNextReset', next_reset)
         if next_reset - now < timedelta(days=1):
             logger.error('Only one day to next reset, received loggers may be wasted.'
@@ -63,7 +64,7 @@ class OperationSiren(
             self._os_target_enter()
             OSTargetHandler(self.config, self.device).run()
             self._os_target_exit()
-            self.config.OpsiTarget_LastRun = datetime.now().replace(microsecond=0)
+            self.config.OpsiTarget_LastRun = current_time().replace(microsecond=0)
 
     def server_support_os_target(self):
         return self.config.SERVER in ['cn', 'jp']

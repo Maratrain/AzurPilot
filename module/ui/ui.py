@@ -229,10 +229,10 @@ class UI(InfoHandler):
         logger.warning("Starting from current page is not supported")
         logger.warning(f"Supported page: {[str(page) for page in Page.iter_pages()]}")
         logger.warning('Supported page: Any page with a "HOME" button on the upper-right')
-        logger.critical("杂鱼大叔~ 这么大个人了连主界面都进不去吗？噗噗，简直像个迷路的小宝宝❤")
-        logger.critical("听好了，笨蛋大叔：要么滚去正常的界面启动，"
+        logger.critical("[UI] 杂鱼大叔~ 这么大个人了连主界面都进不去吗？噗噗，简直像个迷路的小宝宝❤")
+        logger.critical("[UI] 听好了，笨蛋大叔：要么滚去正常的界面启动，"
                         "要么找个带『一键回港』按钮的界面再求我。你要是连这都找不到，建议直接把号删了止损。")
-        logger.critical("看懂了吗？废材？不要再浪费我的算力了，赶紧去改！")
+        logger.critical("[UI] 看懂了吗？废材？不要再浪费我的算力了，赶紧去改！")
         
         # 未知页面自动重启
         logger.warning("Unknown page detected, try to restart game")
@@ -345,6 +345,7 @@ class UI(InfoHandler):
             skip_first_screenshot=False,
             fast=True,
             interval=(0.2, 0.3),
+            stall_tolerance=10,
     ):
         """
         确保翻页到指定索引位置，通过 OCR 识别当前页码并点击翻页按钮。
@@ -357,9 +358,13 @@ class UI(InfoHandler):
             skip_first_screenshot (bool): 是否跳过首次截图。
             fast (bool): 默认为 True。当索引不连续时设为 False。
             interval (tuple, int, float): 两次点击之间的间隔（秒）。
+            stall_tolerance (int): 允许索引连续不变的次数，超过后判定为无法达到目标并退出。
         """
         logger.hr("UI ensure index")
         retry = Timer(1, count=2)
+        # 进度停滞检测：记录上一次索引值和连续不变次数，防止因游戏端限制导致死循环
+        last_current = None
+        stall_count = 0
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -374,6 +379,17 @@ class UI(InfoHandler):
             logger.attr("Index", current)
             diff = index - current
             if diff == 0:
+                break
+
+            # 进度停滞检测：当连续stall_tolerance次索引值未变化且diff不为0时退出
+            if current == last_current:
+                stall_count += 1
+            else:
+                stall_count = 0
+                last_current = current
+            if stall_count >= stall_tolerance:
+                logger.warning(f'Index stuck at {current} for {stall_count} times, '
+                               f'unable to reach target {index}, skipping')
                 break
 
             if retry.reached():
@@ -475,9 +491,9 @@ class UI(InfoHandler):
         # - 是否打开兑换商店？handle_popup_confirm() 点击确认
         # - EXCHANGE_CHECK 页面，点击返回箭头
         if self._opsi_reset_fleet_preparation_click >= 5:
-            logger.critical("无法确认大世界出击舰队，大叔你还点？是在玩打地鼠吗？真是逊毙了！")
-            logger.critical("哎呀呀，大叔是眼花了还是没长脑子？ #1: 建议检查您是否在大世界中设置了舰队")
-            logger.critical("笨——蛋——大叔！ #2: 建议检查您的舰队准入门槛（等级限制）")
+            logger.critical("[UI] 无法确认大世界出击舰队，大叔你还点？是在玩打地鼠吗？真是逊毙了！")
+            logger.critical("[UI] 哎呀呀，大叔是眼花了还是没长脑子？ #1: 建议检查您是否在大世界中设置了舰队")
+            logger.critical("[UI] 笨——蛋——大叔！ #2: 建议检查您的舰队准入门槛（等级限制）")
             raise RequestHumanTakeover
         if self.appear_then_click(RESET_TICKET_POPUP, offset=(30, 30), interval=3):
             return True

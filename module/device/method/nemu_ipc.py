@@ -205,10 +205,10 @@ def retry(func):
                     pass
 
         if func.__name__ in ['connect_with_retry', 'screenshot', 'down', 'up']:
-            logger.critical(f'重试 {func.__name__}() 失败')
+            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
 
-        logger.critical(f'重试 {func.__name__}() 失败')
+        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -232,6 +232,8 @@ class NemuIpcImpl:
             os.path.abspath(os.path.join(nemu_folder, './shell/sdk/external_renderer_ipc.dll')),
             # MuMuPlayer12 5.0
             os.path.abspath(os.path.join(nemu_folder, './nx_device/12.0/shell/sdk/external_renderer_ipc.dll')),
+            # MuMuPlayer12 6.0
+            os.path.abspath(os.path.join(nemu_folder, './nx_main/sdk/external_renderer_ipc.dll')),
         ]
         self.lib = None
         for ipc_dll in list_dll:
@@ -502,10 +504,10 @@ class NemuIpc(Platform):
         # 例如 E:\ProgramFiles\MuMuPlayer-12.0\shell\MuMuPlayer.exe
         # 安装路径为 E:\ProgramFiles\MuMuPlayer-12.0
         if self.emulator_instance is None:
-            logger.error('无法使用 NemuIpc，因为未找到模拟器实例')
+            logger.error('[Device] 无法使用 NemuIpc，因为未找到模拟器实例')
             raise RequestHumanTakeover
         if 'MuMuPlayerGlobal' in self.emulator_instance.path:
-            logger.info(f'nemu_ipc 在 MuMuPlayerGlobal 上不可用, {self.emulator_instance.path}')
+            logger.info(f'[Device] nemu_ipc 在 MuMuPlayerGlobal 上不可用, {self.emulator_instance.path}')
             raise RequestHumanTakeover
         try:
             impl = NemuIpcImpl(
@@ -565,7 +567,7 @@ class NemuIpc(Platform):
         if str(value).lower() == 'true':
             # https://mumu.163.com/help/20230802/35047_1102450.html
             logger.critical('Please turn off "Keep alive in the background" in the settings or MuMuPlayer')
-            logger.critical('请在MuMu模拟器设置内关闭 "后台挂机时保活运行"')
+            logger.critical('[Device] 请在MuMu模拟器设置内关闭 "后台挂机时保活运行"')
             raise RequestHumanTakeover
         return True
 
@@ -584,7 +586,7 @@ class NemuIpc(Platform):
 
         # 搜索模拟器实例
         if self.emulator_instance is None:
-            logger.warning('检查 check_mumu_app_keep_alive 失败，因为 emulator_instance 为 None')
+            logger.warning('[Device] 检查 check_mumu_app_keep_alive 失败，因为 emulator_instance 为 None')
             return False
         name = self.emulator_instance.name
         file = self.emulator_instance.mumu_vms_config('customer_config.json')

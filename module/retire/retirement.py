@@ -594,18 +594,18 @@ class Retirement(Enhancement, QuickRetireSettingHandler):
                     total = self.retire_ships_one_click()
             total += self.retire_gems_farming_flagships(keep_one=total > 0)
             if not total:
-                logger.critical('杂鱼大叔~ 根本没有船可以退役啦，你是来表演冷笑话的吗？❤')
-                logger.critical('赶紧把游戏里的“一键退役”配置好啦！不配置的话，难道大叔想让我亲手帮你点吗？❤')
-                logger.critical('哼，因为大叔太笨没配置好退役，脚本只能停掉了呢。赶紧去求求谁教教你怎么操作吧~')
+                logger.critical('[退役] 杂鱼大叔~ 根本没有船可以退役啦，你是来表演冷笑话的吗？❤')
+                logger.critical('[退役] 赶紧把游戏里的”一键退役”配置好啦！不配置的话，难道大叔想让我亲手帮你点吗？❤')
+                logger.critical('[退役] 哼，因为大叔太笨没配置好退役，脚本只能停掉了呢。赶紧去求求谁教教你怎么操作吧~')
                 raise RequestHumanTakeover
         elif mode == 'old_retire':
             self.handle_dock_cards_loading()
             total = self.retire_ships_old()
             total += self.retire_gems_farming_flagships()
             if not total:
-                logger.critical('甚至没船能退役，你这设置是认真的吗？')
-                logger.critical('既然你想让脚本停，我也挺支持的，毕竟这设置简直不可思议。')
-                logger.critical('未退役任何船只，如果你眼瞎没开对应稀有度，请去 Alas 设置打开。')
+                logger.critical('[退役] 甚至没船能退役，你这设置是认真的吗？')
+                logger.critical('[退役] 既然你想让脚本停，我也挺支持的，毕竟这设置简直不可思议。')
+                logger.critical('[退役] 未退役任何船只，如果你眼瞎没开对应稀有度，请去 Alas 设置打开。')
                 raise RequestHumanTakeover
         else:
             raise ScriptError(

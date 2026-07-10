@@ -18,7 +18,8 @@ from module.logger import logger
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODEL_ROOT = REPO_ROOT / "bin/ocr_models/ncnn"
 REC_IMAGE_SHAPE = (3, 48, 320)
-INPUT_NAME = "x"
+INPUT_NAME = "in0"
+OUTPUT_NAME = "out0"
 
 
 @dataclass(frozen=True)
@@ -32,37 +33,61 @@ class NcnnRecModelSpec:
 
 
 MODEL_SPECS = {
-    "en": NcnnRecModelSpec(
-        name="en",
-        param_path=MODEL_ROOT / "en.param",
-        bin_path=MODEL_ROOT / "en.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/en-US/en.txt",
-        output_name="Add.227",
+    "azur_lane": NcnnRecModelSpec(
+        name="azur_lane",
+        param_path=MODEL_ROOT / "azur_lane.param",
+        bin_path=MODEL_ROOT / "azur_lane.bin",
+        keys_path=REPO_ROOT / "bin/ocr_models/azur_lane/ppocrv6_azurlane_dict.txt",
+        output_name=OUTPUT_NAME,
+        disable_fp16=True,
+    ),
+    "azur_lane_jp": NcnnRecModelSpec(
+        name="azur_lane_jp",
+        param_path=MODEL_ROOT / "azur_lane_jp.param",
+        bin_path=MODEL_ROOT / "azur_lane_jp.bin",
+        keys_path=REPO_ROOT / "bin/ocr_models/azur_lane_jp/ppocrv6_azurlane_jp_dict.txt",
+        output_name=OUTPUT_NAME,
+        disable_fp16=True,
+    ),
+    "ppocr_v6": NcnnRecModelSpec(
+        name="ppocr_v6",
+        param_path=MODEL_ROOT / "jp.param",
+        bin_path=MODEL_ROOT / "jp.bin",
+        keys_path=REPO_ROOT / "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
+        output_name=OUTPUT_NAME,
         disable_fp16=True,
     ),
     "cn": NcnnRecModelSpec(
         name="cn",
         param_path=MODEL_ROOT / "cn.param",
         bin_path=MODEL_ROOT / "cn.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/zh-CN/cn.txt",
-        output_name="Add.227",
+        keys_path=REPO_ROOT / "bin/ocr_models/zh-CN/ppocrv6_cn_dict.txt",
+        output_name=OUTPUT_NAME,
+        disable_fp16=True,
     ),
     "jp": NcnnRecModelSpec(
         name="jp",
         param_path=MODEL_ROOT / "jp.param",
         bin_path=MODEL_ROOT / "jp.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/JP/ppocrv5_dict.txt",
-        output_name="Add.223",
+        keys_path=REPO_ROOT / "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
+        output_name=OUTPUT_NAME,
         disable_fp16=True,
     ),
     "tw": NcnnRecModelSpec(
         name="tw",
         param_path=MODEL_ROOT / "tw.param",
         bin_path=MODEL_ROOT / "tw.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/TW/ppocrv5_dict.txt",
-        output_name="Add.223",
+        keys_path=REPO_ROOT / "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
+        output_name=OUTPUT_NAME,
         disable_fp16=True,
     ),
+}
+
+MODEL_ALIASES = {
+    "ppocr-v6": "ppocr_v6",
+    "cnocr": "cn",
+    "en": "azur_lane",
+    "zhcn": "cn",
 }
 
 
@@ -73,9 +98,7 @@ _gpu_instance_created = False
 
 
 def normalize_model_name(name: str) -> str:
-    if name in ("cn", "zhcn"):
-        return "cn"
-    return name
+    return MODEL_ALIASES.get(name, name)
 
 
 def supports_ncnn_model(name: str) -> bool:
@@ -287,10 +310,7 @@ class NcnnRecOCR:
         preds = self._infer(norm)
         line_results, _ = self.decoder(preds)
         text = line_results[0][0]
-
-        # 输出为 Softmax 前的 logits。CTC argmax 结果相同，
-        # 但为降低延迟跳过 Softmax 后置信度未经校准。
-        score = 1.0 if text else 0.0
+        score = float(line_results[0][1]) if len(line_results[0]) > 1 else 0.0
         return TextRecOutput(
             imgs=[img],
             txts=(text,),

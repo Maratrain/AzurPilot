@@ -14,6 +14,7 @@ from queue import Queue
 from typing import Callable, Generator, List
 
 import pywebio
+from pywebio.exceptions import SessionClosedException
 from pywebio.input import PASSWORD, actions, input, input_group
 from pywebio.output import PopupSize, popup, put_html, put_text, toast
 from pywebio.session import eval_js, info as session_info, register_thread, run_js
@@ -228,6 +229,9 @@ class TaskHandler:
                         # logger.debug(f'Start task {task.g.__name__}')
                         task.send(self)
                         # logger.debug(f'End task {task.g.__name__}')
+                    except SessionClosedException:
+                        logger.debug(f"WebIO 会话已关闭，停止任务 {task.name}")
+                        self.remove_task(task, nowait=True)
                     except Exception as e:
                         logger.exception(e)
                         self.remove_task(task, nowait=True)
@@ -267,9 +271,9 @@ class TaskHandler:
             if not self._thread.is_alive():
                 logger.info("Finish task handler")
             else:
-                logger.warning("任务处理器未在 2 秒内停止")
+                logger.warning("[WebUI] 任务处理器未在 2 秒内停止")
         else:
-            logger.info("任务处理器在其自身线程内调用了停止，跳过 join")
+            logger.info("[WebUI] 任务处理器在其自身线程内调用了停止，跳过 join")
 
 
 class WebIOTaskHandler(TaskHandler):
@@ -467,6 +471,9 @@ def parse_pin_value(val, valuetype: str = None, widget_type: str = None, options
     checkbox 返回 [] 或 [True]（在 put_checkbox_ 中定义）；
     multiselect 返回选项值列表（如 [3, 1, 5]）。
     """
+    if widget_type == 'task_priority':
+        return "" if val is None else str(val)
+
     # 处理 dict 类型 - 提取 'value' 字段并递归解析
     if isinstance(val, dict):
         if 'value' in val:

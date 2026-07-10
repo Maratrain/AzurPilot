@@ -1,8 +1,8 @@
 import re
-from datetime import datetime
 
 from module.campaign.campaign_status import CampaignStatus
 from module.config.config_updater import COALITIONS, EVENTS, GEMS_FARMINGS, HOSPITAL, MARITIME_ESCORTS, RAIDS
+from module.config.time_source import now as current_time
 from module.config.utils import DEFAULT_TIME
 from module.logger import logger
 from module.notify import handle_notify
@@ -136,7 +136,7 @@ class CampaignEvent(CampaignStatus):
         if command in GEMS_FARMINGS and self.stage_is_main(self.config.Campaign_Name):
             return False
 
-        now = datetime.now().replace(microsecond=0)
+        now = current_time().replace(microsecond=0)
         logger.attr('Event_time_limit', f'{now} -> {limit}')
         if now > limit:
             logger.hr(f'Reach event time limit: {limit}')

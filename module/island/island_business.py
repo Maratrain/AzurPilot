@@ -9,7 +9,9 @@ from module.base.button import Button
 from module.base.template import Template
 from module.base.utils import crop, get_color, color_similar
 from module.island.island_season import SEASONAL_ITEMS
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from module.config.time_source import now as current_time
 from module.ocr.ocr import Duration
 
 
@@ -175,7 +177,7 @@ class IslandBusiness(Island):
 
         self._init_season_config()
         self.season = self.season_config.season
-        logger.info(f"当前季节: {self.season_config.season_name}")
+        logger.info(f"[岛屿-经营] 当前季节: {self.season_config.season_name}")
 
         # 读取每个商店配置的角色和餐品
         self._load_shop_configs()
@@ -197,9 +199,9 @@ class IslandBusiness(Island):
         self.boost_filters = {}
         self._load_boost_filters()
 
-        logger.info(f"分批经营: {'启用' if self.batch_enabled else '禁用'}, "
+        logger.info(f"[岛屿-经营] 分批经营: {'启用' if self.batch_enabled else '禁用'}, "
                      f"第一批: {self.batch1_shops_indices}, 第二批: {self.batch2_shops_indices}")
-        logger.info("经营模块初始化完成")
+        logger.info("[岛屿-经营] 经营模块初始化完成")
 
     # ===================================================================
     # 分批经营：工具方法
@@ -250,10 +252,10 @@ class IslandBusiness(Island):
         selected_products = self.active_products.get(shop_name, [])
         selected_names = [p['name'] for p in selected_products]
         if seasonal_product_name not in selected_names:
-            logger.info(f"有鱼餐馆未配置季节餐品 {seasonal_info['display']}，跳过季节检查")
+            logger.info(f"[岛屿-经营] 有鱼餐馆未配置季节餐品 {seasonal_info['display']}，跳过季节检查")
             return False
 
-        logger.info(f"检测有鱼餐馆季节餐品 '{seasonal_info['display']}' 库存")
+        logger.info(f"[岛屿-经营] 检测有鱼餐馆季节餐品 '{seasonal_info['display']}' 库存")
         # 前往仓库检查库存
         self.goto_warehouse_within_postmanage()
         self.device.screenshot()
@@ -263,19 +265,19 @@ class IslandBusiness(Island):
         warehouse = WarehouseOCR()
         count = warehouse.ocr_item_quantity(self.device.image, self._get_seasonal_warehouse_template(seasonal_product_name))
 
-        logger.info(f"季节餐品 '{seasonal_info['display']}' 当前库存: {count}")
+        logger.info(f"[岛屿-经营] 季节餐品 '{seasonal_info['display']}' 当前库存: {count}")
         if count >= self.seasonal_threshold:
-            logger.info(f"季节餐品库存充足 ({count} >= {self.seasonal_threshold})，无需替换")
+            logger.info(f"[岛屿-经营] 季节餐品库存充足 ({count} >= {self.seasonal_threshold})，无需替换")
             return False
 
         # 库存不足，获取备用餐品
         fallback_name = getattr(self.config, 'IslandBusinessShop1_SeasonalFallback', 'hearty_meal')
         fallback_product = self._find_product_by_name(shop_name, fallback_name)
         if not fallback_product:
-            logger.warning(f"备用餐品 '{fallback_name}' 未找到，无法替换")
+            logger.warning(f"[岛屿-经营] 备用餐品 '{fallback_name}' 未找到，无法替换")
             return False
 
-        logger.info(f"季节餐品 '{seasonal_info['display']}' 库存不足 ({count} < {self.seasonal_threshold})，"
+        logger.info(f"[岛屿-经营] 季节餐品 '{seasonal_info['display']}' 库存不足 ({count} < {self.seasonal_threshold})，"
                      f"替换为 '{fallback_name}'")
 
         # 在 active_products 中替换
@@ -290,7 +292,7 @@ class IslandBusiness(Island):
 
         if replaced:
             self.active_products[shop_name] = new_products
-            logger.info(f"有鱼餐馆餐品已替换: {seasonal_product_name} → {fallback_name}")
+            logger.info(f"[岛屿-经营] 有鱼餐馆餐品已替换: {seasonal_product_name} → {fallback_name}")
             return True
 
         return False
@@ -368,7 +370,7 @@ class IslandBusiness(Island):
                 parsed = self._parse_boost_filter(raw)
                 if parsed:
                     self.boost_filters[shop['name']] = parsed
-                    logger.info(f"{shop['name']}: 加成替换配置已加载: {parsed}")
+                    logger.info(f"[岛屿-经营] {shop['name']}: 加成替换配置已加载: {parsed}")
 
     def _parse_boost_filter(self, filter_str):
         """
@@ -493,7 +495,7 @@ class IslandBusiness(Island):
         boost_filter = self.boost_filters.get(shop_name, {})
         candidates = boost_filter.get(boost_percent, [])
         if not candidates:
-            logger.info(f"{shop_name}: 当前 {boost_percent}% 档位没有配置加成替换餐品，跳过匹配")
+            logger.info(f"[岛屿-经营] {shop_name}: 当前 {boost_percent}% 档位没有配置加成替换餐品，跳过匹配")
             return []
 
         # 过滤掉已在当前配置槽位中的餐品，避免重复检测
@@ -501,10 +503,10 @@ class IslandBusiness(Island):
             filtered = [c for c in candidates if c not in skip_names]
             skipped = [c for c in candidates if c in skip_names]
             if skipped:
-                logger.info(f"{shop_name}: 以下餐品已在配置中，跳过检测: {skipped}")
+                logger.info(f"[岛屿-经营] {shop_name}: 以下餐品已在配置中，跳过检测: {skipped}")
             candidates = filtered
             if not candidates:
-                logger.info(f"{shop_name}: 当前 {boost_percent}% 档位的所有候选餐品已在配置中，跳过匹配")
+                logger.info(f"[岛屿-经营] {shop_name}: 当前 {boost_percent}% 档位的所有候选餐品已在配置中，跳过匹配")
                 return []
 
         boosted = []
@@ -513,14 +515,14 @@ class IslandBusiness(Island):
         for product_name in candidates:
             p = products.get(product_name)
             if p is None:
-                logger.warning(f"{shop_name}: 加成替换配置中的餐品 {product_name} 没有对应识别模板")
+                logger.warning(f"[岛屿-经营] {shop_name}: 加成替换配置中的餐品 {product_name} 没有对应识别模板")
                 continue
             template = p.get('template')
             if template is None:
                 continue
             sim, _ = template.match_result(area_img)
             if sim >= 0.7:
-                logger.info(f"{shop_name}: 检测到配置内加成餐品 {product_name} ({boost_percent}%, sim={sim:.2f})")
+                logger.info(f"[岛屿-经营] {shop_name}: 检测到配置内加成餐品 {product_name} ({boost_percent}%, sim={sim:.2f})")
                 boosted.append((product_name, boost_percent))
 
         return boosted
@@ -540,7 +542,7 @@ class IslandBusiness(Island):
             name='TEMPLATE_BUSINESS_BOOST_ICON'
         )
         count = len(matches)
-        logger.info(f"检测到加成图标数量: {count}")
+        logger.info(f"[岛屿-经营] 检测到加成图标数量: {count}")
         if count == 1:
             return 30
         if count == 2:
@@ -581,10 +583,10 @@ class IslandBusiness(Island):
         boosted_names = {name for name, _ in boosted_products}
         for candidate in candidates:
             if candidate in boosted_names:
-                logger.info(f"选择加成替换餐品: {candidate} (档位: {max_boost}%)")
+                logger.info(f"[岛屿-经营] 选择加成替换餐品: {candidate} (档位: {max_boost}%)")
                 return candidate
 
-        logger.warning(f"{shop_name}: 未找到合适的加成替换餐品")
+        logger.warning(f"[岛屿-经营] {shop_name}: 未找到合适的加成替换餐品")
         return None
 
     def _find_first_filled_product_slot_bottom_up(self, shop_name):
@@ -626,19 +628,19 @@ class IslandBusiness(Island):
         """
         replacement = self._find_product_by_name(shop_name, replacement_name)
         if not replacement:
-            logger.warning(f"替换餐品 '{replacement_name}' 未找到，无法替换")
+            logger.warning(f"[岛屿-经营] 替换餐品 '{replacement_name}' 未找到，无法替换")
             return False
 
         products = self.active_products.get(shop_name, [])
         if not products or slot_index is None or slot_index < 0 or slot_index >= len(products):
             slot_display = slot_index + 1 if isinstance(slot_index, int) else slot_index
-            logger.warning(f"槽位 {slot_display} 无效")
+            logger.warning(f"[岛屿-经营] 槽位 {slot_display} 无效")
             return False
 
         old_name = products[slot_index]['name']
         products[slot_index] = replacement
         self.active_products[shop_name] = products
-        logger.info(f"加成餐品替换: {old_name} → {replacement_name} (槽位 {slot_index + 1})")
+        logger.info(f"[岛屿-经营] 加成餐品替换: {old_name} → {replacement_name} (槽位 {slot_index + 1})")
         return True
 
     def _check_and_replace_boosted_product(self, shop_name):
@@ -677,32 +679,32 @@ class IslandBusiness(Island):
             all_candidates.update(candidates)
 
         if all_candidates and all_candidates.issubset(active_names):
-            logger.info(f"{shop_name}: 加成过滤中所有候选餐品均已存在，跳过检测和替换")
+            logger.info(f"[岛屿-经营] {shop_name}: 加成过滤中所有候选餐品均已存在，跳过检测和替换")
             return False
 
         # 检测当天加成（跳过已在配置中的餐品）
         boosted = self._detect_boosted_products(shop_name, skip_names=active_names)
         if not boosted:
-            logger.info(f"{shop_name}: 未检测到加成餐品")
+            logger.info(f"[岛屿-经营] {shop_name}: 未检测到加成餐品")
             return False
 
-        logger.info(f"{shop_name}: 检测到加成 {boosted}")
+        logger.info(f"[岛屿-经营] {shop_name}: 检测到加成 {boosted}")
 
         # 选择替换餐品
         replacement = self._select_boost_replacement(shop_name, boosted)
         if not replacement:
-            logger.info(f"{shop_name}: 未找到合适的替换餐品")
+            logger.info(f"[岛屿-经营] {shop_name}: 未找到合适的替换餐品")
             return False
 
         # 检查替换餐品是否已存在于当前配置中
         if replacement in active_names:
-            logger.info(f"{shop_name}: 替换餐品 {replacement} 已在当前配置中，跳过替换")
+            logger.info(f"[岛屿-经营] {shop_name}: 替换餐品 {replacement} 已在当前配置中，跳过替换")
             return False
 
         # 从 Product5 → Product1 倒查最后一个有值的配置槽位
         target_slot = self._find_first_filled_product_slot_bottom_up(shop_name)
         if target_slot is None:
-            logger.info(f"{shop_name}: 没有可替换的餐品槽位")
+            logger.info(f"[岛屿-经营] {shop_name}: 没有可替换的餐品槽位")
             return False
 
         # 执行替换
@@ -757,7 +759,7 @@ class IslandBusiness(Island):
                                 other_season_item = True
                                 break
                     if other_season_item:
-                        logger.info(f"{shop_name}: 跳过 {val}（非当前季节限定）")
+                        logger.info(f"[岛屿-经营] {shop_name}: 跳过 {val}（非当前季节限定）")
                         continue
 
                     for p in self.shop_products.get(shop_name, []):
@@ -766,7 +768,7 @@ class IslandBusiness(Island):
                             break
             if products:
                 self.active_products[shop_name] = products
-                logger.info(f"{shop_name}: 配置 {len(products)} 餐品")
+                logger.info(f"[岛屿-经营] {shop_name}: 配置 {len(products)} 餐品")
 
     def _load_shop_characters(self, shop):
         """为指定商店加载角色优先级列表"""
@@ -777,7 +779,7 @@ class IslandBusiness(Island):
             if val and val != 'None':
                 chars.append(val)
         self.character_priority = chars if chars else ['WorkerJuu']
-        logger.info(f"{shop['name']}: 角色优先级 {self.character_priority}")
+        logger.info(f"[岛屿-经营] {shop['name']}: 角色优先级 {self.character_priority}")
 
     def _all_product_names(self, shop_name):
         """获取商店所有可能的餐品名（含季节限定，全部显示）"""
@@ -845,7 +847,7 @@ class IslandBusiness(Island):
         if color_similar(area_color, BUSINESS_SETTLEMENT.color, threshold=50):
             return settlement
 
-        logger.info(f"经营结算按钮颜色不匹配，跳过: {area_color}")
+        logger.info(f"[岛屿-经营] 经营结算按钮颜色不匹配，跳过: {area_color}")
         return None
 
     def _parse_character_config(self, config_str):
@@ -866,14 +868,14 @@ class IslandBusiness(Island):
 
             # 已成功切换到经营页签
             if self.appear(POST_MANAGE_BUSINESS, offset=30):
-                logger.info("已在经营页签")
+                logger.info("[岛屿-经营] 已在经营页签")
                 return
 
             # 检查是否有弹窗遮挡（生产和经营页签的蓝色指示器都不可见）
             if not self.appear(POST_MANAGE_PRODUCTION, offset=30) \
                     and not self.appear(POST_MANAGE_BUSINESS, offset=30):
                 # 不使用 appear 判断但使用固定坐标检测弹窗位置
-                logger.info("页签按钮被弹窗遮挡，点击安全区域关闭")
+                logger.info("[岛屿-经营] 页签按钮被弹窗遮挡，点击安全区域关闭")
                 self.device.click(BUSINESS_REVIEW_SAFE_AREA)
                 self.device.sleep(1)
                 continue
@@ -888,21 +890,21 @@ class IslandBusiness(Island):
             self.device.click(POST_MANAGE_PRODUCTION)
             self.device.sleep(0.5)
 
-        logger.warning("切换到经营页签失败（超过最大尝试次数）")
+        logger.warning("[岛屿-经营] 切换到经营页签失败（超过最大尝试次数）")
 
     # ===================================================================
     # 主入口 run() - 支持分批和传统模式
     # ===================================================================
 
     def run(self):
-        logger.info("=== 开始经营模块 ===")
+        logger.info("[岛屿-经营] === 开始经营模块 ===")
         self.goto_postmanage()
         self.device.sleep(1)
 
         # 处理每日首次进入可能出现的美食评审界面
         self._handle_food_review()
 
-        logger.info("切换到经营页签")
+        logger.info("[岛屿-经营] 切换到经营页签")
         self._switch_to_business_tab()
         self.device.sleep(1)
 
@@ -914,7 +916,7 @@ class IslandBusiness(Island):
         else:
             self._run_legacy_mode()
 
-        logger.info("=== 经营模块完成 ===")
+        logger.info("[岛屿-经营] === 经营模块完成 ===")
 
     # ===================================================================
     # 传统模式（不分批，原逻辑）
@@ -926,24 +928,24 @@ class IslandBusiness(Island):
         self._has_seen_blue = False
 
         while True:
-            logger.info("--- 处理商店 ---")
+            logger.info("[岛屿-经营] --- 处理商店 ---")
             status = self._check_start_button_status()
 
             if status == 'blue':
                 self._has_seen_blue = True
-                logger.info("检测到蓝色按钮，点击进入商店")
+                logger.info("[岛屿-经营] 检测到蓝色按钮，点击进入商店")
                 self.device.click(BUSINESS_START_BUTTON_BLUE)
                 self.device.sleep(1)
 
                 current_shop = self._detect_current_shop()
                 if current_shop:
                     shop_name = current_shop['name']
-                    logger.info(f"当前商店: {shop_name}")
+                    logger.info(f"[岛屿-经营] 当前商店: {shop_name}")
                     self._load_shop_characters(current_shop)
                     self._select_business_characters()
                     self._select_business_product(shop_name)
                 else:
-                    logger.warning("无法识别当前商店，返回后跳过")
+                    logger.warning("[岛屿-经营] 无法识别当前商店，返回后跳过")
                     self.device.click(ISLAND_BACK)
                     self.device.sleep(1)
                     continue
@@ -951,26 +953,26 @@ class IslandBusiness(Island):
                 self.post_manage_mode(POST_MANAGE_BUSINESS)
                 self.device.sleep(0.5)
             elif status == 'yellow':
-                logger.info("检测到黄色领取奖励按钮")
+                logger.info("[岛屿-经营] 检测到黄色领取奖励按钮")
                 self._claim_business_reward()
                 self.post_manage_mode(POST_MANAGE_BUSINESS)
                 self.device.sleep(0.5)
             elif status == 'darkblue':
                 if self._has_seen_blue:
-                    logger.info("经营已启动，正常退出")
+                    logger.info("[岛屿-经营] 经营已启动，正常退出")
                     self._trigger_shop_refill()
                     self._set_task_delay()
                     return
-                logger.info("经营中，检测剩余时间")
+                logger.info("[岛屿-经营] 经营中，检测剩余时间")
                 self._ocr_and_delay_business_remain()
                 return
             elif status == 'gray':
-                logger.info("不可经营，延后至明天0点")
-                tomorrow = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                logger.info("[岛屿-经营] 不可经营，延后至明天0点")
+                tomorrow = current_time().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
                 self.config.task_delay(target=tomorrow)
                 return
             else:
-                logger.info("按钮状态未知，跳过")
+                logger.info("[岛屿-经营] 按钮状态未知，跳过")
                 continue
 
     # ===================================================================
@@ -991,17 +993,17 @@ class IslandBusiness(Island):
         batch2_shops = self._get_batch2_shops()
 
         if not batch1_shops and not batch2_shops:
-            logger.info("第一批未配置商店，跳过")
-            logger.info("第二批未配置商店，跳过")
-            logger.info("未配置任何经营商店，延后至明天0点")
-            tomorrow = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            logger.info("[岛屿-经营] 第一批未配置商店，跳过")
+            logger.info("[岛屿-经营] 第二批未配置商店，跳过")
+            logger.info("[岛屿-经营] 未配置任何经营商店，延后至明天0点")
+            tomorrow = current_time().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
             self.config.task_delay(target=tomorrow)
             return
 
         if not batch1_shops:
-            logger.info("第一批未配置商店，跳过")
+            logger.info("[岛屿-经营] 第一批未配置商店，跳过")
         else:
-            logger.info(f"=== 第一批经营: {[s['name'] for s in batch1_shops]} ===")
+            logger.info(f"[岛屿-经营] === 第一批经营: {[s['name'] for s in batch1_shops]} ===")
             # 季节限定餐品检测替换（仅在第一批中有鱼餐馆存在时执行）
             if any(s['name'] == '有鱼餐馆' for s in batch1_shops):
                 self._check_seasonal_dish_quantity_and_replace()
@@ -1015,15 +1017,15 @@ class IslandBusiness(Island):
 
         # 检查第二批是否需要执行
         if not batch2_shops:
-            logger.info("第二批未配置商店，跳过")
+            logger.info("[岛屿-经营] 第二批未配置商店，跳过")
             return
 
         # 检查第一批商店是否仍在经营中
         if self._batch_is_still_running(batch1_shops):
-            logger.info("第一批商店仍在经营中，延迟第二批")
+            logger.info("[岛屿-经营] 第一批商店仍在经营中，延迟第二批")
             return
 
-        logger.info(f"=== 第二批经营: {[s['name'] for s in batch2_shops]} ===")
+        logger.info(f"[岛屿-经营] === 第二批经营: {[s['name'] for s in batch2_shops]} ===")
         batch2_started_shop_names = self._run_batch(batch2_shops)
         self._trigger_shop_refill(batch2_started_shop_names)
 
@@ -1175,7 +1177,7 @@ class IslandBusiness(Island):
 
     def _scroll_business_down(self):
         """在经营商店列表中向下滑动一页"""
-        logger.info("向下滑动商店列表")
+        logger.info("[岛屿-经营] 向下滑动商店列表")
         self.device.swipe_vector(
             vector=(0, -450),
             box=(688, 120, 725, 656),
@@ -1185,7 +1187,7 @@ class IslandBusiness(Island):
 
     def _scroll_business_to_top(self):
         """将经营商店列表滑动回顶部"""
-        logger.info("向上滑动回顶部")
+        logger.info("[岛屿-经营] 向上滑动回顶部")
         self.device.swipe_vector(
             vector=(0, 900),
             box=(688, 120, 725, 656),
@@ -1264,7 +1266,7 @@ class IslandBusiness(Island):
             visible_shops = self._scan_visible_batch_shops(batch_shops)
 
             if not visible_shops:
-                logger.info("当前视野中无本批次商店，尝试向下滑动")
+                logger.info("[岛屿-经营] 当前视野中无本批次商店，尝试向下滑动")
                 if scroll_attempt < max_scrolls - 1:
                     self._scroll_business_down()
                     self.device.sleep(0.5)
@@ -1277,7 +1279,7 @@ class IslandBusiness(Island):
             for r in visible_shops:
                 seen_shop_names.add(r['shop']['name'])
 
-            logger.info(f"视野中可见的批次商店: {[r['shop']['name'] + '(' + r['status'] + ')' for r in visible_shops]}")
+            logger.info(f"[岛屿-经营] 视野中可见的批次商店: {[r['shop']['name'] + '(' + r['status'] + ')' for r in visible_shops]}")
 
             # 遍历可见商店
             for shop_info in visible_shops:
@@ -1290,12 +1292,12 @@ class IslandBusiness(Island):
                     continue  # 这个商店已经启动过经营
 
                 if shop_name in claimed_shop_names and status == 'yellow':
-                    logger.info(f"{shop_name}: 收获后仍显示可领取，跳过重复领取")
+                    logger.info(f"[岛屿-经营] {shop_name}: 收获后仍显示可领取，跳过重复领取")
                     continue
 
                 if status == 'blue':
                     self._has_seen_blue = True
-                    logger.info(f"{shop_name}: 蓝色可经营，点击进入")
+                    logger.info(f"[岛屿-经营] {shop_name}: 蓝色可经营，点击进入")
 
                     # 点击该商店的按钮（使用动态坐标）
                     btn = Button(
@@ -1313,7 +1315,7 @@ class IslandBusiness(Island):
                         processed_shop_names.add(shop_name)
                         started_shop_names.add(shop_name)
                     else:
-                        logger.warning(f"进入商店后识别到的不是 {shop_name}，返回后跳过")
+                        logger.warning(f"[岛屿-经营] 进入商店后识别到的不是 {shop_name}，返回后跳过")
                         self.device.click(ISLAND_BACK)
                         self.device.sleep(1)
                         self.post_manage_mode(POST_MANAGE_BUSINESS)
@@ -1325,7 +1327,7 @@ class IslandBusiness(Island):
                     break  # 重新扫描
 
                 elif status == 'yellow':
-                    logger.info(f"{shop_name}: 黄色可领取奖励")
+                    logger.info(f"[岛屿-经营] {shop_name}: 黄色可领取奖励")
 
                     # 点击该商店的黄色按钮
                     btn = Button(
@@ -1348,17 +1350,17 @@ class IslandBusiness(Island):
                     break  # 重新扫描
 
                 elif status == 'darkblue':
-                    logger.info(f"{shop_name}: 经营中，跳过")
+                    logger.info(f"[岛屿-经营] {shop_name}: 经营中，跳过")
                     total_darkblue_count += 1
 
                 elif status == 'gray':
-                    logger.info(f"{shop_name}: 不可经营，跳过")
+                    logger.info(f"[岛屿-经营] {shop_name}: 不可经营，跳过")
 
             else:
                 # 没有 break（所有可见商店都遍历完了，没有需要处理的）
                 if len(seen_shop_names) < len(batch_shops):
                     # 累积看到的商店数少于批次总数，说明还有商店未找到，继续滚动
-                    logger.info(f"累积看到 {len(seen_shop_names)}/{len(batch_shops)} 家商店，还有未找到的商店，尝试向下滑动")
+                    logger.info(f"[岛屿-经营] 累积看到 {len(seen_shop_names)}/{len(batch_shops)} 家商店，还有未找到的商店，尝试向下滑动")
                     if scroll_attempt < max_scrolls - 1:
                         self._scroll_business_down()
                         self.device.sleep(0.5)
@@ -1368,7 +1370,7 @@ class IslandBusiness(Island):
                         break
                 else:
                     # 所有批次商店都已被看到过
-                    logger.info(f"已遍历全部 {len(batch_shops)} 家商店，无待处理商店")
+                    logger.info(f"[岛屿-经营] 已遍历全部 {len(batch_shops)} 家商店，无待处理商店")
                     break
 
         # ========== 退出判断 ==========
@@ -1377,7 +1379,7 @@ class IslandBusiness(Island):
 
         if total_darkblue_count > 0 and not self._has_seen_blue:
             # 所有商店都在经营中（从未处理过蓝色按钮）
-            logger.info(f"批次所有商店均在经营中，检测剩余时间")
+            logger.info(f"[岛屿-经营] 批次所有商店均在经营中，检测剩余时间")
             running_shop = self._find_running_shop_for_ocr(batch_shops)
             self._ocr_and_delay_business_remain(
                 shop_info=running_shop,
@@ -1387,7 +1389,7 @@ class IslandBusiness(Island):
 
         if self._has_seen_blue:
             # 处理过蓝色按钮（部分或全部商店已启动）
-            logger.info(f"批次经营已启动，正常退出")
+            logger.info(f"[岛屿-经营] 批次经营已启动，正常退出")
             if batch_shops == self._get_batch2_shops() or not self._get_batch2_shops():
                 self._set_task_delay()
             return started_shop_names
@@ -1396,8 +1398,8 @@ class IslandBusiness(Island):
         # 只有当前是第二批，或没有第二批时，才设置延后到明天0点
         # 第一批全 gray 时让 _run_batch_mode 继续处理第二批
         if batch_shops == self._get_batch2_shops() or not self._get_batch2_shops():
-            logger.info("批次内所有商店不可经营，延后至明天0点")
-            tomorrow = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            logger.info("[岛屿-经营] 批次内所有商店不可经营，延后至明天0点")
+            tomorrow = current_time().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
             self.config.task_delay(target=tomorrow)
 
         return started_shop_names
@@ -1420,7 +1422,7 @@ class IslandBusiness(Island):
         if not running_shop:
             return False
 
-        logger.info(f"检测到经营中的商店: {running_shop['shop']['name']}")
+        logger.info(f"[岛屿-经营] 检测到经营中的商店: {running_shop['shop']['name']}")
         self._ocr_and_delay_business_remain(
             shop_info=running_shop,
             ocr_name='OCR_BUSINESS_REMAIN_BATCH'
@@ -1461,11 +1463,11 @@ class IslandBusiness(Island):
         """根据 OCR 到的经营剩余时间设置任务延迟。"""
         if remain and remain.total_seconds() > 0:
             delay_seconds = remain.total_seconds() + 300
-            logger.info(f"经营剩余 {remain}，延时 {delay_seconds / 60:.1f} 分钟后检测")
+            logger.info(f"[岛屿-经营] 经营剩余 {remain}，延时 {delay_seconds / 60:.1f} 分钟后检测")
             self.config.task_delay(minute=delay_seconds / 60)
             return
 
-        logger.warning("剩余时间OCR失败，使用默认2小时延时")
+        logger.warning("[岛屿-经营] 剩余时间OCR失败，使用默认2小时延时")
         if fallback_target:
             next_time = self._calculate_darkblue_delay()
             self.config.task_delay(target=next_time)
@@ -1481,7 +1483,7 @@ class IslandBusiness(Island):
             )
         else:
             ocr_button = BUSINESS_REMAIN_TIME_AREA
-            logger.info(f"OCR 默认经营剩余时间区域: {ocr_button.area}")
+            logger.info(f"[岛屿-经营] OCR 默认经营剩余时间区域: {ocr_button.area}")
 
         ocr_remain = Duration(ocr_button, lang='azur_lane',
                               letter=(255, 255, 255), threshold=128,
@@ -1537,7 +1539,7 @@ class IslandBusiness(Island):
                     best = (shop, None, sim)
 
         if best[0] is not None and best[2] >= 0.7:
-            logger.info(f"检测到商店: {best[0]['name']} (相似度: {best[2]:.2f})")
+            logger.info(f"[岛屿-经营] 检测到商店: {best[0]['name']} (相似度: {best[2]:.2f})")
             return best[0]
         return None
 
@@ -1546,35 +1548,35 @@ class IslandBusiness(Island):
         处理每日首次进入经营页签时可能出现的美食评审界面
         流程：检测弹窗 → 点击安全区域关闭 → 检测详情弹窗 → 再点安全区域
         """
-        logger.info("检测美食评审界面")
+        logger.info("[岛屿-经营] 检测美食评审界面")
         self.device.screenshot()
 
         # 如果经营页签按钮被遮挡，说明有弹窗
         if not self.appear(POST_MANAGE_BUSINESS, offset=30) and not self.appear(POST_MANAGE_PRODUCTION, offset=30):
-            logger.info("检测到美食评审界面，点击安全区域关闭")
+            logger.info("[岛屿-经营] 检测到美食评审界面，点击安全区域关闭")
             self.device.click(BUSINESS_REVIEW_SAFE_AREA)
             self.device.sleep(1)
 
             # 检测详情界面
             self.device.screenshot()
             if not self.appear(POST_MANAGE_BUSINESS, offset=30) and not self.appear(POST_MANAGE_PRODUCTION, offset=30):
-                logger.info("检测到美食评审详情界面，再次点击安全区域")
+                logger.info("[岛屿-经营] 检测到美食评审详情界面，再次点击安全区域")
                 self.device.click(BUSINESS_REVIEW_SAFE_AREA)
                 self.device.sleep(1)
 
             # 确保回到经营页签
             self.device.screenshot()
             if not self.appear(POST_MANAGE_BUSINESS, offset=30) and not self.appear(POST_MANAGE_PRODUCTION, offset=30):
-                logger.warning("关闭美食评审后未回到经营页签，重新进入")
+                logger.warning("[岛屿-经营] 关闭美食评审后未回到经营页签，重新进入")
                 self.goto_postmanage()
                 self.post_manage_mode(POST_MANAGE_BUSINESS)
                 self.device.sleep(1)
 
-        logger.info("美食评审处理完成")
+        logger.info("[岛屿-经营] 美食评审处理完成")
 
     def _calculate_darkblue_delay(self):
         """计算深蓝（经营中）状态的延后检测时间"""
-        now = datetime.now()
+        now = current_time()
 
         # 延后2小时
         delayed = now + timedelta(hours=2)
@@ -1585,14 +1587,14 @@ class IslandBusiness(Island):
         if now >= today_2355:
             # 如果当前时间已超过23:55，重置为第二天0点
             next_time = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-            logger.info(f"当前时间已超过23:55，重置为明天0点")
+            logger.info(f"[岛屿-经营] 当前时间已超过23:55，重置为明天0点")
         elif delayed > today_2355:
             # 如果延后时间超过23:55，则设为23:55
             next_time = today_2355
-            logger.info(f"延后时间超过23:55，设为今天23:55")
+            logger.info(f"[岛屿-经营] 延后时间超过23:55，设为今天23:55")
         else:
             next_time = delayed
-            logger.info(f"设定延后2小时检测")
+            logger.info(f"[岛屿-经营] 设定延后2小时检测")
 
         return next_time
 
@@ -1617,7 +1619,7 @@ class IslandBusiness(Island):
         Args:
             button_already_clicked: 是否已在外部点击了黄色按钮
         """
-        logger.info("领取经营奖励")
+        logger.info("[岛屿-经营] 领取经营奖励")
 
         if not button_already_clicked:
             # 传统模式：先点击黄色按钮进入结算界面
@@ -1627,7 +1629,7 @@ class IslandBusiness(Island):
             self.device.screenshot()
             for _ in range(5):
                 if self.appear(BUSINESS_START_BUTTON_YELLOW, offset=30):
-                    logger.info("黄色奖励按钮仍在，再次点击")
+                    logger.info("[岛屿-经营] 黄色奖励按钮仍在，再次点击")
                     self.device.click(BUSINESS_START_BUTTON_YELLOW)
                     self.device.sleep(1)
                     self.device.screenshot()
@@ -1640,14 +1642,14 @@ class IslandBusiness(Island):
         timeout = 0
         while True:
             if timeout > 40:
-                logger.warning("领取奖励流程超时，跳过")
+                logger.warning("[岛屿-经营] 领取奖励流程超时，跳过")
                 return
 
             self.device.screenshot()
 
             # 已回到经营页签 → 退出
             if self.appear(POST_MANAGE_BUSINESS, offset=30) or self.appear(POST_MANAGE_PRODUCTION, offset=30):
-                logger.info("已回到经营界面，退出领取")
+                logger.info("[岛屿-经营] 已回到经营界面，退出领取")
                 return
 
             # 检测到"经营结算"按钮 → 优先处理结算（必须在 ISLAND_BACK 之前检测，
@@ -1655,25 +1657,25 @@ class IslandBusiness(Island):
             # 同时检测偏移150px位置（美食评审模式）
             settlement = self._appear_business_settlement()
             if settlement:
-                logger.info("检测到经营结算按钮")
+                logger.info("[岛屿-经营] 检测到经营结算按钮")
                 self.device.click(settlement)
                 self.device.sleep(1)
 
             # 检测到"获得物品" → 点击安全区域
             elif self.appear(BUSINESS_OBTAINED_ITEMS, offset=30):
-                logger.info("检测到获得物品")
+                logger.info("[岛屿-经营] 检测到获得物品")
                 self.device.click(BUSINESS_REWARD_SAFE_AREA)
                 self.device.sleep(1)
 
             # 检测到"销售情况" → 点击安全区域
             elif self.appear(BUSINESS_SALES_STATUS, offset=30):
-                logger.info("检测到销售情况")
+                logger.info("[岛屿-经营] 检测到销售情况")
                 self.device.click(BUSINESS_REWARD_SAFE_AREA)
                 self.device.sleep(1)
 
             # 检测到返回按钮 → 点击返回
             elif self.appear(ISLAND_BACK, offset=30):
-                logger.info("检测到返回按钮，点击返回")
+                logger.info("[岛屿-经营] 检测到返回按钮，点击返回")
                 self.device.click(ISLAND_BACK)
                 self.device.sleep(1)
 
@@ -1692,7 +1694,7 @@ class IslandBusiness(Island):
             if not plus_button:
                 # 第一次未检测到，在正常位置重试3次
                 for retry in range(3):
-                    logger.info(f"第{slot_idx + 1}个'+'按钮未找到(正常位置)，等待1s重试({retry + 1}/3)")
+                    logger.info(f"[岛屿-经营] 第{slot_idx + 1}个'+'按钮未找到(正常位置)，等待1s重试({retry + 1}/3)")
                     self.device.sleep(1.0)
                     plus_button = self._appear_at_positions(btn)
                     if plus_button:
@@ -1702,14 +1704,14 @@ class IslandBusiness(Island):
                 review_btn = self._get_review_button(btn)
                 if review_btn:
                     for retry in range(3):
-                        logger.info(f"第{slot_idx + 1}个'+'按钮未找到(偏移位置)，等待1s重试({retry + 1}/3)")
+                        logger.info(f"[岛屿-经营] 第{slot_idx + 1}个'+'按钮未找到(偏移位置)，等待1s重试({retry + 1}/3)")
                         self.device.sleep(1.0)
                         self.device.screenshot()
                         if self.appear(review_btn, offset=30):
                             plus_button = review_btn
                             break
             if not plus_button:
-                logger.info(f"第{slot_idx + 1}个'+'按钮未找到(共尝试6次)，跳过")
+                logger.info(f"[岛屿-经营] 第{slot_idx + 1}个'+'按钮未找到(共尝试6次)，跳过")
                 continue
             self.device.click(plus_button)
             self.device.sleep(0.5)
@@ -1718,7 +1720,7 @@ class IslandBusiness(Island):
             result = self._find_and_select_character()
             if result:
                 selected_name = result
-                logger.info(f"第{slot_idx + 1}个角色选择成功: {selected_name}")
+                logger.info(f"[岛屿-经营] 第{slot_idx + 1}个角色选择成功: {selected_name}")
                 if not self.confirm_selected_character_closed(f"经营第{slot_idx + 1}个角色"):
                     self.device.click(SELECT_UI_BACK)
                     self.device.sleep(0.5)
@@ -1730,7 +1732,7 @@ class IslandBusiness(Island):
                 self.device.screenshot()
                 self.device.sleep(1)
             else:
-                logger.info(f"第{slot_idx + 1}个角色未找到，跳过")
+                logger.info(f"[岛屿-经营] 第{slot_idx + 1}个角色未找到，跳过")
                 self.device.click(SELECT_UI_BACK)
                 self.device.sleep(0.5)
 
@@ -1781,7 +1783,7 @@ class IslandBusiness(Island):
             result = self._find_best_character()
             if result:
                 char_name, button = result
-                logger.info(f"选择角色: {char_name}")
+                logger.info(f"[岛屿-经营] 选择角色: {char_name}")
                 self.device.click(button)
                 self.device.sleep(0.5)
                 return char_name
@@ -1798,7 +1800,7 @@ class IslandBusiness(Island):
             result = self._find_best_character()
             if result:
                 char_name, button = result
-                logger.info(f"切换排序后选择角色: {char_name}")
+                logger.info(f"[岛屿-经营] 切换排序后选择角色: {char_name}")
                 self.device.click(button)
                 self.device.sleep(0.5)
                 return char_name
@@ -1872,14 +1874,14 @@ class IslandBusiness(Island):
                             old_area[2] + self.BUSINESS_PRODUCT_AREA[0],
                             old_area[3] + self.BUSINESS_PRODUCT_AREA[1])
                 offset_btn = Button(area=new_area, color=(), button=new_area, file=b.file)
-                logger.info(f"选择餐品: {p['name']} (相似度: {sim:.2f})")
+                logger.info(f"[岛屿-经营] 选择餐品: {p['name']} (相似度: {sim:.2f})")
                 self.device.click(offset_btn)
                 self.device.sleep(0.5)
 
     def _confirm_business_start(self):
         start_button = self._appear_at_positions(BUSINESS_START_IN_SHOP)
         if start_button:
-            logger.info("确认经营")
+            logger.info("[岛屿-经营] 确认经营")
             self.device.click(start_button)
             self.device.sleep(1)
             # 确认经营后检测并跳过可能的周常/PT奖励弹窗
@@ -1910,10 +1912,10 @@ class IslandBusiness(Island):
             ]
 
         if not tasks:
-            logger.info("本轮没有实际开始经营的商店，跳过餐馆补充任务")
+            logger.info("[岛屿-经营] 本轮没有实际开始经营的商店，跳过餐馆补充任务")
             return
 
-        logger.info(f"触发经营后餐馆补充任务: {tasks}")
+        logger.info(f"[岛屿-经营] 触发经营后餐馆补充任务: {tasks}")
         for t in tasks:
             self.config.task_delay(minute=0, task=t)
 

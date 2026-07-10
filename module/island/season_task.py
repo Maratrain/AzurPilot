@@ -16,7 +16,7 @@ from module.ui.page import page_island_season
 if server.server == 'cn':
     lang = 'cnocr'
 elif server.server == 'en':
-    lang = 'azur_lane'
+    lang = 'ppocr_v6'
 else:
     lang = server.server
 TASK_NAME_OCR = Ocr([], lang=lang, letter=(64, 64, 64), name='TASK_NAME_OCR')

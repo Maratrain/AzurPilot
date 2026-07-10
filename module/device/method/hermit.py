@@ -83,7 +83,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'重试 {func.__name__}() 失败')
+        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -185,10 +185,10 @@ class Hermit(Adb):
 
             # 超时
             if timeout.reached():
-                logger.critical('无法为 Hermit 打开辅助功能服务')
+                logger.critical('[Device] 无法为 Hermit 打开辅助功能服务')
                 logger.critical(
                     '\n\n'
-                    '请手动执行以下操作：\n'
+                    '[Device] 请手动执行以下操作：\n'
                     '1. 在辅助功能设置中找到 "Hermit" 并点击\n'
                     '2. 将其打开并点击 "确定"\n'
                     '3. 切换回碧蓝航线\n'
@@ -223,7 +223,7 @@ class Hermit(Adb):
             e = HermitError(result)
             if 'GestureDescription$Builder' in result:
                 logger.error(e)
-                logger.critical('Hermit 无法在当前设备上运行，Hermit 需要 Android>=7.0')
+                logger.critical('[Device] Hermit 无法在当前设备上运行，Hermit 需要 Android>=7.0')
                 raise RequestHumanTakeover
             if 'accessibilityservice' in result:
                 # 尝试调用虚拟方法

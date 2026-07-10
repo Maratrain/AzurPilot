@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from module.config.time_source import now as current_time
 
 from module.base.timer import Timer
 from module.island.island import Island
@@ -31,9 +33,9 @@ class IslandDailyInteract(Island):
 
         if all_done:
             self._delay_to_next_day()
-            logger.info('岛屿每日互动执行完成')
+            logger.info('[岛屿-每日周任务] 岛屿每日互动执行完成')
         else:
-            logger.warning('岛屿每日互动部分任务失败，60分钟后重试')
+            logger.warning('[岛屿-每日周任务] 岛屿每日互动部分任务失败，60分钟后重试')
             self.config.task_delay(minute=60)
 
     def pet_cat(self):
@@ -48,14 +50,14 @@ class IslandDailyInteract(Island):
 
         logger.hr('Pet Cat', level=2)
         if not self.island_map_goto('farm'):
-            logger.warning('前往晨露农场失败，跳过摸猫任务')
+            logger.warning('[岛屿-每日周任务] 前往晨露农场失败，跳过摸猫任务')
             return False
         self.move_for_morningdew_farm()
 
         if self._click_optional_interact(PET_CAT_FARM_INTERACT, '摸猫互动'):
             self._handle_island_reward_optional()
         else:
-            logger.info('未检测到摸猫互动按钮，跳过')
+            logger.info('[岛屿-每日周任务] 未检测到摸猫互动按钮，跳过')
 
         self._click_safe_area_twice()
 
@@ -80,7 +82,7 @@ class IslandDailyInteract(Island):
                 tab_check=DEVELOPMENT_PLAN_DAILY_TAB_CHECK,
                 tab_label='每日计划',
                 label='JUU速运'):
-            logger.info('未检测到或已完成 JUU 速运任务，跳过')
+            logger.info('[岛屿-每日周任务] 未检测到或已完成 JUU 速运任务，跳过')
             self._back_to_island_phone_from_development_plan()
             return True
         if not self._back_to_island_phone_from_development_plan():
@@ -94,7 +96,7 @@ class IslandDailyInteract(Island):
                     move_method=move_method,
                     interact_button=interact_button,
                     complete_button=complete_button):
-                logger.warning(f'JUU速运地点交互失败，终止后续流程: {name}')
+                logger.warning(f'[岛屿-每日周任务] JUU速运地点交互失败，终止后续流程: {name}')
                 completed = False
                 break
 
@@ -124,7 +126,7 @@ class IslandDailyInteract(Island):
                 tab_check=DEVELOPMENT_PLAN_DAILY_TAB_CHECK,
                 tab_label='每日计划',
                 label='商区外送服务'):
-            logger.info('未检测到或已完成商区外送服务任务，跳过')
+            logger.info('[岛屿-每日周任务] 未检测到或已完成商区外送服务任务，跳过')
             self._back_to_island_phone_from_development_plan()
             return True
         if not self._back_to_island_phone_from_development_plan():
@@ -139,7 +141,7 @@ class IslandDailyInteract(Island):
                     move_method=move_method,
                     interact_button=interact_button,
                     complete_button=complete_button):
-                logger.warning(f'商区外送服务地点交互失败，终止后续流程: {name}')
+                logger.warning(f'[岛屿-每日周任务] 商区外送服务地点交互失败，终止后续流程: {name}')
                 completed = False
                 break
 
@@ -173,12 +175,12 @@ class IslandDailyInteract(Island):
                     tab_check=DEVELOPMENT_PLAN_WEEKLY_TAB_CHECK,
                     tab_label='每周计划',
                     label='每周照相任务'):
-                logger.info('未检测到或已完成每周照相任务，结束循环')
+                logger.info('[岛屿-每日周任务] 未检测到或已完成每周照相任务，结束循环')
                 self._back_to_island_phone_from_development_plan()
                 break
 
             if not self._run_weekly_photo_once():
-                logger.warning('每周照相任务单轮流程未完整完成，结束循环')
+                logger.warning('[岛屿-每日周任务] 每周照相任务单轮流程未完整完成，结束循环')
                 completed = False
                 break
 
@@ -205,9 +207,9 @@ class IslandDailyInteract(Island):
         """
         logger.hr(f'{task_label} - {name}', level=3)
         for attempt in range(2):
-            logger.info(f'前往{name}，第{attempt + 1}次尝试')
+            logger.info(f'[岛屿-每日周任务] 前往{name}，第{attempt + 1}次尝试')
             if not self.island_map_goto(destination):
-                logger.warning(f'前往{name}失败')
+                logger.warning(f'[岛屿-每日周任务] 前往{name}失败')
                 continue
             move_method()
 
@@ -221,7 +223,7 @@ class IslandDailyInteract(Island):
             if interact_status == 'complete':
                 return True
 
-            logger.warning(f'未检测到{name}交付互动按钮')
+            logger.warning(f'[岛屿-每日周任务] 未检测到{name}交付互动按钮')
 
         return False
 
@@ -335,7 +337,7 @@ class IslandDailyInteract(Island):
                 return handled
 
             if self.appear(ISLAND_PHONE_CHECK):
-                logger.warning('跳过期间检测到岛屿手机页面，停止继续点击跳过')
+                logger.warning('[岛屿-每日周任务] 跳过期间检测到岛屿手机页面，停止继续点击跳过')
                 self.ui_goto(page_island, get_ship=False)
                 return handled
 
@@ -343,7 +345,7 @@ class IslandDailyInteract(Island):
                 handled = True
                 continue
 
-        logger.warning('剧情跳过等待超时')
+        logger.warning('[岛屿-每日周任务] 剧情跳过等待超时')
         return handled
 
     def _appear_story_skip_luma(self, interval=0):
@@ -412,7 +414,7 @@ class IslandDailyInteract(Island):
             if self._handle_island_reward_once():
                 continue
 
-        logger.warning('进入开发计划页面超时')
+        logger.warning('[岛屿-每日周任务] 进入开发计划页面超时')
         return False
 
     def _start_development_plan_template_task(self, task_template, task_check, tab_button, tab_check, tab_label, label):
@@ -441,16 +443,16 @@ class IslandDailyInteract(Island):
         if task_button is None:
             return False
 
-        logger.info(f'检测到{label}，点击任务图标')
+        logger.info(f'[岛屿-每日周任务] 检测到{label}，点击任务图标')
         self.device.click(task_button)
         for _ in self.loop(timeout=8):
             if self.appear_then_click(task_check, offset=(20, 20), interval=2):
-                logger.info(f'{label}确认成功')
+                logger.info(f'[岛屿-每日周任务] {label}确认成功')
                 return True
             if self._handle_island_reward_once():
                 continue
 
-        logger.warning(f'{label}确认按钮等待超时')
+        logger.warning(f'[岛屿-每日周任务] {label}确认按钮等待超时')
         return False
 
     def _detect_development_plan_template_task(self, task_template, tab_button, tab_check, tab_label, label):
@@ -477,22 +479,22 @@ class IslandDailyInteract(Island):
         if self._match_development_plan_task_template(task_template) is None:
             return False
 
-        logger.info(f'检测到{label}任务图标')
+        logger.info(f'[岛屿-每日周任务] 检测到{label}任务图标')
         return True
 
     def _switch_development_plan_tab(self, tab_button, tab_check, label):
         """切换到开发计划目标页签，并确认页签已激活。"""
-        logger.info(f'切换到{label}页签')
+        logger.info(f'[岛屿-每日周任务] 切换到{label}页签')
         for _ in self.loop(timeout=12):
             if self.appear(tab_check):
-                logger.info(f'{label}页签已激活')
+                logger.info(f'[岛屿-每日周任务] {label}页签已激活')
                 return True
             if self.appear_then_click(tab_button, interval=2):
                 continue
             if self._handle_island_reward_once():
                 continue
 
-        logger.warning(f'切换到{label}页签超时')
+        logger.warning(f'[岛屿-每日周任务] 切换到{label}页签超时')
         return False
 
     def _match_development_plan_task_template(self, task_template):
@@ -517,7 +519,7 @@ class IslandDailyInteract(Island):
         )
 
         for index in range(3):
-            logger.info(f'每周照相第{index + 1}轮')
+            logger.info(f'[岛屿-每日周任务] 每周照相第{index + 1}轮')
             self._click_weekly_photo_button(WEEKLY_PHOTO_CAMERA, '照相按钮')
             self._click_weekly_photo_button(WEEKLY_PHOTO_IDLE, '空闲按钮')
 
@@ -527,19 +529,19 @@ class IslandDailyInteract(Island):
             if self.appear_then_click(ISLAND_BACK, interval=2):
                 return True
 
-        logger.warning('每周照相通用奖励或返回按钮等待超时')
+        logger.warning('[岛屿-每日周任务] 每周照相通用奖励或返回按钮等待超时')
         return False
 
     def _click_weekly_photo_button(self, button, label):
         """每周照相页面按钮位置固定，直接点击，不做出现检测。"""
         self.device.screenshot()
-        logger.info(f'点击{label}')
+        logger.info(f'[岛屿-每日周任务] 点击{label}')
         self.device.click(button)
 
     def _click_optional_interact(self, button, label, timeout=8):
         for _ in self.loop(timeout=timeout):
             if self.appear_then_click(button, interval=2):
-                logger.info(f'点击{label}')
+                logger.info(f'[岛屿-每日周任务] 点击{label}')
                 return True
             if self._handle_island_reward_once():
                 continue
@@ -549,10 +551,10 @@ class IslandDailyInteract(Island):
     def _click_optional_interact_or_complete(self, interact_button, complete_button, label, timeout=8):
         for _ in self.loop(timeout=timeout):
             if self.appear_then_click(interact_button, interval=2):
-                logger.info(f'点击{label}')
+                logger.info(f'[岛屿-每日周任务] 点击{label}')
                 return 'clicked'
             if self.appear(complete_button, offset=(20, 20)):
-                logger.info(f'{label}已完成，进入下一步')
+                logger.info(f'[岛屿-每日周任务] {label}已完成，进入下一步')
                 return 'complete'
             if self._handle_island_reward_once():
                 continue
@@ -569,11 +571,11 @@ class IslandDailyInteract(Island):
 
     def _handle_island_reward_once(self):
         if self.appear(GET_ITEMS_ISLAND, offset=(20, 20)):
-            logger.info('检测到岛屿奖励页面，点击安全区域关闭')
+            logger.info('[岛屿-每日周任务] 检测到岛屿奖励页面，点击安全区域关闭')
             self.device.click(ISLAND_CLICK_SAFE_AREA)
             return True
         if self.appear(ISLAND_GET, offset=(20, 20)):
-            logger.info('检测到岛屿领取页面，点击安全区域关闭')
+            logger.info('[岛屿-每日周任务] 检测到岛屿领取页面，点击安全区域关闭')
             self.device.click(ISLAND_CLICK_SAFE_AREA)
             return True
         return False
@@ -584,7 +586,7 @@ class IslandDailyInteract(Island):
             self.device.click(ISLAND_CLICK_SAFE_AREA)
 
     def _back_to_island_phone_from_development_plan(self):
-        logger.info('退出开发计划页面')
+        logger.info('[岛屿-每日周任务] 退出开发计划页面')
         for _ in self.loop(timeout=8):
             if self.appear(ISLAND_PHONE_CHECK):
                 return True
@@ -592,11 +594,11 @@ class IslandDailyInteract(Island):
                 continue
             if self._handle_island_reward_once():
                 continue
-        logger.warning('退出开发计划页面超时')
+        logger.warning('[岛屿-每日周任务] 退出开发计划页面超时')
         return False
 
     def _back_to_island_phone(self):
-        logger.info('返回岛屿手机页面')
+        logger.info('[岛屿-每日周任务] 返回岛屿手机页面')
         for _ in self.loop(timeout=20):
             if self.appear(ISLAND_PHONE_CHECK):
                 return True
@@ -604,12 +606,12 @@ class IslandDailyInteract(Island):
                 continue
             if self._handle_island_reward_once():
                 continue
-        logger.warning('返回岛屿手机页面超时')
+        logger.warning('[岛屿-每日周任务] 返回岛屿手机页面超时')
         return False
 
     def _delay_to_next_day(self):
-        target = datetime.now().replace(hour=3, minute=0, second=0, microsecond=0)
-        if target <= datetime.now():
+        target = current_time().replace(hour=3, minute=0, second=0, microsecond=0)
+        if target <= current_time():
             target += timedelta(days=1)
         self.config.task_delay(target=target)
-        logger.info(f'下次岛屿每日互动运行时间: {target}')
+        logger.info(f'[岛屿-每日周任务] 下次岛屿每日互动运行时间: {target}')

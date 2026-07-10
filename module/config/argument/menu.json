@@ -99,6 +99,7 @@
       "OpsiMeowfficerFarming",
       "OpsiHazard1Leveling",
       "OpsiScheduling",
+      "OpsiPreventActionPointOverflow",
       "OpsiCrossMonth",
       "OpsiSimulator"
     ]

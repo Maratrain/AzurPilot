@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from module.config.time_source import now as current_time
 from module.config.utils import get_server_next_update, get_os_reset_remain, get_os_next_reset
 from module.logger import logger
 from module.os.map import OSMap
@@ -18,7 +19,7 @@ class OpsiShop(OSMap):
             out: page_os, 大世界地图
         """
         logger.hr('OS port daily', level=1)
-        today = datetime.now().day
+        today = current_time().day
         limit = self.config.OpsiShop_DisableBeforeDate
         if today <= limit:
             logger.info(f'Delay Opsi shop, today\'s date {today} <= limit {limit}')

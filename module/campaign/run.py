@@ -52,15 +52,15 @@ class CampaignRun(CampaignEvent, ShopStatus):
             self.module = importlib.import_module('.' + name, f'campaign.{folder}')
         except ModuleNotFoundError:
             logger.warning(f'Map file not found: campaign.{folder}.{name}')
-            logger.warning('未找到地图文件。通常是用户出击未适配的地图，或者运行目录有误。')
+            logger.warning('[战役] 未找到地图文件。通常是用户出击未适配的地图，或者运行目录有误。')
             if not os.path.exists(f'./campaign/{folder}'):
                 logger.warning(f'Folder not exists: ./campaign/{folder}')
             else:
                 files = map_files(folder)
                 logger.warning(f'Existing files: {files}')
 
-            logger.critical(f'可能的原因1: 这个活动 ({folder}) 没有 {name}')
-            logger.critical(f'可能的原因2: 你使用的Alas版本太旧，请检查更新，或者使用dev_tools/map_extractor.py自行制作地图文件')
+            logger.critical(f'[战役] 可能的原因1: 这个活动 ({folder}) 没有 {name}')
+            logger.critical(f'[战役] 可能的原因2: 你使用的Alas版本太旧，请检查更新，或者使用dev_tools/map_extractor.py自行制作地图文件')
             raise RequestHumanTakeover
 
         config = copy.deepcopy(self.config).merge(self.module.Config())
@@ -428,7 +428,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
                 self.device.screenshot()
             self.campaign.device.image = self.device.image
             if self.campaign.is_in_map():
-                logger.info('已在地图中，执行撤退。')
+                logger.info('[战役] 已在地图中，执行撤退。')
                 try:
                     self.campaign.withdraw()
                 except CampaignEnd:
@@ -436,13 +436,14 @@ class CampaignRun(CampaignEvent, ShopStatus):
                 self.campaign.ensure_campaign_ui(name=self.stage, mode=mode)
             elif self.campaign.is_in_auto_search_menu():
                 if self.can_use_auto_search_continue():
-                    logger.info('在自动搜索菜单中，跳过 ensure_campaign_ui。')
+                    logger.info('[战役] 在自动搜索菜单中，跳过 ensure_campaign_ui。')
                 else:
-                    logger.info('在自动搜索菜单中，关闭。')
+                    logger.info('[战役] 在自动搜索菜单中，关闭。')
                     # 因为 event_20240725 任务均衡器删除了 self.campaign.ensure_auto_search_exit()
                     self.campaign.ensure_campaign_ui(name=self.stage, mode=mode)
             else:
                 self.campaign.ensure_campaign_ui(name=self.stage, mode=mode)
+            self.config.override(Campaign_Mode=self.campaign.config.Campaign_Mode)
             self.disable_raid_on_event()
             self.handle_commission_notice()
 

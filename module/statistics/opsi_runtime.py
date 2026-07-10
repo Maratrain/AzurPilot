@@ -92,15 +92,6 @@ def record_ap_snapshot(config: Any, ap_current: int, source: str, distance: int 
     except Exception:
         logger.exception("保存行动力快照失败")
 
-    try:
-        if source == "meow":
-            from module.os.tasks.scheduling import CoinTaskMixin
-            helper = CoinTaskMixin()
-            helper.config = config
-            helper._schedule_by_natural_ap(ap_current)
-    except Exception:
-        logger.debug("校准智能调度行动力恢复时间失败", exc_info=True)
-
 
 def record_cl1_auto_search_battle(
     config: Any,

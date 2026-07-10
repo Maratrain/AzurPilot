@@ -7,6 +7,7 @@ from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.base.utils import rgb2luma, crop, color_similarity_2d
+from module.config.time_source import now as current_time
 from module.config.utils import server_time_offset
 from module.exception import GameStuckError
 from module.logger import logger
@@ -107,7 +108,7 @@ class EventShopUI(UI):
             return False
         y, m, d = matches[-1]
         deadline = datetime(int(y), int(m), int(d)) + timedelta(days=1)  # server deadline
-        server_now = datetime.now() - server_time_offset()
+        server_now = current_time() - server_time_offset()
         return (deadline - server_now).days < 7
 
     def event_shop_load_ensure(self):

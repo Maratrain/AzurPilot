@@ -182,7 +182,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'重试 {func.__name__}() 失败')
+        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -307,13 +307,13 @@ class LDOpenGL(Platform):
                     )
                 except (LDOpenGLIncompatible, LDOpenGLError) as e:
                     logger.error(e)
-                    logger.error('模拟器信息不正确')
+                    logger.error('[Device] 模拟器信息不正确')
 
         # 搜索模拟器实例
         # 例如 E:/ProgramFiles/LDPlayer9/dnplayer.exe
         # 安装路径为 E:/ProgramFiles/LDPlayer9
         if self.emulator_instance is None:
-            logger.error('无法使用 LDOpenGL，因为未找到模拟器实例')
+            logger.error('[Device] 无法使用 LDOpenGL，因为未找到模拟器实例')
             raise RequestHumanTakeover
         try:
             return LDOpenGLImpl(
@@ -322,7 +322,7 @@ class LDOpenGL(Platform):
             )
         except (LDOpenGLIncompatible, LDOpenGLError) as e:
             logger.error(e)
-            logger.error('无法初始化 LDOpenGL')
+            logger.error('[Device] 无法初始化 LDOpenGL')
             raise RequestHumanTakeover
 
     def ldopengl_available(self) -> bool:

@@ -700,6 +700,151 @@ pre.rich-traceback-code {
     margin: .375rem 0;
 }
 
+[id^="pywebio-scope-arg_container-task-priority-"],
+[id^="pywebio-scope-task_priority_container_"] {
+    display: grid !important;
+    grid-auto-flow: row !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    gap: .35rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: .125rem 0 !important;
+    align-items: stretch !important;
+}
+
+[id^="pywebio-scope-task_priority_container_"][style*="--task-priority-container--"] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: .35rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: .125rem 0 !important;
+}
+
+[id^="pywebio-scope-arg_container-task-priority-"] > *,
+[id^="pywebio-scope-task_priority_container_"] > *,
+[id^="pywebio-scope-task_priority_content_"] {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+}
+
+[id^="pywebio-scope-task_priority_content_"] > .form-group:first-child,
+[id^="pywebio-scope-task_priority_content_"] > .task-priority-pin,
+[id^="pywebio-scope-task_priority_content_"] *[style*="--task-priority-pin--"] {
+    display: none !important;
+}
+
+.task-priority-list {
+    display: grid !important;
+    gap: 6px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    max-height: min(68vh, 48rem) !important;
+    min-height: min(56vh, 40rem) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    margin: 0 !important;
+    padding: 2px 4px 2px 0 !important;
+    list-style: none !important;
+}
+
+.task-priority-item {
+    display: grid !important;
+    grid-template-columns: 2.6rem 1.5rem minmax(0, 1fr) minmax(7rem, auto) !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 2.35rem !important;
+    padding: 6px 10px !important;
+    border: 1px solid rgba(128, 128, 128, .24) !important;
+    border-radius: 6px !important;
+    background: rgba(128, 128, 128, .055) !important;
+    box-sizing: border-box !important;
+    cursor: grab !important;
+    user-select: none !important;
+    touch-action: none !important;
+    will-change: transform !important;
+}
+
+.task-priority-item:active {
+    cursor: grabbing !important;
+}
+
+.task-priority-floating {
+    cursor: grabbing !important;
+    opacity: .96 !important;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, .18) !important;
+    transform-origin: left top !important;
+}
+
+.task-priority-item-new {
+    border-style: dashed !important;
+}
+
+.task-priority-placeholder {
+    display: block !important;
+    width: 100% !important;
+    min-height: 2.35rem !important;
+    border: 1px dashed rgba(128, 128, 128, .38) !important;
+    border-radius: 6px !important;
+    background: rgba(128, 128, 128, .08) !important;
+    box-sizing: border-box !important;
+}
+
+.task-priority-drag-active,
+.task-priority-drag-active * {
+    cursor: grabbing !important;
+    user-select: none !important;
+}
+
+.task-priority-rank {
+    font-variant-numeric: tabular-nums !important;
+    opacity: .64 !important;
+    text-align: right !important;
+}
+
+.task-priority-handle {
+    color: rgba(128, 128, 128, .78) !important;
+    font-size: 1.05rem !important;
+    line-height: 1 !important;
+    text-align: center !important;
+}
+
+.task-priority-name,
+.task-priority-code {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.task-priority-code {
+    opacity: .62 !important;
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace !important;
+    font-size: .82rem !important;
+}
+
+@media (max-width: 720px) {
+    .task-priority-list {
+        max-height: min(70vh, 42rem) !important;
+        min-height: 60vh !important;
+    }
+
+    .task-priority-item {
+        grid-template-columns: 2.2rem 1.25rem minmax(0, 1fr) !important;
+    }
+
+    .task-priority-code {
+        grid-column: 3 !important;
+    }
+}
+
 *[style*="--arg-title--"] {
     font-size: 1rem;
     font-weight: 500;

@@ -6,6 +6,7 @@ import numpy as np
 from module.base.decorator import cached_property
 from module.base.utils import random_normal_distribution_int
 from module.config.config import AzurLaneConfig
+from module.config.time_source import now as current_time
 from module.exception import ScriptEnd, ScriptError, RequestHumanTakeover
 from module.logger import logger
 
@@ -132,7 +133,7 @@ class FleetEmotion:
         return DIC_RECOVER_MAX[self.recover]
 
     def update(self):
-        recover_count = int(int(datetime.now().timestamp()) // 360 - int(self.record.timestamp()) // 360)
+        recover_count = int(int(current_time().timestamp()) // 360 - int(self.record.timestamp()) // 360)
         recover_count = max(recover_count, 0)
         self.current = min(max(self.value, 0) + self.speed * recover_count, self.max)
 
@@ -146,7 +147,7 @@ class FleetEmotion:
             datetime.datetime: 情绪 >= 控制阈值的时间。如果已经恢复，则返回过去的时间。
         """
         if self.control == 'keep_exp_bonus' and self.recover == 'not_in_dormitory':
-            logger.critical(f'舰队 {self.fleet} 的情绪控制设置为”保持开心加成”，且恢复地点设置为”港区”，两者不能同时使用，请检查情绪设置')
+            logger.critical(f'[战斗] 舰队 {self.fleet} 的情绪控制设置为”保持开心加成”，且恢复地点设置为”港区”，两者不能同时使用，请检查情绪设置')
             raise RequestHumanTakeover
         # 在 14-4 使用双倍经验书时，预期情绪减少为 32，无法保持开心加成（>120）
         # 否则会导致无限任务延迟
@@ -156,7 +157,7 @@ class FleetEmotion:
                         f'when Emotion Control=\"Keep Happy Bonus\"')
 
         recover_count = (self.limit + expected_reduce - self.current) // self.speed
-        recovered = (int(datetime.now().timestamp()) // 360 + recover_count + 1) * 360
+        recovered = (int(current_time().timestamp()) // 360 + recover_count + 1) * 360
         return datetime.fromtimestamp(recovered)
 
 class Emotion:
@@ -264,7 +265,7 @@ class Emotion:
             self.record()
             self.show()
             recovered = self.public_fleet.get_recovered(reduce)
-            delay = recovered > datetime.now()
+            delay = recovered > current_time()
             return recovered, delay
 
         method = self.config.Fleet_FleetOrder
@@ -287,7 +288,7 @@ class Emotion:
         self.record()
         self.show()
         recovered = max([f.get_recovered(b) for f, b in zip(self.fleets, battle)])
-        delay = recovered > datetime.now()
+        delay = recovered > current_time()
         return recovered, delay
 
     def check_reduce(self, battle):
@@ -323,7 +324,7 @@ class Emotion:
             fleet = self.fleets[fleet_index - 1]
 
         recovered = fleet.get_recovered(expected_reduce=self.reduce_per_battle)
-        if recovered > datetime.now():
+        if recovered > current_time():
             logger.hr('Emotion wait')
             if self.using_public:
                 logger.info(f'Emotion of PublicFleet will recover to {fleet.limit} at {recovered}')
@@ -331,7 +332,7 @@ class Emotion:
                 logger.info(f'Emotion of fleet {fleet_index} will recover to {fleet.limit} at {recovered}')
 
             while 1:
-                if datetime.now() > recovered:
+                if current_time() > recovered:
                     break
 
                 logger.attr('Wait until', recovered)

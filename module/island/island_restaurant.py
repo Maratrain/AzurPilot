@@ -3,7 +3,9 @@ from module.island.island_shop_base import IslandShopBase
 from module.island.assets import *
 from module.logger import logger
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from module.config.time_source import now as current_time
 from module.base.button import Button
 from module.island.island_season import SEASONAL_ITEMS
 
@@ -63,7 +65,7 @@ class IslandRestaurant(IslandShopBase):
         self.seasonal_dish_slot = self._get_high_priority_seasonal_dish()
 
         if self.seasonal_dish_slot:
-            logger.info(f"高优先级季节菜品: {self.seasonal_dish_slot['cn_name']}")
+            logger.info(f"[岛屿-有鱼餐馆] 高优先级季节菜品: {self.seasonal_dish_slot['cn_name']}")
 
         # 设置商品列表（根据季节自动选择对应菜品）
         self.shop_items = self._get_current_seasonal_shop_items()
@@ -253,14 +255,14 @@ class IslandRestaurant(IslandShopBase):
             tofu_needed = number * 1
             if 'tofu' in self.warehouse_counts:
                 self.warehouse_counts['tofu'] -= tofu_needed
-                logger.info(f"扣除豆腐：tofu -{tofu_needed} (用于制作 {product})")
+                logger.info(f"[岛屿-有鱼餐馆] 扣除豆腐：tofu -{tofu_needed} (用于制作 {product})")
 
         # tofu_meat需要扣除豆腐
         if product == 'tofu_meat':
             tofu_needed = number * 2
             if 'tofu' in self.warehouse_counts:
                 self.warehouse_counts['tofu'] -= tofu_needed
-                logger.info(f"扣除豆腐：tofu -{tofu_needed} (用于制作 {product})")
+                logger.info(f"[岛屿-有鱼餐馆] 扣除豆腐：tofu -{tofu_needed} (用于制作 {product})")
 
     def apply_special_material_constraints(self, requirements):
         """覆盖：根据豆腐库存调整需求，豆腐不足时自动补入生产计划"""
@@ -281,7 +283,7 @@ class IslandRestaurant(IslandShopBase):
                 # 豆腐本店可生产，限产的同时补入豆腐需求
                 if 'tofu' in self.name_to_config:
                     result['tofu'] = result.get('tofu', 0) + deficit
-                    logger.info(f"豆腐不足：cabbage_tofu {cabbage_needed}→{max_cabbage}，补入 tofu x{deficit}")
+                    logger.info(f"[岛屿-有鱼餐馆] 豆腐不足：cabbage_tofu {cabbage_needed}→{max_cabbage}，补入 tofu x{deficit}")
                 tofu_stock -= max_cabbage
 
         # 处理tofu_meat的需求
@@ -295,7 +297,7 @@ class IslandRestaurant(IslandShopBase):
                 result['tofu_meat'] = max_tofu_meat
                 if 'tofu' in self.name_to_config:
                     result['tofu'] = result.get('tofu', 0) + deficit * 2
-                    logger.info(f"豆腐不足：tofu_meat {tofu_meat_needed}→{max_tofu_meat}，补入 tofu x{deficit * 2}")
+                    logger.info(f"[岛屿-有鱼餐馆] 豆腐不足：tofu_meat {tofu_meat_needed}→{max_tofu_meat}，补入 tofu x{deficit * 2}")
                 tofu_stock -= max_tofu_meat * 2
 
         return result
@@ -340,24 +342,24 @@ class IslandRestaurant(IslandShopBase):
                 self.current_totals[item] = self.post_check_meal.get(item, 0) + self.warehouse_counts.get(item, 0)
 
             # ============ 调试信息 ============
-            logger.info(f"=== 调试信息 ===")
-            logger.info(f"仓库库存: {self.warehouse_counts}")
-            logger.info(f"生产中库存: {self.post_check_meal}")
-            logger.info(f"当前总库存: {self.current_totals}")
-            logger.info(f"基础需求配置（共{len(self.post_products)}个槽位）: {self.post_products}")
+            logger.info(f"[岛屿-有鱼餐馆] === 调试信息 ===")
+            logger.info(f"[岛屿-有鱼餐馆] 仓库库存: {self.warehouse_counts}")
+            logger.info(f"[岛屿-有鱼餐馆] 生产中库存: {self.post_check_meal}")
+            logger.info(f"[岛屿-有鱼餐馆] 当前总库存: {self.current_totals}")
+            logger.info(f"[岛屿-有鱼餐馆] 基础需求配置（共{len(self.post_products)}个槽位）: {self.post_products}")
             logger.info("===============")
 
             # 保存原始库存，retry 时恢复（避免 max_targets 清零影响重算）
             _orig_totals = dict(self.current_totals)
             self._compute_base_demands()
 
-            logger.info(f"待完成备餐: {self.to_post_products}")
-            logger.info(f"当前剩余库存: {self.current_totals}")
+            logger.info(f"[岛屿-有鱼餐馆] 待完成备餐: {self.to_post_products}")
+            logger.info(f"[岛屿-有鱼餐馆] 当前剩余库存: {self.current_totals}")
 
             # ============ 处理套餐分解 ============
             if self.to_post_products:
                 self.to_post_products = self.process_meal_requirements(self.to_post_products)
-                logger.info(f"基础需求生产计划: {self.to_post_products}")
+                logger.info(f"[岛屿-有鱼餐馆] 基础需求生产计划: {self.to_post_products}")
 
             # ================================================================
             #  高优先级季节菜品
@@ -366,7 +368,7 @@ class IslandRestaurant(IslandShopBase):
             if self.seasonal_dish_slot:
                 dish_name = self.seasonal_dish_slot['name']
                 dish_cn = self.seasonal_dish_slot['cn_name']
-                logger.info(f"阶段：高优先级季节菜品 — {dish_cn}")
+                logger.info(f"[岛屿-有鱼餐馆] 阶段：高优先级季节菜品 — {dish_cn}")
 
                 # 从生产计划中提取，单独安排生产
                 slot1_qty = self.POST_PRODUCE_LIMIT
@@ -376,13 +378,13 @@ class IslandRestaurant(IslandShopBase):
                 # 临时只安排位置1的生产
                 temp_products = self.to_post_products.copy()
                 self.to_post_products = {dish_name: slot1_qty}
-                logger.info(f"单独安排{dish_cn}生产: {self.to_post_products}")
+                logger.info(f"[岛屿-有鱼餐馆] 单独安排{dish_cn}生产: {self.to_post_products}")
 
                 self.schedule_production()
 
                 # 恢复剩余的基础需求生产计划
                 self.to_post_products = temp_products
-                logger.info(f"剩余基础需求生产计划: {self.to_post_products}")
+                logger.info(f"[岛屿-有鱼餐馆] 剩余基础需求生产计划: {self.to_post_products}")
 
             # ============ 安排基础需求生产（循环直到无空岗或无缺口） ============
             _produced_pass = {}
@@ -394,7 +396,7 @@ class IslandRestaurant(IslandShopBase):
             while self.get_idle_posts():
                 _loop_count += 1
                 if _loop_count > self._MAX_FILL_LOOP:
-                    logger.warning(f"[循环] 已达最大迭代次数 {self._MAX_FILL_LOOP}，强制退出")
+                    logger.warning(f"[岛屿-有鱼餐馆] [循环] 已达最大迭代次数 {self._MAX_FILL_LOOP}，强制退出")
                     break
                 self.current_totals = dict(_orig_totals)
                 for name, qty in _produced_pass.items():
@@ -402,17 +404,17 @@ class IslandRestaurant(IslandShopBase):
 
                 self._compute_base_demands(force_skip=_force_skip_run)
                 if not self.to_post_products:
-                    logger.info("所有槽位需求已满足")
+                    logger.info("[岛屿-有鱼餐馆] 所有槽位需求已满足")
                     break
 
                 self.to_post_products = self.process_meal_requirements(self.to_post_products)
-                logger.info(f"基础需求生产计划: {self.to_post_products}")
+                logger.info(f"[岛屿-有鱼餐馆] 基础需求生产计划: {self.to_post_products}")
 
                 prev_pass_total = sum(_produced_pass.values())
                 self._schedule_and_track(_produced_pass)
 
                 if sum(_produced_pass.values()) == prev_pass_total and self.to_post_products:
-                    logger.info("[循环] 当前缺口排产失败，切换严格模式扫描")
+                    logger.info("[岛屿-有鱼餐馆] [循环] 当前缺口排产失败，切换严格模式扫描")
                     self.to_post_products = {}
                     self.current_totals = dict(_orig_totals)
                     for name, qty in _produced_pass.items():
@@ -421,14 +423,14 @@ class IslandRestaurant(IslandShopBase):
                     if not self.to_post_products:
                         break
                     self.to_post_products = self.process_meal_requirements(self.to_post_products)
-                    logger.info(f"基础需求生产计划（严格模式）: {self.to_post_products}")
+                    logger.info(f"[岛屿-有鱼餐馆] 基础需求生产计划（严格模式）: {self.to_post_products}")
 
                     strict_prev_total = sum(_produced_pass.values())
                     self._schedule_and_track(_produced_pass)
 
                     if sum(_produced_pass.values()) == strict_prev_total and self.to_post_products:
                         stuck_now = set(self.to_post_products.keys())
-                        logger.info(f"[循环] 严格模式也无产出，强制跳过: {stuck_now}")
+                        logger.info(f"[岛屿-有鱼餐馆] [循环] 严格模式也无产出，强制跳过: {stuck_now}")
                         _force_skip_run.update(stuck_now)
                         self.to_post_products = {}
                     continue
@@ -444,13 +446,13 @@ class IslandRestaurant(IslandShopBase):
                              away_cook in self.name_to_config)
 
             if idle_posts_after_basic and has_away_cook:
-                logger.info(f"基础需求完成后，还有 {len(idle_posts_after_basic)} 个空闲岗位")
+                logger.info(f"[岛屿-有鱼餐馆] 基础需求完成后，还有 {len(idle_posts_after_basic)} 个空闲岗位")
 
                 for post_id in idle_posts_after_basic:
                     post_num = post_id[-1]
                     time_var_name = f'{self.time_prefix}{post_num}'
 
-                    logger.info(f"尝试生产常驻餐品 {away_cook}")
+                    logger.info(f"[岛屿-有鱼餐馆] 尝试生产常驻餐品 {away_cook}")
 
                     # 检查材料限制
                     batch_size = self.POST_PRODUCE_LIMIT
@@ -465,16 +467,16 @@ class IslandRestaurant(IslandShopBase):
                         )
 
                         if result == 0:
-                            logger.info(f"常驻餐品 {away_cook} 原料不足，保持岗位空闲")
+                            logger.info(f"[岛屿-有鱼餐馆] 常驻餐品 {away_cook} 原料不足，保持岗位空闲")
                             break
                         else:
-                            logger.info(f"已为岗位 {post_id} 安排常驻餐品 {away_cook} x{batch_size}")
+                            logger.info(f"[岛屿-有鱼餐馆] 已为岗位 {post_id} 安排常驻餐品 {away_cook} x{batch_size}")
                     else:
-                        logger.info(f"生产 {away_cook} 的材料不足，跳过岗位 {post_id}")
+                        logger.info(f"[岛屿-有鱼餐馆] 生产 {away_cook} 的材料不足，跳过岗位 {post_id}")
                         break
 
             elif idle_posts_after_basic:
-                logger.info(f"有 {len(idle_posts_after_basic)} 个空闲岗位，但未设置常驻餐品，保持空闲")
+                logger.info(f"[岛屿-有鱼餐馆] 有 {len(idle_posts_after_basic)} 个空闲岗位，但未设置常驻餐品，保持空闲")
 
         # ============ 设置任务延迟 ============
         finish_times = []
@@ -482,7 +484,7 @@ class IslandRestaurant(IslandShopBase):
             time_value = getattr(self, var)
             if time_value is not None:
                 finish_times.append(time_value)
-        hours_later = datetime.now() + timedelta(hours=6)
+        hours_later = current_time() + timedelta(hours=6)
         finish_times.append(hours_later)
         finish_times.sort()
         self.config.task_delay(target=finish_times)

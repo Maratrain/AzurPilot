@@ -97,6 +97,11 @@ Deploy:
     # ! You need to set Password below to enable remote access since everyone can access to your alas if they have your url.
     # See here (http://app.azurlane.cloud/en.html) for more infomation.
     EnableRemoteAccess: false
+    # Remote access mode
+    # [Auto] auto (prefer P2P/TURN and fall back to SSH forwarding)
+    # [SSH] ssh (legacy SSH reverse tunnel only)
+    # [WebRTC] webrtc (prefer P2P and keep SSH fallback)
+    RemoteAccessMode: auto
     # Username when login into ssh server
     # [Default] null (will generate a random one when startup)
     SSHUser: null
@@ -108,6 +113,14 @@ Deploy:
     # [Default] ssh (find ssh in system PATH)
     # If you don't have one, install OpenSSH or download it here (https://github.com/PowerShell/Win32-OpenSSH/releases)
     SSHExecutable: ssh
+    # WebRTC signaling server, empty means deriving wss://host/signal from SSHServer
+    SignalingServer: null
+    # STUN servers as JSON array or comma separated string
+    StunServers: '["stun:stun.l.google.com:19302"]'
+    # TURN servers as JSON array or comma separated string, empty to disable TURN
+    TurnServers: null
+    # TURN credential mode, currently static, ephemeral is reserved
+    TurnCredentialMode: static
 
   Webui:
     # --host. Host to listen

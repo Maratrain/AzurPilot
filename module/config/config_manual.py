@@ -14,7 +14,9 @@ if TYPE_CHECKING:
 
 # 此文件定义了手动配置项。
 # 包含了非自动生成的硬编码设置，如资源文件路径、UI 按钮偏移量以及任务调度的默认优先级逻辑。
+from module.config.deep import deep_get
 from module.config.utils import *
+from module.config.task_priority import get_scheduler_tasks, merge_task_priority
 import module.config.server as server
 
 
@@ -39,6 +41,7 @@ class ManualConfig:
     > Minigame > Awaken
     > OpsiAshBeacon
     > OpsiDaily > OpsiShop > OpsiVoucher
+    > OpsiScheduling
     > OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive
     > Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss
     > Sos > EventSp > EventA > EventB > EventC > EventD
@@ -96,16 +99,19 @@ class ManualConfig:
         if not task_adj:
             task_adj = getattr(self, "YukikazeTaskManager_TaskPriorityAdjustment", None)
 
-        default_priority = self._normalize_scheduler_priority(
-            getattr(self, "_DEFAULT_SCHEDULER_PRIORITY", "")
-        )
-        custom_priority = self._normalize_scheduler_priority(task_adj)
+        try:
+            args = read_file(filepath_args())
+            default_priority = deep_get(
+                args,
+                "General.YukikazeTaskManager.TaskPriorityAdjustment.value",
+                getattr(self, "_DEFAULT_SCHEDULER_PRIORITY", ""),
+            )
+            available_tasks = get_scheduler_tasks(args)
+        except Exception:
+            default_priority = getattr(self, "_DEFAULT_SCHEDULER_PRIORITY", "")
+            available_tasks = None
 
-        if custom_priority and default_priority:
-            # Always insert an explicit separator so the last custom token
-            # cannot merge with the first default token.
-            return f"{custom_priority}\n>\n{default_priority}"
-        return custom_priority or default_priority
+        return merge_task_priority(task_adj, default_priority, available_tasks)
 
     """
     module.assets

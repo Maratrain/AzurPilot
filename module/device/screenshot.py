@@ -1,7 +1,6 @@
 import os
 import time
 from collections import deque
-from datetime import datetime
 from PIL import Image
 # 此文件定义了截图处理逻辑。
 # 管理各种截图捕获方式，并包含后台编码线程用于将图像序列化并通过 Base64 供 WebUI 实时渲染预览。
@@ -15,6 +14,7 @@ import numpy as np
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.base.utils import get_color, image_size, limit_in, save_image, set_template_match_non_native_720p
+from module.config.time_source import now as current_time
 from module.device.method.adb import Adb
 from module.device.method.ascreencap import AScreenCap
 from module.device.method.droidcast import DroidCast
@@ -84,7 +84,7 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
             self.image = self._handle_orientated_image(self.image)
 
             if self.config.Error_SaveError:
-                self.screenshot_deque.append({'time': datetime.now(), 'image': self.image})
+                self.screenshot_deque.append({'time': current_time(), 'image': self.image})
 
             if self.check_screen_size() and self.check_screen_black():
                 break
@@ -262,8 +262,8 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
                 logger.warning('Received orientated screenshot, game not running')
                 return True
             else:
-                logger.critical(f"大叔，你看着分辨率对吗: {width}x{height}。真是个连分辨率都不会设的杂鱼呢❤")
-                logger.critical("乖乖给我改成 1280x720 哦，不然我可不理你了❤")
+                logger.critical(f"[Device] 大叔，你看着分辨率对吗: {width}x{height}。真是个连分辨率都不会设的杂鱼呢❤")
+                logger.critical("[Device] 乖乖给我改成 1280x720 哦，不然我可不理你了❤")
                 raise RequestHumanTakeover
 
     def check_screen_black(self):
@@ -284,7 +284,7 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
             elif self.config.Emulator_ScreenshotMethod == 'uiautomator2':
                 logger.warning(f'Received pure black screenshots from emulator, color: {color}')
                 logger.warning('Uninstall minicap and retry')
-                logger.warning('截图为纯黑色。通常是设备处于锁屏状态，或者当前模拟器不支持当前截图方式。')
+                logger.warning('[Device] 截图为纯黑色。通常是设备处于锁屏状态，或者当前模拟器不支持当前截图方式。')
                 self.uninstall_minicap()
                 self._screen_black_checked = False
                 return False

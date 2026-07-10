@@ -337,8 +337,13 @@ class PlatformMac(PlatformBase, EmulatorManagerMac):
                 # 成功
                 # 提升模拟器进程优先级
                 self.boost_emulator_priority(self.emulator_instance)
-                self.emulator_start_watch()
-                return True
+                if self.emulator_start_watch():
+                    return True
+                logger.warning('Emulator start watch failed, retrying')
+                if self._emulator_function_wrapper(self._emulator_stop):
+                    continue
+                else:
+                    return False
             else:
                 # 启动失败，停止后重试
                 if self._emulator_function_wrapper(self._emulator_stop):

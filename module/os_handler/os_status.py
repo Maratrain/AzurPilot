@@ -2,11 +2,12 @@
 # 负责海域代币（黄币/紫币）的数值追踪、任务类型识别以及子任务冷却（CD）状态的实时计算。
 import threading
 import typing as t
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import module.config.server as server
 from module.base.timer import Timer
 from module.config.config import Function
+from module.config.time_source import now as current_time
 from module.config.utils import get_server_next_update
 from module.logger import logger
 from module.map.map_grids import SelectedGrids
@@ -40,6 +41,14 @@ class OSStatus(UI):
         return self.config.task.command == 'OpsiHazard1Leveling'
 
     @property
+    def is_running_cl1_leveling(self) -> bool:
+        """判断当前执行上下文是否是侵蚀1练级。"""
+        return (
+            self.is_in_task_cl1_leveling
+            or getattr(self.config, '_bind_task_override', None) == 'OpsiHazard1Leveling'
+        )
+
+    @property
     def is_in_task_meow(self) -> bool:
         """判断当前任务是否是短猫任务"""
         return self.config.task.command == 'OpsiMeowfficerFarming'
@@ -47,6 +56,15 @@ class OSStatus(UI):
     @property
     def is_cl1_enabled(self) -> bool:
         return self.config.is_task_enabled('OpsiHazard1Leveling')
+
+    @property
+    def is_cl1_mode_enabled(self) -> bool:
+        """判断侵蚀1相关策略是否启用，包括智能调度代理模式。"""
+        is_smart_scheduling_enabled = getattr(self, 'is_smart_scheduling_enabled', None)
+        return self.is_cl1_enabled or (
+            is_smart_scheduling_enabled is not None
+            and is_smart_scheduling_enabled()
+        )
 
     @property
     def is_meow_enabled(self) -> bool:
@@ -64,7 +82,7 @@ class OSStatus(UI):
         If having any tasks cooling down,
         such as recon scan cooldown and submarine call cooldown.
         """
-        now = datetime.now()
+        now = current_time()
         update = get_server_next_update('00:00')
         cd_tasks = [
             'OpsiObscure',
@@ -108,7 +126,7 @@ class OSStatus(UI):
             if current_value == 0:
                 # OCR may get 0 when amount is not immediately loaded
                 # Or when popups are obscuring the top bar
-                logger.info(f'Yellow coins is 0, assuming it is an ocr error or UI not loaded')
+                logger.info('Yellow coins is 0, assuming it is an ocr error or UI not loaded')
                 continue
             else:
                 # 验证识别稳定性：连续两次识别相同才确认
@@ -152,7 +170,7 @@ class OSStatus(UI):
         # 记录凭证快照到数据库（用于 WebUI 凭证变化曲线图）
         try:
             instance_name = getattr(self.config, 'config_name', 'default')
-            source = 'cl1' if self.is_in_task_cl1_leveling else ('meow' if self.is_in_task_meow else 'other')
+            source = 'cl1' if self.is_running_cl1_leveling else ('meow' if self.is_in_task_meow else 'other')
             from module.statistics.cl1_database import db as cl1_db
             cl1_db.add_coins_snapshot(
                 instance_name,
@@ -164,7 +182,3 @@ class OSStatus(UI):
             self.config.save()
         except Exception:
             logger.exception('Failed to record coins snapshot')
-
-    def cl1_task_call(self):
-        if self.is_cl1_enabled and self.cl1_enough_yellow_coins:
-            self.config.task_call('OpsiHazard1Leveling')

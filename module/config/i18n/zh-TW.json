@@ -278,6 +278,10 @@
       "name": "智慧排程+",
       "help": "大世界智慧排程功能，用於協調侵蝕1練級與黃幣補充任務之間的切換\n啟用後將根據黃幣和行動力自動在不同任務之間切換並傳送推送通知"
     },
+    "OpsiPreventActionPointOverflow": {
+      "name": "防止行動力溢出",
+      "help": "當前行動力達到上限時執行大世界任務消耗行動力"
+    },
     "OpsiCrossMonth": {
       "name": "跨月每日",
       "help": "    AzurPilot將在大世界跨月重置之前10分鐘進入大世界，等待大世界重置但不退出大世界，然後完成新一天的大世界每日、隱秘海域、深淵海域和短貓相接，以獲得額外的金菜。執行大世界每日時，按\"大世界每日\"任務設定執行，其餘同理。\n    重要：AzurPilot等待跨月期間，請不要操作遊戲。"
@@ -443,6 +447,12 @@
     "RandomDelay": {
       "name": "每日重啟隨機延後",
       "help": "每天重啟客戶端時，在伺服器刷新時間後隨機延後 X 分鐘再執行，用於錯開多個客戶端登入。\n支援單個數字或區間，例如 5, 50；填 0 可關閉。"
+    },
+    "ClearCache": {
+      "name": "重啟時同時清理快取",
+      "help": "重啟客戶端時，在強行停止應用後刪除 /sdcard/Android/data/<包名>/cache/ 下的外部快取檔案。",
+      "True": "開啟",
+      "False": "關閉"
     }
   },
   "Emulator": {
@@ -735,6 +745,41 @@
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
     },
+    "OcrModelVersionEnglish": {
+      "name": "OCR 英文模型版本",
+      "help": "選擇英文 OCR 模型版本。auto 使用英文推薦模型 AlOCR v2.6。此項影響英文 Azur Lane 模型；ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "alocr_en_900k": "alocr_en_900k",
+      "azur_lane_v6_6": "英文 v6.6 (Azur Lane)",
+      "azur_lane_v6_5": "英文 v6.5 (Azur Lane)",
+      "ppocr_v6": "通用 PP-OCRv6",
+      "alocr_en_v2_6": "英文 AlOCR v2.6",
+      "alocr_en_v2_0": "英文 AlOCR v2.0",
+      "alocr_en_v1_0": "英文 AlOCR v1.0"
+    },
+    "OcrModelVersionChinese": {
+      "name": "OCR 簡中模型版本",
+      "help": "選擇簡體中文 OCR 模型版本。auto 使用中文推薦模型 v6.1。此項影響 cnocr/中文模型；ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "cn_v6_1": "中文 v6.1",
+      "cn_v6": "中文 v6",
+      "ppocr_v6": "通用 PP-OCRv6",
+      "alocr_cn_v3": "中文 AlOCR v3",
+      "alocr_cn_v2_5": "中文 AlOCR v2.5"
+    },
+    "OcrModelVersionJapanese": {
+      "name": "OCR 日文模型版本",
+      "help": "選擇日文 OCR 模型版本。auto 使用日文 Azur Lane v6。此項影響日文模型；ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "azur_lane_jp_v6": "日文 v6 (Azur Lane JP)",
+      "ppocr_v6": "通用 PP-OCRv6"
+    },
+    "OcrModelVersionTraditionalChinese": {
+      "name": "OCR 繁中模型版本",
+      "help": "選擇繁體中文 OCR 模型版本。目前僅提供通用 PP-OCRv6，保留獨立選項以便後續擴充。ncnn 後端會忽略此選擇。",
+      "auto": "自動推薦",
+      "ppocr_v6": "通用 PP-OCRv6"
+    },
     "ScreenshotInterval": {
       "name": "放慢截圖速度至 X 秒一張",
       "help": "執行兩次截圖之間的最小間隔，限制在 0.001 ~ 0.3，對於高配置電腦能降低 CPU 佔用"
@@ -746,6 +791,12 @@
     "TaskHoardingDuration": {
       "name": "囤積任務 X 分鐘",
       "help": "能在收菜期間降低操作遊戲的頻率\n任務觸發後，等待 X 分鐘，再一次性執行囤積的任務"
+    },
+    "CloseEmulatorDuringLongWait": {
+      "name": "長時間等待時關閉模擬器",
+      "help": "當下一個任務超過 3 小時後執行時，等待期間關閉模擬器以節省記憶體和 CPU。",
+      "True": "True",
+      "False": "False"
     },
     "WhenTaskQueueEmpty": {
       "name": "當任務佇列清空後",
@@ -925,7 +976,7 @@
     },
     "TaskPriorityAdjustment": {
       "name": "任務優先順序調整",
-      "help": "預設優先順序參考（# 後為說明，實際填寫時不要複製註解）：\nRestart    # 重啟遊戲\n> OpsiCrossMonth    # 大世界跨月每日\n> Commission > Tactical > Research    # 委託 > 戰術學院 > 科研\n> Exercise    # 演習\n> Dorm > Meowfficer > Guild > Gacha    # 後宅 > 指揮喵 > 大艦隊 > 每日抽卡\n> Reward    # 收獲\n> ShopFrequent > ShopOnce > Shipyard > Freebies    # 通用商店 > 其他商店 > 開發船塢 > 白嫖獎勵\n> PrivateQuarters    # 私人休息室\n> OpsiExplore    # 大世界每月開荒\n> Minigame > Awaken    # 小遊戲 > 認知覺醒\n> OpsiAshBeacon    # META信標作戰\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop    # 大世界日常 > 港口商店 > 兌換商店 > 活動商店\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive    # 深淵海域 > 塞壬要塞 > 隱秘海域 > 檔案坐標\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss    # 每日挑戰 > 困難圖 > META作戰 > META支援 > 月度boss\n> Sos > EventSp > EventA > EventB > EventC > EventD    # SOS > 活動每日SP > 活動每日A > 活動每日B > 活動每日C > 活動每日D\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort    # 共鬥活動每日 > 共鬥活動SP > 作戰檔案 > 商船護航\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant    # 島嶼啾啾簡餐 > 啾咖啡 > 烏魚烤肉 > 白熊飲品 > 有魚餐館\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture    # 島嶼農田 > 牧場 > 礦山林場 > 每日採集 > 製造業\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation    # 島嶼每日補給 > 經營模組 > 每日訂單 > 每日/週任務 > 每週珍珠採購與售賣 > 貨物籌備\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3    # 活動圖1 > 活動圖2 > 活動圖3 > 共鬥活動 > 醫院活動 > 醫院活動事件 > 共鬥活動 > 共鬥沉船 > 主線 > 主線2 > 主線3\n> OpsiMeowfficerFarming    # 短貓相接\n> GemsFarming    # 刷緊急委託\n> Ambush11    # 1-1刷伏擊\n> OpsiHazard1Leveling    # 侵蝕一練級\n> ThreeOilLowCost    # 三油低耗\n\n格式：每行只寫任務名，用 `>` 連接優先順序（越靠前優先順序越高）。\n上面的 `#` 註解僅用於說明，寫入配置時不要保留註解，否則任務名匹配會失敗。\n任務名請使用英文設定任務名；不知道任務名時可切到英文介面查看。\n留空可使用內建預設優先順序。"
+      "help": "拖動任務列調整排程優先順序，越靠上越先執行。新增任務會按照內建預設優先順序自動插入到合適位置。"
     }
   },
   "OneClickRetire": {
@@ -1618,11 +1669,11 @@
       "name": "忽略心情警告彈窗",
       "help": "開啟後，遇到心情警告彈窗將強制打完，打完後如開啟更換前排會強制換船"
     },
-    "ALLowHighFlagshipLevel": {
+    "AllowHighFlagshipLevel": {
       "name": "僅更換滿級後排",
       "help": "開啟後，更換旗艦時僅會選擇100級的白皮輕航。\n使用時請保證船塢中有符合條件的艦船。"
     },
-    "ALLowLowVanguardLevel": {
+    "AllowLowVanguardLevel": {
       "name": "可更換低等級前排",
       "help": "開啟後，前排等級限制改為30級以上。若為困難模式（如CD圖）則改為70級。"
     },
@@ -1785,10 +1836,11 @@
     "Mode": {
       "name": "難度",
       "help": "SP圖需要使用活動每日SP執行",
-      "easy": "easy",
-      "normal": "normal",
-      "hard": "hard",
-      "sp": "sp"
+      "tc1": "tc1",
+      "tc2": "tc2",
+      "tc3": "tc3",
+      "sp": "sp",
+      "ex": "ex"
     },
     "Fleet": {
       "name": "出擊隊伍",
@@ -1970,6 +2022,9 @@
       "name": "科研過濾器",
       "help": "科研掉落和專案重新整理見 https://azur-stats.lyoko.io/，對這些沒有基本瞭解的人不建議編寫自定義過濾器，建議使用預最佳化科研過濾器",
       "custom": "自定義",
+      "series_9_blueprint_ta152": "九期 藍圖+Ta152",
+      "series_9_blueprint_only": "九期 僅藍圖",
+      "series_9_ta152_only": "九期 僅Ta152",
       "series_8_blueprint_305": "八期 藍圖+305",
       "series_8_blueprint_only": "八期 僅藍圖",
       "series_8_305_only": "八期 僅305",
@@ -2922,6 +2977,10 @@
     "OpsiOnePushConfig": {
       "name": "大世界推送設定",
       "help": "”大世界資訊獨立推送”功能開啟時設定才生效。使用 Onepush 推送一條關於侵蝕1和短貓的資訊。配置方法見文檔：https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
+    },
+    "AutoSearchTimeLimit": {
+      "name": "自律尋敵時間限制",
+      "help": "單位：分鐘。自律尋敵時連續多長時間沒遇到事件會判定為遊戲卡死"
     }
   },
   "OpsiAshBeacon": {
@@ -3001,6 +3060,10 @@
     "LastZone": {
       "name": "上一次完成的區域",
       "help": "自動更新的數值，填0可重置進度，重置後自動跳過已開荒的海域\n支援海域ID、國服/國際服/日服/臺服海域名稱，例如 \"51\", \"NA海域東南E\", \"NA Ocean SE Sector E\""
+    },
+    "AllowHazard1Leveling": {
+      "name": "允許開荒期間執行侵蝕1練級",
+      "help": "開啟後將不會推遲侵蝕1練級任務，慎用，沒體力開荒就老實了。"
     },
     "ExploreProgress": {
       "name": "每月開荒進度",
@@ -3141,10 +3204,6 @@
       "name": "保留 X 點行動力",
       "help": "行動力低於 X 後停止，自動開啟行動力箱子，X 包含箱子中的行動力，建議保留3000行動力給侵蝕1練級\n這個值將在大世界重置前3天自動減少至200點，如果啟用侵蝕1練級則改為1000點，並在最後一天自動減少至0點"
     },
-    "SmartNaturalAPCleanup": {
-      "name": "智慧排程自然行動力清理",
-      "help": "智慧排程啟動短貓清理自然恢復行動力時使用的一次性隱藏標記。"
-    },
     "HazardLevel": {
       "name": "侵蝕等級",
       "help": "按順時針出擊特定侵蝕等級的海域\n建議選 5 或 3，有更高的 貓點/行動力 比",
@@ -3157,11 +3216,11 @@
     },
     "TargetZone": {
       "name": "指定海域",
-      "help": "僅出擊指定的海域"
+      "help": "僅出擊指定的海域，支援海域ID或名稱。填0跳轉至預設邏輯（按侵蝕等級搜尋）。\n開啟「停留在指定海域」後，可填寫多個海域並按順序循環，例如 42,55,45、42, 55, 45、42，55，45。"
     },
     "StayInZone": {
       "name": "停留在指定海域",
-      "help": "在指定海域內反復戰鬥直到安全海域"
+      "help": "開啟後，將按「指定海域」設定執行。指定單個海域時一直停留在該海域；指定多個海域時按填寫順序循環。僅在指定海域不為0時生效。"
     },
     "APPreserveUntilReset": {
       "name": "重置前保留行動力",
@@ -3223,10 +3282,6 @@
     "RecordNonCL1AP": {
       "name": "統計非侵蝕1來源體力",
       "help": "開啟後，將統計所有來源的體力獲取資料（如明石商店購買）。關閉後，僅在侵蝕1練級任務中統計體力資料，忽略其他任務或手動操作時的體力獲取。"
-    },
-    "PreserveVirtualAsset": {
-      "name": "保留 X 點虛擬資產",
-      "help": "虛擬資產 = 體力 × 1700/30 + 黃幣 + (到月底時間/10分鐘) × 1700/30\n虛擬資產低於 X 時運行黃幣補充任務，虛擬資產包含當前黃幣和到月底的行動力價值"
     },
     "RecordSeaMiles": {
       "name": "海里數記錄",
@@ -3335,16 +3390,6 @@
       "name": "短貓相接 保留 X 點行動力",
       "help": "行動力低於 X 後停止，自動開啟行動力箱子，X 包含箱子中的行動力，建議保留1000行動力給侵蝕1練級"
     },
-    "ActionPointEarlyTriggerEnable": {
-      "name": "行動力提前排程",
-      "help": "啟用後在侵蝕一或短貓結束時記錄自然行動力，並按每 10 分鐘回復 1 點行動力計算智慧排程下次運行時間，避免自然行動力溢出。",
-      "True": "開啟",
-      "False": "關閉"
-    },
-    "ActionPointEarlyTriggerThreshold": {
-      "name": "提前排程行動力閾值",
-      "help": "自然行動力回復到 X 時再次運行智慧排程。預設 200，適合在行動力接近自然上限時重新決定執行侵蝕一或短貓。"
-    },
     "OperationCoinsReturnThreshold": {
       "name": "獲取 X 個作戰補給憑證",
       "help": "在黃幣獲取任務時 共獲取(增加) X 個作戰補給憑證後返回侵蝕1練級"
@@ -3373,20 +3418,30 @@
       "True": "已啟用",
       "False": "未啟用"
     },
-    "MeowStartEarlyMode": {
-      "name": "月末行動力自動清理模式",
-      "help": "提前小時數 = (當前行動力/30 × 歷史平均每輪短貓耗時) × 模式係數，並與「下個月大世界重置剩餘時間」比較；激進(×0.8)少提前，均衡(×1.2)平衡，保守(×1.5)多提前",
-      "aggressive": "激進模式",
-      "balanced": "均衡模式",
-      "conservative": "保守模式"
+    "TaskPriority": {
+      "name": "補充黃幣任務優先級",
+      "help": "黃幣不足時，執行補充黃幣任務的優先級順序。使用 > 分隔。"
+    }
+  },
+  "OpsiPreventActionPointOverflow": {
+    "_info": {
+      "name": "防止行動力溢出",
+      "help": "當前行動力達到上限時執行大世界任務消耗行動力\n選擇智慧排程時，如果行動力和黃幣都不足導致沒有可執行任務，將執行短貓相接清理當前行動力"
     },
-    "MeowStartEarlyEnable": {
-      "name": "啟用月末行動力自動清理",
-      "help": "根據歷史短貓耗時與當前行動力，自動判斷是否需要提前開始短貓來清理月末過剩行動力；判斷基準為「下個月大世界重置時間」，不是每日伺服器刷新時間"
+    "Task": {
+      "name": "執行任務",
+      "help": "推薦選擇智慧排程，防溢出任務對此有專門處理",
+      "OpsiScheduling": "智慧排程（推薦）",
+      "OpsiHazard1Leveling": "侵蝕1練級",
+      "OpsiMeowfficerFarming": "短貓相接"
     },
-    "VirtualAssetPreserve": {
-      "name": "侵蝕1練級 保留 X 點虛擬資產",
-      "help": "虛擬資產低於 X 時運行黃幣補充任務，虛擬資產 = 體力 × 1700/30 + 黃幣 + (到月底時間/10分鐘) × 1700/30"
+    "ActionPointUpperbound": {
+      "name": "當前行動力上限",
+      "help": "當前行動力達到此值時開始執行大世界任務"
+    },
+    "ActionPointLowerbound": {
+      "name": "當前行動力下限",
+      "help": "防溢出任務會持續執行，直到當前行動力低於此值"
     }
   },
   "IslandPlan": {
@@ -5876,6 +5931,12 @@
       "NotRunning": "未執行，與伺服器的連線斷開或伺服器離線",
       "NotEnable": "未啟用，在 deploy.yaml 中設定 webui 密碼並啟用遠端控制",
       "EntryPoint": "遠端訪問 url 地址:",
+      "StatusDirect": "P2P 直連",
+      "StatusTurn": "TURN 中繼",
+      "StatusSsh": "SSH 轉發",
+      "StatusSignaling": "等待 P2P 連線",
+      "StatusStarting": "正在連線",
+      "StatusFailed": "連線失敗",
       "ConfigureHint": "配置教程：",
       "SSHNotInstall": "系統中沒有 ssh 工具，請參考教程下載或安裝 ssh"
     },
@@ -5957,12 +6018,26 @@
       "DiscordRichPresenceHelp": "在 Discord 中展示 AzurPilot 執行狀態。",
       "EnableRemoteAccess": "啟用遠端訪問",
       "EnableRemoteAccessHelp": "透過 SSH 反向通道暴露 WebUI。公開使用前請務必設定密碼。",
+      "RemoteAccessMode": "遠端存取模式",
+      "RemoteAccessModeHelp": "auto 優先 P2P/TURN 並回退 SSH；webrtc 優先 P2P；ssh 僅使用舊 SSH 轉發。",
       "SSHUser": "SSH 使用者",
       "SSHUserHelp": "遠端訪問服務登入使用者名稱，留空時啟動時生成。",
       "SSHServer": "SSH 伺服器",
       "SSHServerHelp": "遠端訪問連線的伺服器，格式為 host:port。",
       "SSHExecutable": "SSH 可執行檔",
       "SSHExecutableHelp": "ssh.exe 路徑，留空或使用 ssh 表示從 PATH 查找。",
+      "AllowedRedirectHosts": "允許重定向網域",
+      "AllowedRedirectHostsHelp": "SSH 調度重定向的可信目標網域，JSON 陣列或逗號分隔。留空時預設允許 SSHServer 同域和上級域萬用字元。",
+      "MaxRedirects": "最大重定向次數",
+      "MaxRedirectsHelp": "單次遠端訪問啟動最多跟隨多少次 SSH 調度重定向。",
+      "SignalingServer": "WebRTC 信令伺服器",
+      "SignalingServerHelp": "留空時從 SSHServer 自動推導為 wss://host/signal。",
+      "StunServers": "STUN 伺服器",
+      "StunServersHelp": "JSON 陣列或逗號分隔字串，用於 NAT 打洞。",
+      "TurnServers": "TURN 伺服器",
+      "TurnServersHelp": "JSON 陣列或逗號分隔字串，P2P 失敗時作為中繼。",
+      "TurnCredentialMode": "TURN 憑證模式",
+      "TurnCredentialModeHelp": "目前支援 static，ephemeral 為後續短期憑證預留。",
       "WebuiHost": "WebUI 監聽地址",
       "WebuiHostHelp": "WebUI 監聽的主機地址，例如 0.0.0.0、127.0.0.1 或 ::。",
       "WebuiPort": "WebUI 連接埠",
@@ -6062,13 +6137,6 @@
       "AvgMeowRoundTime": "平均一輪短貓時長",
       "MeowLootTitle": "短貓相接收穫",
       "NoMeowDataNotice": "暫無本地短貓收穫資料，完成一次短貓相接後會自動生成",
-      "MeowAdvanceAdviceTitle": "短貓提前開始建議",
-      "CurrentAP": "當前AP: {value}",
-      "ApPerRound": "每輪消耗: {value} AP",
-      "AvailableRounds": "可執行輪數: {value}{unit}",
-      "AvgRoundDuration": "平均每輪耗時: {value}{unit}",
-      "CurrentMode": "當前模式: {value}",
-      "RecommendAhead": "建議提前: {value}{unit}",
       "RoundUnit": "輪",
       "SecondUnit": "秒",
       "HourUnit": "小時",
@@ -6091,9 +6159,6 @@
       "TargetExpRequired": "目標等級所需經驗",
       "BattlesCompleted": "已戰鬥場次",
       "ExpRemaining": "還需經驗",
-      "StartCleanupTime": "建議開始清理時間: {value}",
-      "NextOsReset": "下次大世界重置: {value}",
-      "MeowAutoCleanupStatus": "自動提前清理: {value}",
       "CommissionIncomeTitle": "委託收益統計",
       "CommissionIncomeMonth": "本月",
       "CommissionIncomeWeek": "本週",
@@ -6122,14 +6187,12 @@
       "UseSmartSchedulingOperationCoinsPreserve": "智慧排程作戰補給憑證保留",
       "OperationCoinsPreserve": "作戰補給憑證保留",
       "ActionPointPreserve": "行動力保留",
-      "ActionPointEarlyTriggerEnable": "行動力提前排程",
-      "ActionPointEarlyTriggerThreshold": "提前排程行動力閾值",
       "OperationCoinsReturnThreshold": "作戰補給憑證回退閾值",
       "EnableMeowfficerFarming": "啟用指揮喵刷取",
       "EnableObscure": "啟用隱秘海域",
       "EnableAbyssal": "啟用深淵海域",
       "EnableStronghold": "啟用塞壬要塞",
-      "MeowStartEarlyMode": "短貓提前開始模式"
+      "TaskPriority": "任務優先級"
     },
     "Misc": {
       "Enabled": "已開啟",

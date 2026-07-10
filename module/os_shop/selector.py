@@ -6,7 +6,7 @@
 import re
 from typing import List
 from module.config.config_generated import GeneratedConfig
-from module.os_shop.preset import *
+from module.os_shop.preset import OS_SHOP
 from module.os_shop.item import OSShopItem as Item
 from module.base.filter import Filter
 
@@ -81,7 +81,7 @@ class Selector():
         Returns:
             bool: 允许购买返回 True，CL1 模式下购买紫币返回 False。
         """
-        return not (self.is_cl1_enabled and item.name == 'PurpleCoins')
+        return not (self.is_cl1_mode_enabled and item.name == 'PurpleCoins')
 
     def check_item_count(self, item) -> bool:
         """检查物品计数是否有效。
@@ -106,7 +106,7 @@ class Selector():
             list[Item]: 可购买的物品列表。
         """
         items = self.pretreatment(items)
-        if getattr(self, 'is_in_task_cl1_leveling', False) and getattr(self, 'is_cl1_enabled', False):
+        if getattr(self, 'is_running_cl1_leveling', False):
             parser = self.config.OpsiHazard1Leveling_Cl1Filter
             if not parser:
                 parser = 'ActionPoint'

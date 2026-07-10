@@ -232,7 +232,7 @@ class Enhancement(Dock):
                 state_list.clear()
             state_list.append(state)
             if len(state_list) > 30:
-                logger.critical(f'状态机循环次数过多: {state_list}')
+                logger.critical(f'[退役] 状态机循环次数过多: {state_list}')
                 raise GameStuckError('状态机循环次数过多')
 
             try:

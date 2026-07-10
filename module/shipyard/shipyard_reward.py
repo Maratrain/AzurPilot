@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from module.base.timer import Timer
+from module.config.time_source import now as current_time
 from module.config.utils import get_server_last_update
 from module.exception import ScriptError
 from module.logger import logger
@@ -131,9 +130,9 @@ class RewardShipyard(ShipyardUI):
                 break
 
             if self._shipyard_bp_rarity == 'DR':
-                self.config.ShipyardDr_LastRun = datetime.now().replace(microsecond=0)
+                self.config.ShipyardDr_LastRun = current_time().replace(microsecond=0)
             else:
-                self.config.Shipyard_LastRun = datetime.now().replace(microsecond=0)
+                self.config.Shipyard_LastRun = current_time().replace(microsecond=0)
 
             self._shipyard_buy_confirm('BP_BUY')
 

@@ -25,6 +25,7 @@ import re
 from io import BytesIO
 
 from module.config.config import AzurLaneConfig
+from module.config.time_source import now as current_time
 from module.config.utils import DEFAULT_CONFIG_NAME, alas_instance
 from module.webui.process_manager import ProcessManager
 from module.config.mcp_helper import McpConfigHelper
@@ -369,7 +370,7 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             task = arguments["task"]
             config = AzurLaneConfig(inst)
             config.cross_set(f"{task}.Scheduler.Enable", True)
-            now = datetime.datetime.now()
+            now = current_time()
             config.cross_set(f"{task}.Scheduler.NextRun", str(now))
             config.save()
             return [TextContent(type="text", text=f"Success: Task {task} scheduled for immediately.")]
@@ -510,5 +511,5 @@ app.mount("/", mcp_asgi_app)
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("启动 AzurPilot MCP 服务 (Port: 22268)")
+    logger.info("[MCP] 启动 AzurPilot MCP 服务 (Port: 22268)")
     uvicorn.run(app, host="0.0.0.0", port=22268)

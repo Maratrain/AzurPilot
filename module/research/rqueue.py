@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property, Config
 from module.base.utils import get_color
+from module.config.time_source import now as current_time
 from module.exception import GameBugError
 from module.logger import logger
 from module.ocr.ocr import Duration
@@ -168,8 +167,8 @@ class ResearchQueue(ResearchUI):
             raise GameBugError
         if not self.image_color_count(QUEUE_REMAIN, color=(255, 255, 255), threshold=221, count=100):
             logger.info('Research queue empty')
-            return datetime.now()
+            return current_time()
 
-        end_time = datetime.now() + OCR_QUEUE_REMAIN.ocr(self.device.image)
+        end_time = current_time() + OCR_QUEUE_REMAIN.ocr(self.device.image)
         logger.info(f'The first research ended at: {end_time}')
         return end_time

@@ -515,6 +515,49 @@
           "ncnn"
         ]
       },
+      "OcrModelVersionEnglish": {
+        "type": "select",
+        "value": "auto",
+        "option": [
+          "auto",
+          "alocr_en_900k",
+          "azur_lane_v6_6",
+          "azur_lane_v6_5",
+          "ppocr_v6",
+          "alocr_en_v2_6",
+          "alocr_en_v2_0",
+          "alocr_en_v1_0"
+        ]
+      },
+      "OcrModelVersionChinese": {
+        "type": "select",
+        "value": "auto",
+        "option": [
+          "auto",
+          "cn_v6_1",
+          "cn_v6",
+          "ppocr_v6",
+          "alocr_cn_v3",
+          "alocr_cn_v2_5"
+        ]
+      },
+      "OcrModelVersionJapanese": {
+        "type": "select",
+        "value": "auto",
+        "option": [
+          "auto",
+          "azur_lane_jp_v6",
+          "ppocr_v6"
+        ]
+      },
+      "OcrModelVersionTraditionalChinese": {
+        "type": "select",
+        "value": "auto",
+        "option": [
+          "auto",
+          "ppocr_v6"
+        ]
+      },
       "ScreenshotInterval": {
         "type": "input",
         "value": 0.3
@@ -526,6 +569,14 @@
       "TaskHoardingDuration": {
         "type": "input",
         "value": 0
+      },
+      "CloseEmulatorDuringLongWait": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
       },
       "WhenTaskQueueEmpty": {
         "type": "select",
@@ -792,8 +843,8 @@
     },
     "YukikazeTaskManager": {
       "TaskPriorityAdjustment": {
-        "type": "textarea",
-        "value": "Restart\n> OpsiCrossMonth\n> OpsiScheduling\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost"
+        "type": "task_priority",
+        "value": "Restart\n> OpsiCrossMonth\n> Commission > Tactical > Research\n> Exercise\n> Dorm > Meowfficer > Guild > Gacha\n> Reward\n> ShopFrequent > ShopOnce > Shipyard > Freebies\n> PrivateQuarters\n> OpsiExplore\n> OpsiPreventActionPointOverflow\n> Minigame > Awaken\n> OpsiAshBeacon\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss\n> Sos > EventSp > EventA > EventB > EventC > EventD\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3\n> OpsiScheduling\n> OpsiMeowfficerFarming\n> GemsFarming\n> Ambush11\n> OpsiHazard1Leveling\n> ThreeOilLowCost"
       }
     },
     "Storage": {
@@ -863,6 +914,14 @@
       "RandomDelay": {
         "type": "input",
         "value": "5, 50"
+      },
+      "ClearCache": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
       }
     },
     "Storage": {
@@ -2254,11 +2313,11 @@
         "type": "checkbox",
         "value": false
       },
-      "ALLowHighFlagshipLevel": {
+      "AllowHighFlagshipLevel": {
         "type": "checkbox",
         "value": false
       },
-      "ALLowLowVanguardLevel": {
+      "AllowLowVanguardLevel": {
         "type": "checkbox",
         "value": false
       },
@@ -2595,13 +2654,14 @@
       },
       "Fleet2Value": {
         "type": "input",
-        "value": 119
+        "value": 119,
+        "display": "hide"
       },
       "Fleet2Record": {
         "type": "datetime",
         "value": "2020-01-01 00:00:00",
         "validate": "datetime",
-        "display": "disabled"
+        "display": "hide"
       },
       "Fleet2Control": {
         "type": "select",
@@ -2760,11 +2820,11 @@
         "type": "checkbox",
         "value": false
       },
-      "ALLowHighFlagshipLevel": {
+      "AllowHighFlagshipLevel": {
         "type": "checkbox",
         "value": false
       },
-      "ALLowLowVanguardLevel": {
+      "AllowLowVanguardLevel": {
         "type": "checkbox",
         "value": false
       },
@@ -3267,11 +3327,11 @@
         "type": "checkbox",
         "value": false
       },
-      "ALLowHighFlagshipLevel": {
+      "AllowHighFlagshipLevel": {
         "type": "checkbox",
         "value": false
       },
-      "ALLowLowVanguardLevel": {
+      "AllowLowVanguardLevel": {
         "type": "checkbox",
         "value": false
       },
@@ -5964,6 +6024,7 @@
         "type": "state",
         "value": "campaign_main",
         "option": [
+          "coalition_20230323",
           "coalition_20260122"
         ],
         "option_cn": [
@@ -5976,9 +6037,10 @@
           "coalition_20260122"
         ],
         "option_tw": [
-          "coalition_20260122"
+          "coalition_20230323"
         ],
         "option_bold": [
+          "coalition_20230323",
           "coalition_20260122"
         ]
       },
@@ -6033,12 +6095,12 @@
     "Coalition": {
       "Mode": {
         "type": "select",
-        "value": "hard",
+        "value": "tc3",
         "option": [
-          "easy",
-          "normal",
-          "hard",
-          "sp"
+          "tc1",
+          "tc2",
+          "tc3",
+          "ex"
         ]
       },
       "Fleet": {
@@ -9695,6 +9757,7 @@
         "type": "select",
         "value": "campaign_main",
         "option": [
+          "coalition_20230323",
           "coalition_20260122"
         ],
         "option_cn": [
@@ -9707,9 +9770,10 @@
           "coalition_20260122"
         ],
         "option_tw": [
-          "coalition_20260122"
+          "coalition_20230323"
         ],
         "option_bold": [
+          "coalition_20230323",
           "coalition_20260122"
         ]
       },
@@ -9764,14 +9828,14 @@
     "Coalition": {
       "Mode": {
         "type": "select",
-        "value": "hard",
+        "value": "tc3",
         "option": [
-          "easy",
-          "normal",
-          "hard",
-          "sp"
-        ],
-        "display": "hide"
+          "tc1",
+          "tc2",
+          "tc3",
+          "sp",
+          "ex"
+        ]
       },
       "Fleet": {
         "type": "select",
@@ -10236,9 +10300,12 @@
       },
       "PresetFilter": {
         "type": "select",
-        "value": "series_8_blueprint_305",
+        "value": "series_9_blueprint_ta152",
         "option": [
           "custom",
+          "series_9_blueprint_ta152",
+          "series_9_blueprint_only",
+          "series_9_ta152_only",
           "series_8_blueprint_305",
           "series_8_blueprint_only",
           "series_8_305_only",
@@ -10265,7 +10332,7 @@
       },
       "CustomFilter": {
         "type": "textarea",
-        "value": "S8-DR0.5 > S8-PRY0.5 > S8-Q0.5 > S8-H0.5 > Q0.5 > S8-DR2.5\n> S8-G1.5 > S8-Q1 > S8-DR5 > 0.5 > S8-G4 > S8-Q2 > S8-PRY2.5 > reset\n> S8-DR8 > Q1 > 1 > S8-E-315 > S8-G2.5 > G1.5 > 1.5 > S8-E-031\n> S8-Q4 > Q2 > E2 > 2 > DR2.5 > PRY2.5 > G2.5 > 2.5 > S8-PRY5\n> S8-PRY8 > Q4 > G4 > 4 > S8-C6 > DR5 > PRY5 > 5 > C6 > 6 > S8-C8\n> S8-C12 > DR8 > PRY8 > C8 > 8 > C12 > 12"
+        "value": "S9-DR0.5 > S9-PRY0.5 > S9-Q0.5 > S9-H0.5 > Q0.5 > S9-DR2.5\n> S9-G1.5 > S9-Q1 > S9-DR5 > 0.5 > S9-G4 > S9-Q2 > S9-PRY2.5 > reset\n> S9-DR8 > Q1 > 1 > S9-E-315 > S9-G2.5 > G1.5 > 1.5 > S9-E-031\n> S9-Q4 > Q2 > E2 > 2 > DR2.5 > PRY2.5 > G2.5 > 2.5 > S9-PRY5\n> S9-PRY8 > Q4 > G4 > 4 > S9-C6 > DR5 > PRY5 > 5 > C6 > 6 > S9-C8\n> S9-C12 > DR8 > PRY8 > C8 > 8 > C12 > 12"
       }
     },
     "Storage": {
@@ -12079,6 +12146,14 @@
         "type": "textarea",
         "value": "provider: null",
         "mode": "yaml"
+      },
+      "AutoSearchTimeLimit": {
+        "type": "input",
+        "value": 5,
+        "validate": [
+          1,
+          240
+        ]
       }
     },
     "Storage": {
@@ -12313,6 +12388,10 @@
       "LastZone": {
         "type": "input",
         "value": 0
+      },
+      "AllowHazard1Leveling": {
+        "type": "checkbox",
+        "value": false
       },
       "ExploreProgress": {
         "type": "textarea",
@@ -13059,11 +13138,6 @@
         "type": "input",
         "value": 1000
       },
-      "SmartNaturalAPCleanup": {
-        "type": "stored",
-        "value": false,
-        "display": "hide"
-      },
       "HazardLevel": {
         "type": "select",
         "value": 5,
@@ -13244,10 +13318,6 @@
         "type": "checkbox",
         "value": true
       },
-      "PreserveVirtualAsset": {
-        "type": "input",
-        "value": 0
-      },
       "RecordSeaMiles": {
         "type": "checkbox",
         "value": true,
@@ -13383,10 +13453,9 @@
         ]
       },
       "NextRun": {
-        "type": "stored",
+        "type": "datetime",
         "value": "2020-01-01 00:00:00",
-        "validate": "datetime",
-        "display": "hide"
+        "validate": "datetime"
       },
       "Command": {
         "type": "input",
@@ -13395,12 +13464,12 @@
       },
       "SuccessInterval": {
         "type": "input",
-        "value": 1440,
+        "value": 30,
         "display": "hide"
       },
       "FailureInterval": {
         "type": "input",
-        "value": 1440,
+        "value": 30,
         "display": "hide"
       },
       "ServerUpdate": {
@@ -13431,18 +13500,6 @@
         "value": 40000
       },
       "ActionPointPreserve": {
-        "type": "input",
-        "value": 200
-      },
-      "ActionPointEarlyTriggerEnable": {
-        "type": "checkbox",
-        "value": true,
-        "option": [
-          true,
-          false
-        ]
-      },
-      "ActionPointEarlyTriggerThreshold": {
         "type": "input",
         "value": 200
       },
@@ -13482,22 +13539,89 @@
           false
         ]
       },
-      "MeowStartEarlyMode": {
-        "type": "select",
-        "value": "balanced",
+      "TaskPriority": {
+        "type": "textarea",
+        "value": "OpsiStronghold > OpsiObscure > OpsiAbyssal > OpsiMeowfficerFarming"
+      }
+    },
+    "Storage": {
+      "Storage": {
+        "type": "storage",
+        "value": {},
+        "valuetype": "ignore",
+        "display": "disabled"
+      }
+    }
+  },
+  "OpsiPreventActionPointOverflow": {
+    "Scheduler": {
+      "Enable": {
+        "type": "checkbox",
+        "value": false,
         "option": [
-          "aggressive",
-          "balanced",
-          "conservative"
+          true,
+          false
         ]
       },
-      "MeowStartEarlyEnable": {
+      "PushNotification": {
         "type": "checkbox",
-        "value": false
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
       },
-      "VirtualAssetPreserve": {
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
         "type": "input",
-        "value": 0
+        "value": "OpsiPreventActionPointOverflow",
+        "display": "hide"
+      },
+      "SuccessInterval": {
+        "type": "input",
+        "value": 0,
+        "display": "hide"
+      },
+      "FailureInterval": {
+        "type": "input",
+        "value": 120,
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "00:00",
+        "display": "hide"
+      },
+      "Sensitive": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      }
+    },
+    "OpsiPreventActionPointOverflow": {
+      "Task": {
+        "type": "select",
+        "value": "OpsiScheduling",
+        "option": [
+          "OpsiScheduling",
+          "OpsiHazard1Leveling",
+          "OpsiMeowfficerFarming"
+        ]
+      },
+      "ActionPointUpperbound": {
+        "type": "input",
+        "value": 200
+      },
+      "ActionPointLowerbound": {
+        "type": "input",
+        "value": 10
       }
     },
     "Storage": {

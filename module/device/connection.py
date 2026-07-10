@@ -89,9 +89,9 @@ def retry(func):
             'screenshot_droidcast', 'screenshot_droidcast_raw', 'screenshot_scrcpy',
             'screenshot_nemu_ipc', 'screenshot_ldopengl',
         ]:
-            logger.critical(f'重试 {func.__name__}() 失败')
+            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
-        logger.critical(f'重试 {func.__name__}() 失败')
+        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -395,7 +395,7 @@ class Connection(ConnectionAttr):
             return True
         elif res == 'true':
             # https://mumu.163.com/help/20230802/35047_1102450.html
-            logger.critical('请在MuMu模拟器设置内关闭 "后台挂机时保活运行"')
+            logger.critical('[Device] 请在MuMu模拟器设置内关闭 "后台挂机时保活运行"')
             raise RequestHumanTakeover
         else:
             logger.warning(f'Invalid nemud.app_keep_alive value: {res}')
@@ -540,7 +540,7 @@ class Connection(ConnectionAttr):
             logger.attr('nc command', command)
             return command
 
-        logger.error('没有可用的 `netcat` 命令，请使用不带 `_nc` 后缀的截图方法')
+        logger.error('[Device] 没有可用的 `netcat` 命令，请使用不带 `_nc` 后缀的截图方法')
         raise RequestHumanTakeover
 
     def adb_shell_nc(self, cmd, timeout=5, chunk_size=262144):
@@ -850,8 +850,8 @@ class Connection(ConnectionAttr):
                 run_once(self.check_mumu_bridge_network)()
                 # 设备不存在
                 logger.warning('No such device exists, please restart the emulator or set a correct serial')
-                logger.warning('该模拟器 Serial 不存在，请重启模拟器或设置正确的 Serial。')
-                logger.warning('ADB 无法连接至该模拟器，或是模拟器未启动。')
+                logger.warning('[Device] 该模拟器 Serial 不存在，请重启模拟器或设置正确的 Serial。')
+                logger.warning('[Device] ADB 无法连接至该模拟器，或是模拟器未启动。')
                 raise EmulatorNotRunningError
 
         # 连接失败
@@ -906,7 +906,7 @@ class Connection(ConnectionAttr):
         logger.attr('customer.network_bridge_opened', value)
         if str(value).lower() == 'true':
             logger.critical('Please turn off "Network Bridging" in the settings of MuMuPlayer')
-            logger.critical('请在MuMU模拟器设置中关闭 网络桥接')
+            logger.critical('[Device] 请在MuMU模拟器设置中关闭 网络桥接')
             raise RequestHumanTakeover
         return True
 
@@ -1075,7 +1075,7 @@ class Connection(ConnectionAttr):
             # ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
             logger.error(e)
             if '强迫关闭' in str(e):
-                logger.critical('无法连接至ADB服务，请关闭UU加速器、原神私服、以及一些劣质代理软件。'
+                logger.critical('[Device] 无法连接至ADB服务，请关闭UU加速器、原神私服、以及一些劣质代理软件。'
                                 '它们会劫持电脑上所有的网络连接，包括Alas与模拟器之间的本地连接。')
         return SelectedGrids(devices)
 
@@ -1128,24 +1128,24 @@ class Connection(ConnectionAttr):
         # 自动设备检测
         if self.config.Emulator_Serial == 'auto':
             if available.count == 0:
-                logger.critical('没有找到可用设备，自动设备检测无法工作，'
+                logger.critical('[Device] 没有找到可用设备，自动设备检测无法工作，'
                                 '请在 Alas.Emulator.Serial 中设置一个确切的序列号，而不是使用 "auto"')
                 raise RequestHumanTakeover
             elif available.count == 1:
-                logger.info(f'自动设备检测只找到一个设备，正在使用它')
+                logger.info(f'[Device] 自动设备检测只找到一个设备，正在使用它')
                 self.config.Emulator_Serial = self.serial = available[0].serial
                 del_cached_property(self, 'adb')
             elif available.count == 2 \
                     and available.select(serial='127.0.0.1:7555') \
                     and available.select(may_mumu12_family=True):
-                logger.info(f'自动设备检测到 MuMu12 设备，正在使用它')
+                logger.info(f'[Device] 自动设备检测到 MuMu12 设备，正在使用它')
                 # 对于 MuMu12 序列号如 127.0.0.1:7555 和 127.0.0.1:16384
                 # 忽略 7555，使用 16384
                 remain = available.select(may_mumu12_family=True).first_or_none()
                 self.config.Emulator_Serial = self.serial = remain.serial
                 del_cached_property(self, 'adb')
             else:
-                logger.critical('找到多个设备，自动设备检测无法决定选择哪个，'
+                logger.critical('[Device] 找到多个设备，自动设备检测无法决定选择哪个，'
                                 '请将下面列出的可用设备之一复制到 Alas.Emulator.Serial 中')
                 raise RequestHumanTakeover
 
@@ -1188,7 +1188,7 @@ class Connection(ConnectionAttr):
                     self.config.Emulator_Serial = self.serial = emu_serial
                     break
                 elif mumu12.count >= 2:
-                    logger.warning(f'发现多个 MuMu12 序列号，无法重定向')
+                    logger.warning(f'[Device] 发现多个 MuMu12 序列号，无法重定向')
                     break
                 else:
                     # 仅有 127.0.0.1:7555
@@ -1276,15 +1276,15 @@ class Connection(ConnectionAttr):
             for package in packages:
                 logger.info(package)
         else:
-            logger.info(f'在设备 "{self.serial}" 上没有找到可用包')
+            logger.info(f'[Device] 在设备 "{self.serial}" 上没有找到可用包')
 
         # 自动包检测
         if len(packages) == 0:
-            logger.critical(f'没有找到碧蓝航线包，'
+            logger.critical(f'[Device] 没有找到碧蓝航线包，'
                             f'请确认碧蓝航线已安装在设备 "{self.serial}" 上')
             raise RequestHumanTakeover
         if len(packages) == 1:
-            logger.info('自动包检测只找到一个包，正在使用它')
+            logger.info('[Device] 自动包检测只找到一个包，正在使用它')
             self.package = packages[0]
             # 写入配置
             if set_config:

@@ -183,40 +183,40 @@ class OSSimulator:
             3: meow3_coin,
             5: meow5_coin
         }
-        self.logger.info(f'每轮对应侵蚀等级期望获得黄币: {self.coin_expectation}')
+        self.logger.info(f'[大世界模拟器] 每轮对应侵蚀等级期望获得黄币: {self.coin_expectation}')
         
         self.akashi_probability = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.AkashiProbability')
-        self.logger.info(f'遇见明石概率: {self.akashi_probability}')
+        self.logger.info(f'[大世界模拟器] 遇见明石概率: {self.akashi_probability}')
 
         self.daily_reward = 6520
-        self.logger.info(f'每日任务获得黄币: {self.daily_reward}')
+        self.logger.info(f'[大世界模拟器] 每日任务获得黄币: {self.daily_reward}')
         
         self.stronghold_reward = 40000
-        self.logger.info(f'每周要塞期望获得黄币: {self.stronghold_reward}')
+        self.logger.info(f'[大世界模拟器] 每周要塞期望获得黄币: {self.stronghold_reward}')
     
     def get_paras(self):
         self.config.load()
         
         self.samples = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Samples')
-        self.logger.info(f'样本数: {self.samples}')
+        self.logger.info(f'[大世界模拟器] 样本数: {self.samples}')
 
         self.draw_setting = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Draw')
-        self.logger.info(f'绘图设置: {self.draw_setting}')
+        self.logger.info(f'[大世界模拟器] 绘图设置: {self.draw_setting}')
         
         self.total_time = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.TotalTime')
         if not self.total_time:
             self.total_time = self._get_remaining_seconds()
-        self.logger.info(f'总模拟时间 (s): {self.total_time}')
+        self.logger.info(f'[大世界模拟器] 总模拟时间 (s): {self.total_time}')
         
         self.time_use_ratio = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.TimeUseRatio')
-        self.logger.info(f'时间利用率: {self.time_use_ratio}')
+        self.logger.info(f'[大世界模拟器] 时间利用率: {self.time_use_ratio}')
         
         hazard_level = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.MeowHazardLevel', 'level5')
         if hazard_level == 'level3':
             self.meow_hazard_level = 3
         else:
             self.meow_hazard_level = 5
-        self.logger.info(f'短猫侵蚀等级: {self.meow_hazard_level}')
+        self.logger.info(f'[大世界模拟器] 短猫侵蚀等级: {self.meow_hazard_level}')
         
         log_res = LogRes(self.config)
         ap = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.InitialAp')
@@ -230,24 +230,24 @@ class OSSimulator:
 
         self.init_ap = float(ap)
         self.init_coin = float(coin)
-        self.logger.info(f'初始黄币: {coin}')
-        self.logger.info(f'初始行动力: {ap}')
+        self.logger.info(f'[大世界模拟器] 初始黄币: {coin}')
+        self.logger.info(f'[大世界模拟器] 初始行动力: {ap}')
 
         self.cross_week = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.CrossWeek')
-        self.logger.info(f'是否计算跨周: {self.cross_week}')
+        self.logger.info(f'[大世界模拟器] 是否计算跨周: {self.cross_week}')
 
         self.buy_ap = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.BuyAp')
-        self.logger.info(f'每周是否购买行动力: {self.buy_ap}')
+        self.logger.info(f'[大世界模拟器] 每周是否购买行动力: {self.buy_ap}')
         
         self.coin_preserve = self.config.cross_get('OpsiScheduling.OpsiScheduling.OperationCoinsPreserve')
-        self.logger.info(f'保留黄币: {self.coin_preserve}')
+        self.logger.info(f'[大世界模拟器] 保留黄币: {self.coin_preserve}')
         self.ap_preserve = self.config.cross_get('OpsiScheduling.OpsiScheduling.ActionPointPreserve')
-        self.logger.info(f'保留行动力: {self.ap_preserve}')
+        self.logger.info(f'[大世界模拟器] 保留行动力: {self.ap_preserve}')
         self.coin_threshold = self.config.cross_get('OpsiScheduling.OpsiScheduling.OperationCoinsReturnThreshold')
-        self.logger.info(f'短猫直到获得多少黄币: {self.coin_threshold}')
+        self.logger.info(f'[大世界模拟器] 短猫直到获得多少黄币: {self.coin_threshold}')
         
         self.instance_name = getattr(self.config, 'config_name', 'default')
-        self.logger.info(f'实例名: {self.instance_name}')
+        self.logger.info(f'[大世界模拟器] 实例名: {self.instance_name}')
         
         if self.meow_hazard_level == 3:
             self.meow_time = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Meow3Time')
@@ -259,22 +259,22 @@ class OSSimulator:
             if not self.meow_time:
                 self.meow_time = db.get_meow_stats(self.instance_name).get('avg_round_time', 200)
         
-        self.logger.info(f'每轮短猫时间: {self.meow_time}')
+        self.logger.info(f'[大世界模拟器] 每轮短猫时间: {self.meow_time}')
 
         self.cl1_time = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Cl1Time')
         if not self.cl1_time:
             self.cl1_time = get_ship_exp_stats(self.instance_name).get_average_round_time()
-        self.logger.info(f'每轮侵蚀1时间: {self.cl1_time}')
+        self.logger.info(f'[大世界模拟器] 每轮侵蚀1时间: {self.cl1_time}')
         
         self.days_until_next_monday = self._get_days_until_next_monday()
-        self.logger.info(f'距离下周一还有多少天: {self.days_until_next_monday}')
+        self.logger.info(f'[大世界模拟器] 距离下周一还有多少天: {self.days_until_next_monday}')
 
         # 调试模式开关：设置为 True 则取消随机性，按照期望值计算演化
         self.deterministic = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Deterministic', False)
         if self.deterministic:
             self.samples = 1
-            self.logger.info('调试模式：使用确定性计算。采样数已强制设置为 1 以提高计算速度。')
-            self.logger.info('（不使用随机概率，按期望演化）')
+            self.logger.info('[大世界模拟器] 调试模式：使用确定性计算。采样数已强制设置为 1 以提高计算速度。')
+            self.logger.info('[大世界模拟器] （不使用随机概率，按期望演化）')
 
         # 修正后的单轮时间：包含了因"时间利用率"不足而产生的空闲时间，用于正确计算AP的自然恢复
         self.modified_meow_time = self.meow_time / self.time_use_ratio
@@ -287,7 +287,7 @@ class OSSimulator:
         预编译 Numba 函数，确保正式模拟时达到最高速度。
         即使已从缓存加载，也会在日志输出时间。
         """
-        self.logger.info("检查预编译状态（第一次运行时会耗费一定时间）...")
+        self.logger.info("[大世界模拟器] 检查预编译状态（第一次运行时会耗费一定时间）...")
         start_time = time.perf_counter()
         
         # 1. 编译基础采样函数
@@ -311,7 +311,7 @@ class OSSimulator:
         _simulate_batch_kernel(np.empty((1, 8), dtype=np.float64), False, dummy_grid, dummy_grid, dummy_grid, *_params)
         
         elapsed = time.perf_counter() - start_time
-        self.logger.info(f"预编译检查完成，用时: {elapsed:.3f}s")
+        self.logger.info(f"[大世界模拟器] 预编译检查完成，用时: {elapsed:.3f}s")
     
     @property
     def is_running(self):
@@ -333,20 +333,20 @@ class OSSimulator:
 
             self.precompile()
 
-            self.logger.info("开始模拟...")
+            self.logger.info("[大世界模拟器] 开始模拟...")
             start_time = time.time()
             result = self.simulate()
-            self.logger.info(f"模拟完成，用时: {time.time() - start_time:.2f}秒")
+            self.logger.info(f"[大世界模拟器] 模拟完成，用时: {time.time() - start_time:.2f}秒")
             self._handle_result(result)
         except Exception as e:
-            self.logger.exception(f"运行中出现错误: {e}")
+            self.logger.exception(f"[大世界模拟器] 运行中出现错误: {e}")
     
     def set_config(self, config: AzurLaneConfig):
         self.config = config
 
     def start(self):
         if self.is_running:
-            self.logger.warning("模拟正在进行，请耐心等待")
+            self.logger.warning("[大世界模拟器] 模拟正在进行，请耐心等待")
             return
 
         self._stop_event.clear()
@@ -355,10 +355,10 @@ class OSSimulator:
     
     def interrupt(self):
         if self.is_running:
-            self.logger.info("等待模拟中断")
+            self.logger.info("[大世界模拟器] 等待模拟中断")
             self._stop_event.set()
         else:
-            self.logger.info("无正在进行的模拟")
+            self.logger.info("[大世界模拟器] 无正在进行的模拟")
 
     def _get_remaining_seconds(self):
         now = datetime.now()
@@ -444,7 +444,7 @@ class OSSimulator:
 
         for i in range(start_idx, self.samples, batch_size):
             if self._stop_event.is_set():
-                self.logger.info("模拟中断")
+                self.logger.info("[大世界模拟器] 模拟中断")
                 break
             
             this_batch = min(batch_size, self.samples - i)
@@ -492,22 +492,22 @@ class OSSimulator:
         return results
     
     def _handle_result(self, result):
-        self.logger.info('====================模拟结果====================')
+        self.logger.info('[大世界模拟器] ====================模拟结果====================')
 
         self.result_cl1_count = np.mean(result[:, CL1_COUNT])
-        self.logger.info(f'[模拟结果] 侵蚀1次数: {self.result_cl1_count}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 侵蚀1次数: {self.result_cl1_count}')
         self.result_meow_count = np.mean(result[:, MEOW_COUNT])
-        self.logger.info(f'[模拟结果] 短猫次数: {self.result_meow_count}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 短猫次数: {self.result_meow_count}')
         self.result_crashed_probability = np.mean(result[:, HAS_CRASHED])
-        self.logger.info(f'[模拟结果] 坠机概率: {self.result_crashed_probability}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 坠机概率: {self.result_crashed_probability}')
         self.result_cl1_total_time = self.result_cl1_count * self.cl1_time
-        self.logger.info(f'[模拟结果] 侵蚀一总时长 (h): {self.result_cl1_total_time / 3600}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 侵蚀一总时长 (h): {self.result_cl1_total_time / 3600}')
         self.result_meow_total_time = self.result_meow_count * self.meow_time
-        self.logger.info(f'[模拟结果] 短猫总时长 (h): {self.result_meow_total_time / 3600}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 短猫总时长 (h): {self.result_meow_total_time / 3600}')
         self.result_ap = np.mean(result[:, AP])
-        self.logger.info(f'[模拟结果] 最终行动力: {self.result_ap}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 最终行动力: {self.result_ap}')
         self.result_coin = np.mean(result[:, COIN])
-        self.logger.info(f'[模拟结果] 最终黄币: {self.result_coin}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 最终黄币: {self.result_coin}')
 
         if self.draw_setting == 'single_sample':
             self.plotter.plot_single_sample_history(self.history_single)

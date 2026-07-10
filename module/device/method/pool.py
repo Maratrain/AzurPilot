@@ -272,7 +272,7 @@ class WorkerThread:
                 job = self.job
             except AttributeError:
                 job = None
-            logger.error(f'终止线程 {self.thread.ident} 失败，来自任务 {job}')
+            logger.error(f'[Device] 终止线程 {self.thread.ident} 失败，来自任务 {job}')
             # 发送 SystemExit 失败，重置它
             ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
             return False

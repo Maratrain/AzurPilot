@@ -56,19 +56,16 @@
     var purpleCoins = __PURPLE_COINS__;
     var coinsSources = __COINS_SOURCES__;
     var showCoins = __SHOW_COINS__;
-    var lineVirtualAsset = __VIRTUAL_ASSET__;
-    var lineVirtualAssetTs = __VIRTUAL_ASSET_TS__;
-    var hasVirtualAssetSeries = lineVirtualAsset && lineVirtualAsset.length > 0;
     var lineAsset = __ASSET__;
     var lineAssetTs = __ASSET_TS__;
     var hasAssetSeries = lineAsset && lineAsset.length > 0;
     var lineDistance = __DISTANCE__;
     var hasDistanceSeries = lineDistance && lineDistance.length > 0;
 
-    var seriesVisible = [true, true, true, true, true, true];
+    var seriesVisible = [true, true, true, true, true];
     var _isSelecting = false;
-    var seriesColors = ["#64b5f6", "#ce93d8", "#ffd54f", "#06b6d4", "#22d3ee", "#1565c0"];
-    var seriesNames = ["体力", "紫币", "黄币", "虚拟资产", "资产", "海里数"];
+    var seriesColors = ["#64b5f6", "#ce93d8", "#ffd54f", "#22d3ee", "#1565c0"];
+    var seriesNames = ["体力", "紫币", "黄币", "资产", "海里数"];
 
     var nn = chartType === 'line' ? ap.length : labels.length;
     if (nn < 1) return;
@@ -157,8 +154,8 @@
 
         // ---- 紫币独立轴 ----
         var hasPurpleAxis = showCoins && chartType === 'line' && hasPurpleCoins;
-        // ---- 组合轴（黄币 + 虚拟资产 + 资产共用） ----
-        var hasCombined = showCoins && chartType === 'line' && (hasYellowCoins || hasVirtualAssetSeries || hasAssetSeries || hasDistanceSeries);
+        // ---- 组合轴（黄币 + 资产共用） ----
+        var hasCombined = showCoins && chartType === 'line' && (hasYellowCoins || hasAssetSeries || hasDistanceSeries);
         var hasExtra = hasPurpleAxis || hasCombined;
         var combinedMin = 0, combinedMax = -Infinity;
         function scanRange(arr) {
@@ -169,7 +166,6 @@
         }
         if (hasCombined) {
             if (hasYellowCoins) scanRange(yellowCoins);
-            if (hasVirtualAssetSeries) scanRange(lineVirtualAsset);
             if (hasAssetSeries) scanRange(lineAsset);
             if (hasDistanceSeries) scanRange(lineDistance);
             if (combinedMax === -Infinity) combinedMax = 1000;
@@ -188,11 +184,10 @@
         addCfg(hasPurpleCoins, "#ce93d8", purpleMin, purpleMax);
         addCfg(hasCombined, "#ffd54f", combinedMin, combinedMax);
 
-        // 系列绘制配置（所有线都要画，虚拟/资产用时间戳）
+        // 系列绘制配置（所有线都要画，资产用时间戳）
         var SERIES_DRAW = [
             { has: hasPurpleCoins, data: purpleCoins, yFn: yOfPurple, dash: [] },
             { has: hasYellowCoins, data: yellowCoins, yFn: yOfCombined, dash: [] },
-            { has: hasVirtualAssetSeries, data: lineVirtualAsset, ts: lineVirtualAssetTs, yFn: yOfCombined, dash: [] },
             { has: hasAssetSeries, data: lineAsset, ts: lineAssetTs, yFn: yOfCombined, dash: [] },
             { has: hasDistanceSeries, data: lineDistance, yFn: yOfCombined, dash: [] },
         ];
@@ -226,7 +221,7 @@
             }
         }
 
-        // ---- 绘制系列线（紫币独立 Y 轴，黄币/虚拟资产/资产共用组合 Y 轴） ----
+        // ---- 绘制系列线（紫币独立 Y 轴，黄币/资产共用组合 Y 轴） ----
         function drawSeriesLine(xOf, start, end) {
             for (var ci = 0; ci < SERIES_DRAW.length; ci++) {
                 var sd = SERIES_DRAW[ci];
@@ -236,7 +231,7 @@
                 ctx.lineWidth = 1;
                 ctx.lineJoin = "round";
                 ctx.setLineDash(sd.dash);
-                ctx.strokeStyle = ["#ce93d8", "#ffd54f", "#4fc3f7", "#81c784", "#1565c0"][ci];
+                ctx.strokeStyle = ["#ce93d8", "#ffd54f", "#81c784", "#1565c0"][ci];
                 ctx.beginPath();
                 var started = false;
 
@@ -376,7 +371,7 @@
             drawMA(10, "#e91e63");
         }
 
-        // 绘制额外系列线（黄币/紫币/虚拟资产/资产）
+        // 绘制额外系列线（黄币/紫币/资产）
         drawSeriesLine(xOfLine, 0, nn);
 
         // ======== 鼠标交互：十字线 + 滚珠 + 提示框 ========
@@ -435,7 +430,7 @@
                 oc.strokeStyle = "#fff"; oc.lineWidth = 2; oc.stroke();
                 }
 
-                // ---- 滚珠：紫币（独立轴）+ 黄币/虚拟资产/资产（共用轴） ----
+                // ---- 滚珠：紫币（独立轴）+ 黄币/资产（共用轴） ----
                 function hexToRgba(hex, alpha) {
                     var r = parseInt(hex.slice(1, 3), 16);
                     var g = parseInt(hex.slice(3, 5), 16);
@@ -455,16 +450,7 @@
                 if (hasYellowCoins && idx < yellowCoinsLen && yellowCoins[idx] !== null && yellowCoins[idx] !== undefined && seriesVisible[2])
                     drawBead(yellowCoins[idx], "#ffd54f", yOfCombined);
 
-                if (seriesVisible[3] && hasVirtualAssetSeries) {
-                    var closestIdx_va = -1, closestDist_va = 600000;
-                    for (var j = 0; j < lineVirtualAssetTs.length; j++) {
-                        var dist = Math.abs(idx - j);
-                        if (dist < closestDist_va) { closestDist_va = dist; closestIdx_va = j; }
-                    }
-                    if (closestIdx_va !== -1 && closestDist_va < 5)
-                        drawBead(lineVirtualAsset[closestIdx_va], "#4fc3f7", yOfCombined);
-                }
-                if (seriesVisible[4] && hasAssetSeries) {
+                if (seriesVisible[3] && hasAssetSeries) {
                     var closestIdx_a = -1, closestDist_a = 600000;
                     for (var j = 0; j < lineAssetTs.length; j++) {
                         var dist = Math.abs(idx - j);
@@ -475,7 +461,7 @@
                 }
 
                 // 海里数 bead
-                if (hasDistanceSeries && idx < lineDistance.length && lineDistance[idx] !== null && lineDistance[idx] !== undefined && seriesVisible[5])
+                if (hasDistanceSeries && idx < lineDistance.length && lineDistance[idx] !== null && lineDistance[idx] !== undefined && seriesVisible[4])
                     drawBead(lineDistance[idx], "#1565c0", yOfCombined);
 
                 oc.setTransform(1, 0, 0, 1, 0, 0);
@@ -516,20 +502,8 @@
                     tooltipRows.push({ parts: [{ type: 'text', value: "紫币: " }, { type: 'bold', value: String(pc), style: { color: "#ce93d8" } }, { type: 'text', value: " (" + pcDiffStr + ")", style: { color: pcColor } }] });
                 }
 
-                // 虚拟资产 tooltip
-                if (seriesVisible[3] && hasVirtualAssetSeries) {
-                    var closestIdx = -1, closestDist = 600000;
-                    for (var j = 0; j < lineVirtualAssetTs.length; j++) {
-                        var dist = Math.abs(idx - j);
-                        if (dist < closestDist) { closestDist = dist; closestIdx = j; }
-                    }
-                    if (closestIdx !== -1 && closestDist < 5) {
-                        tooltipRows.push({ parts: [{ type: 'text', value: "虚拟资产: " }, { type: 'bold', value: lineVirtualAsset[closestIdx].toFixed(1), style: { color: "#4fc3f7" } }] });
-                    }
-                }
-
                 // 资产 tooltip
-                if (seriesVisible[4] && hasAssetSeries) {
+                if (seriesVisible[3] && hasAssetSeries) {
                     var closestIdx = -1, closestDist = 600000;
                     for (var j = 0; j < lineAssetTs.length; j++) {
                         var dist = Math.abs(idx - j);
@@ -541,7 +515,7 @@
                 }
 
                 // 海里数 tooltip
-                if (seriesVisible[5] && hasDistanceSeries && idx < lineDistance.length && lineDistance[idx] !== null && lineDistance[idx] !== undefined) {
+                if (seriesVisible[4] && hasDistanceSeries && idx < lineDistance.length && lineDistance[idx] !== null && lineDistance[idx] !== undefined) {
                     var d = lineDistance[idx];
                     var dDiff = idx > 0 && lineDistance[idx - 1] !== null && lineDistance[idx - 1] !== undefined ? (d - lineDistance[idx - 1]) : 0;
                     var dColor = dDiff >= 0 ? "#ef5350" : "#26a69a";

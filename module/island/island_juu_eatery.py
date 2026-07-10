@@ -105,7 +105,7 @@ class IslandJuuEatery(IslandShopBase):
         image = self.device.screenshot()
         self.cheese_stock = self.ocr_item_quantity(image, TEMPLATE_CHEESE)
         self.special_materials['cheese'] = self.cheese_stock
-        logger.info(f"芝士数量: {self.cheese_stock}")
+        logger.info(f"[岛屿-啾啾简餐] 芝士数量: {self.cheese_stock}")
 
         # 将cheese库存也存入warehouse_counts，便于统一处理
         self.warehouse_counts['cheese'] = self.cheese_stock
@@ -115,7 +115,7 @@ class IslandJuuEatery(IslandShopBase):
         image = self.device.screenshot()
         self.milk_stock = self.ocr_item_quantity(image, TEMPLATE_MILK)
         self.special_materials['milk'] = self.milk_stock
-        logger.info(f"牛奶数量: {self.milk_stock}")
+        logger.info(f"[岛屿-啾啾简餐] 牛奶数量: {self.milk_stock}")
 
         # 将milk库存也存入warehouse_counts，便于统一处理
         self.warehouse_counts['milk'] = self.milk_stock
@@ -142,7 +142,7 @@ class IslandJuuEatery(IslandShopBase):
             milk_available = self.milk_stock
             max_by_milk = milk_available // milk_needed_per_batch
             batch_size = min(batch_size, max_by_milk)
-            logger.info(f"  {product} 牛奶限制: 可用{milk_available}, 每批{milk_needed_per_batch}, 最大{max_by_milk}")
+            logger.info(f"[岛屿-啾啾简餐]   {product} 牛奶限制: 可用{milk_available}, 每批{milk_needed_per_batch}, 最大{max_by_milk}")
 
         return batch_size
 
@@ -158,7 +158,7 @@ class IslandJuuEatery(IslandShopBase):
             self.special_materials['cheese'] = self.cheese_stock
             if 'cheese' in self.warehouse_counts:
                 self.warehouse_counts['cheese'] = self.cheese_stock
-            logger.info(f"扣除芝士：cheese -{cheese_needed} (用于制作 {product})")
+            logger.info(f"[岛屿-啾啾简餐] 扣除芝士：cheese -{cheese_needed} (用于制作 {product})")
 
         # corn_cup需要扣除牛奶
         elif product == 'corn_cup':
@@ -167,7 +167,7 @@ class IslandJuuEatery(IslandShopBase):
             self.special_materials['milk'] = self.milk_stock
             if 'milk' in self.warehouse_counts:
                 self.warehouse_counts['milk'] = self.milk_stock
-            logger.info(f"扣除牛奶：milk -{milk_needed} (用于制作 {product})")
+            logger.info(f"[岛屿-啾啾简餐] 扣除牛奶：milk -{milk_needed} (用于制作 {product})")
 
     def apply_special_material_constraints(self, requirements):
         """覆盖：根据芝士和牛奶库存调整需求"""
@@ -183,7 +183,7 @@ class IslandJuuEatery(IslandShopBase):
                 # 调整需求
                 max_strawberry = cheese_available // 2
                 result['strawberry_charlotte'] = max_strawberry
-                logger.info(f"芝士不足：strawberry_charlotte需求从{strawberry_needed}调整为{max_strawberry}")
+                logger.info(f"[岛屿-啾啾简餐] 芝士不足：strawberry_charlotte需求从{strawberry_needed}调整为{max_strawberry}")
 
         # 处理corn_cup的牛奶限制
         if 'corn_cup' in result and result['corn_cup'] > 0:
@@ -195,7 +195,7 @@ class IslandJuuEatery(IslandShopBase):
                 # 调整需求
                 max_corn_cup = milk_available // 1
                 result['corn_cup'] = max_corn_cup
-                logger.info(f"牛奶不足：corn_cup需求从{corn_cup_needed}调整为{max_corn_cup}")
+                logger.info(f"[岛屿-啾啾简餐] 牛奶不足：corn_cup需求从{corn_cup_needed}调整为{max_corn_cup}")
 
         return result
 

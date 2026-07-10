@@ -39,8 +39,13 @@ class CoalitionUI(Combat):
         if event == 'coalition_20230323':
             mode_switch = Switch('CoalitionMode', offset=(20, 20))
             # Note that switch button are reversed
-            mode_switch.add_state('story', FROSTFALL_MODE_STORY)
-            mode_switch.add_state('battle', FROSTFALL_MODE_BATTLE)
+            # but TW rerun event at 20260703 does not have button reversed
+            if self.config.SERVER == 'tw':
+                mode_switch.add_state('story', FROSTFALL_MODE_BATTLE)
+                mode_switch.add_state('battle', FROSTFALL_MODE_STORY)
+            else:
+                mode_switch.add_state('story', FROSTFALL_MODE_STORY)
+                mode_switch.add_state('battle', FROSTFALL_MODE_BATTLE)
         elif event == 'coalition_20240627':
             mode_switch = Switch('CoalitionMode', offset=(20, 20))
             mode_switch.add_state('story', ACADEMY_MODE_BATTLE)
@@ -307,16 +312,16 @@ class CoalitionUI(Combat):
         clicked = self.coalition_set_fleet(event, mode)
 
         if self.appear(FLEET_NOT_PREPARED, offset=(20, 20)):
-            logger.critical('舰队未就绪')
-            logger.critical('请先就绪舰队')
+            logger.critical('[联动] 舰队未就绪')
+            logger.critical('[联动] 请先就绪舰队')
             raise RequestHumanTakeover
         if self.appear(EMPTY_FLAGSHIP, offset=(20, 20)):
-            logger.critical('舰队未就绪')
-            logger.critical('请先就绪舰队')
+            logger.critical('[联动] 舰队未就绪')
+            logger.critical('[联动] 请先就绪舰队')
             raise RequestHumanTakeover
         if self.appear(EMPTY_VANGUARD, offset=(20, 20)):
-            logger.critical('舰队未就绪')
-            logger.critical('请先就绪舰队')
+            logger.critical('[联动] 舰队未就绪')
+            logger.critical('[联动] 请先就绪舰队')
             raise RequestHumanTakeover
 
         return clicked
@@ -374,17 +379,17 @@ class CoalitionUI(Combat):
         for _ in self.loop():
             # Check errors
             if campaign_click > 5:
-                logger.critical(f"无法进入 {button}，点击次数过多")
-                logger.critical("可能的原因1: 你还没有通关前置关卡，无法解锁该关卡。")
+                logger.critical(f"[联动] 无法进入 {button}，点击次数过多")
+                logger.critical("[联动] 可能的原因1: 你还没有通关前置关卡，无法解锁该关卡。")
                 raise RequestHumanTakeover
             if campaign_difficulty_click > 5:
-                logger.critical(f"无法进入 {button_difficulty}，点击次数过多")
-                logger.critical("可能的原因1: 难度资源的图片不正确。")
+                logger.critical(f"[联动] 无法进入 {button_difficulty}，点击次数过多")
+                logger.critical("[联动] 可能的原因1: 难度资源的图片不正确。")
                 raise RequestHumanTakeover
             if fleet_click > 5:
-                logger.critical(f"无法进入 {button}，点击次数过多")
-                logger.critical("可能的原因1: 你的舰队未达到该关卡的属性要求。")
-                logger.critical("可能的原因2: 该关卡每天只能进入一次，但这是你第二次尝试进入。")
+                logger.critical(f"[联动] 无法进入 {button}，点击次数过多")
+                logger.critical("[联动] 可能的原因1: 你的舰队未达到该关卡的属性要求。")
+                logger.critical("[联动] 可能的原因2: 该关卡每天只能进入一次，但这是你第二次尝试进入。")
                 raise RequestHumanTakeover
 
             # End

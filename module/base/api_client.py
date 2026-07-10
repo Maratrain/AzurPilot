@@ -79,7 +79,7 @@ class ApiClient:
         for i, endpoint in enumerate(endpoints):
             try:
                 domain_type = "主域名" if i == 0 else "备用域名"
-                logger.debug(f'尝试使用{domain_type}: {endpoint}')
+                logger.debug(f'[Base] 尝试使用{domain_type}: {endpoint}')
                 
                 if method == 'GET':
                     response = requests.get(
@@ -101,20 +101,20 @@ class ApiClient:
                 
                 if response.status_code in success_codes:
                     if i > 0:
-                        logger.info(f'✓ 使用{domain_type}请求成功')
+                        logger.info(f'[Base] ✓ 使用{domain_type}请求成功')
                     return True, response.status_code, response.text
                 else:
-                    logger.warning(f'{domain_type}返回错误状态: {response.status_code}')
+                    logger.warning(f'[Base] {domain_type}返回错误状态: {response.status_code}')
                     last_error = f'HTTP {response.status_code}'
                     
             except requests.exceptions.Timeout:
-                logger.warning(f'{domain_type if i > 0 else "主域名"}请求超时')
+                logger.warning(f'[Base] {domain_type if i > 0 else "主域名"}请求超时')
                 last_error = 'Timeout'
             except requests.exceptions.RequestException as e:
-                logger.warning(f'{domain_type if i > 0 else "主域名"}请求失败: {e}')
+                logger.warning(f'[Base] {domain_type if i > 0 else "主域名"}请求失败: {e}')
                 last_error = str(e)
             except Exception as e:
-                logger.warning(f'{domain_type if i > 0 else "主域名"}发生异常: {e}')
+                logger.warning(f'[Base] {domain_type if i > 0 else "主域名"}发生异常: {e}')
                 last_error = str(e)
         
         return False, 0, last_error or 'Unknown error'
@@ -249,7 +249,7 @@ class ApiClient:
                     
                     # 如果返回空字典或无ID，也视为无更新
                     if not data or not data.get('announcementId'):
-                        logger.info('公告数据为空或无ID')
+                        logger.info('[Base] 公告数据为空或无ID')
                         return None
                         
                     # 只要有标题，且有内容 OR 链接，就是有效公告
@@ -258,13 +258,13 @@ class ApiClient:
                     else:
                         return None
                 except json.JSONDecodeError as e:
-                    logger.warning(f'解析公告JSON失败: {e}, response={response_text[:100]}')
+                    logger.warning(f'[Base] 解析公告JSON失败: {e}, response={response_text[:100]}')
                     return None
             else:
-                logger.warning(f'获取公告失败: {response_text}')
+                logger.warning(f'[Base] 获取公告失败: {response_text}')
                 return None
                 
         except Exception as e:
-            logger.warning(f'获取公告异常: {e}')
+            logger.warning(f'[Base] 获取公告异常: {e}')
             return None
 

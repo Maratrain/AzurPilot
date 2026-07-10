@@ -1,278 +1,476 @@
-# 此文件专门负责处理游戏内的“装备码”输入与导出。
-# 包含 Base64 编码解析、配置导出与加载，以及自动在该页面进行文本录入和配置应用的交互逻辑。
 import re
+
 import yaml
 
-from module.config.config import AzurLaneConfig
+from module.base.timer import Timer
+from module.device.method.utils import HierarchyButton
 from module.equipment.assets import *
-from module.exception import RequestHumanTakeover
+from module.exception import EmulatorNotRunningError, RequestHumanTakeover
 from module.logger import logger
+from module.retire.assets import TEMPLATE_BOGUE, TEMPLATE_HERMES, TEMPLATE_RANGER, TEMPLATE_LANGLEY
 from module.storage.assets import EQUIPMENT_FULL
 from module.storage.storage import StorageHandler
 
-
-BASE64_REGEX = re.compile('^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$')
-EMPTY_GEAR_CODE = "MC8wLzAvMC8wXDA="
-
-def is_equip_code(string):
-    """
-    Checks if current string is None or BASE64 string.
-    """
-    if string is None:
-        return True
-    if not isinstance(string, str):
-        return False
-    return BASE64_REGEX.match(string)
-
-
-class EquipmentCode:
-    config: AzurLaneConfig
-    config_key: str
-    coded_ships: list
-    
-    def __setattr__(self, key, value):
-        if key in ['config', 'config_key', 'coded_ships']:
-            super().__setattr__(key, value)
-        elif key in self.coded_ships:
-            if is_equip_code(value):
-                super().__setattr__(key, value)
-            else:
-                logger.error(f'{value} is not a gear code, skip setting {key}')
-        else:
-            logger.error(f'{key} is not in coded ships: {self.coded_ships}')
-
-    def __init__(self, config, key, ships):
-        """
-        Args:
-            config (AzurLaneConfig):
-            key: location of config containing gear code configs
-            ships (list of string): ships whose gear codes should be memorized
-        """
-        self.config = config
-        self.config_key = key
-        self.coded_ships = ships
-        _config = config.cross_get(keys=key)
-        codes = dict([(ship, None) for ship in self.coded_ships])
-        for line in _config.splitlines():
-            try:
-                codes.update(yaml.safe_load(line))
-            except Exception as e:
-                logger.error(f'Failed to parse current line of the config: "{line}", skipping')
-        for ship in self.coded_ships:
-            code: str = codes.pop(ship, None)
-            self.__setattr__(ship, code)
-
-    def export_to_config(self):
-        """
-        Export current ships' gear codes to location {self.config_key} of {self.config}.
-        """
-        _config = {}
-        for ship in self.coded_ships:
-            _config.update({ship: self.__getattribute__(ship)})
-        value = yaml.safe_dump(_config)
-        logger.info(f'Gear code configs to be exported: {value}')
-        self.config.cross_set(keys=self.config_key, value=value)
+EMPTY_CODE = "MC8wLzAvMC8wXDA="
+EQUIPMENT_CODE_PATTERN = re.compile(r'[A-Za-z0-9+/=]{%d,}' % len(EMPTY_CODE))
+U2_CONTROL_METHODS = {'uiautomator2', 'minitouch', 'MaaTouch'}
+EQUIPMENT_PREVIEW = list([
+    EQUIPMENT_CODE_EQUIP_0,
+    EQUIPMENT_CODE_EQUIP_1,
+    EQUIPMENT_CODE_EQUIP_2,
+    EQUIPMENT_CODE_EQUIP_3,
+    EQUIPMENT_CODE_EQUIP_4,
+    EQUIPMENT_CODE_EQUIP_5,
+])
 
 
 class EquipmentCodeHandler(StorageHandler):
-    codes: EquipmentCode
+    last_code: str = None
 
-    def __init__(self, config, key, ships, device=None, task=None):
-        super().__init__(config, device=device, task=task)
-        self.codes = EquipmentCode(self.config, key=key, ships=ships)
+    @property
+    def equipment_code_config_key(self):
+        return None
 
-    def enter_equip_code_page(self, skip_first_screenshot=True):
+    @property
+    def equipment_code_export_to_config(self):
+        if self.equipment_code_config_key:
+            return True
+        return getattr(self.config, 'EquipmentCode_ExportToConfig', False)
+
+    def _code_config_load(self):
+        key = self.equipment_code_config_key
+        if key:
+            raw = self.config.cross_get(keys=key)
+        else:
+            raw = getattr(self.config, 'EquipmentCode_Config', '')
+
+        config = {}
+        try:
+            for item in yaml.safe_load_all(raw or ''):
+                if item:
+                    config.update(item)
+        except Exception:
+            logger.error("Fail to load equipment code config")
+        return config
+
+    def _code_config_save(self, config):
+        value = yaml.safe_dump(config)
+        key = self.equipment_code_config_key
+        if key:
+            self.config.cross_set(keys=key, value=value)
+        elif hasattr(self.config, 'EquipmentCode_Config'):
+            self.config.EquipmentCode_Config = value
+        else:
+            logger.warning("No equipment code config target, skip saving")
+
+    def equipment_code_supported(self):
+        method = self.config.Emulator_ControlMethod
+        if method in U2_CONTROL_METHODS:
+            return True
+
+        logger.warning(
+            f"Equipment code requires uiautomator2 based control method, "
+            f"current control method is {method}, skip equipment change"
+        )
+        return False
+
+    def get_code(self, name):
+        config = self._code_config_load()
+        code = config.get(name)
+        if code is None:
+            logger.error(f"Config does not contain equipment code for {name}")
+        return code
+
+    def set_code(self, name, code):
+        config = self._code_config_load()
+        try:
+            config.update({name: code})
+            self._code_config_save(config)
+        except Exception:
+            logger.error("Fail to set equipment code config")
+
+    def current_ship(self):
+        """
+        Currently, only supports common CV recognization
+
+        Pages:
+            in: equipment_code
+        """
+        for _ in self.loop():
+            if not self.appear(EMPTY_SHIP_R):
+                break
+        if TEMPLATE_BOGUE.match(self.device.image, scaling=1.46):  # image has rotation
+            logger.info("Bogue detected")
+            return 'bogue'
+        elif TEMPLATE_HERMES.match(self.device.image, scaling=124 / 89):
+            logger.info("Hermes detected")
+            return 'hermes'
+        elif TEMPLATE_RANGER.match(self.device.image, scaling=4 / 3):
+            logger.info("Ranger detected")
+            return 'ranger'
+        elif TEMPLATE_LANGLEY.match(self.device.image, scaling=25 / 21):
+            logger.info("Langley detected")
+            return 'langley'
+        else:
+            logger.warning("Unknown ship detected, assuming DD")
+            return 'DD'
+
+    def _code_enter(self):
         """
         Pages:
             in: ship_detail
-            out: gear_code
+            out: equipment_code
         """
-        while 1:
-            if skip_first_screenshot:
-                skip_first_screenshot = False
-            else:
-                self.device.screenshot()
-
-            # End
+        for _ in self.loop():
             if self.appear(EQUIPMENT_CODE_PAGE_CHECK, offset=(5, 5)):
                 break
 
-            if self.appear_then_click(EQUIPMENT_CODE_ENTRANCE, offset=(5, 5), interval=2):
+            if self.appear_then_click(EQUIPMENT_CODE_ENTRANCE, offset=(5, 5), interval=1):
                 continue
 
-    # def exit_equip_code_page(self):
-    #     """
-    #     Pages:
-    #         in: gear_code
-    #         out: ship_detail
-    #     """
-    #     self.ui_back(check_button=EQUIPMENT_CODE_ENTRANCE)
-
-    def current_ship(self, **kwargs):
-        # Will be overridden in subclasses.
-        pass
-
-    def click_export_button(self, skip_first_screenshot=True):
-        self.handle_info_bar()
-        while 1:
-            if skip_first_screenshot:
-                skip_first_screenshot = False
-            else:
-                self.device.screenshot()
-
-            # End
-            if self.info_bar_count():
-                break
-
-            if self.appear_then_click(EQUIPMENT_CODE_EXPORT, offset=(5, 5), interval=1):
-                continue
-
-    def export_equip_code(self, ship=None):
+    def _code_exit(self):
         """
-        Export current ship's gear code to config file.
-        This is done by first using "export" button 
-        to export gear code to clipboard,
-        then update the config file using yaml.safe_dump().
+        Pages:
+            in: equipment_code
+            out: ship_detail
         """
-        code = self.device.clipboard
-        if code == EMPTY_GEAR_CODE:
-            logger.info('Detect 0/0/0/0/0\\0 code, continue exporting.')
-        logger.attr("Gear code", code)
-        if not ship in self.codes.coded_ships:
-            ship = self.current_ship()
-        logger.attr("Current ship", ship)
-        logger.info(f'Set gear code of {ship} to be {code}')
-        self.codes.__setattr__(ship, code)
-        self.codes.export_to_config()
+        self.ui_back(check_button=EQUIPMENT_CODE_ENTRANCE)
 
-    def equip_preview_empty(self):
-        if self.appear(EQUIPMENT_CODE_EQUIP_5_LOCKED):
+    def is_code_preview_loaded(self):
+        if self.appear(EQUIPMENT_CODE_EQUIP_5_LOCKED, offset=(5, 5)):
             max_index = 5
         else:
             max_index = 6
         for index in range(max_index):
-            if not self.appear(globals()['EQUIPMENT_CODE_EQUIP_{index}'.format(index=index)], offset=(5, 5)):
-                return False
-        return True
-    
-    def clear_equip_preview(self, skip_first_screenshot=True):
-        while 1:
-            if skip_first_screenshot:
-                skip_first_screenshot = False
-            else:
-                self.device.screenshot()
-
-            # End
-            if self.equip_preview_empty():
-                logger.info('Confirm equipment preview cleared.')
-                break
-
-            if self.appear_then_click(EQUIPMENT_CODE_CLEAR, offset=(5, 5), interval=2):
-                continue
-
-    def enter_equip_code_input_mode(self, skip_first_screenshot=True):
-        while 1:
-            if skip_first_screenshot:
-                skip_first_screenshot = False
-            else:
-                self.device.screenshot()
-
-            if self.appear(EQUIPMENT_CODE_ENTER, offset=(5, 5), interval=2):
-                self.device.click(EQUIPMENT_CODE_TEXTBOX)
-                continue
-
-            # End
-            if self.device.ime_shown():
-                break
-
-    def confirm_equip_code(self, skip_first_screenshot=False):
-        check_counter = 0
-        while 1:
-            if skip_first_screenshot:
-                skip_first_screenshot = False
-            else:
-                self.device.screenshot()
-
-            if not self.appear_then_click(EQUIPMENT_CODE_ENTER, offset=(5, 5), interval=1):
-                continue
-
-            self.device.screenshot()
-            # End
-            if not self.equip_preview_empty():
-                logger.info('Confirm gear code loaded.')
+            if not self.appear(EQUIPMENT_PREVIEW[index], offset=(5, 5)):
                 return True
-            else:
-                check_counter += 1
-                if check_counter >= 5:
-                    logger.error('Gear code load failed, retrying.')
+
+        return False
+
+    def _code_preview_clear(self):
+        for _ in self.loop(timeout=2):
+            if not self.is_code_preview_loaded():
+                return True
+
+            if self.appear_then_click(EQUIPMENT_CODE_CLEAR, offset=(5, 5), interval=1):
+                continue
+        else:
+            return False
+
+    def fastinput_ime_enable(self):
+        self.device.adb_shell(['am', 'start', '-a', 'android.settings.INPUT_METHOD_SETTINGS'])
+        timeout = Timer(10).start()
+        while 1:
+            if timeout.reached():
+                logger.warning("Enable FastInputIME timeout")
+                break
+
+            h = self.device.dump_hierarchy_adb()
+
+            def appear(xpath):
+                return bool(HierarchyButton(h, xpath))
+
+            def appear_then_click(xpath):
+                b = HierarchyButton(h, xpath)
+                if b:
+                    self.device.click(b)
+                    return True
+                else:
                     return False
 
-    def confirm_equip_preview(self, skip_first_screenshot=True):
-        while 1:
-            if skip_first_screenshot:
-                skip_first_screenshot = False
+            if appear_then_click('//*[@resource-id="android:id/title" and @text="FastInputIME"]/following-sibling::*[@resource-id="android:id/switch_widget" and @checked="false"]'):
+                continue
+            if appear_then_click('//*[@resource-id="android:id/button1"]'):
+                continue
+            # Disable one other enabled IME at a time
+            if appear_then_click('(//*[@resource-id="android:id/title" and @text!="FastInputIME"]/following-sibling::*[@resource-id="android:id/switch_widget" and @enabled="true" and @checked="true"])[1]'):
+                continue
+            if appear('//*[@resource-id="android:id/title" and @text="FastInputIME"]/following-sibling::*[@resource-id="android:id/switch_widget" and @checked="true"]') \
+                    and not appear('//*[@resource-id="android:id/title" and @text!="FastInputIME"]/following-sibling::*[@resource-id="android:id/switch_widget" and @enabled="true" and @checked="true"]'):
+                break
+
+        self.device.adb_shell(['input', 'keyevent', '4'])
+
+    def set_fastinput_ime(self):
+        d = self.device.u2
+        try:
+            d.set_fastinput_ime(True)
+        except Exception:
+            logger.warning("FastInputIME not enabled, trying to enable it")
+            self.fastinput_ime_enable()
+
+    @staticmethod
+    def _adb_input_text_escape(text):
+        text = str(text).replace('%', '%s')
+        for char in ['\\', '"', "'", '`', '$', '&', '|', '<', '>', ';', '(', ')', '*']:
+            text = text.replace(char, f'\\{char}')
+        return text
+
+    def _code_input_adb(self, code):
+        try:
+            text = self._adb_input_text_escape(code)
+            clear_keys = ' '.join(['KEYCODE_DEL'] * (len(code) + 10))
+            self.device.adb_shell(f'input keyevent KEYCODE_MOVE_END {clear_keys}', timeout=5)
+            self.device.adb_shell(f'input text {text}', timeout=5)
+            self.device.adb_shell('input keyevent KEYCODE_ENTER', timeout=1)
+            logger.info("通过 ADB 输入装备码")
+            return True
+        except (EmulatorNotRunningError, RequestHumanTakeover):
+            raise
+        except Exception as e:
+            logger.warning(f"通过 ADB 输入装备码失败: {e}")
+            return False
+
+    def _code_input_uiautomator2(self, code):
+        try:
+            d = self.device.u2
+            d.send_keys(text=code, clear=True)
+            d.send_action(code="done")
+            logger.info("通过 uiautomator2 输入装备码")
+            return True
+        except Exception as e:
+            logger.warning(f"通过 uiautomator2 输入装备码失败: {e}")
+            return False
+
+    def _code_input(self, code):
+        logger.info(f"Code input: {code}")
+        for _ in range(2):
+            click_timer = Timer(1, count=3)
+            textbox_clicked = False
+            for _ in self.loop(timeout=5):
+                if textbox_clicked and self._code_input_adb(code):
+                    break
+                if click_timer.reached_and_reset():
+                    self.device.click(EQUIPMENT_CODE_TEXTBOX)
+                    textbox_clicked = True
             else:
-                self.device.screenshot()
-
-            if self.appear_then_click(EQUIPMENT_CODE_CONFIRM, offset=(5, 5), interval=5):
                 continue
 
-            if self.handle_popup_confirm('EQUIPMENT_CODE'):
-                continue
+            for _ in self.loop(timeout=10, skip_first=False):
+                if self.is_code_preview_loaded():
+                    return True
+                if self.appear_then_click(EQUIPMENT_CODE_ENTER, offset=(5, 5), interval=3):
+                    continue
 
-            # End
+        if self._code_input_uiautomator2(code):
+            for _ in self.loop(timeout=10, skip_first=False):
+                if self.is_code_preview_loaded():
+                    return True
+                if self.appear_then_click(EQUIPMENT_CODE_ENTER, offset=(5, 5), interval=3):
+                    continue
+
+        logger.warning("Equipment code load failed")
+        return False
+
+    def _code_confirm(self):
+        logger.info("Code apply")
+        for _ in self.loop(timeout=10):
             if self.appear(EQUIPMENT_CODE_ENTRANCE, offset=(5, 5)):
                 return True
             if self.appear(EQUIPMENT_FULL, offset=(30, 30)):
                 return False
-
-    def clear_all_equip(self):
-        self.enter_equip_code_page()
-        ship = self.current_ship()
-        self.device.u2_set_fastinput_ime(True)
-        logger.attr("Current_ime", self.device.u2_current_ime())
-        if self.codes.__getattribute__(ship) is None:
-            self.click_export_button()
-            self.export_equip_code(ship)
-        self.clear_equip_preview()
-        for _ in range(5):
-            success = self.confirm_equip_preview()
-            if success:
-                return True
-            else:
-                self.handle_storage_full()
-                self.clear_equip_preview()
-
-        raise RequestHumanTakeover(
-            f'Failed to clear all equipment for {ship}, please check manually.'
-        )
-
-    def apply_equip_code(self, code=None):
-        self.enter_equip_code_page()
-        self.clear_equip_preview()
-        if code is None:
-            ship = self.current_ship()
-            code = self.codes.__getattribute__(ship)
-            if code is None:
-                code = self.device.clipboard  # assuming clipboard is not modified
-            logger.info(f'Apply gear code {code} for {ship}')
+            if self.handle_popup_confirm("EQUIPMENT_CODE"):
+                continue
+            if self.appear_then_click(EQUIPMENT_CODE_CONFIRM, offset=(5, 5), interval=3):
+                continue
         else:
-            logger.info(f'Forcefully apply gear code {code} to current ship.')
+            return False
+
+    def _code_apply(self, code=None):
         for _ in range(5):
-            if code is not None and code != EMPTY_GEAR_CODE:
-                self.enter_equip_code_input_mode()
-                self.device.text_input_and_confirm(code, clear=True)
-                success = self.confirm_equip_code()
+            self._code_preview_clear()
+            if code is not None and code != EMPTY_CODE:
+                success = self._code_input(code)
                 if not success:
                     continue
-            success = self.confirm_equip_preview()
+            success = self._code_confirm()
             if success:
-                logger.info("Gear code import complete.")
+                logger.info("Equipment code apply complete.")
                 return True
             else:
                 self.handle_storage_full()
-                self.clear_equip_preview()
+        else:
+            return False
 
-        raise RequestHumanTakeover(
-            f'Failed to apply equipment for {ship}, please check manually.'
-        )
+    @staticmethod
+    def _is_equipment_code(code):
+        code = code.strip().strip('\'"')
+        if len(code) < len(EMPTY_CODE):
+            return False
+        if len(code) % 4 != 0:
+            return False
+        if not EQUIPMENT_CODE_PATTERN.fullmatch(code):
+            return False
+        if '=' in code.rstrip('='):
+            return False
+        return True
+
+    @staticmethod
+    def _code_from_text(text):
+        for line in reversed(str(text).splitlines()):
+            line = line.strip().strip('\'"')
+            if not line:
+                continue
+
+            lowered = line.lower()
+            if any(keyword in lowered for keyword in [
+                'not found',
+                'unknown command',
+                'no shell command implementation',
+                'no primary clip',
+                'exception',
+                'error:',
+                'security exception',
+            ]):
+                continue
+
+            for prefix in ['text:', 'clipboard text:']:
+                if lowered.startswith(prefix):
+                    line = line[len(prefix):].strip().strip('\'"')
+                    break
+
+            if line.startswith('ClipData') and ':' in line:
+                line = line.rsplit(':', 1)[1].strip().strip('\'"')
+
+            if EquipmentCodeHandler._is_equipment_code(line):
+                return line
+
+            for match in EQUIPMENT_CODE_PATTERN.finditer(line):
+                code = match.group(0).strip('=')
+                padding = '=' * (-len(code) % 4)
+                code = code + padding
+                if EquipmentCodeHandler._is_equipment_code(code):
+                    return code
+
+        return None
+
+    @staticmethod
+    def _parcel_bytes(output):
+        data = bytearray()
+        for raw in str(output).splitlines():
+            line = raw.strip()
+            if line.startswith('0x') and ':' in line:
+                line = line.split(':', 1)[1]
+            elif 'Parcel(' in line:
+                line = line.split('Parcel(', 1)[1]
+            else:
+                continue
+            line = line.split("'", 1)[0]
+            for word in re.findall(r'\b[0-9a-fA-F]{8}\b', line):
+                data.extend(int(word, 16).to_bytes(4, 'little'))
+        return bytes(data)
+
+    @staticmethod
+    def _code_from_parcel_output(output):
+        data = EquipmentCodeHandler._parcel_bytes(output)
+        if not data:
+            return None
+
+        for text in [
+            data.decode('utf-8', errors='ignore'),
+            data.decode('utf-16le', errors='ignore'),
+        ]:
+            code = EquipmentCodeHandler._code_from_text(text.replace('\x00', '\n'))
+            if code is not None:
+                return code
+
+        return None
+
+    @staticmethod
+    def _code_from_clipboard_output(output):
+        if output is None:
+            return None
+        if isinstance(output, bytes):
+            output = output.decode('utf-8', errors='ignore')
+
+        code = EquipmentCodeHandler._code_from_parcel_output(output)
+        if code is not None:
+            return code
+
+        return EquipmentCodeHandler._code_from_text(output)
+
+    def _clipboard_adb(self):
+        for command in [
+            ['cmd', 'clipboard', 'get'],
+            ['cmd', 'clipboard', 'get-primary-clip'],
+            ['service', 'call', 'clipboard', '4', 's16', 'com.android.shell', 's16', '', 'i32', '0', 'i32', '0'],
+        ]:
+            try:
+                output = self.device.adb_shell(command, timeout=3)
+            except (EmulatorNotRunningError, RequestHumanTakeover):
+                raise
+            except Exception as e:
+                logger.debug(f"通过 ADB 读取剪贴板失败: {e}")
+                continue
+
+            code = self._code_from_clipboard_output(output)
+            if code is not None:
+                logger.info("通过 ADB 读取装备码剪贴板成功")
+                return code
+
+        return None
+
+    def _clipboard_uiautomator2(self):
+        try:
+            output = self.device.clipboard
+        except (EmulatorNotRunningError, RequestHumanTakeover):
+            raise
+        except Exception as e:
+            logger.warning(f"通过 uiautomator2 读取剪贴板失败: {e}")
+            return None
+
+        code = self._code_from_clipboard_output(output)
+        if code is not None:
+            logger.info("通过 uiautomator2 读取装备码剪贴板成功")
+        return code
+
+    def _clipboard_get(self):
+        code = self._clipboard_adb()
+        if code is not None:
+            return code
+
+        code = self._clipboard_uiautomator2()
+        if code is not None:
+            return code
+
+        logger.warning("读取装备码剪贴板失败")
+        return None
+
+    def _code_export(self):
+        self.handle_info_bar()
+        for _ in self.loop(timeout=10):
+            if self.info_bar_count():
+                break
+            if self.appear_then_click(EQUIPMENT_CODE_EXPORT, offset=(5, 5), interval=3):
+                continue
+        return self._clipboard_get()
+
+    def code_clear(self, name=None):
+        if not self.equipment_code_supported():
+            return False
+
+        self._code_enter()
+        if name is None:
+            name = self.current_ship()
+        if self.equipment_code_export_to_config and self.get_code(name=name) is None:
+            self.last_code = self._code_export()
+            if self.last_code is None:
+                logger.warning("装备码导出失败，跳过清空装备")
+                return False
+            self.set_code(name=name, code=self.last_code)
+        return self._code_apply(code=None)
+
+    def code_apply(self, name=None):
+        if not self.equipment_code_supported():
+            return False
+
+        self._code_enter()
+        if name is None:
+            name = self.current_ship()
+        code = self.get_code(name=name)
+        if code is None:
+            code = self.last_code
+        if code is None:
+            logger.warning("没有可用装备码，跳过装备应用")
+            return False
+        return self._code_apply(code=code)

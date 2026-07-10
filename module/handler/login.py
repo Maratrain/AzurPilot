@@ -186,9 +186,12 @@ class LoginHandler(UI):
 
         is_restart_success = False
 
+        clear_cache = getattr(self.config, 'Restart_ClearCache', False)
         for i in range(RESTART_TRIES):
             logger.info(f"App restart attempt {i + 1}/{RESTART_TRIES}...")
             self.device.app_stop()
+            if clear_cache:
+                self.device.app_clear()
             self.device.sleep(3)
             self.device.app_start()
             wait_seconds = FIRST_TRY_WAIT_SECONDS if i == 0 else SUBSEQUENT_TRY_WAIT_SECONDS
@@ -207,7 +210,7 @@ class LoginHandler(UI):
         
         # 所有尝试均失败则抛出异常
         if not is_restart_success:
-            logger.critical(f"重试 {RESTART_TRIES} 次了！还是死活起不来，你的运行环境是碳基生物能搞出来的？")
+            logger.critical(f"[Handler] 重试 {RESTART_TRIES} 次了！还是死活起不来，你的运行环境是碳基生物能搞出来的？")
             from module.exception import RequestHumanTakeover
             raise RequestHumanTakeover("App restart failed repeatedly")
         self.handle_app_login()

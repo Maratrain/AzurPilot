@@ -1,4 +1,5 @@
 import datetime
+from module.config.time_source import now as current_time
 from module.config.utils import get_server_last_update
 from module.exercise.assets import *
 from module.exercise.combat import ExerciseCombat
@@ -234,7 +235,7 @@ class Exercise(ExerciseCombat):
             forced_run = False
 
         # 延迟到设定时间执行任务
-        if ((get_server_next_update(server_update) - datetime.datetime.now()).seconds >
+        if ((get_server_next_update(server_update) - current_time()).seconds >
             3600 * self.config.Exercise_DelayUntilHoursBeforeNextUpdate)\
                 and not forced_run:
             logger.warning(f'Exercise should run at {self.config.Exercise_DelayUntilHoursBeforeNextUpdate} '
@@ -265,7 +266,7 @@ class Exercise(ExerciseCombat):
             if self.remain <= self.preserve or self.opponent_change_count >= 5:
                 next_run = get_server_next_update(server_update) \
                            - datetime.timedelta(hours=self.config.Exercise_DelayUntilHoursBeforeNextUpdate)
-                now = datetime.datetime.now()
+                now = current_time()
                 if next_run < now or run:
                     self.config.task_delay(server_update=True)
                     return

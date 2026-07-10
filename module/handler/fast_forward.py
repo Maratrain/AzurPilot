@@ -363,8 +363,8 @@ class FastForwardHandler(AutoSearchHandler):
                 from module.exception import AutoSearchSetError
                 raise AutoSearchSetError
             self.config.cross_set(keys='GemsFarming.Scheduler.Enable', value=False)
-            logger.critical('无法确保自动搜索设置。')
-            logger.critical('关闭任务：GemsFarming')
+            logger.critical('[Handler] 无法确保自动搜索设置。')
+            logger.critical('[Handler] 关闭任务：GemsFarming')
             self.config.task_stop('无法确保自动搜索设置。')
         if self.config.SUBMARINE:
             self.auto_search_setting_ensure(self.config.Submarine_AutoSearchMode)

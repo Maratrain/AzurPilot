@@ -2,7 +2,6 @@
 # 负责整合截图、点击、输入功能，并由于内置了防卡死检测和点击频率控制，能有效提高脚本自动化运行的稳定性。
 import collections
 import sys
-from datetime import datetime
 
 import cv2
 from lxml import etree
@@ -15,6 +14,7 @@ from module.device.pkg_resources import get_distribution
 _ = get_distribution
 
 from module.base.timer import Timer
+from module.config.time_source import now as current_time
 from module.config.utils import get_server_next_update
 from module.device.app_control import AppControl
 from module.device.control import Control
@@ -93,7 +93,7 @@ class Device(Screenshot, Control, AppControl, Input):
                 break
             except EmulatorNotRunningError:
                 if trial >= 3:
-                    logger.critical('错误 3 次尝试后未能启动模拟器')
+                    logger.critical('[Device] 错误 3 次尝试后未能启动模拟器')
                     raise RequestHumanTakeover
                 # 尝试启动模拟器
                 if self.emulator_instance is not None:
@@ -262,7 +262,7 @@ class Device(Screenshot, Control, AppControl, Input):
             是否点击了委托弹窗。
         """
         update = get_server_next_update(daily_trigger=daily_trigger)
-        now = datetime.now()
+        now = current_time()
         diff = (update.timestamp() - now.timestamp()) % 86400
         if threshold < diff < 86400 - threshold:
             return False
@@ -448,8 +448,8 @@ class Device(Screenshot, Control, AppControl, Input):
 
     def app_start(self):
         if not self.config.Error_HandleError:
-            logger.critical('错误 没有启动/停止应用，因为 HandleError 已禁用')
-            logger.critical('请启用 Alas.Error.HandleError 或手动登录碧蓝航线')
+            logger.critical('[Device] 错误 没有启动/停止应用，因为 HandleError 已禁用')
+            logger.critical('[Device] 请启用 Alas.Error.HandleError 或手动登录碧蓝航线')
             raise RequestHumanTakeover
         super().app_start()
         self.stuck_record_clear()
@@ -457,8 +457,8 @@ class Device(Screenshot, Control, AppControl, Input):
 
     def app_stop(self):
         if not self.config.Error_HandleError:
-            logger.critical('错误 没有启动/停止应用，因为 HandleError 已禁用')
-            logger.critical('请启用 Alas.Error.HandleError 或手动登录碧蓝航线')
+            logger.critical('[Device] 错误 没有启动/停止应用，因为 HandleError 已禁用')
+            logger.critical('[Device] 请启用 Alas.Error.HandleError 或手动登录碧蓝航线')
             raise RequestHumanTakeover
         super().app_stop()
         self.stuck_record_clear()

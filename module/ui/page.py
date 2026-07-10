@@ -134,10 +134,10 @@ page_campaign.link(button=CAMPAIGN_GOTO_EVENT, destination=page_sp)
 
 # 联动活动
 # 霜冻行动
-# page_coalition = Page(FROSTFALL_COALITION_CHECK)
-# page_coalition.link(button=GOTO_MAIN, destination=page_main)
-# page_coalition.link(button=BACK_ARROW, destination=page_campaign_menu)
-# page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_EVENT, destination=page_coalition)
+page_coalition = Page(FROSTFALL_COALITION_CHECK)
+page_coalition.link(button=GOTO_MAIN, destination=page_main)
+page_coalition.link(button=BACK_ARROW, destination=page_campaign_menu)
+page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_EVENT, destination=page_coalition)
 # 小学院
 # page_coalition_menu = Page(COALITION_ACADEMY_MAIN_CHECK)
 # page_coalition_menu.link(button=COALITION_ACADEMY_HOME, destination=page_main)
@@ -157,10 +157,10 @@ page_campaign.link(button=CAMPAIGN_GOTO_EVENT, destination=page_sp)
 # page_coalition.link(button=BACK_ARROW, destination=page_campaign_menu)
 # page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_EVENT, destination=page_coalition)
 # 时尚联动
-page_coalition = Page(FASHION_COALITION_CHECK)
-page_coalition.link(button=GOTO_MAIN, destination=page_main)
-page_coalition.link(button=BACK_ARROW, destination=page_campaign_menu)
-page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_EVENT, destination=page_coalition)
+# page_coalition = Page(FASHION_COALITION_CHECK)
+# page_coalition.link(button=GOTO_MAIN, destination=page_main)
+# page_coalition.link(button=BACK_ARROW, destination=page_campaign_menu)
+# page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_EVENT, destination=page_coalition)
 
 # 大世界
 page_os = Page(OS_CHECK)

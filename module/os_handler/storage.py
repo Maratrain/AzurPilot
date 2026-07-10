@@ -259,7 +259,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
             # 处理"道具不足"弹窗：维修箱数量不足时游戏弹出此提示，需点击取消退出
             # 截图显示弹窗标题为"信息 INFORMATION"，内容为"道具不足"，底部有取消按钮
             if self.appear_then_click(POPUP_CANCEL, offset=(20, 20), interval=2):
-                logger.warning('Repair pack insufficient (道具不足), skip this ship')
+                logger.warning('[大世界] Repair pack insufficient (道具不足), skip this ship')
                 return RepairResult.PACK_INSUFFICIENT
             # 超时保护：防止未知弹窗导致死循环
             if timeout.reached():

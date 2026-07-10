@@ -279,7 +279,7 @@ class CampaignOcr(ModuleBase):
         x_color = np.convolve(np.mean(image, axis=0), np.ones(interval), 'valid') / interval
         x_list = np.where(x_color[x_skip:] > 245)[0]
         if x_list is None or len(x_list) == 0:
-            logger.warning('数字与文本之间未找到间隔。')
+            logger.warning('[战役] 数字与文本之间未找到间隔。')
             area = (0, 0, image.shape[1], image.shape[0])
         else:
             area = (0, 0, x_list[0] + 1 + x_skip, image.shape[0])
@@ -302,7 +302,7 @@ class CampaignOcr(ModuleBase):
         del_cached_property(self, '_stage_image')
         del_cached_property(self, '_stage_image_gray')
         if len(buttons) == 0:
-            logger.info('未找到关卡。')
+            logger.info('[战役] 未找到关卡。')
             raise CampaignNameError
 
         ocr = Ocr(buttons, name='campaign', letter=(255, 255, 255), threshold=128,

@@ -120,7 +120,7 @@ class InfoHandler(ModuleBase):
             return True
         if self.appear(POPUP_CANCEL_WHITE, offset=offset, interval=interval):
             POPUP_CANCEL_WHITE.name = POPUP_CANCEL_WHITE.name + '_' + name
-            self.device.click(POPUP_CONFIRM_WHITE)
+            self.device.click(POPUP_CANCEL_WHITE)
             POPUP_CANCEL_WHITE.name = POPUP_CANCEL_WHITE.name[:-len(name) - 1]
             return True
         return False
@@ -426,7 +426,7 @@ class InfoHandler(ModuleBase):
         )
 
         if not siren_research_enabled:
-            logger.info('[Story] 塞壬研究装置未启用，选择离开')
+            logger.info('[Handler] [Story] 塞壬研究装置未启用，选择离开')
             self.siren_device_mode = None
             return options[-1]
 
@@ -436,11 +436,11 @@ class InfoHandler(ModuleBase):
         )
 
         if siren_mode == 'enemy':
-            logger.info('[Story] 选择反复尝试探测隐藏的敌人')
+            logger.info('[Handler] [Story] 选择反复尝试探测隐藏的敌人')
             self.siren_device_mode = 'enemy'
             return options[2]
         else:
-            logger.info('[Story] 选择反复尝试探测隐藏的资源')
+            logger.info('[Handler] [Story] 选择反复尝试探测隐藏的资源')
             self.siren_device_mode = 'resource'
             return options[3]
 

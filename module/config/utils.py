@@ -3,7 +3,6 @@
 import json
 import random
 import string
-import time
 from datetime import datetime, timedelta, timezone
 
 import yaml
@@ -12,6 +11,7 @@ import module.config.server as server_
 from deploy.atomic import atomic_read_text, atomic_read_bytes, atomic_write
 from module.submodule.utils import *
 from module.base.decorator import run_once
+from module.config.time_source import now as current_time, timestamp as current_timestamp
 from module.logger import logger
 
 LANGUAGES = ['zh-CN', 'zh-MIAO', 'en-US', 'ja-JP', 'zh-TW']
@@ -348,7 +348,7 @@ def server_time_offset() -> timedelta:
     本地时间转服务器时间：server_time = local_time + server_time_offset()
     服务器时间转本地时间：local_time = server_time - server_time_offset()
     """
-    return datetime.now(timezone.utc).astimezone().utcoffset() - server_timezone()
+    return current_time(timezone.utc).astimezone().utcoffset() - server_timezone()
 
 
 def random_normal_distribution_int(a, b, n=3):
@@ -410,7 +410,7 @@ def get_os_next_reset():
         datetime.datetime: 下次重置的本地时间。
     """
     diff = server_time_offset()
-    server_now = datetime.now() - diff
+    server_now = current_time() - diff
     server_reset = (server_now.replace(day=1) + timedelta(days=32)) \
         .replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     local_reset = server_reset + diff
@@ -425,7 +425,7 @@ def get_os_reset_remain():
         int: 剩余天数。
     """
     next_reset = get_os_next_reset()
-    now = datetime.now()
+    now = current_time()
     logger.attr('OpsiNextReset', next_reset)
 
     remain = int((next_reset - now).total_seconds() // 86400)
@@ -447,7 +447,7 @@ def get_server_next_update(daily_trigger):
         daily_trigger = daily_trigger.replace(' ', '').split(',')
 
     diff = server_time_offset()
-    local_now = datetime.now()
+    local_now = current_time()
     trigger = []
     for t in daily_trigger:
         h, m = [int(x) for x in t.split(':')]
@@ -473,7 +473,7 @@ def get_server_last_update(daily_trigger):
         daily_trigger = daily_trigger.replace(' ', '').split(',')
 
     diff = server_time_offset()
-    local_now = datetime.now()
+    local_now = current_time()
     trigger = []
     for t in daily_trigger:
         h, m = [int(x) for x in t.split(':')]
@@ -518,7 +518,7 @@ def get_nearest_weekday_date(target):
         datetime.datetime: 最近的目标星期几的本地时间。
     """
     diff = server_time_offset()
-    server_now = datetime.now() - diff
+    server_now = current_time() - diff
 
     days_ahead = target - server_now.weekday()
     if days_ahead <= 0:
@@ -539,7 +539,7 @@ def get_server_weekday():
         int: 星期几（0=周一, 6=周日）。
     """
     diff = server_time_offset()
-    server_now = datetime.now() - diff
+    server_now = current_time() - diff
     result = server_now.weekday()
     return result
 
@@ -552,7 +552,7 @@ def get_server_monthday():
         int: 月份中的天数。
     """
     diff = server_time_offset()
-    server_now = datetime.now() - diff
+    server_now = current_time() - diff
     result = server_now.day
     return result
 
@@ -659,7 +659,7 @@ def readable_time(before: str, value: str) -> str:
         timedata['value'] = 'None'
         return timedata
 
-    diff = time.time() - ti.timestamp()
+    diff = current_timestamp() - ti.timestamp()
     if diff < -1:
         timedata['time_name'] = 'TimeError'
     elif diff < 60:
@@ -680,7 +680,7 @@ def readable_time(before: str, value: str) -> str:
 @run_once
 def is_good_gpu():
     if os.name != 'nt':
-        logger.info("当前系统为非 Windows，不使用 GPU")
+        logger.info("[Config] 当前系统为非 Windows，不使用 GPU")
         return False
 
     try:
@@ -695,14 +695,14 @@ def is_good_gpu():
                 try:
                     # AdapterRAM 单位为字节，1GB = 1073741824 字节
                     if int(line) >= 1073741824:
-                        logger.info("检测到高性能 GPU")
+                        logger.info("[Config] 检测到高性能 GPU")
                         return True
                 except (ValueError, TypeError):
                     continue
-        logger.info("未检测到高性能 GPU")
+        logger.info("[Config] 未检测到高性能 GPU")
         return False
     except Exception:
-        logger.warning("检测 GPU 性能失败")
+        logger.warning("[Config] 检测 GPU 性能失败")
         return False
     
 

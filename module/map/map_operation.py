@@ -136,14 +136,14 @@ class MapOperation(MysteryHandler, FleetPreparation, Retirement, FastForwardHand
 
                 # 检查错误
                 if campaign_click > 5:
-                    logger.critical(f"无法进入 {button}，对 {button} 的点击次数过多")
-                    logger.critical("可能原因 #1: 您尚未达到解锁该关卡的指挥官等级。")
+                    logger.critical(f"[Map] 无法进入 {button}，对 {button} 的点击次数过多")
+                    logger.critical("[Map] 可能原因 #1: 您尚未达到解锁该关卡的指挥官等级。")
                     raise RequestHumanTakeover
                 if fleet_click > 5:
-                    logger.critical(f"无法进入 {button}，对 FLEET_PREPARATION 的点击次数过多")
-                    logger.critical("可能原因 #1: "
+                    logger.critical(f"[Map] 无法进入 {button}，对 FLEET_PREPARATION 的点击次数过多")
+                    logger.critical("[Map] 可能原因 #1: "
                                     "您的舰队尚未满足该关卡的属性限制。")
-                    logger.critical("可能原因 #2: "
+                    logger.critical("[Map] 可能原因 #2: "
                                     "该关卡每天只能刷一次，"
                                     "但这是您第二次进入")
                     raise RequestHumanTakeover
@@ -243,6 +243,9 @@ class MapOperation(MysteryHandler, FleetPreparation, Retirement, FastForwardHand
                         logger.warning('Entered map with is_combat_loading appeared')
                         break
                 else:
+                    if hasattr(self, 'is_combat_loading') and self.is_combat_loading():
+                        logger.warning('Entered map with is_combat_loading appeared')
+                        break
                     if self.handle_in_map_with_enemy_searching():
                         # self.handle_map_after_combat_story()
                         break
@@ -447,8 +450,8 @@ class MapOperation(MysteryHandler, FleetPreparation, Retirement, FastForwardHand
         """
         if not self.map_is_hard_mode \
                 and self.config.Fleet_FleetOrder in ['fleet1_boss_fleet2_mob', 'fleet1_standby_fleet2_all']:
-            logger.warning(f"普通模式不应使用反转的舰队顺序 ({self.config.Fleet_FleetOrder})。")
-            logger.warning('请交换舰队 1 和舰队 2 的配置，'
+            logger.warning(f"[Map] 普通模式不应使用反转的舰队顺序 ({self.config.Fleet_FleetOrder})。")
+            logger.warning('[Map] 请交换舰队 1 和舰队 2 的配置，'
                            '使用 "fleet1_mob_fleet2_boss" 或 "fleet1_all_fleet2_standby"')
             # raise RequestHumanTakeover
 

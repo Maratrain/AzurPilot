@@ -284,7 +284,7 @@ class SelectCharacter(UI):
         width, height = self.select_character_grid.grid_shape
         for row, col in self._normalize_grid_positions(positions):
             if row < 0 or col < 0 or row >= width or col >= height:
-                logger.warning(f"角色选择格子位置越界: {(row, col)}")
+                logger.warning(f"[岛屿] 角色选择格子位置越界: {(row, col)}")
                 continue
             yield row, col, self.select_character_grid[row, col]
 
@@ -368,7 +368,7 @@ class SelectCharacter(UI):
         """
         # 如果传入了空列表，回退到全量匹配
         if not character_list:
-            logger.info("角色列表为空，回退到全量匹配")
+            logger.info("[岛屿] 角色列表为空，回退到全量匹配")
             screenshot = self.device.screenshot()
             all_characters = self.recognize_all_characters(screenshot)
             for char_info in all_characters:
@@ -378,7 +378,7 @@ class SelectCharacter(UI):
             return None
 
         if character_list == ["WorkerJuu"]:
-            logger.info("仅选择 WorkerJuu，先应用体力排序")
+            logger.info("[岛屿] 仅选择 WorkerJuu，先应用体力排序")
             if not self.select_character_filter():
                 return None
             screenshot = self.device.screenshot()
@@ -396,7 +396,7 @@ class SelectCharacter(UI):
         character_dict = {}
         for char_info in target_characters:
             character_dict[char_info["character_name"]] = char_info
-        logger.info(f"工作速度筛选下角色状态: {character_dict}")
+        logger.info(f"[岛屿] 工作速度筛选下角色状态: {character_dict}")
         # 优先按列表顺序检查指定角色
         for char_name in character_list:
             if char_name in character_dict:
@@ -407,7 +407,7 @@ class SelectCharacter(UI):
                         ):
                     return char_info["grid_position"]
         # 应用体力筛选
-        logger.info("应用体力筛选")
+        logger.info("[岛屿] 应用体力筛选")
         if not self.select_character_filter():
             return None
         screenshot = self.device.screenshot()
@@ -417,7 +417,7 @@ class SelectCharacter(UI):
         character_dict = {}
         for char_info in target_characters:
             character_dict[char_info["character_name"]] = char_info
-        logger.info(f"体力筛选下角色状态: {character_dict}")
+        logger.info(f"[岛屿] 体力筛选下角色状态: {character_dict}")
         # 优先按列表顺序检查指定角色
         for char_name in character_list:
             if char_name in character_dict:
@@ -456,7 +456,7 @@ class SelectCharacter(UI):
             char_info["character_name"]: char_info
             for char_info in target_characters
         }
-        logger.info(f"指定角色状态: {character_dict}")
+        logger.info(f"[岛屿] 指定角色状态: {character_dict}")
 
         for char_name in characters:
             char_info = character_dict.get(char_name)

@@ -60,12 +60,12 @@ class Benchmark(DaemonBase, CampaignUI):
             try:
                 func(*args, **kwargs)
             except RequestHumanTakeover:
-                logger.critical('错误 请求人类接管')
-                logger.warning(f'基准测试失败，函数: {func.__name__}')
+                logger.critical('[Daemon] 错误 请求人类接管')
+                logger.warning(f'[Daemon] 基准测试失败，函数: {func.__name__}')
                 return 'Failed'
             except Exception as e:
                 logger.exception(e)
-                logger.warning(f'基准测试失败，函数: {func.__name__}')
+                logger.warning(f'[Daemon] 基准测试失败，函数: {func.__name__}')
                 return 'Failed'
 
             cost = time.perf_counter() - start
@@ -305,5 +305,5 @@ def run_benchmark(config):
         Benchmark(config, task='Benchmark').run()
         return True
     except RequestHumanTakeover:
-        logger.critical('错误 请求人类接管')
+        logger.critical('[Daemon] 错误 请求人类接管')
         return False

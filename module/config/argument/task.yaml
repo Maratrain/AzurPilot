@@ -353,6 +353,9 @@ Opsi:
     OpsiScheduling:
       - Scheduler
       - OpsiScheduling
+    OpsiPreventActionPointOverflow:
+      - Scheduler
+      - OpsiPreventActionPointOverflow
     OpsiCrossMonth:
       - Scheduler
     OpsiSimulator:

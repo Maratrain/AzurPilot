@@ -278,6 +278,10 @@
       "name": "Smart Scheduling+",
       "help": "Operation Siren smart scheduling function, used to coordinate switching between Corrosion 1 leveling and gold coin replenishment tasks.\nOnce enabled, it will automatically switch between different tasks and send push notifications based on gold coins and action points."
     },
+    "OpsiPreventActionPointOverflow": {
+      "name": "Prevent AP Overflow",
+      "help": "Runs Operation Siren tasks when current AP reaches the upper limit."
+    },
     "OpsiCrossMonth": {
       "name": "Cross-Month Daily",
       "help": "    AzurPilot will enter Operation Siren 10 minutes before the cross-month reset, wait for the reset without exiting, then complete the new day's OpSi daily, Obscured Zone, Abyssal Zone and Meowfficer Farming to earn extra rewards. When running OpSi Daily, it follows the \"OpSi - Daily\" task settings, and likewise for others.\n    Important: Do not operate the game while AzurPilot is waiting for the cross-month reset."
@@ -443,6 +447,12 @@
     "RandomDelay": {
       "name": "Daily restart random delay",
       "help": "When restarting the game client each day, delay the restart by X random minutes after the server refresh time to stagger logins across multiple clients.\nSupports a single number or a range, for example 5, 50. Set to 0 to disable."
+    },
+    "ClearCache": {
+      "name": "Clear cache on restart",
+      "help": "When restarting the game client, delete external cache files under /sdcard/Android/data/<package>/cache/ after force-stopping the app.",
+      "True": "Enabled",
+      "False": "Disabled"
     }
   },
   "Emulator": {
@@ -735,6 +745,41 @@
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
     },
+    "OcrModelVersionEnglish": {
+      "name": "OCR English Model Version",
+      "help": "Choose the English OCR model version. Auto uses the recommended English AlOCR v2.6 model. This affects the English Azur Lane model; ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "alocr_en_900k": "alocr_en_900k",
+      "azur_lane_v6_6": "English v6.6 (Azur Lane)",
+      "azur_lane_v6_5": "English v6.5 (Azur Lane)",
+      "ppocr_v6": "Generic PP-OCRv6",
+      "alocr_en_v2_6": "English AlOCR v2.6",
+      "alocr_en_v2_0": "English AlOCR v2.0",
+      "alocr_en_v1_0": "English AlOCR v1.0"
+    },
+    "OcrModelVersionChinese": {
+      "name": "OCR Chinese Model Version",
+      "help": "Choose the Simplified Chinese OCR model version. Auto uses the recommended Chinese v6.1 model. This affects cnocr/Chinese models; ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "cn_v6_1": "Chinese v6.1",
+      "cn_v6": "Chinese v6",
+      "ppocr_v6": "Generic PP-OCRv6",
+      "alocr_cn_v3": "Chinese AlOCR v3",
+      "alocr_cn_v2_5": "Chinese AlOCR v2.5"
+    },
+    "OcrModelVersionJapanese": {
+      "name": "OCR Japanese Model Version",
+      "help": "Choose the Japanese OCR model version. Auto uses the Japanese Azur Lane v6 model. This affects Japanese models; ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "azur_lane_jp_v6": "Japanese v6 (Azur Lane JP)",
+      "ppocr_v6": "Generic PP-OCRv6"
+    },
+    "OcrModelVersionTraditionalChinese": {
+      "name": "OCR Traditional Chinese Model Version",
+      "help": "Choose the Traditional Chinese OCR model version. Currently only the generic PP-OCRv6 model is available; this separate setting is kept for future models. ncnn ignores this setting.",
+      "auto": "Auto Recommended",
+      "ppocr_v6": "Generic PP-OCRv6"
+    },
     "ScreenshotInterval": {
       "name": "Slow Down Screenshot Speed to X Seconds per Frame",
       "help": "Minimum interval between two screenshots, limited to 0.001 ~ 0.3. Can reduce CPU usage on high-spec computers."
@@ -746,6 +791,12 @@
     "TaskHoardingDuration": {
       "name": "Hoard Tasks for X Minutes",
       "help": "Can reduce the frequency of game operations during reward collection\nAfter a task is triggered, wait X minutes, then execute all hoarded tasks at once"
+    },
+    "CloseEmulatorDuringLongWait": {
+      "name": "Close Emulator During Long Wait",
+      "help": "When the next task is more than 3 hours away, close the emulator during the wait to save memory and CPU.",
+      "True": "True",
+      "False": "False"
     },
     "WhenTaskQueueEmpty": {
       "name": "When Task Queue Is Empty",
@@ -925,7 +976,7 @@
     },
     "TaskPriorityAdjustment": {
       "name": "Task priority adjustment",
-      "help": "Default priority reference (`#` text is explanatory; do not copy comments into the config):\nRestart    # Restart the game\n> OpsiCrossMonth    # Operation Siren cross-month daily task\n> Commission > Tactical > Research    # Commission > Tactical Class > Research\n> Exercise    # Exercise\n> Dorm > Meowfficer > Guild > Gacha    # Dorm > Meowfficer > Guild > Daily build\n> Reward    # Rewards\n> ShopFrequent > ShopOnce > Shipyard > Freebies    # Frequent shop > One-time shop > Shipyard > Freebies\n> PrivateQuarters    # Private Quarters\n> OpsiExplore    # Monthly Operation Siren exploration\n> Minigame > Awaken    # Minigame > Cognitive Awakening\n> OpsiAshBeacon    # META beacon battle\n> OpsiDaily > OpsiShop > OpsiVoucher > EventShop    # Operation Siren daily > Port shop > Voucher shop > Event shop\n> OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive    # Abyssal zone > Siren stronghold > Obscure zone > Archive coordinate\n> Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss    # Daily challenge > Hard mode > META battle > META assist > Monthly boss\n> Sos > EventSp > EventA > EventB > EventC > EventD    # SOS > Event daily SP > Event daily A > Event daily B > Event daily C > Event daily D\n> RaidDaily > CoalitionSp > WarArchives > MaritimeEscort    # Raid daily > Coalition SP > War Archives > Maritime Escort\n> IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant    # Island Juu Eatery > Juu Coffee > Squid Grill > Polar Bear Drinks > Fish Restaurant\n> IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture    # Island farm > Ranch > Mine & Forest > Daily gathering > Manufacturing\n> IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation    # Island daily supply > Business module > Daily order > Daily/weekly tasks > Weekly pearl trade > Cargo preparation\n> Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3    # Event map 1 > Event map 2 > Event map 3 > Raid > Hospital > Hospital event > Coalition > Raid scuttle > Main campaign > Main campaign 2 > Main campaign 3\n> OpsiMeowfficerFarming    # Operation Siren Meowfficer farming\n> GemsFarming    # Urgent commission farming\n> Ambush11    # 1-1 ambush farming\n> OpsiHazard1Leveling    # Corrosion 1 leveling\n> ThreeOilLowCost    # 3-oil low-cost farming\n\nFormat: task names only, connected with `>` (left = higher priority).\nThe `#` comments above are explanatory only. Do not keep comments in the config value, because comments will break task-name matching.\nUse English config task names. If you are unsure about a task name, switch the UI to English and check it.\nLeave empty to use the built-in default priority."
+      "help": "Drag task rows to adjust scheduler priority. Tasks closer to the top run first. New tasks are automatically inserted into suitable positions according to the built-in default priority."
     }
   },
   "OneClickRetire": {
@@ -1618,11 +1669,11 @@
       "name": "Ignore Mood Warning Popup",
       "help": "Force through the mood warning popup when it appears."
     },
-    "ALLowHighFlagshipLevel": {
+    "AllowHighFlagshipLevel": {
       "name": "Only replace the full-level rear row",
       "help": "After opening, only level 100 white-skin light aircraft will be selected when changing flagships.\nPlease make sure there are qualified ships in the dock when using it."
     },
-    "ALLowLowVanguardLevel": {
+    "AllowLowVanguardLevel": {
       "name": "Replaceable low-level front row",
       "help": "After opening, the front row level limit is changed to level 30 or above. If it is difficult mode (such as the CD picture), it will be changed to level 70."
     },
@@ -1785,10 +1836,11 @@
     "Mode": {
       "name": "Difficulty",
       "help": "SP map requires running the daily SP mission first",
-      "easy": "Easy",
-      "normal": "Normal",
-      "hard": "Hard",
-      "sp": "SP"
+      "tc1": "tc1",
+      "tc2": "tc2",
+      "tc3": "tc3",
+      "sp": "SP",
+      "ex": "ex"
     },
     "Fleet": {
       "name": "attack team",
@@ -1970,6 +2022,9 @@
       "name": "Research filter",
       "help": "For research drops and project refreshes, please see https://azur-stats.lyoko.io/. People who do not have a basic understanding of these are not recommended to write custom filters. It is recommended to use pre-optimized research filters.",
       "custom": "Custom",
+      "series_9_blueprint_ta152": "Series 9 Blueprint + Ta152",
+      "series_9_blueprint_only": "Series 9 Blueprint only",
+      "series_9_ta152_only": "Series 9 Ta152 only",
       "series_8_blueprint_305": "Series 8 Blueprint + 305",
       "series_8_blueprint_only": "Series 8 Blueprint only",
       "series_8_305_only": "Series 8 305 only",
@@ -2922,6 +2977,10 @@
     "OpsiOnePushConfig": {
       "name": "Operation Siren notifications push settings",
       "help": "The settings will take effect only when the \"Siren Operation Information Independent Push\" function is enabled. Use Onepush to push a message about Corrosion 1 and Short Cat. See the document for configuration method: https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
+    },
+    "AutoSearchTimeLimit": {
+      "name": "Auto Search Time Limit",
+      "help": "Unit: minutes. During auto search, the script will assume the game is stuck if no event is detected for this period."
     }
   },
   "OpsiAshBeacon": {
@@ -3001,6 +3060,10 @@
     "LastZone": {
       "name": "Last completed zone",
       "help": "Automatically updated value. Fill in 0 to reset progress. After reset, already explored sea zones will be automatically skipped.\nSupports sea zone ID, CN/EN/JP/TW server zone names, e.g. \"51\", \"NA Ocean SE Sector E\""
+    },
+    "AllowHazard1Leveling": {
+      "name": "Allow Hazard 1 Leveling during exploration",
+      "help": "If enabled, Corrosion 1 Leveling will not be postponed. Use with caution, as you might run out of Action Points for exploration."
     },
     "ExploreProgress": {
       "name": "Monthly Exploration Progress",
@@ -3141,10 +3204,6 @@
       "name": "Preserve X Action Points",
       "help": "Stop when Action Points are lower than X, and automatically open Action Point boxes. X includes Action Points in boxes. It is recommended to preserve 3000 AP for Corrosion 1 Leveling.\nThis value will be automatically reduced to 200 points 3 days before Operation Siren reset. If Corrosion 1 Leveling is enabled, it will be changed to 1000 points, and will be automatically reduced to 0 points on the last day."
     },
-    "SmartNaturalAPCleanup": {
-      "name": "Smart Scheduling Natural AP Cleanup",
-      "help": "Hidden one-shot flag used when Smart Scheduling starts Meowfficer farming to spend naturally recovered Action Points."
-    },
     "HazardLevel": {
       "name": "Corrosion Level",
       "help": "Attack sea zones with specific Corrosion levels in clockwise order\nIt is recommended to choose 5 or 3, which has a higher cat point/AP ratio.",
@@ -3157,11 +3216,11 @@
     },
     "TargetZone": {
       "name": "Target Zone",
-      "help": "Only attack designated sea zones, can be used to obtain Operation Siren achievement stars.\nSupports zone ID, CN/EN/JP/TW zone names, e.g. \"51\", \"NA Ocean SE Sector E\"\nFill in default value 0, or delete the value to cancel"
+      "help": "Only attack the designated sea zone. Supports zone IDs and CN/EN/JP/TW zone names. Use 0 to return to the default logic by Corrosion level.\nWhen Planned Operation in Target Zone is enabled, multiple zones can be entered and cycled in order, e.g. 42,55,45, 42, 55, 45, or 42，55，45."
     },
     "StayInZone": {
       "name": "Planned Operation in Target Zone",
-      "help": "Warm reminder from Yukikaze-sama: After enabling this and specifying a zone, planned operations will be carried out in the designated zone without returning to port nanoda! For Corrosion 3, NA Ocean SE B is recommended; for Corrosion 5, Caribbean Sea B or C is recommended nanoda!"
+      "help": "After enabling this, the task runs according to Target Zone. With one zone it stays there; with multiple zones it cycles through them in the configured order. Only takes effect when Target Zone is not 0."
     },
     "APPreserveUntilReset": {
       "name": "Preserve Action Points Until End of Month",
@@ -3223,10 +3282,6 @@
     "RecordNonCL1AP": {
       "name": "Record Non-Corrosion 1 AP Sources",
       "help": "When enabled, AP acquisition data from all sources (such as Akashi shop purchases) will be recorded. When disabled, AP data will only be recorded during Corrosion 1 Leveling tasks, ignoring AP gained during other tasks or manual operations."
-    },
-    "PreserveVirtualAsset": {
-      "name": "Preserve X Virtual Asset",
-      "help": "Virtual Asset = AP × 1700/30 + Yellow Coins + (Time to Month End / 10 minutes) × 1700/30\nWhen virtual asset drops below X, yellow coin replenishment task will run. 0 means no limit."
     },
     "RecordSeaMiles": {
       "name": "Sea Miles Recording",
@@ -3335,16 +3390,6 @@
       "name": "Meowfficer Farming: Preserve X Action Points",
       "help": "Stop when Action Points are lower than X, and automatically open AP boxes. X includes AP in boxes. It is recommended to preserve 1000 AP for Corrosion 1 Leveling."
     },
-    "ActionPointEarlyTriggerEnable": {
-      "name": "Early AP Scheduling",
-      "help": "After Corrosion 1 or Meowfficer farming ends, record natural Action Points and schedule Smart Scheduling by the natural recovery rate of 1 AP per 10 minutes to avoid AP overflow.",
-      "True": "Enabled",
-      "False": "Disabled"
-    },
-    "ActionPointEarlyTriggerThreshold": {
-      "name": "Early Scheduling AP Threshold",
-      "help": "Run Smart Scheduling again when natural Action Points recover to X. Default is 200, suitable for deciding whether to run Corrosion 1 or Meowfficer farming near the natural cap."
-    },
     "OperationCoinsReturnThreshold": {
       "name": "Obtain X Combat Supply Vouchers",
       "help": "During the yellow coin acquisition task, obtain (increase) X Combat Supply Vouchers in total, then return to Corrosion 1 Leveling."
@@ -3373,20 +3418,30 @@
       "True": "Enabled",
       "False": "Disabled"
     },
-    "MeowStartEarlyMode": {
-      "name": "Month-End AP Auto-Cleanup Mode",
-      "help": "Advance hours = (Current AP / 30 × historical average time per Meow run) × mode multiplier, then compared with time remaining until next month Operation Siren reset; Aggressive (×0.8) starts less in advance, Balanced (×1.2) is neutral, Conservative (×1.5) starts more in advance",
-      "aggressive": "Aggressive",
-      "balanced": "Balanced",
-      "conservative": "Conservative"
+    "TaskPriority": {
+      "name": "Replenishment Task Priority",
+      "help": "The priority order of tasks for yellow coin replenishment when they are insufficient. Separated by >."
+    }
+  },
+  "OpsiPreventActionPointOverflow": {
+    "_info": {
+      "name": "Prevent AP Overflow",
+      "help": "Runs Operation Siren tasks when current AP reaches the upper limit.\nWhen Smart Scheduling is selected, it runs Meowfficer Farming if both AP and Operation Supply Coins are insufficient and no other task can run."
     },
-    "MeowStartEarlyEnable": {
-      "name": "Enable Month-End AP Auto-Cleanup",
-      "help": "Automatically decides whether to start Meowfficer Farming early for month-end AP cleanup based on historical Meow timing and current AP; the decision target is the next month Operation Siren reset time, not daily server refresh."
+    "Task": {
+      "name": "Task to Run",
+      "help": "Recommended: Smart Scheduling, which has dedicated overflow handling.",
+      "OpsiScheduling": "Smart Scheduling (Recommended)",
+      "OpsiHazard1Leveling": "Corrosion 1 Leveling",
+      "OpsiMeowfficerFarming": "Meowfficer Farming"
     },
-    "VirtualAssetPreserve": {
-      "name": "Corrosion 1 Leveling: Preserve X Virtual Asset",
-      "help": "Yellow coin replenishment runs when virtual asset drops below X. Virtual Asset = AP × 1700/30 + Yellow Coins + (Time to Month End / 10 min) × 1700/30"
+    "ActionPointUpperbound": {
+      "name": "Current AP Upper Limit",
+      "help": "Start running Operation Siren tasks when current AP reaches this value."
+    },
+    "ActionPointLowerbound": {
+      "name": "Current AP Lower Limit",
+      "help": "Keep running until current AP drops below this value."
     }
   },
   "IslandPlan": {
@@ -5876,6 +5931,12 @@
       "NotRunning": "Not running, the connection to the server is lost or the server is offline",
       "NotEnable": "Not enabled, set the webui password in deploy.yaml and enable remote control",
       "EntryPoint": "Remote access url address:",
+      "StatusDirect": "P2P direct",
+      "StatusTurn": "TURN relay",
+      "StatusSsh": "SSH forwarding",
+      "StatusSignaling": "Waiting for P2P peer",
+      "StatusStarting": "Connecting",
+      "StatusFailed": "Connection failed",
       "ConfigureHint": "Configuration tutorial:",
       "SSHNotInstall": "There is no ssh tool in the system, please refer to the tutorial to download or install ssh"
     },
@@ -5957,12 +6018,26 @@
       "DiscordRichPresenceHelp": "Show AzurPilot status in Discord.",
       "EnableRemoteAccess": "Enable Remote Access",
       "EnableRemoteAccessHelp": "Expose WebUI through an SSH reverse tunnel. Set a password before public access.",
+      "RemoteAccessMode": "Remote Access Mode",
+      "RemoteAccessModeHelp": "auto prefers P2P/TURN and falls back to SSH; webrtc prefers P2P; ssh uses legacy SSH forwarding only.",
       "SSHUser": "SSH User",
       "SSHUserHelp": "Remote access login username. Leave empty to generate one on startup.",
       "SSHServer": "SSH Server",
       "SSHServerHelp": "Remote access server in host:port format.",
       "SSHExecutable": "SSH Executable",
       "SSHExecutableHelp": "Path to ssh.exe. Empty or ssh means searching PATH.",
+      "AllowedRedirectHosts": "Allowed Redirect Hosts",
+      "AllowedRedirectHostsHelp": "Trusted target hosts for SSH scheduling redirects, as a JSON array or comma separated string. Empty allows the SSHServer domain and parent-domain wildcards.",
+      "MaxRedirects": "Max Redirects",
+      "MaxRedirectsHelp": "Maximum number of SSH scheduling redirects to follow during one remote access startup.",
+      "SignalingServer": "WebRTC Signaling Server",
+      "SignalingServerHelp": "Leave empty to derive wss://host/signal from SSHServer.",
+      "StunServers": "STUN Servers",
+      "StunServersHelp": "JSON array or comma separated string for NAT traversal.",
+      "TurnServers": "TURN Servers",
+      "TurnServersHelp": "JSON array or comma separated string used as relay when P2P fails.",
+      "TurnCredentialMode": "TURN Credential Mode",
+      "TurnCredentialModeHelp": "Currently supports static. ephemeral is reserved for short-lived credentials.",
       "WebuiHost": "WebUI Host",
       "WebuiHostHelp": "Host address WebUI listens on, such as 0.0.0.0, 127.0.0.1, or ::.",
       "WebuiPort": "WebUI Port",
@@ -6062,13 +6137,6 @@
       "AvgMeowRoundTime": "Avg Meow Round Time",
       "MeowLootTitle": "Meow Session Loot",
       "NoMeowDataNotice": "No local Meowfficer farming loot data yet. It will be generated automatically after a run.",
-      "MeowAdvanceAdviceTitle": "Meow Early Start Advice",
-      "CurrentAP": "Current AP: {value}",
-      "ApPerRound": "AP per round: {value} AP",
-      "AvailableRounds": "Available rounds: {value}{unit}",
-      "AvgRoundDuration": "Avg round duration: {value}{unit}",
-      "CurrentMode": "Current mode: {value}",
-      "RecommendAhead": "Recommended lead time: {value}{unit}",
       "RoundUnit": " rounds",
       "SecondUnit": "s",
       "HourUnit": "h",
@@ -6091,9 +6159,6 @@
       "TargetExpRequired": "EXP required for target level",
       "BattlesCompleted": "Battles completed",
       "ExpRemaining": "EXP remaining",
-      "StartCleanupTime": "Suggested cleanup start: {value}",
-      "NextOsReset": "Next OS reset: {value}",
-      "MeowAutoCleanupStatus": "Auto early cleanup: {value}",
       "CommissionIncomeTitle": "Commission Income",
       "CommissionIncomeMonth": "This Month",
       "CommissionIncomeWeek": "This Week",
@@ -6122,14 +6187,12 @@
       "UseSmartSchedulingOperationCoinsPreserve": "Smart Scheduling OpSi Coins Preserve",
       "OperationCoinsPreserve": "OpSi Coins Preserve",
       "ActionPointPreserve": "Action Points Preserve",
-      "ActionPointEarlyTriggerEnable": "Early AP Scheduling",
-      "ActionPointEarlyTriggerThreshold": "Early Scheduling AP Threshold",
       "OperationCoinsReturnThreshold": "OpSi Coins Return Threshold",
       "EnableMeowfficerFarming": "Enable Meowfficer Farming",
       "EnableObscure": "Enable Obscure Zones",
       "EnableAbyssal": "Enable Abyssal Zones",
       "EnableStronghold": "Enable Siren Stronghold",
-      "MeowStartEarlyMode": "Meow Early Start Mode"
+      "TaskPriority": "Task Priority"
     },
     "Misc": {
       "Enabled": "Enabled",

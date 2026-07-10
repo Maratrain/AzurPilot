@@ -278,6 +278,10 @@
       "name": "智能调度喵",
       "help": "大世界智能调度，协调侵蚀1练级与黄币补充任务自动切换，并推送通知喵~ (´・ω・`)"
     },
+    "OpsiPreventActionPointOverflow": {
+      "name": "防止行动力溢出喵",
+      "help": "当前行动力达到上限时执行大世界任务消耗行动力喵"
+    },
     "OpsiCrossMonth": {
       "name": "跨月每日金菜计划",
       "help": "跨月重置前10分进入大世界，等待重置但不退出，立即完成新一天日常、隐秘、深渊和短猫，获取额外金菜喵！期间千万別操作游戏。"
@@ -443,6 +447,12 @@
     "RandomDelay": {
       "name": "每日重启随机延后",
       "help": "每天重启客户端时，在服务器刷新时间后随机延后 X 分钟再执行喵，用于错开多个客户端登录喵。\n支持单个数字或区间，例如 5, 50；填 0 可关闭喵。"
+    },
+    "ClearCache": {
+      "name": "重启时同时清理缓存",
+      "help": "重启客户端时，在强行停止应用后删除 /sdcard/Android/data/<包名>/cache/ 下的外部缓存文件喵。",
+      "True": "开启喵",
+      "False": "关闭喵"
     }
   },
   "Emulator": {
@@ -735,6 +745,41 @@
       "onnxruntime": "ONNX Runtime 喵",
       "ncnn": "ncnn 喵"
     },
+    "OcrModelVersionEnglish": {
+      "name": "OCR英文模型版本喵",
+      "help": "选择英文 OCR 模型版本喵。auto 使用英文推荐模型 AlOCR v2.6。该项影响英文 Azur Lane 模型；ncnn 后端会忽略此选择喵。",
+      "auto": "自动推荐喵",
+      "alocr_en_900k": "alocr_en_900k",
+      "azur_lane_v6_6": "英文 v6.6 (Azur Lane)",
+      "azur_lane_v6_5": "英文 v6.5 (Azur Lane)",
+      "ppocr_v6": "通用 PP-OCRv6",
+      "alocr_en_v2_6": "英文 AlOCR v2.6",
+      "alocr_en_v2_0": "英文 AlOCR v2.0",
+      "alocr_en_v1_0": "英文 AlOCR v1.0"
+    },
+    "OcrModelVersionChinese": {
+      "name": "OCR中文模型版本喵",
+      "help": "选择简体中文 OCR 模型版本喵。auto 使用中文推荐模型 v6.1。该项影响 cnocr/中文模型；ncnn 后端会忽略此选择喵。",
+      "auto": "自动推荐喵",
+      "cn_v6_1": "中文 v6.1",
+      "cn_v6": "中文 v6",
+      "ppocr_v6": "通用 PP-OCRv6",
+      "alocr_cn_v3": "中文 AlOCR v3",
+      "alocr_cn_v2_5": "中文 AlOCR v2.5"
+    },
+    "OcrModelVersionJapanese": {
+      "name": "OCR日文模型版本喵",
+      "help": "选择日文 OCR 模型版本喵。auto 使用日文 Azur Lane v6。该项影响日文模型；ncnn 后端会忽略此选择喵。",
+      "auto": "自动推荐喵",
+      "azur_lane_jp_v6": "日文 v6 (Azur Lane JP)",
+      "ppocr_v6": "通用 PP-OCRv6"
+    },
+    "OcrModelVersionTraditionalChinese": {
+      "name": "OCR繁中模型版本喵",
+      "help": "选择繁体中文 OCR 模型版本喵。当前仅提供通用 PP-OCRv6，保留独立选项以便后续扩展。ncnn 后端会忽略此选择喵。",
+      "auto": "自动推荐喵",
+      "ppocr_v6": "通用 PP-OCRv6"
+    },
     "ScreenshotInterval": {
       "name": "放慢截图至 X 秒一张",
       "help": "两次截图最小间隔0.001~0.3，高配电脑降CPU占用喵。 (´・ω・`)"
@@ -746,6 +791,12 @@
     "TaskHoardingDuration": {
       "name": "囤积任务 X 分钟",
       "help": "任务触发后等待X分钟一次性执行，降低操作频率喵。 (´・ω・`)"
+    },
+    "CloseEmulatorDuringLongWait": {
+      "name": "长时间等待时关闭模拟器喵",
+      "help": "当下一个任务超过 3 小时后运行时，等待期间关闭模拟器来节省内存和 CPU 喵。",
+      "True": "True",
+      "False": "False"
     },
     "WhenTaskQueueEmpty": {
       "name": "任务队列清空后",
@@ -925,7 +976,7 @@
     },
     "TaskPriorityAdjustment": {
       "name": "任务优先级调整喵",
-      "help": "默认优先级参考喵： Restart # 重启游戏 > OpsiCrossMonth # 大世界跨月每日 > Commission > Tactical > Research # 委托 > 战术学院 > 科研 > Exercise # 演习 > Dorm > Meowfficer > Guild > Gacha # 后宅 > 指挥喵 > 大舰队 > 每日抽卡 > Reward # 收获 > ShopFrequent > ShopOnce > Shipyard > Freebies # 通用商店 > 其他商店 > 开发船坞 > 白嫖奖励 > PrivateQuarters # 私人休息室 > OpsiExplore # 大世界每月开荒 > Minigame > Awaken # 小游戏 > 认知觉醒 > OpsiAshBeacon # META信标作战 > OpsiDaily > OpsiShop > OpsiVoucher > EventShop # 大世界日常 > 港口商店 > 兑换商店 > 活动商店 > OpsiAbyssal > OpsiStronghold > OpsiObscure > OpsiArchive # 深渊海域 > 塞壬要塞 > 隐秘海域 > 档案坐标 > Daily > Hard > OpsiAshBeacon > OpsiAshAssist > OpsiMonthBoss # 每日挑战 > 困难图 > META作战 > META支援 > 月度boss > Sos > EventSp > EventA > EventB > EventC > EventD # SOS > 活动每日SP > 活动每日A > 活动每日B > 活动每日C > 活动每日D > RaidDaily > CoalitionSp > WarArchives > MaritimeEscort # 共斗活动每日 > 共斗活动SP > 作战档案 > 商船护航 > IslandJuuEatery > IslandJuuCoffee > IslandGrill > IslandTeahouse > IslandRestaurant # 岛屿啾啾简餐 > 啾咖啡 > 乌鱼烤肉 > 白熊饮品 > 有鱼餐馆 > IslandFarm > IslandRancher > IslandMineForest > IslandDailyGather > IslandManufacture # 岛屿农田 > 牧场 > 矿山林场 > 每日采集 > 制造业 > IslandAirDrop > IslandBusiness > IslandDailyOrder > IslandDailyInteract > IslandPearlSell > IslandCargoPreparation # 岛屿每日补给 > 经营模块 > 每日订单 > 每日/周任务 > 每周珍珠采购与售卖 > 货物筹备 > Event > Event2 > Event3 > Raid > Hospital > HospitalEvent > Coalition > RaidScuttle > Main > Main2 > Main3 # 活动图1 > 活动图2 > 活动图3 > 共斗活动 > 医院活动 > 医院活动事件 > 共斗活动 > 共斗沉船 > 主线 > 主线2 > 主线3 > OpsiMeowfficerFarming # 短猫相接 > GemsFarming # 刷紧急委托 > Ambush11 # 1-1刷伏击 > OpsiHazard1Leveling # 侵蚀一练级 > ThreeOilLowCost # 三油低耗 格式：每行只写任务名喵，用 `>` 连接优先级。 上面的 `#` 注释只是说明喵，写入配置时不要保留注释，否则任务名匹配会失败。 任务名要用英文配置任务名；不知道任务名时切到英文界面看名字喵。 留空就使用内置默认优先级喵。"
+      "help": "拖动任务行调整调度优先级喵，越靠上越先执行喵。新增任务会按照内置默认优先级自动插入到合适位置喵。"
     }
   },
   "OneClickRetire": {
@@ -1618,11 +1669,11 @@
       "name": "忽略心情警告弹窗",
       "help": "打开后，遇到心情警告弹窗将强制打完，打完后如开启更换前排会强制换船"
     },
-    "ALLowHighFlagshipLevel": {
+    "AllowHighFlagshipLevel": {
       "name": "仅更换满级后排",
       "help": "打开后只选100级白轻航。确保船坞有符合条件的船喵。"
     },
-    "ALLowLowVanguardLevel": {
+    "AllowLowVanguardLevel": {
       "name": "可更换低等级前排",
       "help": "前排等级限制降为30级以上，困难模式70级喵。"
     },
@@ -1785,10 +1836,11 @@
     "Mode": {
       "name": "难度喵",
       "help": "SP图需用活动每日SP运行喵。 (´・ω・`)",
-      "easy": "easy喵",
-      "normal": "normal喵",
-      "hard": "hard喵",
-      "sp": "sp喵"
+      "tc1": "tc1",
+      "tc2": "tc2",
+      "tc3": "tc3",
+      "sp": "sp喵",
+      "ex": "ex"
     },
     "Fleet": {
       "name": "出击队伍模式",
@@ -1970,6 +2022,9 @@
       "name": "科研过滤器",
       "help": "科研掉落和刷新见 https://azur-stats.lyoko.io/ ，没了解别自定义。预优化过滤器喵。",
       "custom": "自定义喵",
+      "series_9_blueprint_ta152": "九期 蓝图+Ta152喵",
+      "series_9_blueprint_only": "九期 仅蓝图喵",
+      "series_9_ta152_only": "九期 仅Ta152喵",
       "series_8_blueprint_305": "八期 蓝图+305喵",
       "series_8_blueprint_only": "八期 仅蓝图喵",
       "series_8_305_only": "八期 仅305喵",
@@ -2922,6 +2977,10 @@
     "OpsiOnePushConfig": {
       "name": "大世界推送设置",
       "help": "“大世界信息独立推送”功能开启时设置才生效喵。使用 Onepush 推送一条关于侵蚀1和短猫的信息喵。配置方法见文档喵：https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BCN%5D"
+    },
+    "AutoSearchTimeLimit": {
+      "name": "自律寻敌时间限制喵~",
+      "help": "单位：分钟。自律寻敌时连续多长时间没遇到事件会判定为游戏卡死喵~"
     }
   },
   "OpsiAshBeacon": {
@@ -3001,6 +3060,10 @@
     "LastZone": {
       "name": "上一次完成的区域",
       "help": "填0重置进度，重置后自动跳过已开荒海域。支持海域ID或名称喵。"
+    },
+    "AllowHazard1Leveling": {
+      "name": "允许开荒期间运行侵蚀1练级喵",
+      "help": "开启后将不会推迟侵蚀1练级任务，慎用，没体力开荒就老实了喵。"
     },
     "ExploreProgress": {
       "name": "每月开荒进度",
@@ -3141,10 +3204,6 @@
       "name": "保留 X 点行动力",
       "help": "行动力低于X停，自动开箱子，X包含箱内行动力。建议保留3000给侵蚀1练级。大世界重置前3天自动减至200，若启用侵蚀1练级则1000，最后一天减至0喵。"
     },
-    "SmartNaturalAPCleanup": {
-      "name": "智能调度自然行动力清理喵",
-      "help": "智能调度拉起短猫清理自然恢复行动力时使用的一次性隐藏标记喵。"
-    },
     "HazardLevel": {
       "name": "侵蚀等级喵",
       "help": "按顺时针出击特定侵蚀等级海域。建议5或3，猫点/行动力比高。",
@@ -3157,11 +3216,11 @@
     },
     "TargetZone": {
       "name": "指定海域",
-      "help": "仅出击指定海域，支持ID或名称。填0跳转默认逻辑。"
+      "help": "仅出击指定海域，支持ID或名称。填0跳转默认逻辑喵。\n开启“循环出击指定海域”后，可填写多个海域并按顺序循环，例如 42,55,45、42, 55, 45、42，55，45。"
     },
     "StayInZone": {
       "name": "循环出击指定海域",
-      "help": "开启后一直留在指定海域内运行，不再循环其他。仅在指定海域不为0时生效喵。"
+      "help": "开启后按“指定海域”配置运行。指定单个海域时一直留在该海域；指定多个海域时按填写顺序循环。仅在指定海域不为0时生效喵。"
     },
     "APPreserveUntilReset": {
       "name": "月底重置强制消耗行动力",
@@ -3223,10 +3282,6 @@
     "RecordNonCL1AP": {
       "name": "统计非侵蚀1来源体力",
       "help": "开启则统计所有来源体力，关闭仅统计侵蚀1任务中体力，忽略其他任务或手动操作体力获取喵。"
-    },
-    "PreserveVirtualAsset": {
-      "name": "保留 X 点虚拟资产",
-      "help": "虚拟资产 = 体力 × 1700/30 + 黄币 + × 1700/30 虚拟资产低于 X 时运行黄币补充任务，0 为不限制 (´・ω・`)"
     },
     "RecordSeaMiles": {
       "name": "海里数记录",
@@ -3335,16 +3390,6 @@
       "name": "短猫相接 保留 X 点行动力",
       "help": "行动力< X 后停止，自动开箱，X含箱内行动力。建议保留1000给侵蚀1练级喵。 (´・ω・`)"
     },
-    "ActionPointEarlyTriggerEnable": {
-      "name": "行动力提前调度",
-      "help": "启用后在侵蚀一或短猫结束时记录自然行动力，并按每 10 分钟回复 1 点行动力计算智能调度下次运行时间，避免自然行动力溢出喵。",
-      "True": "开启喵",
-      "False": "关闭喵"
-    },
-    "ActionPointEarlyTriggerThreshold": {
-      "name": "提前调度行动力阈值",
-      "help": "自然行动力恢复到 X 时再次运行智能调度。默认 200，适合在行动力接近自然上限时重新决定执行侵蚀一或短猫喵。 (´・ω・`)"
-    },
     "OperationCoinsReturnThreshold": {
       "name": "获取 X 个作战补给凭证",
       "help": "黄币获取任务中共获取X个凭证后返回侵蚀1练级喵。 (´・ω・`)"
@@ -3373,20 +3418,30 @@
       "True": "已启用喵",
       "False": "未启用喵"
     },
-    "MeowStartEarlyMode": {
-      "name": "月末行动力自动清理模式",
-      "help": "提前小时数=×模式系数，与下月重置剩余时间比较。激进(×0.8)少提前，均衡(×1.2)平衡，保守(×1.5)多提前。",
-      "aggressive": "激进模式喵",
-      "balanced": "均衡模式喵",
-      "conservative": "保守模式喵"
+    "TaskPriority": {
+      "name": "补充黄币任务优先级喵~",
+      "help": "黄币不足时，执行补充黄币任务的优先级顺序喵~。使用 > 分隔。"
+    }
+  },
+  "OpsiPreventActionPointOverflow": {
+    "_info": {
+      "name": "防止行动力溢出喵",
+      "help": "当前行动力达到上限时执行大世界任务消耗行动力喵\n选择智能调度时，如果行动力和黄币都不足导致没有可运行任务，将运行短猫清理当前行动力喵"
     },
-    "MeowStartEarlyEnable": {
-      "name": "启用月末行动力自动清理",
-      "help": "根据历史短猫耗时和当前行动力，自动判断是否提前短猫清月末过剩行动力。基准是下月重置时间，不是每日刷新喵。 (´・ω・`)"
+    "Task": {
+      "name": "执行任务喵",
+      "help": "推荐选择智能调度，防溢出任务对此有专门处理喵",
+      "OpsiScheduling": "智能调度（推荐）",
+      "OpsiHazard1Leveling": "侵蚀1练级",
+      "OpsiMeowfficerFarming": "短猫相接"
     },
-    "VirtualAssetPreserve": {
-      "name": "侵蚀1练级 保留 X 点虚拟资产",
-      "help": "虚拟资产低于 X 时运行黄币补充任务，虚拟资产 = 体力 × 1700/30 + 黄币 + × 1700/30 (´・ω・`)"
+    "ActionPointUpperbound": {
+      "name": "当前行动力上限",
+      "help": "当前行动力达到此值时开始执行大世界任务喵"
+    },
+    "ActionPointLowerbound": {
+      "name": "当前行动力下限",
+      "help": "防溢出任务会持续运行，直到当前行动力低于此值喵"
     }
   },
   "IslandPlan": {
@@ -5876,6 +5931,12 @@
       "NotRunning": "未运行，服务器连接断开或离线喵",
       "NotEnable": "未启用，在 deploy.yaml 设置 webui 密码并启用远程控制喵",
       "EntryPoint": "远程访问 URL:",
+      "StatusDirect": "P2P 直连喵",
+      "StatusTurn": "TURN 中继喵",
+      "StatusSsh": "SSH 转发喵",
+      "StatusSignaling": "等待 P2P 连接喵",
+      "StatusStarting": "正在连接喵",
+      "StatusFailed": "连接失败喵",
       "ConfigureHint": "配置教程:",
       "SSHNotInstall": "系统中无 ssh 工具，参考教程下载安装喵"
     },
@@ -5957,12 +6018,26 @@
       "DiscordRichPresenceHelp": "在 Discord 中展示 AzurPilot 运行状态喵。",
       "EnableRemoteAccess": "启用远程访问",
       "EnableRemoteAccessHelp": "通过 SSH 反向隧道暴露 WebUI。公网使用前请务必设置密码喵。",
+      "RemoteAccessMode": "远程访问模式喵",
+      "RemoteAccessModeHelp": "auto 优先 P2P/TURN 并回退 SSH；webrtc 优先 P2P；ssh 仅使用旧 SSH 转发喵。",
       "SSHUser": "SSH 用户",
       "SSHUserHelp": "远程访问服务登录用户名，留空时启动时生成喵。",
       "SSHServer": "SSH 服务器",
       "SSHServerHelp": "远程访问连接的服务器，格式为 host:port 喵。",
       "SSHExecutable": "SSH 可执行文件",
       "SSHExecutableHelp": "ssh.exe 路径，留空或使用 ssh 表示从 PATH 查找喵。",
+      "AllowedRedirectHosts": "允许重定向域名喵",
+      "AllowedRedirectHostsHelp": "SSH 调度重定向的可信目标域名，JSON 数组或逗号分隔。留空时默认允许 SSHServer 同域和上级域通配符喵。",
+      "MaxRedirects": "最大重定向次数喵",
+      "MaxRedirectsHelp": "单次远程访问启动最多跟随多少次 SSH 调度重定向喵。",
+      "SignalingServer": "WebRTC 信令服务器喵",
+      "SignalingServerHelp": "留空时从 SSHServer 自动推导为 wss://host/signal 喵。",
+      "StunServers": "STUN 服务器喵",
+      "StunServersHelp": "JSON 数组或逗号分隔字符串，用于 NAT 打洞喵。",
+      "TurnServers": "TURN 服务器喵",
+      "TurnServersHelp": "JSON 数组或逗号分隔字符串，P2P 失败时作为中继喵。",
+      "TurnCredentialMode": "TURN 凭证模式喵",
+      "TurnCredentialModeHelp": "当前支持 static，ephemeral 为后续短期凭证预留喵。",
       "WebuiHost": "WebUI 监听地址",
       "WebuiHostHelp": "WebUI 监听的主机地址，例如 0.0.0.0、127.0.0.1 或 :: 喵。",
       "WebuiPort": "WebUI 端口",
@@ -6062,13 +6137,6 @@
       "AvgMeowRoundTime": "平均一轮短猫时长喵",
       "MeowLootTitle": "短猫相接收获喵",
       "NoMeowDataNotice": "暂无本地短猫收获数据，完成一次短猫相接后会自动生成喵",
-      "MeowAdvanceAdviceTitle": "短猫提前开始建议喵",
-      "CurrentAP": "当前AP: {value}",
-      "ApPerRound": "每轮消耗: {value} AP",
-      "AvailableRounds": "可运行轮数: {value}{unit}",
-      "AvgRoundDuration": "平均每轮耗时: {value}{unit}",
-      "CurrentMode": "当前模式: {value}",
-      "RecommendAhead": "建议提前: {value}{unit}",
       "RoundUnit": "轮",
       "SecondUnit": "秒",
       "HourUnit": "小时",
@@ -6091,9 +6159,6 @@
       "TargetExpRequired": "目标等级所需经验喵",
       "BattlesCompleted": "已战斗场次喵",
       "ExpRemaining": "还需经验喵",
-      "StartCleanupTime": "建议开始清理时间: {value}喵",
-      "NextOsReset": "下次大世界重置: {value}喵",
-      "MeowAutoCleanupStatus": "自动提前清理: {value}喵",
       "CommissionIncomeTitle": "委托收益统计喵",
       "CommissionIncomeMonth": "本月喵",
       "CommissionIncomeWeek": "本周喵",
@@ -6122,14 +6187,12 @@
       "UseSmartSchedulingOperationCoinsPreserve": "获取X个凭证喵",
       "OperationCoinsPreserve": "侵蚀1保留凭证喵",
       "ActionPointPreserve": "短猫保留行动力喵",
-      "ActionPointEarlyTriggerEnable": "行动力提前调度喵",
-      "ActionPointEarlyTriggerThreshold": "提前调度行动力阈值喵",
       "OperationCoinsReturnThreshold": "补充凭证至X喵",
       "EnableMeowfficerFarming": "短猫开关喵",
       "EnableObscure": "隐秘开关喵",
       "EnableAbyssal": "深渊开关喵",
       "EnableStronghold": "要塞开关喵",
-      "MeowStartEarlyMode": "清理模式喵"
+      "TaskPriority": "任务优先级喵~"
     },
     "Misc": {
       "Enabled": "开启喵",
