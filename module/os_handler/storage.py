@@ -11,6 +11,7 @@ from module.os.globe_zone import ZoneManager
 from module.os_handler.assets import *
 from module.storage.assets import BOX_USE
 from module.ui.scroll import Scroll
+import cv2
 
 
 class RepairResult(Enum):
@@ -371,10 +372,14 @@ class StorageHandler(GlobeOperation, ZoneManager):
         logger.hr(f'Storage checkout item {item}')
         if SCROLL_STORAGE.appear(main=self):
             if item == 'REPAIR_PACK':
-                # repair packs always at the bottom page
+            # repair packs always at the bottom page
                 SCROLL_STORAGE.set_bottom(main=self, skip_first_screenshot=skip_first_screenshot)
-            else:
+            elif item == 'OBSCURE':
                 SCROLL_STORAGE.set_top(main=self, skip_first_screenshot=skip_first_screenshot)
+            elif item == 'ABYSSAL':
+                # Abyssal coordinates may be below obscure coordinates
+                # Keep current scroll position
+                pass
 
         confirm_timer = Timer(0.6, count=2).start()
         for _ in self.loop():
