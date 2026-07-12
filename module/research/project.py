@@ -107,7 +107,7 @@ def _get_research_series(img):
 
 def get_research_series(image, series_button=RESEARCH_SERIES):
     """
-    Args:
+        Args:
         image (np.ndarray):
         series_button:
 
@@ -192,7 +192,6 @@ def match_template(image, template, area, offset=30, similarity=0.85):
     Returns:
         similarity (float):
     """
-    similarity = lower_template_match_similarity(similarity)
     if isinstance(offset, tuple):
         offset = np.array((-offset[0], -offset[1], offset[0], offset[1]))
     else:
@@ -346,7 +345,7 @@ def get_research_ship_jp(image):
                              template=load_image(template),
                              area=DETAIL_BLUEPRINT.area,
                              offset=(10, 10),
-                             similarity=0.75)
+                             similarity=0.9)
         if sim > similarity:
             similarity = sim
             ship = name
@@ -360,7 +359,7 @@ def research_jp_detect(image):
     Args:
         image (np.ndarray): 截图
 
-    Returns:
+    Return:
         project (ResearchProjectJp):
     """
     project = ResearchProjectJp()
@@ -387,7 +386,7 @@ def research_detect(image):
     Args:
         image (np.ndarray): 截图
 
-    Returns:
+    Return:
         list[ResearchProject]:
     """
     projects = []
@@ -422,19 +421,7 @@ class ResearchProject:
         '|goudenleeuw|mecklenburg'
         '|valparaiso|maximmelmann'
     )
-    SHIP_ALIAS = {
-        '蓝图：瓦尔帕莱索': 'valparaiso',
-        'blueprint-valparaíso': 'valparaiso',
-        '蓝图：{namecode:565}': 'maximmelmann',
-        '蓝图：马克斯·殷麦曼': 'maximmelmann',
-        '蓝图：玛克西米莉安·伊梅拉': 'maximmelmann',
-        '蓝图：邓肯': 'duncan',
-        '蓝图：{namecode:313}': 'takahashi',
-        '蓝图：高梁': 'takahashi',
-        '蓝图：狒': 'takahashi',
-        '蓝图：暴风雨': 'orage',
-    }
-    # 使用以下代码生成：
+    # Generate with:
     """
     out = []
     for row in LIST_RESEARCH_PROJECT:
@@ -451,13 +438,13 @@ class ResearchProject:
         '377', '395', '708', '763', '775', '782', '768', '308', '363', '375', '382', '368', '719', '778', '786', '788',
         '793', '319', '378', '386', '388', '393', '783', '713', '739', '771', '796', '383', '313', '339', '371', '396',
         '703', '758', '766', '790', '797', '303', '358', '366', '390', '397', '780', '736', '787', '711', '764', '380',
-        '336', '387', '311', '364', '418', '431', '444', '459', '474', '492', '018', '031', '044', '059', '074', '092',
-        '405', '412', '446', '457', '479', '494', '005', '012', '046', '057', '079', '094', '421', '422', '472', '477',
-        '495', '021', '022', '072', '077', '095', '408', '463', '475', '482', '468', '008', '063', '075', '082', '068',
-        '419', '478', '486', '488', '493', '019', '078', '086', '088', '093', '483', '413', '439', '471', '496', '083',
-        '013', '039', '071', '096', '403', '458', '466', '490', '497', '003', '058', '066', '090', '097', '480', '436',
-        '487', '411', '464', '080', '036', '087', '011', '064', '737', '781', '732', '740', '747', '337', '381', '332',
-        '340', '347', '437', '481', '432', '440', '447', '037', '081', '032', '040', '047']
+        '336', '387', '311', '364', '737', '781', '732', '740', '747', '337', '381', '332', '340', '347', '418', '431',
+        '444', '459', '474', '492', '018', '031', '044', '059', '074', '092', '405', '412', '446', '457', '479', '494',
+        '005', '012', '046', '057', '079', '094', '421', '422', '472', '477', '495', '021', '022', '072', '077', '095',
+        '408', '463', '475', '482', '468', '008', '063', '075', '082', '068', '419', '478', '486', '488', '493', '019',
+        '078', '086', '088', '093', '483', '413', '439', '471', '496', '083', '013', '039', '071', '096', '403', '458',
+        '466', '490', '497', '003', '058', '066', '090', '097', '480', '436', '487', '411', '464', '080', '036', '087',
+        '011', '064', '437', '481', '432', '440', '447', '037', '081', '032', '040', '047']
 
     def __init__(self, name, series):
         """
@@ -504,7 +491,7 @@ class ResearchProject:
                 if result:
                     self.__setattr__(f'need_{result.group(1)}', True)
             for item in data['output']:
-                item_name = self.ship_alias(item['name'].replace(' ', '').lower())
+                item_name = item['name'].replace(' ', '').lower()
                 result = re.search(ResearchProject.REGEX_SHIP, item_name)
                 if not self.ship:
                     self.ship = result.group(1) if result else ''
@@ -524,13 +511,6 @@ class ResearchProject:
 
     def __eq__(self, other):
         return str(self) == str(other)
-
-    @classmethod
-    def ship_alias(cls, item_name):
-        for alias, ship in cls.SHIP_ALIAS.items():
-            if alias in item_name:
-                return ship
-        return item_name
 
     def check_name(self, name):
         """
