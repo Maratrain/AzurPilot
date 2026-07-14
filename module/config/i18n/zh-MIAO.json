@@ -1376,6 +1376,10 @@
       "fleet1_boss_fleet2_mob": "一队boss 二队道中喵",
       "fleet1_all_fleet2_standby": "一队全清 二队待机喵",
       "fleet1_standby_fleet2_all": "一队待机 二队全清喵"
+    },
+    "SkipPreparation": {
+      "name": "Fleet.SkipPreparation.name",
+      "help": "Fleet.SkipPreparation.help"
     }
   },
   "Submarine": {

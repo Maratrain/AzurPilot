@@ -1376,6 +1376,10 @@
       "fleet1_boss_fleet2_mob": "一队boss二队道中",
       "fleet1_all_fleet2_standby": "一队全清二队待机",
       "fleet1_standby_fleet2_all": "一队待机二队全清"
+    },
+    "SkipPreparation": {
+      "name": "跳过编队检测",
+      "help": "开启后将跳过编队界面的舰队选择步骤，直接使用游戏内当前预选的舰队出击\n适用于舰队槽位未完全解锁的账号，避免下拉菜单检测卡死\n开启前请确保游戏内已手动选好舰队1和舰队2"
     }
   },
   "Submarine": {

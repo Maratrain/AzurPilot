@@ -1376,6 +1376,10 @@
       "fleet1_boss_fleet2_mob": "Fleet 1 Boss, Fleet 2 Mob",
       "fleet1_all_fleet2_standby": "Fleet 1 Clears All, Fleet 2 Standby",
       "fleet1_standby_fleet2_all": "Fleet 1 Standby, Fleet 2 Clears All"
+    },
+    "SkipPreparation": {
+      "name": "Skip Fleet Preparation",
+      "help": "Skip the fleet selection step in the fleet preparation screen and use the game's current pre-selected fleet.\nUseful for accounts that have not unlocked all fleet slots, avoiding dropdown menu detection freeze.\nMake sure you have manually selected Fleet 1 and Fleet 2 in-game before enabling."
     }
   },
   "Submarine": {
