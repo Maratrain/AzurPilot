@@ -10289,6 +10289,14 @@
         "type": "checkbox",
         "value": true
       },
+      "AllowGenreT": {
+        "type": "checkbox",
+        "value": false
+      },
+      "RemainingCommissions": {
+        "type": "input",
+        "value": -1
+      },
       "PresetFilter": {
         "type": "select",
         "value": "series_9_blueprint_ta152",
