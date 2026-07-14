@@ -178,6 +178,10 @@
       "name": "认知觉醒喵",
       "help": "觉醒舰娘潜力，消耗心智单元，突破极限喵！( •̀ ω •́ )✧"
     },
+    "Secretary": {
+      "name": "秘书舰轮值喵",
+      "help": "自动检测秘书舰好感度，达到90后自动换人，让舰娘们都能陪伴指挥官喵！( •̀ᴗ-)✧"
+    },
     "Daily": {
       "name": "每日任务清剿喵",
       "help": "每日挑战、商船护送等，完成有丰厚奖励喵！(＾▽＾)"
@@ -2210,6 +2214,24 @@
     "CollectWeeklyMission": {
       "name": "领取周任务奖励喵",
       "help": ""
+    }
+  },
+  "Secretary": {
+    "_info": {
+      "name": "秘书舰设置喵",
+      "help": "设置秘书舰自动轮换和通知，让舰娘们轮流陪伴指挥官喵！(◕ᴗ◕✿)"
+    },
+    "CustomFilter": {
+      "name": "Secretary.CustomFilter.name",
+      "help": "Secretary.CustomFilter.help"
+    },
+    "LowEmotionPriority": {
+      "name": "Secretary.LowEmotionPriority.name",
+      "help": "Secretary.LowEmotionPriority.help"
+    },
+    "OnePushConfig": {
+      "name": "秘书舰推送通知喵",
+      "help": "秘书舰轮换完成后发送通知喵，不填写的话就使用全局推送配置喵~ (≧▽≦)"
     }
   },
   "Awaken": {

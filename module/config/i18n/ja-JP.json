@@ -178,6 +178,10 @@
       "name": "認知覚醒",
       "help": ""
     },
+    "Secretary": {
+      "name": "秘書艦",
+      "help": "秘書艦の好感度を自動で監視し、好感度が 90 に達すると自動で変更します"
+    },
     "Daily": {
       "name": "デイリー任務",
       "help": ""
@@ -2210,6 +2214,24 @@
     "CollectWeeklyMission": {
       "name": "週間任務報酬を受け取る",
       "help": ""
+    }
+  },
+  "Secretary": {
+    "_info": {
+      "name": "秘書艦設定",
+      "help": "秘書艦の自動変更および通知設定を行います"
+    },
+    "CustomFilter": {
+      "name": "Secretary.CustomFilter.name",
+      "help": "Secretary.CustomFilter.help"
+    },
+    "LowEmotionPriority": {
+      "name": "Secretary.LowEmotionPriority.name",
+      "help": "Secretary.LowEmotionPriority.help"
+    },
+    "OnePushConfig": {
+      "name": "OnePush 設定",
+      "help": "秘書艦変更通知用の設定です。空欄の場合はグローバル設定を使用します"
     }
   },
   "Awaken": {

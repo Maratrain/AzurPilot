@@ -178,6 +178,10 @@
       "name": "认知觉醒",
       "help": ""
     },
+    "Secretary": {
+      "name": "秘书舰",
+      "help": "自动检测秘书舰好感度，达到设定值后自动更换秘书舰"
+    },
     "Daily": {
       "name": "每日任务",
       "help": ""
@@ -2210,6 +2214,24 @@
     "CollectWeeklyMission": {
       "name": "领取周任务奖励",
       "help": ""
+    }
+  },
+  "Secretary": {
+    "_info": {
+      "name": "秘书舰设置",
+      "help": "配置秘书舰自动更换及推送通知"
+    },
+    "CustomFilter": {
+      "name": "Secretary.CustomFilter.name",
+      "help": "Secretary.CustomFilter.help"
+    },
+    "LowEmotionPriority": {
+      "name": "Secretary.LowEmotionPriority.name",
+      "help": "Secretary.LowEmotionPriority.help"
+    },
+    "OnePushConfig": {
+      "name": "OnePush 推送配置",
+      "help": "用于秘书舰更换通知，留空则使用全局配置"
     }
   },
   "Awaken": {

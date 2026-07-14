@@ -412,6 +412,11 @@ class GeneratedConfig:
     Reward_CollectMission = True
     Reward_CollectWeeklyMission = False
 
+    # 配置组 `Secretary`
+    Secretary_CustomFilter = 'ultra > super_rare > elite > rare > common'
+    Secretary_LowEmotionPriority = False
+    Secretary_OnePushConfig = 'provider: null'
+
     # 配置组 `Awaken`
     Awaken_LevelCap = 'level120'  # level120, level125
     Awaken_Favourite = False

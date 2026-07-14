@@ -274,6 +274,16 @@ page_dorm = Page(DORM_CHECK)
 page_dormmenu.link(button=DORMMENU_GOTO_DORM, destination=page_dorm)
 page_dorm.link(button=DORM_GOTO_MAIN, destination=page_main)
 
+# 秘书舰
+
+page_profile = Page(PROFILE_CHECK)
+page_secretary_group = Page(SECRETARY_GROUP_CHECK)
+page_main_white.link(button=MAIN_GOTO_PROFILE, destination=page_profile)
+page_profile.link(button=SECRETARY_BUTTON, destination=page_secretary_group)
+page_secretary_group.link(button=BACK_ARROW, destination=page_profile)
+page_profile.link(button=BACK_ARROW, destination=page_main)
+
+
 # 指挥喵
 page_meowfficer = Page(MEOWFFICER_CHECK)
 page_dormmenu.link(button=DORMMENU_GOTO_MEOWFFICER, destination=page_meowfficer)
