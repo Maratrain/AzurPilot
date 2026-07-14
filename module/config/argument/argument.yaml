@@ -769,6 +769,14 @@ Reward:
   CollectExp: true
   CollectMission: true
   CollectWeeklyMission: false
+Secretary:
+  CustomFilter: |-
+    ultra > super_rare > elite > rare > common
+  LowEmotionPriority: false
+  OnePushConfig:
+    type: textarea
+    mode: yaml
+    value: "provider: null"
 Awaken:
   LevelCap:
     value: level120

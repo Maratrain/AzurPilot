@@ -252,6 +252,9 @@ Reward:
     Awaken:
       - Scheduler
       - Awaken
+    Secretary:
+      - Scheduler
+      - Secretary
 DailyMission:
   menu: collapse
   page: setting

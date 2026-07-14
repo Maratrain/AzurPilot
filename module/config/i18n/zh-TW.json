@@ -178,6 +178,10 @@
       "name": "認知覺醒",
       "help": ""
     },
+    "Secretary": {
+      "name": "秘書艦",
+      "help": "自動檢測秘書艦好感度，達到 90 後自動更換秘書艦"
+    },
     "Daily": {
       "name": "每日任務",
       "help": ""
@@ -2222,6 +2226,24 @@
     "CollectWeeklyMission": {
       "name": "領取周任務獎勵",
       "help": ""
+    }
+  },
+  "Secretary": {
+    "_info": {
+      "name": "秘書艦設定",
+      "help": "設定秘書艦自動更換及推播通知"
+    },
+    "CustomFilter": {
+      "name": "Secretary.CustomFilter.name",
+      "help": "Secretary.CustomFilter.help"
+    },
+    "LowEmotionPriority": {
+      "name": "Secretary.LowEmotionPriority.name",
+      "help": "Secretary.LowEmotionPriority.help"
+    },
+    "OnePushConfig": {
+      "name": "OnePush 推播設定",
+      "help": "用於秘書艦更換通知，留空則使用全域設定"
     }
   },
   "Awaken": {

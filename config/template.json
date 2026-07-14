@@ -2041,6 +2041,26 @@
       "Storage": {}
     }
   },
+  "Secretary": {
+    "Scheduler": {
+      "Enable": false,
+      "PushNotification": false,
+      "NextRun": "2020-01-01 00:00:00",
+      "Command": "Secretary",
+      "SuccessInterval": 0,
+      "FailureInterval": 120,
+      "ServerUpdate": "00:00",
+      "Sensitive": false
+    },
+    "Secretary": {
+      "CustomFilter": "ultra > super_rare > elite > rare > common",
+      "LowEmotionPriority": false,
+      "OnePushConfig": "provider: null"
+    },
+    "Storage": {
+      "Storage": {}
+    }
+  },
   "Daily": {
     "Scheduler": {
       "Enable": false,

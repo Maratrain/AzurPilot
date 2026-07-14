@@ -13,7 +13,8 @@ from module.base.button import ButtonGrid
 from module.base.utils import (color_similar, crop, extract_letters, get_color,
                                image_color_count, limit_in,
                                random_normal_distribution_int,
-                               random_rectangle_point)
+                               random_rectangle_point,
+                               float2str)
 from module.combat.level import LevelOcr
 from module.logger import logger
 from module.ocr.ocr import Digit
@@ -39,6 +40,171 @@ class EmotionDigit(Digit):
             image = image[:, :i]
         image = super().pre_process(image)
         return image
+
+    def pre_process_color(self, image):
+        return cv2.resize(
+            image,
+            None,
+            fx=2,
+            fy=2,
+            interpolation=cv2.INTER_CUBIC
+        )
+
+    def normalize_ocr(self, result):
+        """
+        OCR判断用，不直接int
+        保留信息
+        """
+        if not result:
+            return ''
+        return (
+            result
+            .replace('I', '1')
+            .replace('D', '0')
+            .replace('L', '0')
+            .replace('S', '5')
+            .replace('B', '8')
+            .replace('C', '0')
+        )
+
+    def ocr(self, image, direct_ocr=False):
+        start_time = time.time()
+
+        # ---------- 第一次：原来的 OCR ----------
+        image_list = [
+            self.pre_process(crop(image, area))
+            for area in self.buttons
+        ]
+
+        result1 = self.cnocr.atomic_ocr_for_single_lines(
+            image_list,
+            self.alphabet
+        )
+        result1 = [''.join(r) for r in result1]
+
+
+        # ---------- 第二次：彩色 OCR ----------
+        image_list = [
+            self.pre_process_color(crop(image, area))
+            for area in self.buttons
+        ]
+
+        result2 = self.cnocr.atomic_ocr_for_single_lines(
+            image_list,
+            self.alphabet
+        )
+        result2 = [''.join(r) for r in result2]
+
+
+        result = []
+
+        for r1, r2 in zip(result1, result2):
+
+            logger.info(
+                f'Emotion OCR raw: r1={r1}, r2={r2}'
+            )
+
+
+            n1 = self.normalize_ocr(r1)
+            n2 = self.normalize_ocr(r2)
+
+
+            # ==================================================
+            # 1. 特殊低值丢0修复
+            #
+            # 10 -> 100
+            # 10 -> 400
+            #
+            # 只处理10~19
+            # 防止:
+            # 53 -> 153
+            # 53 -> 753
+            # ==================================================
+
+            if (
+                n1.isdigit()
+                and 10 <= int(n1) < 20
+            ):
+                if (
+                    n2.isdigit()
+                    and (
+                        100 <= int(n2) <= 200
+                        or int(n2) > 200
+                    )
+                ):
+                    result.append('100')
+                    continue
+
+
+
+            # ==================================================
+            # 2. r1 正常数字
+            #
+            # 例如:
+            # 53
+            # 91
+            # 100
+            # 200
+            #
+            # 优先相信原OCR
+            # ==================================================
+
+            if (
+                n1.isdigit()
+                and r1 == n1
+                and 0 <= int(n1) <= 200
+            ):
+                result.append(n1)
+                continue
+
+
+
+            # ==================================================
+            # 3. r1乱码
+            #
+            # 例如:
+            # 1DI
+            # 10L
+            # D0
+            #
+            # 使用彩色OCR
+            # ==================================================
+
+            if (
+                n2.isdigit()
+                and 0 <= int(n2) <= 200
+            ):
+                result.append(n2)
+                continue
+
+
+
+            # ==================================================
+            # 4. fallback
+            # ==================================================
+
+            if n1.isdigit():
+                result.append(n1)
+            elif n2.isdigit():
+                result.append(n2)
+            else:
+                result.append('0')
+
+
+        result = [self.after_process(x) for x in result]
+
+        if len(result) == 1:
+            result = result[0]
+
+        logger.attr(
+            name='%s %ss' % (
+                self.name,
+                float2str(time.time() - start_time)
+            ),
+            text=str(result)
+        )
+
+        return result
 
     def after_process(self, result):
         # 唐斯头发区域的随机 OCR 误识别
@@ -495,25 +661,32 @@ class ShipScanner(Scanner):
         for scanner in self.sub_scanners.values():
             scanner.scan(image, cached=True)
 
-        candidates: List[Ship] = [
-            Ship(
-                level=level,
-                emotion=emotion,
-                rarity=rarity,
-                fleet=fleet,
-                status=status,
-                button=button,
-                hash_=hash_)
-            for level, emotion, rarity, fleet, status, button, hash_ in
-            zip(
-                self.sub_scanners['level'].results,
-                self.sub_scanners['emotion'].results,
-                self.sub_scanners['rarity'].results,
-                self.sub_scanners['fleet'].results,
-                self.sub_scanners['status'].results,
-                self.grids.buttons,
-                self.sub_scanners['hash'].results)
-        ]
+        candidates: List[Ship] = []
+
+        for level, emotion, rarity, fleet, status, button, hash_ in zip(
+            self.sub_scanners['level'].results,
+            self.sub_scanners['emotion'].results,
+            self.sub_scanners['rarity'].results,
+            self.sub_scanners['fleet'].results,
+            self.sub_scanners['status'].results,
+            self.grids.buttons,
+            self.sub_scanners['hash'].results,
+        ):
+            # 空卡片，强制清零好感度
+            if level == 0:
+                emotion = 0
+
+            candidates.append(
+                Ship(
+                    level=level,
+                    emotion=emotion,
+                    rarity=rarity,
+                    fleet=fleet,
+                    status=status,
+                    button=button,
+                    hash_=hash_,
+                )
+            )
 
         for scanner in self.sub_scanners.values():
             scanner.clear()

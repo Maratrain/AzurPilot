@@ -178,6 +178,10 @@
       "name": "Cognitive Awakening",
       "help": ""
     },
+    "Secretary": {
+      "name": "Secretary",
+      "help": "Automatically monitor the secretary ship's affinity and replace it when it reaches 90 affinity"
+    },
     "Daily": {
       "name": "Daily Missions",
       "help": ""
@@ -2222,6 +2226,24 @@
     "CollectWeeklyMission": {
       "name": "Collect weekly mission rewards",
       "help": ""
+    }
+  },
+  "Secretary": {
+    "_info": {
+      "name": "Secretary Settings",
+      "help": "Configure automatic secretary replacement and notification settings"
+    },
+    "CustomFilter": {
+      "name": "Secretary.CustomFilter.name",
+      "help": "Secretary.CustomFilter.help"
+    },
+    "LowEmotionPriority": {
+      "name": "Secretary.LowEmotionPriority.name",
+      "help": "Secretary.LowEmotionPriority.help"
+    },
+    "OnePushConfig": {
+      "name": "OnePush Configuration",
+      "help": "Notification settings for secretary replacement. Leave empty to use the global configuration"
     }
   },
   "Awaken": {
