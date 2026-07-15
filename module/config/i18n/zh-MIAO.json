@@ -2234,12 +2234,12 @@
       "help": "设置秘书舰自动轮换和通知，让舰娘们轮流陪伴指挥官喵！(◕ᴗ◕✿)"
     },
     "CustomFilter": {
-      "name": "Secretary.CustomFilter.name",
-      "help": "Secretary.CustomFilter.help"
+      "name": "稀有度筛选器喵",
+      "help": "稀有度包含海上传奇ultra、超稀有super_rare、精锐elite、稀有rare、普通common喵，默认优先顺序为ultra > super_rare > elite > rare > common"
     },
-    "LowEmotionPriority": {
-      "name": "Secretary.LowEmotionPriority.name",
-      "help": "Secretary.LowEmotionPriority.help"
+    "LowFavorabilityPriority": {
+      "name": "低好感度优先喵",
+      "help": "会按照好感度从低到高的顺序选择秘书舰喵，让更多秘书舰获得培养机会喵"
     },
     "OnePushConfig": {
       "name": "秘书舰推送通知喵",

@@ -2054,7 +2054,7 @@
     },
     "Secretary": {
       "CustomFilter": "ultra > super_rare > elite > rare > common",
-      "LowEmotionPriority": false,
+      "LowFavorabilityPriority": false,
       "OnePushConfig": "provider: null"
     },
     "Storage": {

@@ -2234,12 +2234,12 @@
       "help": "秘書艦の自動変更および通知設定を行います"
     },
     "CustomFilter": {
-      "name": "Secretary.CustomFilter.name",
-      "help": "Secretary.CustomFilter.help"
+      "name": "レアリティフィルター",
+      "help": "レアリティはUR(ultra)、SSR(super_rare)、SR(elite)、R(rare)、N(common)を含みます。デフォルト優先度：ultra > super_rare > elite > rare > common"
     },
-    "LowEmotionPriority": {
-      "name": "Secretary.LowEmotionPriority.name",
-      "help": "Secretary.LowEmotionPriority.help"
+    "LowFavorabilityPriority": {
+      "name": "低好感度優先",
+      "help": "好感度が低い順に秘書艦を選択します"
     },
     "OnePushConfig": {
       "name": "OnePush 設定",

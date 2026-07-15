@@ -1,9 +1,11 @@
 from module.ui.ui import UI
 from module.logger import logger
+from dataclasses import dataclass
+from module.base.filter import Filter
 from module.ui.page import page_profile, page_main
 from module.secretary.scanner import SecretaryScanner
-from module.secretary.dock import SecretaryDockMixin
-from module.retire.scanner import ShipScanner
+from module.secretary.dock import SecretaryDockMixin,DOCK_SORTING
+from module.secretary.ship_scanner import ShipScanner
 from module.notify.notify import handle_notify, notify_webui
 from datetime import timedelta
 from module.base.timer import current_time
@@ -19,7 +21,24 @@ from module.ui_white.assets import (
     SECRETARY_DOCK_CHECK,
 )
 
+@dataclass(frozen=True)
+class SecretaryRarity:
+    rarity: str
+
+RARITIES = [
+    SecretaryRarity("ultra"),
+    SecretaryRarity("super_rare"),
+    SecretaryRarity("elite"),
+    SecretaryRarity("rare"),
+    SecretaryRarity("common"),
+]
+
 class Secretary(SecretaryDockMixin,UI):
+
+    RARITY_FILTER = Filter(
+        regex=r'^(common|rare|elite|super_rare|ultra)$',
+        attr=('rarity',),
+    )   
 
     def run(self):
         self.device.screenshot()
@@ -47,25 +66,25 @@ class Secretary(SecretaryDockMixin,UI):
                 return
 
             # 判断是否需要更换
-            if ship.emotion >= 90:
+            if ship.favorability >= 90:
                 self.notify_before_replace(ship)
 
                 self.open_ship_select()
-
                 if self.choose_secretary():
                     new_ship = self.scan_current_secretary()
                     if new_ship:
                         ship = new_ship
                         self.notify_after_replace(ship)
-
-            # 不管换不换，都计算下次运行时间
-            self.schedule_next_run(ship.emotion)
-
+                    else:
+                        logger.warning(
+                            "New secretary OCR failed, use old secretary data"
+                        )
         finally:
             # 恢复随机秘书组
             if restore_random:
                 self.handle_random_group(True)
-
+        # 计算下次运行时间
+        self.schedule_next_run(ship.favorability)
         self.ui_goto(page_main)
 
     def enter_secretary_group(self):
@@ -108,37 +127,41 @@ class Secretary(SecretaryDockMixin,UI):
         logger.hr("Choose Secretary")
         # 常用
         self.dock_favourite_set(True)
+        ship = None
+
         # 从高到低尝试
         ship = self.search_ship()
+
         if ship is None:
             logger.warning("未找到可用的舰船")
             return False
 
         self.select_ship(ship)
+        # 这里还在选择页面
+        self.restore_sort()
         self.confirm()
+
         logger.info("已成功更换秘书舰")
         return True
 
-    RARITY_PRIORITY = [
-    "ultra",
-    "super_rare",
-    "elite",
-    "rare",
-    "common",
-    ]
     def search_ship(self):
-        for rarity in self.RARITY_PRIORITY:
+        self.RARITY_FILTER.load(self.config.Secretary_CustomFilter)
+        priority = self.RARITY_FILTER.apply(RARITIES)
+
+        for rarity in priority:
             logger.info(f"Searching secretary: {rarity}")
             self.secretary_filter_set(
                 sort="intimacy",
-                rarity=rarity,
+                rarity=rarity.rarity,
                 wait_loading=True,
             )
+            # ★★★★★ 筛选后重新设置排序 ★★★★★
+            self.set_low_favorability_priority()
 
             ship = self.scan_ship()
             if ship is not None:
                 logger.info(
-                    f"Found ship: Lv{ship.level} Emotion={ship.emotion}"
+                    f"Found ship: Lv{ship.level} FAVORABILITY={ship.favorability}"
                 )
                 return ship
 
@@ -147,10 +170,9 @@ class Secretary(SecretaryDockMixin,UI):
 
     def scan_ship(self):
         scanner = ShipScanner(
-            emotion=(0,89),
+            favorability=(0,200),
             rarity=False,
-            fleet=False,
-            status=False,
+            descending=not self.config.Secretary_LowFavorabilityPriority,
         )
         self.device.screenshot()
         ships = scanner.scan(self.device.image)
@@ -159,10 +181,11 @@ class Secretary(SecretaryDockMixin,UI):
             return None
         
         # 过滤：
-        # 低等级 + 0心情 的舰船不作为秘书舰
+        # 低等级 + 0好感度 的舰船不作为秘书舰
         ships = [
             ship for ship in ships
-            if not (ship.level < 20 and ship.emotion == 0)
+            if not (ship.level < 20 and ship.favorability == 0)
+            if ship.favorability < 90
         ]
 
         if not ships:
@@ -170,7 +193,7 @@ class Secretary(SecretaryDockMixin,UI):
 
         return ships[0]
     def select_ship(self, ship):
-        logger.info(f"Select secretary: Lv{ship.level} Emotion={ship.emotion}")
+        logger.info(f"Select secretary: Lv{ship.level} FAVORABILITY={ship.favorability}")
         self.device.click(ship.button)
 
     def confirm(self):
@@ -186,17 +209,17 @@ class Secretary(SecretaryDockMixin,UI):
             ):
                 continue
 
-    def schedule_next_run(self, emotion):
+    def schedule_next_run(self, favorability):
         """
         根据秘书舰好感计算下一次运行时间。
         好感每 6 小时增加 1 点，90 时执行更换。
         """
-        hours = max(0, 90 - min(emotion, 90)) * 6
+        hours = max(0, 90 - min(favorability, 90)) * 6
 
         next_run = current_time() + timedelta(hours=hours)
 
         logger.info(
-            f"Secretary emotion={emotion}, "
+            f"Secretary favorability={favorability}, "
             f"next run: {next_run:%Y-%m-%d %H:%M:%S}"
         )
 
@@ -223,7 +246,7 @@ class Secretary(SecretaryDockMixin,UI):
         logger.info(
             f"Secretary: {secretary.name} "
             f"Lv{secretary.level} "
-            f"Emotion={secretary.emotion}"
+            f"FAVORABILITY={secretary.favorability}"
         )
 
         return secretary
@@ -247,19 +270,19 @@ class Secretary(SecretaryDockMixin,UI):
         self.notify(
             title=f"AzurPilot <{self.config.config_name}> 秘书舰更换",
             content=(
-                f"当前秘书舰好感度已达到 {ship.emotion}。\n"
+                f"当前秘书舰好感度已达到 {ship.favorability}。\n"
                 f"准备更换秘书舰。"
             ),
         )
 
     def notify_after_replace(self, ship):
-        hours = max(0, 90 - ship.emotion) * 6
+        hours = max(0, 90 - ship.favorability) * 6
 
         self.notify(
             title=f"AzurPilot <{self.config.config_name}> 秘书舰更换完成",
             content=(
                 f"秘书舰更换成功！\n"
-                f"当前好感度：{ship.emotion}\n"
+                f"当前好感度：{ship.favorability}\n"
                 f"预计 {hours} 小时后再次检查。"
             ),
         )   
@@ -294,30 +317,22 @@ class Secretary(SecretaryDockMixin,UI):
         self.device.screenshot()
         return self.appear(SECRETARY_RANDOM_ON)
 
-    def ensure_low_emotion_priority(self):
+    def set_low_favorability_priority(self):
+        if self.config.Secretary_LowFavorabilityPriority:
+            logger.info("Sort by low favorability")
+            self.dock_sort_method_dsc_set(False)
+
+    def restore_sort(self):
+        if self.config.Secretary_LowFavorabilityPriority:
+            logger.info("Restore default sort")
+            self.dock_sort_method_dsc_set(True)
+
+    def dock_sort_method_dsc_set(self, enable=True, wait_loading=True):
         """
-        确保当前为好感度倒序（低好感优先）。
+        Args:
+            enable: True to set descending sorting
+            wait_loading: Default to True, use False on continuous operation
         """
-
-        if not self.config.SecretaryLowEmotionPriority:
-            return
-
-        # 当前是顺序（↓），点击一次切换为倒序（↑）
-        if self.appear(INTIMACY_DESC_OFF, offset=(10, 10)):
-            logger.info("Switch to low emotion priority")
-            self.device.click(INTIMACY_DESC_OFF)
-            self.handle_dock_cards_loading()
-
-    def ensure_normal_emotion_priority(self):
-        """
-        确保当前为默认排序（高好感优先）。
-        """
-
-        if self.config.SecretaryLowEmotionPriority:
-            return
-
-        # 当前是倒序（↑），点击一次恢复顺序（↓）
-        if self.appear(INTIMACY_DESC_ON, offset=(10, 10)):
-            logger.info("Restore normal emotion priority")
-            self.device.click(INTIMACY_DESC_ON)
-            self.handle_dock_cards_loading()
+        if DOCK_SORTING.set('Descending' if enable else 'Ascending', main=self):
+            if wait_loading:
+                self.handle_dock_cards_loading()

@@ -1,7 +1,7 @@
 import os
 import time
 from abc import ABCMeta, abstractmethod
-from collections import deque
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Tuple, Union
 
@@ -13,122 +13,12 @@ from module.base.button import ButtonGrid
 from module.base.utils import (color_similar, crop, extract_letters, get_color,
                                image_color_count, limit_in,
                                random_normal_distribution_int,
-                               random_rectangle_point)
+                               random_rectangle_point,
+                               float2str)
 from module.combat.level import LevelOcr
 from module.logger import logger
 from module.ocr.ocr import Digit
-from module.retire.assets import (DOCK_CHECK, SHIP_DETAIL_CHECK,
-                                  TEMPLATE_FLEET_1, TEMPLATE_FLEET_2,
-                                  TEMPLATE_FLEET_3, TEMPLATE_FLEET_4,
-                                  TEMPLATE_FLEET_5, TEMPLATE_FLEET_6,
-                                  TEMPLATE_IN_BATTLE, TEMPLATE_IN_COMMISSION, TEMPLATE_IN_HARD,
-                                  TEMPLATE_IN_EVENT_FLEET)
-from module.retire.dock import (CARD_EMOTION_GRIDS, CARD_EMOTION_STATUS_GRIDS, CARD_GRIDS,
-                                CARD_LEVEL_GRIDS, CARD_RARITY_GRIDS, DOCK_SCROLL,
-                                EMOTION_RED, EMOTION_YELLOW, EMOTION_GREEN)
-
-
-class EmotionDigit(Digit):
-    def pre_process(self, image):
-        if server.server == 'jp':
-            image_gray = extract_letters(image, letter=(255, 255, 255), threshold=self.threshold)
-            right_side = np.nonzero(image_gray[0:16, :].max(axis=0) > 192)[-1]
-            for i, col in enumerate(right_side):
-                if i < col:
-                    break
-            image = image[:, :i]
-        image = super().pre_process(image)
-        return image
-
-    def after_process(self, result):
-        # 唐斯头发区域的随机 OCR 误识别
-        # DOCK_EMOTION_OCR 识别结果 "044" 修正为 "44"
-        if result == '044' or result == 'D44':
-            result = '0'
-
-        result = super().after_process(result)
-        if result > 150 and result % 10 in [1, 4]:
-            result //= 10
-
-        return result
-
-
-@dataclass(frozen=True)
-class Ship:
-    rarity: str = ''
-    level: int = 0
-    emotion: int = 0
-    fleet: int = 0
-    status: str = ''
-    button: Any = None
-    hash_: str = field(default='', repr=False)
-
-    def satisfy_limitation(self, limitation) -> bool:
-        """检查舰船是否满足筛选条件。
-
-        遍历舰船的所有属性，与 limitation 中的限制逐一比对。
-        str/int 类型要求精确匹配，tuple 表示范围，list 表示枚举。
-
-        Args:
-            limitation: 筛选条件字典，key 为属性名，value 为限制值。
-
-        Returns:
-            bool: 是否满足所有限制条件。
-        """
-        for key in self.__dict__:
-            value = limitation.get(key)
-            if self.__dict__[key] is not None and value is not None:
-                # str 和 int 要求精确匹配
-                if isinstance(value, (str, int)):
-                    if value == 'any':
-                        continue
-                    if self.__dict__[key] != value:
-                        return False
-                # tuple 表示范围限制
-                elif isinstance(value, tuple):
-                    if not (value[0] <= self.__dict__[key] <= value[1]):
-                        return False
-                # list 表示枚举限制
-                elif isinstance(value, list):
-                    if self.__dict__[key] not in value:
-                        return False
-
-        return True
-
-
-class DHash:
-    EQ_THRES: int = 30
-
-    def __init__(self, image, size=8) -> None:
-        self.code = DHash.gen_hash(image, size)
-
-    @staticmethod
-    def gen_hash(image, size=8) -> str:
-        if len(image.shape) > 2:
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        image = cv2.resize(image, (size + 1, size + 1))
-        row_diff = np.packbits(image[:-1, :-1] > image[1:, :-1])
-        col_diff = np.packbits(image[:-1, :-1] > image[:-1, 1:])
-        row_hash: str = ''.join([f'{i:>02x}' for i in row_diff])
-        col_hash: str = ''.join([f'{i:>02x}' for i in col_diff])
-
-        return f'{row_hash}{col_hash}'
-
-    @staticmethod
-    def distance(__x, __y) -> int:
-        if isinstance(__x, DHash) and isinstance(__y, DHash):
-            __x, __y = int(__x.code, 16), int(__y.code, 16)
-        elif isinstance(__x, str) and isinstance(__y, str):
-            __x, __y = int(__x, 16), int(__y, 16)
-
-        return bin(__x ^ __y).count('1')
-
-    def __eq__(self, __o: object) -> bool:
-        return type(self) == type(__o) and DHash.distance(self, __o) < DHash.EQ_THRES
-
-    def __repr__(self) -> str:
-        return self.code
-
+from module.secretary.dock import (CARD_GRIDS,CARD_LEVEL_GRIDS, CARD_RARITY_GRIDS, CARD_FAVORABILITY_GRIDS)
 
 class Scanner(metaclass=ABCMeta):
     _results: List = None
@@ -187,112 +77,12 @@ class Scanner(metaclass=ABCMeta):
     def disable(self) -> None:
         self._enabled = False
 
-
-class LevelScanner(Scanner):
-    def __init__(self) -> None:
-        super().__init__()
-        self._results = []
-        self.grids = CARD_LEVEL_GRIDS
-        self.ocr_model = LevelOcr(self.grids.buttons,
-                                  name='DOCK_LEVEL_OCR', threshold=64)
-
-    def _scan(self, image) -> List:
-        return self.ocr_model.ocr(image)
-
-    def limit_value(self, value) -> int:
-        return limit_in(value, 1, 125)
-    
-    def move(self, vector) -> None:
-        super().move(vector)
-        self.ocr_model.buttons = [button.area for button in self.grids.buttons]
-
-
-class EmotionScanner(Scanner):
-    def __init__(self) -> None:
-        super().__init__()
-        self._results = []
-        self.grids = CARD_EMOTION_GRIDS
-        if server.server != 'jp':
-            self.ocr_model = EmotionDigit(self.grids.buttons,
-                                      name='DOCK_EMOTION_OCR', threshold=176)
-        else:
-            self.ocr_model = EmotionDigit(self.grids.buttons,
-                                      name='DOCK_EMOTION_OCR', 
-                                      letter=(201, 201, 201), 
-                                      threshold=176)
-
-    def _scan(self, image) -> List:
-        results = []
-        for emotion, emotion_status in zip(
-                self.ocr_model.ocr(image),
-                EmotionStatusScanner().scan(image)):
-            if emotion_status == 'red':
-                emotion = 0
-            elif emotion_status == 'yellow':
-                if emotion > 30:
-                    emotion //= 10
-            elif emotion_status == 'green':
-                if emotion > 40:
-                    emotion //= 10
-            results.append(emotion)
-        logger.attr('DOCK_EMOTION_OCR', results)
-        return results
-
-    def limit_value(self, value) -> int:
-        return limit_in(value, 0, 150)
-
-    def move(self, vector) -> None:
-        super().move(vector)
-        self.ocr_model.buttons = [button.area for button in self.grids.buttons]
-
-
-class EmotionStatusScanner(Scanner):
-    def __init__(self) -> None:
-        super().__init__()
-        self._results = []
-        self.grids = CARD_EMOTION_STATUS_GRIDS
-        self.value_list: List[str] = ['red', 'yellow', 'green', 'unknown']
-
-    def get_emotion_status(self, image) -> str:
-        """获取舰船卡片右上角的情绪状态指示灯颜色。
-
-        通过统计图像中特定颜色的像素数量来判断情绪状态：
-            'yellow': 1 <= emotion <= 30
-            'green': 31 <= emotion <= 40
-            'red': emotion = 0
-            'unknown': emotion > 40
-
-        Args:
-            image: 裁剪后的情绪状态指示灯区域图像。
-
-        Returns:
-            str: 情绪状态，取值为 'yellow'、'green'、'red' 或 'unknown'。
-        """
-        if image_color_count(image, color=EMOTION_YELLOW, count=300):
-            return 'yellow'
-        elif image_color_count(image, color=EMOTION_GREEN, count=300):
-            return 'green'
-        elif image_color_count(image, color=EMOTION_RED, count=300):
-            return 'red'
-        else:
-            return 'unknown'
-
-    def _scan(self, image) -> List:
-        results = [self.get_emotion_status(crop(image, button.area, copy=False))
-                   for button in self.grids.buttons]
-        logger.attr('DOCK_EMOTION_STATUS', results)
-        return results
-
-    def limit_value(self, value) -> str:
-        return value if value in self.value_list else 'any'
-
-
 class RarityScanner(Scanner):
     def __init__(self) -> None:
         super().__init__()
         self._results = []
         self.grids = CARD_RARITY_GRIDS
-        self.value_list: List[str] = ['common', 'rare', 'elite', 'super_rare']
+        self.value_list: List[str] = ['common', 'rare', 'elite', 'super_rare','unknown']
 
     def color_to_rarity(self, color: Tuple[int, int, int]) -> str:
         """将卡片颜色转换为舰船稀有度。
@@ -325,96 +115,38 @@ class RarityScanner(Scanner):
     def limit_value(self, value) -> str:
         return value if value in self.value_list else 'any'
 
+class DHash:
+    EQ_THRES: int = 30
 
-class FleetScanner(Scanner):
-    def __init__(self) -> None:
-        super().__init__()
-        self._results = []
-        self.grids = CARD_GRIDS.crop(area=(0, 117, 35, 162), name='FLEET')
-        self.templates = {
-            TEMPLATE_FLEET_1: 1,
-            TEMPLATE_FLEET_2: 2,
-            TEMPLATE_FLEET_3: 3,
-            TEMPLATE_FLEET_4: 4,
-            TEMPLATE_FLEET_5: 5,
-            TEMPLATE_FLEET_6: 6
-        }
+    def __init__(self, image, size=8) -> None:
+        self.code = DHash.gen_hash(image, size)
 
-    def pre_process(self, image):
-        """对舰队编号图像进行预处理，提升模板匹配效果。
+    @staticmethod
+    def gen_hash(image, size=8) -> str:
+        if len(image.shape) > 2:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        image = cv2.resize(image, (size + 1, size + 1))
+        row_diff = np.packbits(image[:-1, :-1] > image[1:, :-1])
+        col_diff = np.packbits(image[:-1, :-1] > image[:-1, 1:])
+        row_hash: str = ''.join([f'{i:>02x}' for i in row_diff])
+        col_hash: str = ''.join([f'{i:>02x}' for i in col_diff])
 
-        将图像转为灰度后二值化，使数字与背景分离更明显。
-        若需更新 TEMPLATE_FLEET 素材，必须先执行此预处理。
-        """
-        _, g, _ = cv2.split(image)
-        _, image = cv2.threshold(g, 205, 255, cv2.THRESH_BINARY)
-        image = cv2.merge([image, image, image])
+        return f'{row_hash}{col_hash}'
 
-        return image
+    @staticmethod
+    def distance(__x, __y) -> int:
+        if isinstance(__x, DHash) and isinstance(__y, DHash):
+            __x, __y = int(__x.code, 16), int(__y.code, 16)
+        elif isinstance(__x, str) and isinstance(__y, str):
+            __x, __y = int(__x, 16), int(__y, 16)
 
-    def _match(self, image) -> int:
-        """通过模板匹配识别舰船所属舰队编号。
+        return bin(__x ^ __y).count('1')
 
-        彩虹稀有度卡片因闪光干扰，识别效果较差。
-        未匹配到任何舰队时返回 0（不在任何编队中）。
-        """
-        for template, fleet in self.templates.items():
-            if template.match(image):
-                return fleet
+    def __eq__(self, __o: object) -> bool:
+        return type(self) == type(__o) and DHash.distance(self, __o) < DHash.EQ_THRES
 
-        if TEMPLATE_FLEET_1.match(image, similarity=0.80):
-            return 1
-        elif TEMPLATE_FLEET_3.match(image, similarity=0.80):
-            return 3
-        elif TEMPLATE_FLEET_4.match(image, similarity=0.80):
-            return 4
-        else:
-            return 0
-
-    def _scan(self, image) -> List:
-        image = self.pre_process(image)
-        image_list = [crop(image, button.area) for button in self.grids.buttons]
-
-        return [self._match(image) for image in image_list]
-
-    def limit_value(self, value) -> int:
-        return limit_in(value, 0, 6)
-
-
-class StatusScanner(Scanner):
-    def __init__(self) -> None:
-        super().__init__()
-        self._results = []
-        self.grids = CARD_GRIDS
-        self.value_list: List[str] = [
-            'free',
-            'battle',
-            'commission',
-            'in_hard_fleet',
-            'in_event_fleet',
-        ]
-        self.templates = {
-            TEMPLATE_IN_BATTLE: 'battle',
-            TEMPLATE_IN_COMMISSION: 'commission',
-            TEMPLATE_IN_HARD: 'in_hard_fleet',
-            TEMPLATE_IN_EVENT_FLEET: 'in_event_fleet',
-        }
-
-    def _match(self, image) -> str:
-        for template, status in self.templates.items():
-            if template.match(image, similarity=0.8):
-                return status
-
-        return 'free'
-
-    def _scan(self, image) -> List:
-        image_list = [crop(image, button.area) for button in self.grids.buttons]
-
-        return [self._match(image) for image in image_list]
-
-    def limit_value(self, value) -> str:
-        return value if value in self.value_list else 'any'
-
+    def __repr__(self) -> str:
+        return self.code
 
 class HashGenerator(Scanner):
     def __init__(self, length=8) -> None:
@@ -430,6 +162,410 @@ class HashGenerator(Scanner):
 
     def limit_value(self, value) -> Any:
         pass
+
+class LevelScanner(Scanner):
+    def __init__(self) -> None:
+        super().__init__()
+        self._results = []
+        self.grids = CARD_LEVEL_GRIDS
+        self.ocr_model = LevelOcr(self.grids.buttons,
+                                  name='DOCK_LEVEL_OCR', threshold=64)
+
+    def _scan(self, image) -> List:
+        return self.ocr_model.ocr(image)
+
+    def limit_value(self, value) -> int:
+        return limit_in(value, 1, 125)
+    
+    def move(self, vector) -> None:
+        super().move(vector)
+        self.ocr_model.buttons = [button.area for button in self.grids.buttons]
+
+class FavorabilityScanner(Scanner):
+    def __init__(self, descending=True):
+        super().__init__()
+        self._results = []
+        self.grids = CARD_FAVORABILITY_GRIDS
+        self.descending = descending
+        if server.server != 'jp':
+            self.ocr_model = FavorabilityDigit(
+                self.grids.buttons,
+                name='SECRETARY_FAVORABILITY_OCR',
+                threshold=64,
+                descending=descending,
+            )
+        else:
+            self.ocr_model = FavorabilityDigit(
+                self.grids.buttons,
+                name='SECRETARY_FAVORABILITY_OCR',
+                letter=(201, 201, 201), 
+                threshold=176,
+                descending=descending,
+            )
+    def _scan(self, image):
+        return self.ocr_model.ocr(image)
+
+    def limit_value(self, value):
+        return limit_in(value, 0, 200)
+
+    def move(self, vector):
+        super().move(vector)
+        self.ocr_model.buttons = [button.area for button in self.grids.buttons]
+
+class FavorabilityDigit(Digit):
+    def __init__(self, *args, descending=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.descending = descending
+
+    def pre_process(self, image):
+        if server.server == 'jp':
+            image_gray = extract_letters(image, letter=(255, 255, 255), threshold=self.threshold)
+            right_side = np.nonzero(image_gray[0:16, :].max(axis=0) > 192)[-1]
+            for i, col in enumerate(right_side):
+                if i < col:
+                    break
+            image = image[:, :i]
+        image = super().pre_process(image)
+        return image
+
+    def pre_process_color(self, image):
+        return cv2.resize(
+            image,
+            None,
+            fx=2,
+            fy=2,
+            interpolation=cv2.INTER_CUBIC
+        )
+
+    def normalize_ocr(self, result):
+        """
+        OCR判断用，不直接int
+        保留信息
+        """
+        if not result:
+            return ''
+        return (
+            result
+            .replace('I', '1')
+            .replace('D', '0')
+            .replace('L', '0')
+            .replace('S', '5')
+            .replace('B', '8')
+            .replace('C', '0')
+        )
+
+    def ocr(self, image, direct_ocr=False):
+        start_time = time.time()
+
+        # ---------- 第一次：原来的 OCR ----------
+        image_list = [
+            self.pre_process(crop(image, area))
+            for area in self.buttons
+        ]
+        result1 = self.cnocr.atomic_ocr_for_single_lines(
+            image_list,
+            self.alphabet
+        )
+        result1 = [''.join(r) for r in result1]
+
+
+        # ---------- 第二次：彩色 OCR ----------
+        image_list = [
+            self.pre_process_color(crop(image, area))
+            for area in self.buttons
+        ]
+        result2 = self.cnocr.atomic_ocr_for_single_lines(
+            image_list,
+            self.alphabet
+        )
+        result2 = [''.join(r) for r in result2]
+
+        ocr_pairs = []
+        result = []
+
+        for r1, r2 in zip(result1, result2):
+
+            n1 = self.normalize_ocr(r1)
+            n2 = self.normalize_ocr(r2)
+
+            ocr_pairs.append((n1, n2))
+
+            logger.info(
+                f'Favorability OCR raw: r1={r1}, r2={r2}'
+            )
+
+            # ==================================================
+            # 1. 特殊低值丢0修复
+            #
+            # 10 -> 100
+            # 10 -> 400
+            #
+            # 只处理10~19
+            # 防止:
+            # 53 -> 153
+            # 53 -> 753
+            # ==================================================
+
+            if (
+                n1.isdigit()
+                and 10 <= int(n1) < 20
+            ):
+                if (
+                    n2.isdigit()
+                    and (
+                        100 <= int(n2) <= 200
+                        or int(n2) > 200
+                    )
+                ):
+                    result.append('100')
+                    continue
+
+
+
+            # ==================================================
+            # 2. r1 正常数字
+            #
+            # 例如:
+            # 53
+            # 91
+            # 100
+            # 200
+            #
+            # 优先相信原OCR
+            # ==================================================
+
+            if (
+                n1.isdigit()
+                and r1 == n1
+                and 0 <= int(n1) <= 200
+            ):
+                result.append(n1)
+                continue
+
+
+
+            # ==================================================
+            # 3. r1乱码
+            #
+            # 例如:
+            # 1DI
+            # 10L
+            # D0
+            #
+            # 使用彩色OCR
+            # ==================================================
+
+            if (
+                n2.isdigit()
+                and 0 <= int(n2) <= 200
+            ):
+                result.append(n2)
+                continue
+
+
+
+            # ==================================================
+            # 4. fallback
+            # ==================================================
+
+            if n1.isdigit():
+                result.append(n1)
+            elif n2.isdigit():
+                result.append(n2)
+            else:
+                result.append('0')
+
+
+        result = [self.after_process(x) for x in result]
+
+        result = self.fix_order(
+            result,
+            ocr_pairs,
+            descending=self.descending,
+        )
+        if len(result) == 1:
+            result = result[0]
+
+        logger.attr(
+            name='%s %ss' % (
+                self.name,
+                float2str(time.time() - start_time)
+            ),
+            text=str(result)
+        )
+
+        return result
+    def after_process(self, result):
+        # 唐斯头发区域的随机 OCR 误识别
+        # DOCK_EMOTION_OCR 识别结果 "044" 修正为 "44"
+        if result == '044' or result == 'D44':
+            result = '0'
+
+        result = super().after_process(result)
+        if result > 200:
+            result //=10
+
+        return result
+
+    def fix_order(self, result, ocr_pairs, descending=True):
+        """
+        根据整页排序关系修正 OCR。
+
+        Args:
+            result: 当前OCR结果(list[int])
+            ocr_pairs: [(r1,r2), ...]
+            descending: True=降序 False=升序
+        """
+        values = result[:]
+
+        if len(values) < 2:
+            return values
+
+        changed = True
+
+        # 最多迭代3轮，直到没有变化
+        for _ in range(3):
+
+            if not changed:
+                break
+            changed = False
+
+            for i in range(len(values)):
+
+                current = values[i]
+
+                r1, r2 = ocr_pairs[i]
+
+                candidates = []
+                # ---------- 特殊规则 ----------
+                if r1.isdigit() and r2.isdigit():
+                    r1v = int(r1)
+                    r2v = int(r2)
+
+                    # r1<100，r2<100：直接采用r2
+                    if r1v < 100 and r2v < 100:
+                        best = r2v
+                        if best != current:
+                            logger.info(
+                                f'Favorability reorder: {current} -> {best} (both <100, use r2)'
+                            )
+                            values[i] = best
+                            changed = True
+                        continue
+
+                    # r1<100，r2>100：去掉百位
+                    if r1v < 100 and r2v > 100:
+                        best = r2v % 100
+                        if best != current:
+                            logger.info(
+                                f'Favorability reorder: {current} -> {best} (r2 remove hundred)'
+                            )
+                            values[i] = best
+                            changed = True
+                        continue
+                for raw in (r1, r2):
+                    if raw.isdigit():
+                        v = int(raw)
+                        if 0 <= v <= 200 and v not in candidates:
+                            candidates.append(v)
+
+                if not candidates:
+                    continue
+
+                best = current
+                best_score = -1
+
+                for candidate in candidates:
+
+                    score = 0
+
+                    # ---------- 前一张 ----------
+                    if i > 0:
+                        prev = values[i - 1]
+
+                        if descending:
+                            if prev >= candidate:
+                                score += 1
+                            else:
+                                score -= 1
+                        else:
+                            if prev <= candidate:
+                                score += 1
+                            else:
+                                score -= 1
+
+                    # ---------- 后一张 ----------
+                    if i < len(values) - 1:
+                        nxt = values[i + 1]
+
+                        if descending:
+                            if candidate >= nxt:
+                                score += 1
+                            else:
+                                score -= 1
+                        else:
+                            if candidate <= nxt:
+                                score += 1
+                            else:
+                                score -= 1
+
+                    # ---------- 与当前值一致奖励 ----------
+                    if candidate == current:
+                        score += 0.1
+
+                    if score > best_score:
+                        best_score = score
+                        best = candidate
+
+                if best != current:
+                    logger.info(
+                        f'Favorability reorder: {current} -> {best}'
+                    )
+                    values[i] = best
+                    changed = True
+
+        return values
+
+@dataclass(frozen=True)
+class SecretaryShip:
+    rarity: str = ''
+    level: int = 0
+    favorability: int = 0
+    button: Any = None
+    hash_: str = field(default='', repr=False)
+
+    def satisfy_limitation(self, limitation) -> bool:
+        """检查舰船是否满足筛选条件。
+
+        遍历舰船的所有属性，与 limitation 中的限制逐一比对。
+        str/int 类型要求精确匹配，tuple 表示范围，list 表示枚举。
+
+        Args:
+            limitation: 筛选条件字典，key 为属性名，value 为限制值。
+
+        Returns:
+            bool: 是否满足所有限制条件。
+        """
+        for key in self.__dict__:
+            value = limitation.get(key)
+            if self.__dict__[key] is not None and value is not None:
+                # str 和 int 要求精确匹配
+                if isinstance(value, (str, int)):
+                    if value == 'any':
+                        continue
+                    if self.__dict__[key] != value:
+                        return False
+                # tuple 表示范围限制
+                elif isinstance(value, tuple):
+                    if not (value[0] <= self.__dict__[key] <= value[1]):
+                        return False
+                # list 表示枚举限制
+                elif isinstance(value, list):
+                    if self.__dict__[key] not in value:
+                        return False
+
+        return True
+
 
 
 class ShipScanner(Scanner):
@@ -461,59 +597,57 @@ class ShipScanner(Scanner):
     """
     def __init__(
         self,
-        rarity: str = 'any',
+        rarity: str = 'any',    
         level: Tuple[int, int] = (1, 125),
-        emotion: Tuple[int, int] = (0, 150),
-        fleet: int = 0,
-        status: str = 'any'
+        favorability: Tuple[int, int] = (0, 200),
+        descending=True,
     ) -> None:
         super().__init__()
         self._results = []
         self.grids = CARD_GRIDS
         self.limitation: Dict[str, Union[str, int, Tuple[int, int]]] = {
             'level': (1, 125),
-            'emotion': (0, 150),
+            'favorability': (0, 200),
             'rarity': 'any',
-            'fleet': 0,
-            'status': 'any',
         }
 
         # 每个舰船属性绑定一个独立的子扫描器
         self.sub_scanners: Dict[str, Scanner] = {
             'level': LevelScanner(),
-            'emotion': EmotionScanner(),
             'rarity': RarityScanner(),
-            'fleet': FleetScanner(),
-            'status': StatusScanner(),
+            'favorability': FavorabilityScanner(descending=descending),
             'hash': HashGenerator(),
         }
 
         self.set_limitation(
-            level=level, emotion=emotion, rarity=rarity, fleet=fleet, status=status)
+            level=level, favorability=favorability, rarity=rarity)
 
     def _scan(self, image) -> List:
         for scanner in self.sub_scanners.values():
             scanner.scan(image, cached=True)
 
-        candidates: List[Ship] = [
-            Ship(
-                level=level,
-                emotion=emotion,
-                rarity=rarity,
-                fleet=fleet,
-                status=status,
-                button=button,
-                hash_=hash_)
-            for level, emotion, rarity, fleet, status, button, hash_ in
-            zip(
-                self.sub_scanners['level'].results,
-                self.sub_scanners['emotion'].results,
-                self.sub_scanners['rarity'].results,
-                self.sub_scanners['fleet'].results,
-                self.sub_scanners['status'].results,
-                self.grids.buttons,
-                self.sub_scanners['hash'].results)
-        ]
+        candidates: List[SecretaryShip] = []
+
+        for level, favorability, rarity, button, hash_ in zip(
+            self.sub_scanners['level'].results,
+            self.sub_scanners['favorability'].results,
+            self.sub_scanners['rarity'].results,
+            self.grids.buttons,
+            self.sub_scanners['hash'].results,
+        ):
+            # 空卡片，强制清零好感度
+            if level == 0:
+                favorability = 0
+
+            candidates.append(
+                SecretaryShip(
+                    level=level,
+                    favorability=favorability,
+                    rarity=rarity,
+                    button=button,
+                    hash_=hash_,
+                )
+            )
 
         for scanner in self.sub_scanners.values():
             scanner.clear()
@@ -548,7 +682,7 @@ class ShipScanner(Scanner):
     def enable(self, *args) -> None:
         """启用指定属性的子扫描器。
 
-        支持的属性：'level'、'emotion'、'rarity'、'fleet'、'status'。
+        支持的属性：'level'、'favorability'、'rarity'。
         """
         for name, scanner in self.sub_scanners.items():
             if name in args:
@@ -569,9 +703,7 @@ class ShipScanner(Scanner):
         Args:
             rarity: 稀有度，取值 'any'、'common'、'rare'、'elite'、'super_rare'。
             level: 等级范围 (下限, 上限)，自动限制在 [1, 125]。
-            emotion: 情绪范围 (下限, 上限)，自动限制在 [0, 150]。
-            fleet: 舰队编号，0 表示不在任何编队，自动限制在 [0, 6]。
-            status: 状态，取值 'free'、'battle'、'commission'、'in_hard_fleet'、'in_event_fleet'。
+            favorability: 好感度范围 (下限, 上限)，自动限制在 [0, 200]。
         """
         for attr in self.limitation.keys():
             value = kwargs.get(attr, self.limitation[attr])
@@ -607,7 +739,7 @@ class DockScanner(ShipScanner):
         self.last_results = []
         self.retry: int = 0
 
-        self.scanner = ShipScanner(emotion=False, fleet=False, status=False)
+        self.scanner = ShipScanner()
 
         # 以下为调试信息相关
         self.save_debug_info = False
@@ -862,6 +994,7 @@ class DockScanner(ShipScanner):
             list[Ship]: 舰船列表。
         """
         pass
+
 
     def scan_whole_dock(self) -> List[Ship]:
         """扫描整个船坞。"""

@@ -415,7 +415,7 @@ class GeneratedConfig:
 
     # 配置组 `Secretary`
     Secretary_CustomFilter = 'ultra > super_rare > elite > rare > common'
-    Secretary_LowEmotionPriority = False
+    Secretary_LowFavorabilityPriority = False
     Secretary_OnePushConfig = 'provider: null'
 
     # 配置组 `Awaken`

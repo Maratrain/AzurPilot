@@ -2234,12 +2234,12 @@
       "help": "設定秘書艦自動更換及推播通知"
     },
     "CustomFilter": {
-      "name": "Secretary.CustomFilter.name",
-      "help": "Secretary.CustomFilter.help"
+      "name": "稀有度篩選器",
+      "help": "稀有度包含海上傳奇ultra、超稀有super_rare、精銳elite、稀有rare、普通common，預設排序為ultra > super_rare > elite > rare > common"
     },
-    "LowEmotionPriority": {
-      "name": "Secretary.LowEmotionPriority.name",
-      "help": "Secretary.LowEmotionPriority.help"
+    "LowFavorabilityPriority": {
+      "name": "低好感度優先",
+      "help": "將按照好感度由低到高的順序選擇"
     },
     "OnePushConfig": {
       "name": "OnePush 推播設定",

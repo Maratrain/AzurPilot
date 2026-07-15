@@ -2234,12 +2234,12 @@
       "help": "Configure automatic secretary replacement and notification settings"
     },
     "CustomFilter": {
-      "name": "Secretary.CustomFilter.name",
-      "help": "Secretary.CustomFilter.help"
+      "name": "Rarity Filter",
+      "help": "Rarities include ultra, super_rare, elite, rare, and common. Default priority: ultra > super_rare > elite > rare > common"
     },
-    "LowEmotionPriority": {
-      "name": "Secretary.LowEmotionPriority.name",
-      "help": "Secretary.LowEmotionPriority.help"
+    "LowFavorabilityPriority": {
+      "name": "Low Favorability Priority",
+      "help": "Ships will be selected in ascending order of favorability"
     },
     "OnePushConfig": {
       "name": "OnePush Configuration",
