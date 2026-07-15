@@ -50,8 +50,12 @@ class MeowfficerTargetZoneMixin:
         raw_value = self.config.OpsiMeowfficerFarming_TargetZone
         if not tokens:
             if require_target:
-                logger.warning('[大世界-短猫相接] 已启用 StayInZone 但未设置 TargetZone，跳过本次任务')
-                self.config.task_delay(server_update=True)
+                message = '已启用 StayInZone 但未设置 TargetZone'
+                logger.warning(f'[大世界-短猫相接] {message}，跳过本次任务')
+                if self.is_running_smart_scheduling_task():
+                    self._handle_coin_task_no_content('短猫相接', message)
+                    return []
+                self.delay_opsi_active_task(server_update=True)
                 self.config.task_stop()
             return []
 
@@ -234,8 +238,10 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
             .sort_by_clock_degree(center=(1252, 1012), start=self.zone.location)
 
         if not zones:
-            logger.warning(f'[大世界-短猫相接] 普通搜索模式：未找到符合条件的海域 (侵蚀等级 {hazard_level})')
-            return
+            message = f'普通搜索模式未找到符合条件的海域 (侵蚀等级 {hazard_level})'
+            logger.warning(f'[大世界-短猫相接] {message}')
+            self._handle_coin_task_no_content('短猫相接', message)
+            return False
 
         logger.hr(f'OS meowfficer farming, zone_id={zones[0].zone_id}', level=1)
 
@@ -310,6 +316,8 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
         self._meow_target_zone_index = getattr(self, '_meow_target_zone_index', 0)
         if self.config.OpsiMeowfficerFarming_StayInZone:
             self._meow_target_zone_list = self._meow_target_zones(require_target=True, allow_multiple=True)
+            if not self._meow_target_zone_list:
+                return None
         elif target_zone_tokens:
             self._meow_traditional_zone = self._meow_target_zones(require_target=False, allow_multiple=False)[0]
 

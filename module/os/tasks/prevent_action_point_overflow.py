@@ -200,6 +200,18 @@ class OpsiPreventActionPointOverflow(OpsiScheduling):
                 self.update_prevent_action_point_overflow_schedule(current_ap=current, enable=True)
                 self.config.task_stop()
             except TaskEnd:
+                delay_request = getattr(self, self.RUNTIME_ATTR_PREVENT_OVERFLOW_DELAY, None)
+                if hasattr(self, self.RUNTIME_ATTR_PREVENT_OVERFLOW_DELAY):
+                    delattr(self, self.RUNTIME_ATTR_PREVENT_OVERFLOW_DELAY)
+                if delay_request is not None:
+                    args, kwargs = delay_request
+                    logger.info('[大世界-防溢出] 应用代理子任务请求的延迟时间')
+                    self.config.task_delay(
+                        *args,
+                        task=self.TASK_NAME_PREVENT_AP_OVERFLOW,
+                        **kwargs,
+                    )
+                    raise
                 try:
                     current_ap = self._get_current_action_point_for_overflow()
                 except Exception:

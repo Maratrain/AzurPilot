@@ -317,6 +317,13 @@ class FleetPreparation(InfoHandler):
         if self.map_fleet_checked:
             return False
 
+        # 跳过编队检测：信任游戏内当前预选的舰队，不操作下拉菜单
+        # 适用于舰队槽位未完全解锁的账号，避免下拉菜单检测卡死
+        if self.config.Fleet_SkipPreparation:
+            logger.info('Skip fleet preparation (Fleet_SkipPreparation=True), '
+                        'use current pre-selected fleet in game')
+            return True
+
         if self.appear(FLEET_1_CLEAR, offset=FleetOperator.OFFSET):
             AUTO_SEARCH_SET_MOB.load_offset(FLEET_1_CLEAR)
             AUTO_SEARCH_SET_BOSS.load_offset(FLEET_1_CLEAR)

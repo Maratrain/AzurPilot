@@ -241,7 +241,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -322,7 +323,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -403,7 +405,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -501,7 +504,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_all_fleet2_standby"
+      "FleetOrder": "fleet1_all_fleet2_standby",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -586,7 +590,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_all_fleet2_standby"
+      "FleetOrder": "fleet1_all_fleet2_standby",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -671,7 +676,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_all_fleet2_standby"
+      "FleetOrder": "fleet1_all_fleet2_standby",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -753,7 +759,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -834,7 +841,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -915,7 +923,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -1058,7 +1067,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -1268,7 +1278,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -1353,7 +1364,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -1438,7 +1450,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -1523,7 +1536,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -1608,7 +1622,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,
@@ -1689,7 +1704,8 @@
       "Fleet2Formation": "double_line",
       "Fleet2Mode": "combat_auto",
       "Fleet2Step": 2,
-      "FleetOrder": "fleet1_mob_fleet2_boss"
+      "FleetOrder": "fleet1_mob_fleet2_boss",
+      "SkipPreparation": false
     },
     "Submarine": {
       "Fleet": 0,

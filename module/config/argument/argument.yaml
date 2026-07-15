@@ -433,6 +433,8 @@ Fleet:
         fleet1_all_fleet2_standby,
         fleet1_standby_fleet2_all,
       ]
+  SkipPreparation:
+    value: false
 Submarine:
   Fleet:
     value: 0
