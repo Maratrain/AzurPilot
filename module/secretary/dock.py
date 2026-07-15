@@ -9,15 +9,12 @@ import module.config.server as server
 
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
-from module.equipment.equipment import Equipment
+from module.base.timer import Timer
 from module.ocr.ocr import DigitCounter
 from module.ui.scroll import Scroll
 from module.ui.switch import Switch
-from module.logger import logger
 
-logger.warning(
-    "######## SECRETARY DOCK LOADED ########"
-)
+
 DOCK_SORTING = Switch('Dork_sorting')
 DOCK_SORTING.add_state('Ascending', check_button=SORT_ASC, click_button=SORTING_CLICK)
 DOCK_SORTING.add_state('Descending', check_button=SORT_DESC, click_button=SORTING_CLICK)
@@ -30,15 +27,11 @@ CARD_GRIDS = ButtonGrid(
     origin=(93, 76), delta=(164 + 2 / 3, 227), button_shape=(138, 204), grid_shape=(7, 2), name='CARD')
 CARD_RARITY_GRIDS = CARD_GRIDS.crop(area=(0, 0, 138, 5), name='RARITY')
 if server.server != 'jp':
-    CARD_LEVEL_GRIDS = CARD_GRIDS.crop(area=(77, 5, 138, 27), name='LEVEL')
-    CARD_EMOTION_GRIDS = CARD_GRIDS.crop(area=(23, 29, 48, 52), name='EMOTION')
+    CARD_LEVEL_GRIDS = CARD_GRIDS.crop(area=(77, 5, 132, 27), name='LEVEL')
+    CARD_FAVORABILITY_GRIDS = CARD_GRIDS.crop(area=(23, 29, 48, 52), name='FAVORABILITY')
 else:
     CARD_LEVEL_GRIDS = CARD_GRIDS.crop(area=(74, 5, 136, 27), name='LEVEL')
-    CARD_EMOTION_GRIDS = CARD_GRIDS.crop(area=(21, 29, 71, 48), name='EMOTION')
-CARD_EMOTION_STATUS_GRIDS = CARD_GRIDS.crop(area=(113, 57, 135, 77), name='EMOTION_STATUS')
-EMOTION_RED = (255, 122, 109)
-EMOTION_YELLOW = (255, 194, 115)
-EMOTION_GREEN = (148, 232, 104)
+    CARD_FAVORABILITY_GRIDS = CARD_GRIDS.crop(area=(21, 29, 71, 48), name='FAVORABILITY')
 
 DOCK_SCROLL_BAR = DOCK_SCROLL
 
@@ -217,3 +210,16 @@ class SecretaryDockMixin:
         self.secretary_filter_enter()
         self.secretary_filter.set(sort=sort, index=index, faction=faction, rarity=rarity, extra=extra)
         self.secretary_filter_confirm(wait_loading=wait_loading)
+
+    def dock_sort_method_dsc_set(self, enable=True, wait_loading=True):
+        if DOCK_SORTING.set(
+            'Descending' if enable else 'Ascending',
+            main=self
+        ):
+            if wait_loading:
+                self.handle_dock_cards_loading()
+
+    def dock_reset(self):
+        self.dock_favourite_set(False, wait_loading=False)
+        self.dock_sort_method_dsc_set(False, wait_loading=False)
+        self.secretary_filter_set()

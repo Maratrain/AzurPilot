@@ -8,7 +8,7 @@ from module.secretary.ocr import SecretaryDigit
 from module.secretary.assets import (
     SECRETARY_NAME,
     SECRETARY_LEVEL,
-    SECRETARY_EMOTION,
+    SECRETARY_FAVORABILITY,
 )
 
 
@@ -16,7 +16,7 @@ from module.secretary.assets import (
 class SecretaryInfo:
     name: str
     level: int
-    emotion: int
+    favorability: int
 
 
 OCR_SECRETARY_NAME = Ocr(
@@ -29,9 +29,9 @@ OCR_SECRETARY_LEVEL = Digit(
     name="SECRETARY_LEVEL",
 )
 
-OCR_SECRETARY_EMOTION = SecretaryDigit(
-    SECRETARY_EMOTION,
-    name="SECRETARY_EMOTION",
+OCR_SECRETARY_FAVORABILITY = SecretaryDigit(
+    SECRETARY_FAVORABILITY,
+    name="SECRETARY_FAVORABILITY",
 )
 
 
@@ -52,7 +52,7 @@ class SecretaryScanner:
         crops = {
             "name": SECRETARY_NAME.area,
             "level": SECRETARY_LEVEL.area,
-            "emotion": SECRETARY_EMOTION.area,
+            "favorability": SECRETARY_FAVORABILITY.area,
         }
 
         for key, area in crops.items():
@@ -65,18 +65,19 @@ class SecretaryScanner:
                 crop
             )
 
-    def scan(self, image):
+    def scan(self, image, debug=False):
 
-        self.save_debug(image)
+        if debug:
+            self.save_debug(image)
 
         name = OCR_SECRETARY_NAME.ocr(image)
 
         level = OCR_SECRETARY_LEVEL.ocr(image)
 
-        emotion = OCR_SECRETARY_EMOTION.ocr(image)
+        favorability = OCR_SECRETARY_FAVORABILITY.ocr(image)
 
         return SecretaryInfo(
             name=name,
             level=level,
-            emotion=emotion,
+            favorability=favorability,
         )

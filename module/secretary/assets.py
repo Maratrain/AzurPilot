@@ -14,7 +14,7 @@ SECRETARY_LEVEL = Button(
     file=None,
 )
 
-SECRETARY_EMOTION = Button(
+SECRETARY_FAVORABILITY = Button(
     area=(200, 493, 236, 511),
     color=(),
     button=(200, 493, 236, 511),

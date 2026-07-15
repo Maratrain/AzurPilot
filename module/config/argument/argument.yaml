@@ -768,7 +768,7 @@ Reward:
 Secretary:
   CustomFilter: |-
     ultra > super_rare > elite > rare > common
-  LowEmotionPriority: false
+  LowFavorabilityPriority: false
   OnePushConfig:
     type: textarea
     mode: yaml

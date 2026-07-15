@@ -2226,12 +2226,12 @@
       "help": "配置秘书舰自动更换及推送通知"
     },
     "CustomFilter": {
-      "name": "Secretary.CustomFilter.name",
-      "help": "Secretary.CustomFilter.help"
+      "name": "稀有度过滤器",
+      "help": "稀有度包括海上传奇ultra、超稀有super_rare、精锐elite、稀有rare、普通common，默认ultra > super_rare > elite > rare > common"
     },
-    "LowEmotionPriority": {
-      "name": "Secretary.LowEmotionPriority.name",
-      "help": "Secretary.LowEmotionPriority.help"
+    "LowFavorabilityPriority": {
+      "name": "低好感度优先",
+      "help": "将按照从低到高的好感度顺序选择"
     },
     "OnePushConfig": {
       "name": "OnePush 推送配置",

@@ -10923,7 +10923,7 @@
         "type": "textarea",
         "value": "ultra > super_rare > elite > rare > common"
       },
-      "LowEmotionPriority": {
+      "LowFavorabilityPriority": {
         "type": "checkbox",
         "value": false
       },
