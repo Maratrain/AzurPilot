@@ -19,6 +19,7 @@ from module.combat.level import LevelOcr
 from module.logger import logger
 from module.ocr.ocr import Digit
 from module.secretary.dock import (CARD_GRIDS,CARD_LEVEL_GRIDS, CARD_RARITY_GRIDS, CARD_FAVORABILITY_GRIDS)
+from module.ui_white.assets import SECRETARY_SELECTED
 
 class Scanner(metaclass=ABCMeta):
     _results: List = None
@@ -453,12 +454,12 @@ class FavorabilityDigit(Digit):
                             changed = True
                         continue
 
-                    # r1<100，r2>100：去掉百位
-                    if r1v < 100 and r2v > 100:
+                    # r1 未识别，r2>100：去掉百位
+                    if (r1 in ("", None) or r1v is None) and r2v is not None and r2v > 100:
                         best = r2v % 100
                         if best != current:
                             logger.info(
-                                f'Favorability reorder: {current} -> {best} (r2 remove hundred)'
+                                f'Favorability reorder: {current} -> {best} (r1 empty, r2 remove hundred)'
                             )
                             values[i] = best
                             changed = True
@@ -526,11 +527,83 @@ class FavorabilityDigit(Digit):
 
         return values
 
+class SelectedDetector:
+
+    def __init__(self):
+        self.grids = CARD_GRIDS
+
+        SECRETARY_SELECTED.ensure_template()
+
+        self.template = SECRETARY_SELECTED.image
+
+        if len(self.template.shape) == 3:
+            self.template = cv2.cvtColor(
+                self.template,
+                cv2.COLOR_BGR2GRAY,
+            )
+
+        _, self.template = cv2.threshold(
+            self.template,
+            0,
+            255,
+            cv2.THRESH_BINARY + cv2.THRESH_OTSU,
+        )
+        base = CARD_GRIDS.buttons[0]
+        self.offset = (
+            125 - base.area[0],
+            165 - base.area[1],
+            201 - base.area[0],
+            191 - base.area[1],
+        )
+
+    def _scan(self, image):
+        result = []
+        for button in self.grids.buttons:
+            area = (
+                button.area[0] + self.offset[0],
+                button.area[1] + self.offset[1],
+                button.area[0] + self.offset[2],
+                button.area[1] + self.offset[3],
+            )
+
+            img = crop(image, area)
+
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            _, binary = cv2.threshold(
+                gray,
+                0,
+                255,
+                cv2.THRESH_BINARY + cv2.THRESH_OTSU,
+            )
+
+            res = cv2.matchTemplate(
+                binary,
+                self.template,
+                cv2.TM_SQDIFF_NORMED,
+            )
+            _, sim, _, _ = cv2.minMaxLoc(res)
+            SELECTED_THRESHOLD = 0.4
+            selected = sim < SELECTED_THRESHOLD
+            logger.info(
+                f"{button.name} "
+                f"selected={selected} "
+                f"sim={sim:.3f}"
+            )
+
+            result.append(selected)
+            cv2.imwrite(f"log/{button.name}.png", binary)
+            cv2.imwrite("log/template.png", self.template)
+        return result
+    def scan(self, image):
+        return self._scan(image)
+
 @dataclass(frozen=True)
 class SecretaryShip:
     rarity: str = ''
     level: int = 0
     favorability: int = 0
+    selected: bool = False
     button: Any = None
     hash_: str = field(default='', repr=False)
 
@@ -610,7 +683,6 @@ class ShipScanner(Scanner):
             'favorability': (0, 200),
             'rarity': 'any',
         }
-
         # 每个舰船属性绑定一个独立的子扫描器
         self.sub_scanners: Dict[str, Scanner] = {
             'level': LevelScanner(),
@@ -618,6 +690,7 @@ class ShipScanner(Scanner):
             'favorability': FavorabilityScanner(descending=descending),
             'hash': HashGenerator(),
         }
+        self.selected_detector = SelectedDetector()
 
         self.set_limitation(
             level=level, favorability=favorability, rarity=rarity)
@@ -627,23 +700,24 @@ class ShipScanner(Scanner):
             scanner.scan(image, cached=True)
 
         candidates: List[SecretaryShip] = []
-
-        for level, favorability, rarity, button, hash_ in zip(
+        selected_list = self.selected_detector.scan(image)
+        for level, favorability, rarity, selected, button, hash_ in zip(
             self.sub_scanners['level'].results,
             self.sub_scanners['favorability'].results,
             self.sub_scanners['rarity'].results,
+            selected_list,
             self.grids.buttons,
             self.sub_scanners['hash'].results,
         ):
             # 空卡片，强制清零好感度
             if level == 0:
                 favorability = 0
-
             candidates.append(
                 SecretaryShip(
                     level=level,
                     favorability=favorability,
                     rarity=rarity,
+                    selected=selected,
                     button=button,
                     hash_=hash_,
                 )
