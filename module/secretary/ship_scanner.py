@@ -592,8 +592,7 @@ class SelectedDetector:
             )
 
             result.append(selected)
-            cv2.imwrite(f"log/{button.name}.png", binary)
-            cv2.imwrite("log/template.png", self.template)
+
         return result
     def scan(self, image):
         return self._scan(image)
