@@ -73,8 +73,14 @@ class ServerChecker:
                     if self._expired > 3:
                         logger.warning(f'Timestamp {self._timestamp} has not been updated for 3 times.')
             elif resp.status_code == 404:
-                self._state.append(False)
-                raise ScriptError(f'Server "{self._server}" does not exist!')
+                # API 数据库可能未收录新增服务器（如"长弓计划"），
+                # 检查本地服务器列表确认该服务器是否真实存在
+                if self._server_in_local_list():
+                    self._state.append(True)
+                    logger.info(f'Server "{self._server}" is available (local verified, API unknown).')
+                else:
+                    self._state.append(False)
+                    raise ScriptError(f'Server "{self._server}" does not exist!')
             else:
                 raise ScriptError(f'Get status_code {resp.status_code}. Response is {resp.text}')
         except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout) as e:
@@ -127,6 +133,20 @@ class ServerChecker:
             self._state.append(True)
         except Exception as e:
             raise e
+
+    def _server_in_local_list(self) -> bool:
+        """
+        检查服务器名称是否存在于本地 VALID_SERVER_LIST 中。
+
+        当 API 返回 404 时，用于区分"服务器不存在"和"API 数据库未收录"两种情况。
+
+        Returns:
+            bool: 本地列表中存在该服务器时返回 True。
+        """
+        for servers in server_list.values():
+            if self._server in servers:
+                return True
+        return False
 
     def reset(self) -> None:
         self._timestamp = 0

@@ -61,22 +61,12 @@ dev = [
 
 [tool.uv]
 index = [
-    # 云厂商镜像（可靠性高，商业运营）
+    # 云厂商镜像
     { url = "https://mirrors.aliyun.com/pypi/simple/" },
     { url = "https://mirrors.cloud.tencent.com/pypi/simple/" },
     { url = "https://repo.huaweicloud.com/repository/pypi/simple/" },
-    # 教育网镜像（按知名度排序）
-    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" },
-    { url = "https://pypi.tuna.tsinghua.edu.cn/simple/" },
-    { url = "https://mirrors.ustc.edu.cn/pypi/web/simple" },
-    { url = "https://pypi.mirrors.ustc.edu.cn/simple/" },
-    { url = "https://mirrors.pku.edu.cn/pypi/web/simple" },
-    { url = "https://mirror.nju.edu.cn/pypi/web/simple" },
-    { url = "https://mirrors.hust.edu.cn/pypi/web/simple" },
-    { url = "https://mirrors.sustech.edu.cn/pypi/web/simple" },
-    { url = "https://mirrors.jlu.edu.cn/pypi/web/simple" },
-    { url = "https://mirrors.njtech.edu.cn/pypi/web/simple" },
-    { url = "https://mirrors.bfsu.edu.cn/pypi/web/simple" },
+    # 教育网镜像
+    { url = "https://mirrors.cernet.edu.cn/pypi/web/simple/" }, # CERNET 校园网联合镜像站
 ]
 index-url = "https://pypi.org/simple/"
 package = false

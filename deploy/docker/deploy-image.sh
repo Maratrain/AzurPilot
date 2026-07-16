@@ -301,7 +301,7 @@ run_as_owner() {
 }
 
 git_cmd() {
-    run_as_owner env GIT_PROGRESS_DELAY=0 git -c "safe.directory=${APP_DIR}" "$@"
+    env GIT_PROGRESS_DELAY=0 git -c "safe.directory=${APP_DIR}" "$@"
 }
 
 confirm_docker_install() {
