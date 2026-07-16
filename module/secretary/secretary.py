@@ -8,6 +8,7 @@ from module.secretary.dock import SecretaryDockMixin,DOCK_SORTING
 from module.secretary.ship_scanner import ShipScanner
 from module.notify.notify import handle_notify, notify_webui
 from datetime import timedelta
+from threading import Thread
 from module.base.timer import current_time
 from module.ui_white.assets import (
     PROFILE_CHECK,
@@ -74,7 +75,9 @@ class Secretary(SecretaryDockMixin,UI):
                     new_ship = self.scan_current_secretary()
                     if new_ship:
                         ship = new_ship
-                        self.notify_after_replace(ship)
+                        # 重新计算下一次检查时间
+                        next_run = self.schedule_next_run(ship.favorability)
+                        self.notify_after_replace(ship, next_run)
                     else:
                         logger.warning(
                             "New secretary OCR failed, use old secretary data"
@@ -186,6 +189,7 @@ class Secretary(SecretaryDockMixin,UI):
             ship for ship in ships
             if not (ship.level < 20 and ship.favorability == 0)
             if ship.favorability < 90
+            if not ship.selected
         ]
 
         if not ships:
@@ -224,7 +228,8 @@ class Secretary(SecretaryDockMixin,UI):
         )
 
         self.config.task_delay(target=next_run)
-
+        return next_run
+            
     def scan_current_secretary(self):
         """
         OCR 当前秘书舰信息。
@@ -251,7 +256,7 @@ class Secretary(SecretaryDockMixin,UI):
 
         return secretary
 
-    def notify(self, title, content):
+    def _notify_worker(self, title, content):
         instance = self.config.config_name
 
         handle_notify(
@@ -266,6 +271,13 @@ class Secretary(SecretaryDockMixin,UI):
             content=content,
         )
 
+    def notify(self, title, content):
+        Thread(
+            target=self._notify_worker,
+            args=(title, content),
+            daemon=True,
+        ).start()
+
     def notify_before_replace(self, ship):
         self.notify(
             title=f"AzurPilot <{self.config.config_name}> 秘书舰更换",
@@ -275,15 +287,13 @@ class Secretary(SecretaryDockMixin,UI):
             ),
         )
 
-    def notify_after_replace(self, ship):
-        hours = max(0, 90 - ship.favorability) * 6
-
+    def notify_after_replace(self, ship, next_run):
         self.notify(
             title=f"AzurPilot <{self.config.config_name}> 秘书舰更换完成",
             content=(
                 f"秘书舰更换成功！\n"
                 f"当前好感度：{ship.favorability}\n"
-                f"预计 {hours} 小时后再次检查。"
+                f"下次检查时间：{next_run:%Y-%m-%d %H:%M:%S}"
             ),
         )   
 
