@@ -3,7 +3,7 @@ import os
 import time
 import cv2
 
-from module.ocr.ocr import Ocr,Digit
+from module.ocr.ocr import Ocr
 from module.secretary.ocr import SecretaryDigit
 from module.secretary.assets import (
     SECRETARY_NAME,
@@ -21,11 +21,13 @@ class SecretaryInfo:
 
 OCR_SECRETARY_NAME = Ocr(
     SECRETARY_NAME,
+    lang="ppocr_v6",
     name="SECRETARY_NAME",
 )
 
-OCR_SECRETARY_LEVEL = Digit(
+OCR_SECRETARY_LEVEL = Ocr(
     SECRETARY_LEVEL,
+    lang="ppocr_v6",
     name="SECRETARY_LEVEL",
 )
 

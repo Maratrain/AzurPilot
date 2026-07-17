@@ -2245,6 +2245,18 @@
       "name": "Low Favorability Priority",
       "help": "Ships will be selected in ascending order of favorability"
     },
+    "BackupEnable": {
+      "name": "Backup Secretary",
+      "help": "Use ships in the secretary group as backup secretaries and prioritize switching to them"
+    },
+    "CheckInterval": {
+      "name": "Custom Check Interval (Hours)",
+      "help": "Check after the specified interval following a secretary switch. Set to 0 to calculate automatically based on affinity. If your secretary gains affinity through sorties, setting this value allows earlier replacement"
+    },
+    "Notify": {
+      "name": "Secretary Notifications",
+      "help": "Send secretary-related notifications via OnePush"
+    },
     "OnePushConfig": {
       "name": "OnePush Configuration",
       "help": "Notification settings for secretary replacement. Leave empty to use the global configuration"

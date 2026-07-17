@@ -19,7 +19,7 @@ from module.combat.level import LevelOcr
 from module.logger import logger
 from module.ocr.ocr import Digit
 from module.secretary.dock import (CARD_GRIDS,CARD_LEVEL_GRIDS, CARD_RARITY_GRIDS, CARD_FAVORABILITY_GRIDS)
-from module.ui_white.assets import SECRETARY_SELECTED
+from module.secretary.assets import SECRETARY_SELECTED
 
 class Scanner(metaclass=ABCMeta):
     _results: List = None

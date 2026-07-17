@@ -417,6 +417,9 @@ class GeneratedConfig:
     # 配置组 `Secretary`
     Secretary_CustomFilter = 'ultra > super_rare > elite > rare > common'
     Secretary_LowFavorabilityPriority = False
+    Secretary_BackupEnable = True
+    Secretary_CheckInterval = 0
+    Secretary_Notify = True
     Secretary_OnePushConfig = 'provider: null'
 
     # 配置组 `Awaken`
