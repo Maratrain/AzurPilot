@@ -10927,6 +10927,18 @@
         "type": "checkbox",
         "value": false
       },
+      "BackupEnable": {
+        "type": "checkbox",
+        "value": true
+      },
+      "CheckInterval": {
+        "type": "input",
+        "value": 0
+      },
+      "Notify": {
+        "type": "checkbox",
+        "value": true
+      },
       "OnePushConfig": {
         "type": "textarea",
         "value": "provider: null",

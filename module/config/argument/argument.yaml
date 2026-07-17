@@ -769,6 +769,9 @@ Secretary:
   CustomFilter: |-
     ultra > super_rare > elite > rare > common
   LowFavorabilityPriority: false
+  BackupEnable: true
+  CheckInterval: 0
+  Notify: true
   OnePushConfig:
     type: textarea
     mode: yaml

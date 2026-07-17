@@ -7,6 +7,7 @@ from module.raid.assets import *
 from module.retire.assets import DOCK_CHECK
 from module.ui.assets import *
 from module.ui_white.assets import *
+from module.secretary.assets import *
 import module.config.server as server
 
 
