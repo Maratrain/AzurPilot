@@ -2227,7 +2227,7 @@
     },
     "CustomFilter": {
       "name": "レアリティフィルター",
-      "help": "レアリティはUR(ultra)、SSR(super_rare)、SR(elite)、R(rare)、N(common)を含みます。デフォルト優先度：ultra > super_rare > elite > rare > common"
+      "help": "レアリティはUR(ultra)、SSR(super_rare)、SR(elite)、R(rare)、N(common)を含みます\n下記にカスタム順序を入力してください\nデフォルト優先度：ultra > super_rare > elite > rare > common"
     },
     "LowFavorabilityPriority": {
       "name": "低好感度優先",
