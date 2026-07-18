@@ -291,7 +291,7 @@ class FavorabilityDigit(Digit):
 
             ocr_pairs.append((n1, n2))
 
-            logger.info(
+            logger.debug(
                 f'Favorability OCR raw: r1={r1}, r2={r2}'
             )
 
@@ -447,7 +447,7 @@ class FavorabilityDigit(Digit):
                     if r1v < 100 and r2v < 100:
                         best = r2v
                         if best != current:
-                            logger.info(
+                            logger.debug(
                                 f'Favorability reorder: {current} -> {best} (both <100, use r2)'
                             )
                             values[i] = best
@@ -458,7 +458,7 @@ class FavorabilityDigit(Digit):
                     if (r1 in ("", None) or r1v is None) and r2v is not None and r2v > 100:
                         best = r2v % 100
                         if best != current:
-                            logger.info(
+                            logger.debug(
                                 f'Favorability reorder: {current} -> {best} (r1 empty, r2 remove hundred)'
                             )
                             values[i] = best
@@ -519,7 +519,7 @@ class FavorabilityDigit(Digit):
                         best = candidate
 
                 if best != current:
-                    logger.info(
+                    logger.debug(
                         f'Favorability reorder: {current} -> {best}'
                     )
                     values[i] = best
@@ -585,7 +585,7 @@ class SelectedDetector:
             _, sim, _, _ = cv2.minMaxLoc(res)
             SELECTED_THRESHOLD = 0.4
             selected = sim < SELECTED_THRESHOLD
-            logger.info(
+            logger.debug(
                 f"{button.name} "
                 f"selected={selected} "
                 f"sim={sim:.3f}"
