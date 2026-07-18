@@ -39,6 +39,10 @@ class RemoteDependencyError(Exception):
     pass
 
 
+class RemoteSignalError(Exception):
+    pass
+
+
 @dataclass
 class RemoteAccessInfo:
     address: Optional[str] = None
@@ -179,6 +183,16 @@ def _signal_url_from_ssh_server() -> str:
     server, _port = _parse_host_port(State.deploy_config.SSHServer)
     scheme = "wss"
     return f"{scheme}://{server}/signal"
+
+
+def _format_signal_error(error: Exception, signal_url: str) -> str:
+    status = getattr(error, "status", None)
+    message = getattr(error, "message", "") or str(error)
+    request_info = getattr(error, "request_info", None)
+    url = getattr(request_info, "real_url", None) or signal_url
+    if status:
+        return f"P2P 信令连接失败（HTTP {status}: {message}），已继续使用 SSH 远程访问：{url}"
+    return f"P2P 信令连接失败（{message}），已继续使用 SSH 远程访问：{url}"
 
 
 class RemoteAccessProvider:
@@ -776,6 +790,10 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
             self.info.error = str(e)
             self.info.connection_state = "dependency_missing"
             logger.warning(f"WebRTC remote access disabled: {e}")
+        except RemoteSignalError as e:
+            self.info.error = str(e)
+            self.info.connection_state = "ssh_forward"
+            logger.warning(str(e))
         except Exception as e:
             self.info.error = str(e)
             self.info.connection_state = "failed"
@@ -811,105 +829,108 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
         peer_connections = set()
         peer_connections_by_viewer = {}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.ws_connect(signal_url, heartbeat=30) as ws:
-                await ws.send_json({
-                    "type": "register",
-                    "peer_id": self.info.peer_id,
-                    "fallback_url": self.info.fallback_address,
-                })
-                keepalive_task = asyncio.create_task(self._signal_keepalive(ws))
-                self.info.connection_state = "waiting_peer"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(signal_url, heartbeat=30) as ws:
+                    await ws.send_json({
+                        "type": "register",
+                        "peer_id": self.info.peer_id,
+                        "fallback_url": self.info.fallback_address,
+                    })
+                    keepalive_task = asyncio.create_task(self._signal_keepalive(ws))
+                    self.info.connection_state = "waiting_peer"
 
-                try:
-                    async for msg in ws:
-                        if self.stop_event.is_set():
-                            break
-                        if msg.type != aiohttp.WSMsgType.TEXT:
-                            continue
-                        data = json.loads(msg.data)
-                        msg_type = data.get("type")
-                        if msg_type == "registered":
-                            self.info.address = data.get("address") or self.info.address
-                            self.info.fallback_address = data.get("fallback_url") or self.info.fallback_address
-                            self.info.connection_state = "waiting_peer"
-                            logger.info(f"P2P remote access url: {self.info.address}")
-                        elif msg_type == "offer":
-                            pc = RTCPeerConnection(configuration=rtc_config)
-                            peer_connections.add(pc)
-                            viewer_id = data.get("viewer_id")
-                            if viewer_id:
-                                old_pc = peer_connections_by_viewer.pop(viewer_id, None)
-                                if old_pc is not None:
-                                    peer_connections.discard(old_pc)
-                                    await old_pc.close()
-                                peer_connections_by_viewer[viewer_id] = pc
-
-                            @pc.on("datachannel")
-                            def on_datachannel(channel):
-                                logger.info(f"P2P datachannel opened: {channel.label}")
-                                tunnel = WebRTCTunnel(
-                                    _local_host(),
-                                    State.deploy_config.WebuiPort,
-                                    channel,
-                                    self.info.peer_id,
-                                )
-
-                                @channel.on("message")
-                                def on_message(message):
-                                    try:
-                                        payload = json.loads(message)
-                                    except Exception as e:
-                                        logger.warning(f"P2P channel message parse failed: {e}")
-                                        return
-                                    asyncio.create_task(tunnel.handle(payload))
-
-                            @pc.on("connectionstatechange")
-                            async def on_connectionstatechange():
-                                if pc.connectionState == "connected":
-                                    self.info.connection_state = "direct_p2p"
-                                elif pc.connectionState in ("failed", "closed", "disconnected"):
-                                    peer_connections.discard(pc)
-                                    if viewer_id and peer_connections_by_viewer.get(viewer_id) is pc:
-                                        peer_connections_by_viewer.pop(viewer_id, None)
-                                    await pc.close()
-
-                            offer = RTCSessionDescription(sdp=data.get("sdp"), type=data.get("kind", "offer"))
-                            await pc.setRemoteDescription(offer)
-                            answer = await pc.createAnswer()
-                            await pc.setLocalDescription(answer)
-                            await self._wait_ice_complete(pc)
-                            await ws.send_json({
-                                "type": "answer",
-                                "viewer_id": viewer_id,
-                                "sdp": pc.localDescription.sdp,
-                                "kind": pc.localDescription.type,
-                            })
-                        elif msg_type == "candidate":
-                            viewer_id = data.get("viewer_id")
-                            pc = peer_connections_by_viewer.get(viewer_id)
-                            if pc is None:
+                    try:
+                        async for msg in ws:
+                            if self.stop_event.is_set():
+                                break
+                            if msg.type != aiohttp.WSMsgType.TEXT:
                                 continue
-                            raw_candidate = data.get("candidate")
-                            if not raw_candidate:
-                                await pc.addIceCandidate(None)
-                                continue
-                            candidate = candidate_from_sdp(raw_candidate.get("candidate", ""))
-                            candidate.sdpMid = raw_candidate.get("sdpMid")
-                            candidate.sdpMLineIndex = raw_candidate.get("sdpMLineIndex")
-                            await pc.addIceCandidate(candidate)
-                        elif msg_type == "viewer_state":
-                            state = data.get("state")
-                            if state in ("direct_p2p", "turn_relay"):
-                                self.info.connection_state = state
-                        elif msg_type == "error":
-                            self.info.error = data.get("message", "")
-                            logger.warning(f"P2P signaling error: {self.info.error}")
-                finally:
-                    keepalive_task.cancel()
+                            data = json.loads(msg.data)
+                            msg_type = data.get("type")
+                            if msg_type == "registered":
+                                self.info.address = data.get("address") or self.info.address
+                                self.info.fallback_address = data.get("fallback_url") or self.info.fallback_address
+                                self.info.connection_state = "waiting_peer"
+                                logger.info(f"P2P remote access url: {self.info.address}")
+                            elif msg_type == "offer":
+                                pc = RTCPeerConnection(configuration=rtc_config)
+                                peer_connections.add(pc)
+                                viewer_id = data.get("viewer_id")
+                                if viewer_id:
+                                    old_pc = peer_connections_by_viewer.pop(viewer_id, None)
+                                    if old_pc is not None:
+                                        peer_connections.discard(old_pc)
+                                        await old_pc.close()
+                                    peer_connections_by_viewer[viewer_id] = pc
 
-        for pc in list(peer_connections):
-            await pc.close()
+                                @pc.on("datachannel")
+                                def on_datachannel(channel):
+                                    logger.info(f"P2P datachannel opened: {channel.label}")
+                                    tunnel = WebRTCTunnel(
+                                        _local_host(),
+                                        State.deploy_config.WebuiPort,
+                                        channel,
+                                        self.info.peer_id,
+                                    )
+
+                                    @channel.on("message")
+                                    def on_message(message):
+                                        try:
+                                            payload = json.loads(message)
+                                        except Exception as e:
+                                            logger.warning(f"P2P channel message parse failed: {e}")
+                                            return
+                                        asyncio.create_task(tunnel.handle(payload))
+
+                                @pc.on("connectionstatechange")
+                                async def on_connectionstatechange():
+                                    if pc.connectionState == "connected":
+                                        self.info.connection_state = "direct_p2p"
+                                    elif pc.connectionState in ("failed", "closed", "disconnected"):
+                                        peer_connections.discard(pc)
+                                        if viewer_id and peer_connections_by_viewer.get(viewer_id) is pc:
+                                            peer_connections_by_viewer.pop(viewer_id, None)
+                                        await pc.close()
+
+                                offer = RTCSessionDescription(sdp=data.get("sdp"), type=data.get("kind", "offer"))
+                                await pc.setRemoteDescription(offer)
+                                answer = await pc.createAnswer()
+                                await pc.setLocalDescription(answer)
+                                await self._wait_ice_complete(pc)
+                                await ws.send_json({
+                                    "type": "answer",
+                                    "viewer_id": viewer_id,
+                                    "sdp": pc.localDescription.sdp,
+                                    "kind": pc.localDescription.type,
+                                })
+                            elif msg_type == "candidate":
+                                viewer_id = data.get("viewer_id")
+                                pc = peer_connections_by_viewer.get(viewer_id)
+                                if pc is None:
+                                    continue
+                                raw_candidate = data.get("candidate")
+                                if not raw_candidate:
+                                    await pc.addIceCandidate(None)
+                                    continue
+                                candidate = candidate_from_sdp(raw_candidate.get("candidate", ""))
+                                candidate.sdpMid = raw_candidate.get("sdpMid")
+                                candidate.sdpMLineIndex = raw_candidate.get("sdpMLineIndex")
+                                await pc.addIceCandidate(candidate)
+                            elif msg_type == "viewer_state":
+                                state = data.get("state")
+                                if state in ("direct_p2p", "turn_relay"):
+                                    self.info.connection_state = state
+                            elif msg_type == "error":
+                                self.info.error = data.get("message", "")
+                                logger.warning(f"P2P signaling error: {self.info.error}")
+                    finally:
+                        keepalive_task.cancel()
+        except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
+            raise RemoteSignalError(_format_signal_error(e, signal_url)) from e
+        finally:
+            for pc in list(peer_connections):
+                await pc.close()
 
     @staticmethod
     async def _wait_ice_complete(pc, timeout=3.5) -> None:

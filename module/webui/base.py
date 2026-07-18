@@ -36,7 +36,7 @@ class Frame(Base):
         """
         侧边栏按钮点击时的初始化回调。
 
-        清空菜单区域，展开菜单，并高亮指定按钮。
+        展开菜单并高亮指定按钮。菜单由目标页面准备完成后替换。
 
         Args:
             expand_menu: 是否展开菜单。
@@ -44,7 +44,6 @@ class Frame(Base):
         """
         self.visible = True
         self.task_handler.remove_pending_task()
-        clear("menu")
         if expand_menu:
             self.expand_menu()
         if name:

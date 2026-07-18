@@ -44,6 +44,7 @@ dependencies = [
     "numba==0.66.0",
     "uv==0.10.2",
     "lz4==4.4.5",
+    "packaging==24.2",
     "setuptools==75.8.2",
     "importlib-resources==6.0.0",
     "importlib-metadata==8.0.0",
@@ -71,3 +72,8 @@ index = [
 index-url = "https://pypi.org/simple/"
 package = false
 index-strategy = "unsafe-best-match"
+override-dependencies = [
+    # uiautomator2 2.16.17 declares packaging~=20.3, whose 20.9 release
+    # imports the removed stdlib distutils module on Python 3.14.
+    "packaging==24.2",
+]

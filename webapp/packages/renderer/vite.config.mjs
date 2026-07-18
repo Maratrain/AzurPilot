@@ -1,13 +1,10 @@
 /* eslint-env node */
 
-import { readFileSync } from 'fs';
 import { join } from 'path';
-import { builtinModules } from 'module';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 
-const { chrome } = JSON.parse(readFileSync(new URL('../../electron-vendors.config.json', import.meta.url)));
 const PACKAGE_ROOT = fileURLToPath(new URL('.', import.meta.url));
 
 /**
@@ -30,7 +27,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
-    target: `chrome${chrome}`,
+    target: 'es2020',
     outDir: 'dist',
     assetsDir: '.',
     terserOptions: {
@@ -39,11 +36,6 @@ export default defineConfig({
         passes: 2,
       },
       safari10: false,
-    },
-    rollupOptions: {
-      external: [
-        ...builtinModules,
-      ],
     },
     emptyOutDir: true,
     brotliSize: false,

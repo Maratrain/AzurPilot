@@ -12,14 +12,14 @@ services:
         network_mode: host
         restart: unless-stopped
         init: true
-        working_dir: /app/AzurLaneAutoScript
+        working_dir: /app/AzurPilot
         environment:
             TZ: ${TZ:-Asia/Shanghai}
             PYTHONDONTWRITEBYTECODE: "1"
             PYTHONUNBUFFERED: "1"
         volumes:
-            - '.:/app/AzurLaneAutoScript:rw'
-            - 'alas-venv:/app/AzurLaneAutoScript/.venv'
+            - '.:/app/AzurPilot:rw'
+            - 'alas-venv:/app/AzurPilot/.venv'
             # - '../MAA:/app/MAA:rw'
             - '/etc/localtime:/etc/localtime:ro'
         command: [".venv/bin/python", "gui.py"]

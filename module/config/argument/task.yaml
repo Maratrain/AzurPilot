@@ -452,6 +452,8 @@ Tool:
       - EventStory
     BoxDisassemble:
       - BoxDisassemble
+    AutoEquip:
+      - AutoEquip
     Benchmark:
       - Benchmark
     OcrBenchmark:

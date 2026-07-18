@@ -1,3 +1,24 @@
+:root {
+    --alas-entry-page: #282a2f;
+    --alas-entry-surface: #2f3136;
+    --alas-entry-surface-muted: #36393f;
+    --alas-entry-surface-subtle: rgba(60, 63, 69, .82);
+    --alas-entry-text: #eeeeee;
+    --alas-entry-muted: #adb5bd;
+    --alas-entry-border: #484b52;
+    --alas-entry-divider: #484b52;
+    --alas-entry-accent: #b4b1e5;
+    --alas-entry-on-accent: #1a1861;
+    --alas-entry-accent-soft: #3e3b6a;
+    --alas-entry-action: #60a5fa;
+    --alas-entry-action-hover: #93c5fd;
+    --alas-entry-on-action: #0f172a;
+    --alas-entry-success: #4ade80;
+    --alas-entry-on-success: #052e16;
+    --alas-entry-shadow: 0 16px 40px rgba(0, 0, 0, .34);
+    --alas-entry-panel-shadow: 0 1px 2px rgba(0, 0, 0, .40);
+}
+
 /* --- 基础样式与按钮 --- */
 .modal-body {
     background-color: #2f3136;

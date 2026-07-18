@@ -26,7 +26,7 @@ from module.os_simulator.simulator import OSSimulator
 import_fake_pil_module()
 
 from pywebio import config as webconfig
-from pywebio.input import file_upload, input, input_group, select
+from pywebio.input import actions, file_upload, input_group
 from pywebio.output import (
     Output,
     clear,
@@ -66,6 +66,7 @@ from module.config.config import AzurLaneConfig, Function
 from module.config.deep import deep_get, deep_iter, deep_set
 from module.config.env import IS_ON_PHONE_CLOUD
 from module.config.server import to_server
+from module.config.task_priority import parse_task_priority, task_priority_from_config
 from module.config.utils import (
     DEFAULT_CONFIG_NAME,
     alas_instance,
@@ -102,10 +103,9 @@ from module.webui.utils import (
     Icon,
     Switch,
     TaskHandler,
-    add_css,
-    filepath_css,
     get_alas_config_listen_path,
     get_localstorage,
+    load_webui_styles,
     set_localstorage,
     get_window_visibility_state,
     login,
@@ -319,11 +319,6 @@ def build_recommendation_box(text: str) -> str:
     return tpl.format(text=text)
 
 
-def build_app_manage_title(title: str) -> str:
-    tpl = read_webapp_template("app_manage_title.html")
-    return tpl.format(title=title)
-
-
 class AlasGUI(Frame):
     ALAS_MENU: Dict[str, Dict[str, List[str]]]
     ALAS_ARGS: Dict[str, Dict[str, Dict[str, Dict[str, str]]]]
@@ -337,9 +332,6 @@ class AlasGUI(Frame):
         self.ALAS_ARGS = read_file(filepath_args("args", self.alas_mod))
         self._init_alas_config_watcher()
 
-        if self.theme == "apple":
-            add_css(filepath_css("apple-alas"))
-
     def __init__(self) -> None:
         super().__init__()
         # 已修改的配置键，来自 pin_wait_change() 的返回值
@@ -352,8 +344,9 @@ class AlasGUI(Frame):
         # 已渲染的状态缓存
         self.rendered_cache = []
         self.inst_cache = []
+        self._shell_mounted = False
+        self._active_aside = None
         self._overview_snapshot = None
-        self.load_home = False
         self.af_flag = False
         self._last_announcement_id = None
         self._announcement_result = None
@@ -450,36 +443,52 @@ class AlasGUI(Frame):
         if current_date.month == 4 and current_date.day == 1:
             self.af_flag = True
 
-        put_icon_buttons(
-            Icon.DEVELOP,
-            "false",
-            buttons=[{"label": t("Gui.Aside.Home"), "value": "Home", "color": "aside"}],
-            onclick=[self.ui_develop],
-        )
-        put_scope(
-            "aside_instance",
-            [
-                put_scope(f"alas-instance-{i}", [])
-                for i, _ in enumerate(alas_instance())
-            ],
-        )
-        self.set_aside_status()
-        put_icon_buttons(
-            Icon.SETTING,
-            "false",
-            buttons=[
-                {
-                    "label": t("Gui.AddAlas.Manage"),
-                    "value": "AddAlas",
-                    "color": "aside",
-                }
-            ],
-            onclick=[lambda: go_app("manage", new_window=False)],
-        )
+        put_scope("aside_home")
+        put_scope("aside_instance")
+        put_scope("aside_manage")
+        self.refresh_aside_labels()
+        self.refresh_aside_instances(force=True)
+
+    def refresh_aside_labels(self) -> None:
+        """语言变化时只更新主边栏中的静态按钮。"""
+        with use_scope("aside_home", clear=True):
+            put_icon_buttons(
+                Icon.DEVELOP,
+                "false",
+                buttons=[
+                    {
+                        "label": t("Gui.Aside.Home"),
+                        "value": "Home",
+                        "color": "aside",
+                    }
+                ],
+                onclick=[self.ui_develop],
+            )
+        with use_scope("aside_manage", clear=True):
+            put_icon_buttons(
+                Icon.SETTING,
+                "false",
+                buttons=[
+                    {
+                        "label": t("Gui.AddAlas.Manage"),
+                        "value": "Manage",
+                        "color": "aside",
+                    }
+                ],
+                onclick=[self.ui_manage],
+            )
+        aside_name = self._active_aside or get_localstorage("aside")
+        self.active_button("aside", aside_name)
 
     @use_scope("aside_instance")
-    def set_aside_status(self) -> None:
-        flag = True
+    def refresh_aside_instances(self, force=False) -> None:
+        """仅在实例集合或运行状态变化时更新实例侧栏。"""
+        instances = alas_instance()
+        rebuild = (
+            force
+            or instances != self.inst_cache
+            or len(self.rendered_cache) != len(instances)
+        )
 
         def update(name, seq):
             with use_scope(f"alas-instance-{seq}", clear=True):
@@ -503,30 +512,28 @@ class AlasGUI(Frame):
                 )
             return rendered_state
 
-        if not len(self.rendered_cache) or self.load_home:
-            # 添加/删除新实例时重新加载 | 首次启动 app.py | 返回主页（主页加载时强制重新加载）
-            flag = False
-            self.inst_cache.clear()
-            self.inst_cache = alas_instance()
-        if flag:
-            for index, inst in enumerate(self.inst_cache):
-                # 检查状态变化
+        changed = rebuild
+        if rebuild:
+            self.inst_cache = instances
+            self.rendered_cache.clear()
+            clear()
+            for index, _ in enumerate(instances):
+                put_scope(f"alas-instance-{index}")
+            for index, inst in enumerate(instances):
+                self.rendered_cache.append(update(inst, index))
+        else:
+            for index, inst in enumerate(instances):
                 state = ProcessManager.get_manager(inst).state
                 if state != self.rendered_cache[index]:
                     self.rendered_cache[index] = update(inst, index)
-                    flag = False
-        else:
-            self.rendered_cache.clear()
-            clear("aside_instance")
-            for index, inst in enumerate(self.inst_cache):
-                self.rendered_cache.append(update(inst, index))
-            self.load_home = False
-        if not flag:
-            # 重新绘制失去焦点的侧边栏按钮，聚焦当前激活的按钮
-            aside_name = get_localstorage("aside")
+                    changed = True
+
+        if changed:
+            aside_name = self._active_aside or get_localstorage("aside")
             self.active_button("aside", aside_name)
 
-        return
+    def set_aside_status(self) -> None:
+        self.refresh_aside_instances()
 
     @use_scope("header_status")
     def set_status(self, state: int) -> None:
@@ -3649,15 +3656,9 @@ class AlasGUI(Frame):
 
         put_button(
             label=t("Gui.MenuDevelop.HomePage"),
-            onclick=self.show,
+            onclick=self.show_home,
             color="menu",
         ).style(f"--menu-HomePage--")
-
-        put_button(
-            label="导入旧数据",
-            onclick=self.ui_import_legacy,
-            color="menu",
-        ).style(f"--menu-Import--")
 
         # put_button(
         #     label=t("Gui.MenuDevelop.Translate"),
@@ -3698,26 +3699,33 @@ class AlasGUI(Frame):
     def dev_translate(self) -> None:
         go_app("translate", new_window=True)
         lang.TRANSLATE_MODE = True
-        self.show()
+        self.show_home()
 
     @use_scope("content", clear=True)
     def dev_update(self) -> None:
         self.init_menu(name="Update")
         self.set_title(t("Gui.MenuDevelop.Update"))
 
-        if State.restart_event is None:
-            put_warning(t("Gui.Update.DisabledWarn"))
-
-        put_row(
-            content=[put_scope("updater_loading"), None, put_scope("updater_state")],
-            size="auto .25rem 1fr",
-        )
-
-        put_scope("updater_btn")
         put_scope("updater_info")
+        with use_scope("updater_info"):
+            if State.restart_event is None:
+                put_warning(t("Gui.Update.DisabledWarn"))
+
+            put_row(
+                content=[
+                    put_scope("updater_loading"),
+                    None,
+                    put_scope("updater_state"),
+                ],
+                size="auto .25rem 1fr",
+            )
+
+            put_scope("updater_btn")
+            put_scope("updater_table")
+        put_scope("updater_detail")
 
         def update_table():
-            with use_scope("updater_info", clear=True):
+            with use_scope("updater_table", clear=True):
                 local_commit = updater.get_commit(short_sha1=True)
                 upstream_commit = updater.get_commit(
                     f"origin/{updater.Branch}", short_sha1=True
@@ -3885,40 +3893,10 @@ class AlasGUI(Frame):
                 </div>
                 <label class="launcher-switch" title="{t("Gui.StartupRun.Title")}">
                   <input id="{switch_id}" type="checkbox" disabled>
-                  <span class="launcher-slider"></span>
                 </label>
               </div>
               <div id="{status_id}" class="startup-run-status">{t("Gui.StartupRun.Loading")}</div>
             </div>
-            <style>
-              .startup-run-panel {{
-                margin: 0 0 14px;
-                padding: 14px 16px;
-                border: 1px solid rgba(128, 128, 128, .22);
-                border-radius: 8px;
-                background: var(--alas-content-bg, rgba(255,255,255,.72));
-              }}
-              .startup-run-row {{
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
-                gap: 16px;
-                align-items: center;
-              }}
-              .startup-run-title {{
-                font-size: 1rem;
-                font-weight: 700;
-                margin-bottom: 4px;
-              }}
-              .startup-run-desc,
-              .startup-run-status {{
-                color: var(--alas-muted-text, rgba(96, 96, 96, .9));
-                line-height: 1.55;
-              }}
-              .startup-run-status {{
-                margin-top: 10px;
-                font-size: .92rem;
-              }}
-            </style>
             """
         )
         run_js(
@@ -3987,10 +3965,11 @@ class AlasGUI(Frame):
     def dev_setting(self) -> None:
         self.init_menu(name="Setting")
         self.set_title(t("Gui.MenuDevelop.Setting"))
-        put_html(build_title_block(t("Gui.Launcher.StartupTitle"), margin_top=12, margin_bottom=8))
+        put_scope("develop_detail")
         put_html(
             f"""
             <div class="launcher-setting-panel">
+              <h2 class="alas-develop-section-title">{t("Gui.Launcher.StartupTitle")}</h2>
               <div class="launcher-setting-row">
                 <div>
                   <div class="launcher-setting-title">{t("Gui.Launcher.AutoStart")}</div>
@@ -3998,172 +3977,12 @@ class AlasGUI(Frame):
                 </div>
                 <label class="launcher-switch" title="{t("Gui.Launcher.AutoStart")}">
                   <input id="launcher-autostart-switch" type="checkbox" disabled>
-                  <span class="launcher-slider"></span>
                 </label>
               </div>
               <div id="launcher-status" class="launcher-setting-status">{t("Gui.Launcher.Loading")}</div>
             </div>
-            <style>
-              .launcher-setting-panel {{
-                max-width: 760px;
-                margin: 12px auto 0;
-                padding: 16px 18px;
-                border: 1px solid rgba(128, 128, 128, .22);
-                border-radius: 8px;
-                background: var(--alas-content-bg, rgba(255,255,255,.72));
-              }}
-              .launcher-setting-row {{
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
-                gap: 16px;
-                align-items: center;
-              }}
-              .launcher-setting-title {{
-                font-size: 1rem;
-                font-weight: 700;
-                margin-bottom: 4px;
-              }}
-              .launcher-setting-desc {{
-                color: var(--alas-muted-text, rgba(96, 96, 96, .9));
-                line-height: 1.55;
-              }}
-              .launcher-setting-status {{
-                margin-top: 12px;
-                font-size: .92rem;
-                color: var(--alas-muted-text, rgba(96, 96, 96, .9));
-              }}
-              .launcher-switch {{
-                position: relative;
-                display: inline-block;
-                width: 52px;
-                height: 30px;
-              }}
-              .launcher-switch input {{
-                opacity: 0;
-                width: 0;
-                height: 0;
-              }}
-              .launcher-slider {{
-                position: absolute;
-                cursor: pointer;
-                inset: 0;
-                background: #adb5bd;
-                border-radius: 999px;
-                transition: .2s;
-              }}
-              .launcher-slider:before {{
-                position: absolute;
-                content: "";
-                width: 24px;
-                height: 24px;
-                left: 3px;
-                bottom: 3px;
-                background: #fff;
-                border-radius: 50%;
-                transition: .2s;
-                box-shadow: 0 2px 8px rgba(0,0,0,.18);
-              }}
-              .launcher-switch input:checked + .launcher-slider {{
-                background: #4dabf7;
-              }}
-              .launcher-switch input:checked + .launcher-slider:before {{
-                transform: translateX(22px);
-              }}
-              .launcher-switch input:disabled + .launcher-slider {{
-                cursor: not-allowed;
-                opacity: .55;
-              }}
-              .deploy-setting-panel {{
-                max-width: 960px;
-                margin: 12px auto 0;
-                padding: 16px 18px;
-                border: 1px solid rgba(128, 128, 128, .22);
-                border-radius: 8px;
-                background: var(--alas-content-bg, rgba(255,255,255,.72));
-              }}
-              .deploy-setting-toolbar {{
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
-                gap: 12px;
-                align-items: center;
-                margin-bottom: 12px;
-              }}
-              .deploy-setting-notice,
-              .deploy-setting-status {{
-                color: var(--alas-muted-text, rgba(96, 96, 96, .9));
-                line-height: 1.55;
-                font-size: .92rem;
-              }}
-              .deploy-setting-group {{
-                margin-top: 12px;
-                padding-top: 12px;
-                border-top: 1px solid rgba(128, 128, 128, .18);
-              }}
-              .deploy-setting-group-title {{
-                font-weight: 700;
-                margin-bottom: 10px;
-              }}
-              .deploy-setting-field {{
-                display: grid;
-                grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
-                gap: 14px;
-                align-items: center;
-                padding: 8px 0;
-              }}
-              .deploy-setting-field label {{
-                font-weight: 600;
-                margin-bottom: 2px;
-              }}
-              .deploy-setting-help {{
-                color: var(--alas-muted-text, rgba(96, 96, 96, .9));
-                font-size: .84rem;
-                line-height: 1.45;
-              }}
-              .deploy-setting-input,
-              .deploy-setting-select {{
-                width: 100%;
-                min-height: 36px;
-                padding: 6px 10px;
-                border: 1px solid rgba(128, 128, 128, .32);
-                border-radius: 6px;
-                background: rgba(255, 255, 255, .92);
-              }}
-              .deploy-setting-actions {{
-                display: flex;
-                gap: 8px;
-                justify-content: flex-end;
-                margin-top: 14px;
-              }}
-              .deploy-setting-button {{
-                min-height: 34px;
-                padding: 6px 14px;
-                border: 1px solid rgba(128, 128, 128, .35);
-                border-radius: 6px;
-                cursor: pointer;
-              }}
-              .deploy-setting-button.primary {{
-                color: #fff;
-                background: #228be6;
-                border-color: #228be6;
-              }}
-              .deploy-setting-button:disabled {{
-                cursor: not-allowed;
-                opacity: .6;
-              }}
-              @media (max-width: 760px) {{
-                .deploy-setting-toolbar,
-                .deploy-setting-field {{
-                  grid-template-columns: 1fr;
-                }}
-                .deploy-setting-actions {{
-                  justify-content: stretch;
-                }}
-                .deploy-setting-button {{
-                  width: 100%;
-                }}
-              }}
-            </style>
-            """
+            """,
+            scope="develop_detail",
         )
         run_js(
             f"""
@@ -4240,13 +4059,12 @@ class AlasGUI(Frame):
             }})();
             """
         )
-        put_html(build_title_block(t("Gui.DeploySetting.Title"), margin_top=20, margin_bottom=8))
         put_html(
             f"""
             <div id="deploy-setting-root" class="deploy-setting-panel">
               <div class="deploy-setting-toolbar">
                 <div>
-                  <div class="launcher-setting-title">{t("Gui.DeploySetting.Title")}</div>
+                  <h2 class="alas-develop-section-title">{t("Gui.DeploySetting.Title")}</h2>
                   <div id="deploy-setting-notice" class="deploy-setting-notice">{t("Gui.DeploySetting.Loading")}</div>
                 </div>
                 <button id="deploy-setting-refresh" class="deploy-setting-button" type="button">{t("Gui.DeploySetting.Refresh")}</button>
@@ -4257,7 +4075,8 @@ class AlasGUI(Frame):
               </div>
               <div id="deploy-setting-status" class="deploy-setting-status"></div>
             </div>
-            """
+            """,
+            scope="develop_detail",
         )
         run_js(
             f"""
@@ -4291,7 +4110,7 @@ class AlasGUI(Frame):
                 const value = field.value == null ? '' : field.value;
                 let input = '';
                 if (field.type === 'bool') {{
-                  input = `<label class="launcher-switch"><input data-deploy-key="${{escapeHtml(field.key)}}" type="checkbox" ${{value === true ? 'checked' : ''}}><span class="launcher-slider"></span></label>`;
+                  input = `<label class="launcher-switch"><input data-deploy-key="${{escapeHtml(field.key)}}" type="checkbox" ${{value === true ? 'checked' : ''}}></label>`;
                 }} else if (field.type === 'select') {{
                   const options = (field.options || []).map(opt => `<option value="${{escapeHtml(opt)}}" ${{String(opt) === String(value) ? 'selected' : ''}}>${{escapeHtml(opt)}}</option>`).join('');
                   input = `<select class="deploy-setting-select" data-deploy-key="${{escapeHtml(field.key)}}">${{options}}</select>`;
@@ -4391,8 +4210,17 @@ class AlasGUI(Frame):
     def dev_utils(self) -> None:
         self.init_menu(name="Utils")
         self.set_title(t("Gui.MenuDevelop.Utils"))
-        put_button(label=t("GUI测试 抛出异常事件"), onclick=raise_exception)
-        put_button(label=t("预览更新提示"), onclick=self._preview_update_notice)
+        put_scope("develop_detail")
+        put_button(
+            label=t("GUI测试 抛出异常事件"),
+            onclick=raise_exception,
+            scope="develop_detail",
+        )
+        put_button(
+            label=t("预览更新提示"),
+            onclick=self._preview_update_notice,
+            scope="develop_detail",
+        )
 
         def _get_debug_target_instance() -> Optional[str]:
             if getattr(self, "alas_name", ""):
@@ -4437,9 +4265,13 @@ class AlasGUI(Frame):
                 {"label": "模拟更新图标(10s)", "value": 4, "color": "warning"},
             ],
             onclick=lambda state: _mock_icon_state(state, 10),
+            scope="develop_detail",
         )
         put_button(
-            label="清除图标模拟状态", onclick=_clear_mock_icon_state, color="secondary"
+            label="清除图标模拟状态",
+            onclick=_clear_mock_icon_state,
+            color="secondary",
+            scope="develop_detail",
         )
 
         def _force_restart():
@@ -4450,7 +4282,9 @@ class AlasGUI(Frame):
             else:
                 toast(t("Gui.Toast.ReloadEnabled"), color="error")
 
-        put_button(label=t("重启Alas"), onclick=_force_restart)
+        put_button(
+            label=t("重启Alas"), onclick=_force_restart, scope="develop_detail"
+        )
 
         def _test_notify_update():
             from module.notify.notify import notify_webui
@@ -4517,17 +4351,20 @@ class AlasGUI(Frame):
                 _test_notify_announcement,
                 _test_notify_error,
             ],
+            scope="develop_detail",
         )
 
     @use_scope("content", clear=True)
     def dev_remote(self) -> None:
         self.init_menu(name="Remote")
         self.set_title(t("Gui.MenuDevelop.Remote"))
-        put_row(
-            content=[put_scope("remote_loading"), None, put_scope("remote_state")],
-            size="auto .25rem 1fr",
-        )
-        put_scope("remote_info")
+        put_scope("develop_detail")
+        with use_scope("develop_detail"):
+            put_row(
+                content=[put_scope("remote_loading"), None, put_scope("remote_state")],
+                size="auto .25rem 1fr",
+            )
+            put_scope("remote_info")
 
         def u(state):
             if state == -1:
@@ -4606,25 +4443,14 @@ class AlasGUI(Frame):
         self._show_update_notice(handle_preview_click)
 
     def ui_develop(self) -> None:
-        if not self.is_mobile:
-            self.show()
-            return
-        self.init_aside(name="Home")
-        self.set_title(t("Gui.Aside.Home"))
-        self.dev_set_menu()
-        self.alas_name = ""
-        if hasattr(self, "alas"):
-            del self.alas
-        if hasattr(self, "state_switch"):
-            try:
-                self.state_switch.switch()
-            except Exception:
-                pass
+        self.show_home()
 
     def ui_alas(self, config_name: str) -> None:
+        self._set_manage_mode(False)
         if config_name == self.alas_name:
             self.expand_menu()
             return
+        self._active_aside = config_name
         self.init_aside(name=config_name)
         clear("content")
         self.alas_name = config_name
@@ -4671,9 +4497,12 @@ class AlasGUI(Frame):
 
                 r = load_config(origin).read_file(origin)
                 State.config_updater.write_file(name, r, get_config_mod(origin))
-                self.set_aside()
-                self.active_button("aside", self.alas_name)
+                self.refresh_aside_instances(force=True)
                 close_popup()
+
+            def manage():
+                close_popup()
+                self.ui_manage()
 
             def put(name=None, origin=None):
                 put_input(
@@ -4696,7 +4525,7 @@ class AlasGUI(Frame):
                     ],
                     onclick=[
                         add,
-                        lambda: go_app("manage", new_window=False),
+                        manage,
                     ],
                     scope=s,
                 )
@@ -4705,29 +4534,19 @@ class AlasGUI(Frame):
 
     @use_scope("content", clear=True)
     def ui_import_legacy(self) -> None:
-        """Develop 菜单：导入旧 AzurPilot 数据"""
-        self.init_menu(name="Import")
-        self.set_title("导入旧数据")
+        """管理菜单：导入旧 AzurPilot 数据。"""
+        self.init_menu(name="ManageImportLegacy")
+        self.set_title(t("Gui.AppManage.ImportLegacy"))
         from pywebio.output import put_markdown, put_html, put_buttons, put_scope
-        import json
-
-        # 检查上一轮导入的结果（通过 sessionStorage 跨刷新传递）
-        try:
-            raw = eval_js("(function(){var r=sessionStorage.getItem('import_msg');if(r){sessionStorage.removeItem('import_msg');return r;}return null;})()")
-            if raw:
-                info = json.loads(raw)
-                if info.get("ok"):
-                    d = info["data"]
-                    parts = []
-                    toast("导入成功", color="success", duration=10)
-                else:
-                    toast("导入失败：" + info.get("error", "未知错误"), color="error", duration=10)
-        except Exception:
-            pass
 
         def import_legacy_upload():
-            toast("请在弹出的窗口中选择旧 AzurPilot/ALAS 根目录", color="info", duration=0)
-            run_js("""
+            toast(
+                t("Gui.AppManage.ImportLegacySelecting"),
+                color="info",
+                duration=0,
+            )
+            run_js(
+                """
             (function(){
                 var input = document.createElement('input');
                 input.type = 'file';
@@ -4768,8 +4587,8 @@ class AlasGUI(Frame):
                     }
 
                     if (matched === 0) {
-                        sessionStorage.setItem('import_msg', JSON.stringify({ok:false, error:'所选文件夹中没有找到 config/ 或 log/cl1/ 下的匹配文件'}));
-                        location.reload();
+                        sessionStorage.setItem('import_msg', JSON.stringify({ok:false, error:legacyNoMatch}));
+                        window.location.assign('/manage');
                         return;
                     }
 
@@ -4780,42 +4599,92 @@ class AlasGUI(Frame):
                             result.data.total = total;
                             sessionStorage.setItem('import_msg', JSON.stringify({ok:true, data:result.data, total:total}));
                         } else {
-                            sessionStorage.setItem('import_msg', JSON.stringify({ok:false, error:result.error || '未知错误'}));
+                            sessionStorage.setItem('import_msg', JSON.stringify({ok:false, error:result.error || legacyUnknownError}));
                         }
                     } catch (err) {
-                        sessionStorage.setItem('import_msg', JSON.stringify({ok:false, error:'上传请求失败: ' + err.message}));
+                        sessionStorage.setItem('import_msg', JSON.stringify({ok:false, error:legacyRequestFailed + ': ' + err.message}));
                     }
-                    location.reload();
+                    window.location.assign('/manage');
                 });
 
                 document.body.appendChild(input);
                 input.click();
             })();
-            """)
+            """,
+                legacyNoMatch=t("Gui.AppManage.ImportLegacyNoMatch"),
+                legacyRequestFailed=t("Gui.AppManage.ImportLegacyRequestFailed"),
+                legacyUnknownError=t("Gui.AppManage.ImportLegacyUnknownError"),
+            )
 
-        put_html(build_title_block("导入旧 AzurPilot/ALAS 数据", margin_top=12, margin_bottom=8))
-        put_markdown(
-            "选择旧 AzurPilot/ALAS 根目录后，自动将以下数据导入到当前项目：\n\n"
-            "**配置 数据文件等**\n\n"
-            "> 同名文件将被覆盖，建议先备份当前项目。"
-        )
-
-        put_scope("import_btn")
+        put_scope("develop_detail")
+        with use_scope("develop_detail"):
+            put_html(
+                '<h2 class="alas-develop-section-title">'
+                f'{t("Gui.AppManage.ImportLegacyTitle")}</h2>'
+            )
+            put_markdown(
+                f'{t("Gui.AppManage.ImportLegacyHint")}\n\n'
+                f'**{t("Gui.AppManage.ImportLegacyContent")}**\n\n'
+                f'> {t("Gui.AppManage.ImportLegacyWarning")}'
+            )
+            put_scope("import_btn")
         with use_scope("import_btn"):
             put_buttons(
                 [
-                    {"label": "选择旧 AzurPilot/ALAS 文件夹", "value": "upload", "color": "primary"},
+                    {
+                        "label": t("Gui.AppManage.ImportLegacyChoose"),
+                        "value": "upload",
+                        "color": "primary",
+                    },
                 ],
                 onclick=[import_legacy_upload],
             )
 
-    def show(self) -> None:
+    @use_scope("content", clear=True)
+    def ui_manage(self) -> None:
+        self.mount_shell()
+        if self._active_aside == "Manage":
+            self.expand_menu()
+            return
+        self._set_manage_mode(True)
+        self._active_aside = "Manage"
+        self.init_aside(expand_menu=False)
+        self.init_menu()
+        self.active_button("aside", "Manage")
+        self.set_title(t("Gui.AppManage.PageTitle"))
+        self.alas_name = ""
+        if hasattr(self, "alas"):
+            del self.alas
+        self.set_status(0)
+        app_manage(self)
+
+    @staticmethod
+    def _set_manage_mode(enabled: bool) -> None:
+        run_js(
+            "document.body.classList.toggle('alas-manage-active', enabled)",
+            enabled=enabled,
+        )
+
+    def mount_shell(self) -> None:
+        """创建一次页头、侧栏、二级菜单和内容区。"""
+        if self._shell_mounted:
+            return
         self._show()
-        self.load_home = True
+        self._shell_mounted = True
         self.set_aside()
+
+    def show(self) -> None:
+        self.mount_shell()
+        self.show_home()
+
+    def show_home(self) -> None:
+        self.mount_shell()
+        self._set_manage_mode(False)
+        self._active_aside = "Home"
         self.init_aside(name="Home")
         self.dev_set_menu()
         self.init_menu(name="HomePage")
+        self.set_title(t("Gui.MenuDevelop.HomePage"))
         self.alas_name = ""
         if hasattr(self, "alas"):
             del self.alas
@@ -4823,14 +4692,18 @@ class AlasGUI(Frame):
 
         def set_language(l):
             lang.set_language(l)
-            self.show()
+            self.show_home()
+            self.refresh_aside_labels()
 
         def set_theme(t):
             self.set_theme(t)
-            run_js("location.reload()")
+            set_localstorage("aside", "Home")
+            go_app("index", new_window=False)
 
         with use_scope("content"):
-            put_text("Select your language / 选择语言").style("text-align: center")
+            put_text("Select your language / 选择语言").style(
+                "text-align: center; font-weight: 600"
+            )
             put_buttons(
                 [
                     {"label": "简体中文", "value": "zh-CN"},
@@ -4852,6 +4725,7 @@ class AlasGUI(Frame):
                 ],
                 onclick=lambda t: set_theme(t),
             ).style("text-align: center")
+            put_html('<div class="alas-home-marker" aria-hidden="true"></div>')
             # show something
             put_markdown(
                 """
@@ -4873,7 +4747,7 @@ class AlasGUI(Frame):
 
             def _disable():
                 lang.TRANSLATE_MODE = False
-                self.show()
+                self.show_home()
 
             toast(
                 _t("Gui.Toast.DisableTranslateMode"),
@@ -4992,27 +4866,13 @@ class AlasGUI(Frame):
         if force:
             toast("正在获取公告... / Fetching announcement...", color="info")
 
-    def run(self) -> None:
+    def run(self, initial_page="home") -> None:
         # setup gui
         set_env(title="AzurPilot", output_animation=False)
         run_js(
             "document.head.append(Object.assign(document.createElement('link'), { rel: 'manifest', href: '/static/assets/spa/manifest.json' }))"
         )
-        add_css(filepath_css("alas"))
-        if self.is_mobile:
-            add_css(filepath_css("alas-mobile"))
-        else:
-            add_css(filepath_css("alas-pc"))
-
-        if self.theme == "dark":
-            add_css(filepath_css("dark-alas"))
-
-        elif self.theme == "socialism":
-            add_css(filepath_css("socialism-alas"))
-        elif self.theme == "children":
-            add_css(filepath_css("children-alas"))
-        else:
-            add_css(filepath_css("light-alas"))
+        load_webui_styles(theme=self.theme, is_mobile=self.is_mobile)
 
         # 儿童节背景 Emoji 雨自动掉落逻辑（支持所有主题）
         current_date = current_time().date()
@@ -5112,7 +4972,11 @@ class AlasGUI(Frame):
             OOBEWizard(self).start()
             return
 
-        self.show()
+        self.mount_shell()
+        if initial_page == "manage":
+            self.ui_manage()
+        else:
+            self.show_home()
 
         # init config watcher
         self._init_alas_config_watcher()
@@ -5213,26 +5077,370 @@ class AlasGUI(Frame):
 
         # Return to previous page
 
-        if aside not in ["Home", None]:
+        if initial_page == "home" and aside in alas_instance():
             self.ui_alas(aside)
 
 
-def app_manage():
+def app_manage(gui: AlasGUI):
+    expanded_summaries = set()
+
+    def _show_legacy_import_result():
+        raw = eval_js(
+            "(function(){var r=sessionStorage.getItem('import_msg');"
+            "if(r){sessionStorage.removeItem('import_msg');return r;}"
+            "return null;})()"
+        )
+        if not raw:
+            return
+        try:
+            info = json.loads(raw)
+        except (TypeError, ValueError):
+            return
+        if info.get("ok"):
+            toast(
+                t("Gui.AppManage.ImportLegacySuccess"),
+                color="success",
+                duration=10,
+            )
+        else:
+            toast(
+                t(
+                    "Gui.AppManage.ImportLegacyFailed",
+                    error=info.get("error", t("Gui.AppManage.ImportLegacyUnknownError")),
+                ),
+                color="error",
+                duration=10,
+            )
+
+    def get_unused_name():
+        all_name = alas_instance()
+        for i in range(2, 100):
+            if f"alas{i}" not in all_name:
+                return f"alas{i}"
+        return ""
+
+    def validate_name(name: str):
+        if name in alas_instance():
+            return t("Gui.AppManage.NameExist")
+        if set(name) & set(".\\/:*?\"'<>|"):
+            return t("Gui.AppManage.InvalidChar")
+        if name.lower().startswith("template"):
+            return t("Gui.AppManage.InvalidPrefixTemplate")
+        return None
+
+    def _export(config_name: str):
+        mod_name = get_config_mod(config_name)
+        if mod_name == "alas":
+            filename = f"{config_name}.json"
+        else:
+            filename = f"{config_name}.{mod_name}.json"
+        with open(filepath_config(config_name, mod_name), "rb") as f:
+            download(filename, f.read())
+
+    def _get_enabled_tasks(config_name: str, mod_name: str) -> List[str]:
+        config = read_file(filepath_config(config_name, mod_name))
+        args = read_file(filepath_args("args", mod_name))
+        priority = parse_task_priority(task_priority_from_config(config, args))
+
+        enabled = []
+        for task_data in config.values():
+            if not isinstance(task_data, dict):
+                continue
+            scheduler = task_data.get("Scheduler")
+            if not isinstance(scheduler, dict) or scheduler.get("Enable") is not True:
+                continue
+            command = scheduler.get("Command")
+            if isinstance(command, str) and command and command not in enabled:
+                enabled.append(command)
+
+        enabled_set = set(enabled)
+        ordered = [task for task in priority if task in enabled_set]
+        ordered.extend(task for task in enabled if task not in ordered)
+        return ordered
+
+    def _toggle_summary(config_name: str, index: int):
+        summary_scope = f"manage_config_summary_{index}"
+        if config_name in expanded_summaries:
+            expanded_summaries.remove(config_name)
+            clear(summary_scope)
+            _render_config_actions(config_name, index)
+            return
+
+        mod_name = get_config_mod(config_name)
+        try:
+            tasks = _get_enabled_tasks(config_name, mod_name)
+        except (OSError, ValueError) as e:
+            toast(
+                t("Gui.AppManage.SummaryLoadFailed", error=e),
+                color="error",
+            )
+            return
+
+        expanded_summaries.add(config_name)
+        with use_scope(summary_scope, clear=True):
+            summary_content = [
+                put_text(
+                    f"{t('Gui.AppManage.EnabledTasks')}: {len(tasks)}"
+                ).style("--manage-summary-title--"),
+                put_text(t("Gui.AppManage.SchedulerOrderHint")).style(
+                    "--manage-summary-hint--"
+                ),
+            ]
+            if not tasks:
+                summary_content.append(
+                    put_text(t("Gui.Overview.NoTask")).style(
+                        "--manage-summary-empty--"
+                    )
+                )
+            else:
+                for task_index, task in enumerate(tasks, start=1):
+                    summary_content.append(
+                        put_row(
+                            [
+                                put_text(str(task_index)).style(
+                                    "--manage-summary-rank--"
+                                ),
+                                put_column(
+                                    [
+                                        put_text(t(f"Task.{task}.name")).style(
+                                            "--manage-summary-name--"
+                                        ),
+                                        put_text(task).style(
+                                            "--manage-summary-code--"
+                                        ),
+                                    ],
+                                    size="auto auto",
+                                ),
+                            ],
+                            size="2.25rem minmax(0, 1fr)",
+                        ).style("--manage-summary-task--")
+                    )
+            put_column(summary_content).style("--manage-summary-panel--")
+        _render_config_actions(config_name, index)
+
+    def _render_config_actions(config_name: str, index: int):
+        action_scope = f"manage_config_actions_{index}"
+        with use_scope(action_scope, clear=True):
+            put_buttons(
+                buttons=[
+                    {
+                        "label": t(
+                            "Gui.AppManage.Collapse"
+                            if config_name in expanded_summaries
+                            else "Gui.AppManage.Summary"
+                        ),
+                        "value": "summary",
+                        "color": "primary",
+                    },
+                    {
+                        "label": t("Gui.AppManage.Export"),
+                        "value": "export",
+                        "color": "primary",
+                    },
+                    {
+                        "label": t("Gui.AppManage.Delete"),
+                        "value": "delete",
+                        "color": "danger",
+                        "disabled": IS_ON_PHONE_CLOUD,
+                    },
+                ],
+                onclick=[
+                    partial(_toggle_summary, config_name, index),
+                    partial(_export, config_name),
+                    partial(_delete, config_name),
+                ],
+            ).style("--manage-config-actions--")
+
+    def _delete_block_reason(config_name: str) -> Optional[str]:
+        if len(alas_instance()) <= 1:
+            return t("Gui.AppManage.DeleteLast")
+        if ProcessManager.is_running(config_name):
+            return t("Gui.AppManage.DeleteRunning", name=config_name)
+        return None
+
+    def _delete(config_name: str):
+        if IS_ON_PHONE_CLOUD:
+            return
+
+        reason = _delete_block_reason(config_name)
+        if reason:
+            toast(reason, color="warning")
+            return
+
+        resp = input_group(
+            label=f"{t('Gui.AppManage.Delete')}: {config_name}",
+            inputs=[
+                actions(
+                    name="action",
+                    label=t("Gui.AppManage.DeleteConfirm", name=config_name),
+                    buttons=[
+                        {
+                            "label": t("Gui.AppManage.Delete"),
+                            "value": "confirm",
+                            "type": "submit",
+                            "color": "danger",
+                        },
+                        {
+                            "label": t("Gui.AppManage.Back"),
+                            "type": "cancel",
+                            "color": "light",
+                        },
+                    ],
+                )
+            ],
+        )
+        if resp is None:
+            return
+
+        reason = _delete_block_reason(config_name)
+        if reason:
+            toast(reason, color="warning")
+            return
+
+        mod_name = get_config_mod(config_name)
+        try:
+            os.remove(filepath_config(config_name, mod_name))
+        except OSError as e:
+            toast(
+                t("Gui.AppManage.DeleteFailed", error=e),
+                color="error",
+            )
+            return
+
+        ProcessManager.remove_manager(config_name)
+        gui.refresh_aside_instances(force=True)
+        toast(
+            t("Gui.AppManage.DeleteSuccess", name=config_name),
+            color="success",
+        )
+        _show_list()
+
+    @use_scope("content", clear=True)
+    def _show_list():
+        expanded_summaries.clear()
+        gui.init_menu(name="ManageList")
+        gui.set_title(t("Gui.AppManage.PageTitle"))
+        put_scope("manage_config_list")
+        with use_scope("manage_config_list"):
+            for index, name in enumerate(alas_instance()):
+                mod_name = get_config_mod(name)
+                action_scope = f"manage_config_actions_{index}"
+                summary_scope = f"manage_config_summary_{index}"
+                put_scope(
+                    f"manage_config_card_{index}",
+                    [
+                        put_row(
+                            [
+                                put_column(
+                                    [
+                                        put_text(name).style(
+                                            "--manage-config-name--"
+                                        ),
+                                        put_text(
+                                            f"{t('Gui.AppManage.Mod')}: {mod_name}"
+                                        ).style("--manage-config-meta--"),
+                                    ],
+                                    size="auto auto",
+                                ).style("--manage-config-identity--"),
+                                put_scope(action_scope),
+                            ],
+                            size="minmax(0, 1fr) auto",
+                        ).style("--manage-config-row--"),
+                        put_scope(summary_scope),
+                    ],
+                ).style("--manage-config-card--")
+                _render_config_actions(name, index)
+
+    def _create():
+        name = pin["ManageNew_name"]
+        origin = pin["ManageNew_copyfrom"]
+        clear("manage_add_feedback")
+        gui.pin_remove_invalid_mark("ManageNew_name")
+
+        error = validate_name(name)
+        if error:
+            gui.pin_set_invalid_mark("ManageNew_name")
+            put_error(error, scope="manage_add_feedback")
+            return
+
+        config = load_config(origin).read_file(origin)
+        State.config_updater.write_file(name, config, get_config_mod(origin))
+        toast(t("Gui.AppManage.NewSuccess"), color="success")
+        gui.refresh_aside_instances(force=True)
+        _show_list()
+
+    @use_scope("content", clear=True)
+    def _show_new():
+        gui.init_menu(name="ManageNew")
+        gui.set_title(t("Gui.AppManage.TitleNew"))
+        put_scope("manage_add_form")
+        with use_scope("manage_add_form"):
+            put_input(
+                name="ManageNew_name",
+                label=t("Gui.AppManage.NewName"),
+                value=get_unused_name(),
+            )
+            put_select(
+                name="ManageNew_copyfrom",
+                label=t("Gui.AppManage.CopyFrom"),
+                options=alas_template() + alas_instance(),
+                value="template-alas",
+            )
+            put_scope("manage_add_feedback")
+            put_buttons(
+                buttons=[
+                    {
+                        "label": t("Gui.AddAlas.Confirm"),
+                        "value": "confirm",
+                        "color": "on",
+                    },
+                    {
+                        "label": t("Gui.AppManage.Back"),
+                        "value": "back",
+                        "color": "off",
+                    },
+                ],
+                onclick=[_create, _show_list],
+            )
+
     def _import():
-        resp = file_upload(
+        resp = input_group(
             label=t("Gui.AppManage.Import"),
-            placeholder=t("Gui.Text.ChooseFile"),
-            help_text=t("Gui.AppManage.OverrideWarning"),
-            accept=".json",
-            required=False,
-            max_size="1M",
+            inputs=[
+                file_upload(
+                    label=t("Gui.AppManage.Import"),
+                    name="file",
+                    placeholder=t("Gui.Text.ChooseFile"),
+                    help_text=t("Gui.AppManage.OverrideWarning"),
+                    accept=".json",
+                    required=True,
+                    max_size="1M",
+                ),
+                actions(
+                    name="action",
+                    buttons=[
+                        {
+                            "label": t("Gui.AppManage.Import"),
+                            "value": "confirm",
+                            "type": "submit",
+                            "color": "primary",
+                        },
+                        {
+                            "label": t("Gui.AppManage.Back"),
+                            "type": "cancel",
+                            "color": "light",
+                        },
+                    ],
+                ),
+            ],
         )
 
         if resp is None:
             return
 
-        file: bytes = resp["content"]
-        file_name: str = resp["filename"]
+        upload = resp["file"]
+        file: bytes = upload["content"]
+        file_name: str = upload["filename"]
 
         if IS_ON_PHONE_CLOUD:
             config_name = mod_name = "alas"
@@ -5246,122 +5454,47 @@ def app_manage():
         State.config_updater.write_file(config_name, config, mod_name)
         toast(t("Gui.AppManage.ImportSuccess"), color="success")
 
-        _show_table()
+        gui.refresh_aside_instances(force=True)
+        _show_list()
 
-    def _export(config_name: str):
-        mod_name = get_config_mod(config_name)
-        if mod_name == "alas":
-            filename = f"{config_name}.json"
-        else:
-            filename = f"{config_name}.{mod_name}.json"
-        with open(filepath_config(config_name, mod_name), "rb") as f:
-            download(filename, f.read())
+    @use_scope("content", clear=True)
+    def _show_import():
+        gui.init_menu(name="ManageImport")
+        gui.set_title(t("Gui.AppManage.Import"))
+        put_scope("manage_import_panel")
+        with use_scope("manage_import_panel"):
+            put_warning(t("Gui.AppManage.OverrideWarning"), closable=False)
+            put_button(
+                t("Gui.Text.ChooseFile"),
+                onclick=_import,
+                color="on",
+            )
 
-    def _new():
-        def get_unused_name():
-            all_name = alas_instance()
-            for i in range(2, 100):
-                if f"alas{i}" not in all_name:
-                    return f"alas{i}"
-            else:
-                return ""
+    with use_scope("menu", clear=True):
+        put_button(
+            t("Gui.AppManage.Name"),
+            onclick=_show_list,
+            color="menu",
+        ).style("--menu-ManageList--")
+        put_button(
+            t("Gui.AppManage.New"),
+            onclick=_show_new,
+            color="menu",
+            disabled=IS_ON_PHONE_CLOUD,
+        ).style("--menu-ManageNew--")
+        put_button(
+            t("Gui.AppManage.Import"),
+            onclick=_show_import,
+            color="menu",
+        ).style("--menu-ManageImport--")
+        put_button(
+            t("Gui.AppManage.ImportLegacy"),
+            onclick=gui.ui_import_legacy,
+            color="menu",
+        ).style("--menu-ManageImportLegacy--")
 
-        def validate(s: str):
-            if s in alas_instance():
-                return t("Gui.AppManage.NameExist")
-            if set(s) & set(".\\/:*?\"'<>|"):
-                return t("Gui.AppManage.InvalidChar")
-            if s.lower().startswith("template"):
-                return t("Gui.AppManage.InvalidPrefixTemplate")
-            return None
-
-        resp = input_group(
-            label=t("Gui.AppManage.TitleNew"),
-            inputs=[
-                input(
-                    label=t("Gui.AppManage.NewName"),
-                    name="config_name",
-                    value=get_unused_name(),
-                    validate=validate,
-                ),
-                select(
-                    label=t("Gui.AppManage.CopyFrom"),
-                    name="copy_from",
-                    options=alas_template() + alas_instance(),
-                    value="template-alas",
-                ),
-            ],
-            cancelable=True,
-        )
-
-        if resp is None:
-            return
-
-        config_name = resp["config_name"]
-        origin = resp["copy_from"]
-
-        r = load_config(origin).read_file(origin)
-        State.config_updater.write_file(config_name, r, get_config_mod(origin))
-        toast(t("Gui.AppManage.NewSuccess"), color="success")
-        _show_table()
-
-    def _show_table():
-        clear("config_table")
-        put_table(
-            tdata=[
-                (
-                    name,
-                    get_config_mod(name),
-                    put_buttons(
-                        buttons=[
-                            {"label": t("Gui.AppManage.Export"), "value": name},
-                            # {
-                            #     "label": t("Gui.AppManage.Delete"),
-                            #     "value": name,
-                            #     "disabled": True,
-                            #     "color": "danger",
-                            # },
-                        ],
-                        onclick=[
-                            partial(_export, name),
-                            # partial(_delete, name),
-                        ],
-                        group=True,
-                        small=True,
-                    ),
-                )
-                for name in alas_instance()
-            ],
-            header=[
-                t("Gui.AppManage.Name"),
-                t("Gui.AppManage.Mod"),
-                t("Gui.AppManage.Actions"),
-            ],
-            scope="config_table",
-        )
-
-    set_env(title="AzurPilot", output_animation=False)
-    run_js("$('head').append('<style>.footer{display:none}</style>')")
-
-    put_html(build_app_manage_title(t("Gui.AppManage.PageTitle")))
-    put_scope("config_table")
-    put_buttons(
-        buttons=[
-            {
-                "label": t("Gui.AppManage.New"),
-                "value": "new",
-                "disabled": IS_ON_PHONE_CLOUD,
-            },
-            {"label": t("Gui.AppManage.Import"), "value": "import"},
-            {"label": t("Gui.AppManage.Back"), "value": "back"},
-        ],
-        onclick=[
-            (lambda: None) if IS_ON_PHONE_CLOUD else _new,
-            _import,
-            partial(go_app, "index", new_window=False),
-        ],
-    )
-    _show_table()
+    _show_legacy_import_result()
+    _show_list()
 
 
 def debug():
@@ -5490,6 +5623,8 @@ def app():
         return True
 
     def index():
+        set_env(title="AzurPilot", output_animation=False)
+        load_webui_styles(theme=AlasGUI.theme, is_mobile=info.user_agent.is_mobile)
         if _block_restricted_device():
             return
         if _block_public_webui_password_error():
@@ -5504,6 +5639,8 @@ def app():
         gui.run()
 
     def manage():
+        set_env(title="AzurPilot", output_animation=False)
+        load_webui_styles(theme=AlasGUI.theme, is_mobile=info.user_agent.is_mobile)
         if _block_restricted_device():
             return
         if _block_public_webui_password_error():
@@ -5513,7 +5650,9 @@ def app():
             time.sleep(1.5)
             run_js("location.reload();")
             return
-        app_manage()
+        gui = AlasGUI()
+        local.gui = gui
+        gui.run(initial_page="manage")
 
     from mcp_server_sse import app as mcp_app
 

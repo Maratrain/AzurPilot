@@ -378,6 +378,10 @@
       "name": "Disassemble Gear Box",
       "help": ""
     },
+    "AutoEquip": {
+      "name": "Auto Equip",
+      "help": "Starts from the first dock ship, opens quick equipment change, enables the equipping filter, then swipes through ship details. The actual equipment strategy is not configured yet."
+    },
     "Benchmark": {
       "name": "Performance Test",
       "help": ""
@@ -2002,10 +2006,6 @@
       "only_05_hour": "0.5 hour + when no project available",
       "only_no_project": "When no project available",
       "do_not_use": "Do not use"
-    },
-    "CubePreserve": {
-      "name": "Preserve X Cubes",
-      "help": "When current cubes are less than or equal to this value, Research will temporarily skip projects that consume cubes.\n0 disables this protection."
     },
     "UseCoin": {
       "name": "Use Coins",
@@ -5641,6 +5641,46 @@
       "help": ""
     }
   },
+  "AutoEquip": {
+    "_info": {
+      "name": "Auto Equip",
+      "help": "Current scaffold: dock, first ship, quick change, equipping filter, placeholder strategy, next ship."
+    },
+    "ShipLimit": {
+      "name": "Ship limit",
+      "help": "0 means continue until no next ship is detected. Use 1 or another small value while debugging."
+    },
+    "EnableSlot1": {
+      "name": "Replace equipment slot 1",
+      "help": "When enabled, AutoEquip will try to fill equipment slot 1 only if it is empty.",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot2": {
+      "name": "Replace equipment slot 2",
+      "help": "When enabled, AutoEquip will try to fill equipment slot 2 only if it is empty.",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot3": {
+      "name": "Replace equipment slot 3",
+      "help": "When enabled, AutoEquip will try to fill equipment slot 3 only if it is empty.",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot4": {
+      "name": "Replace equipment slot 4",
+      "help": "When enabled, AutoEquip will try to fill equipment slot 4 only if it is empty.",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot5": {
+      "name": "Replace equipment slot 5",
+      "help": "When enabled, AutoEquip will try to fill equipment slot 5 only if it is empty.",
+      "True": "True",
+      "False": "False"
+    }
+  },
   "Benchmark": {
     "_info": {
       "name": "Performance testing",
@@ -5943,10 +5983,32 @@
       "InvalidChar": "The configuration file name cannot contain any of the following characters: .\\/:*?\"<>|",
       "InvalidPrefixTemplate": "The configuration file name cannot start with template",
       "Back": "Back",
-      "New": "Add",
-      "Import": "Import",
+      "New": "Add configuration",
+      "Import": "Import configuration",
+      "ImportLegacy": "Import old data",
+      "ImportLegacyTitle": "Import old AzurPilot/ALAS data",
+      "ImportLegacyHint": "Select the old AzurPilot/ALAS root folder to import the following data.",
+      "ImportLegacyContent": "Configuration files, databases, and log statistics",
+      "ImportLegacyWarning": "Files with the same name will be overwritten. Back up the current project first.",
+      "ImportLegacyChoose": "Select old AzurPilot/ALAS folder",
+      "ImportLegacySelecting": "Select the old AzurPilot/ALAS root folder in the dialog",
+      "ImportLegacySuccess": "Old data imported successfully",
+      "ImportLegacyFailed": "Failed to import old data: {error}",
+      "ImportLegacyNoMatch": "No matching files were found under config/ or log/cl1/ in the selected folder",
+      "ImportLegacyRequestFailed": "Upload request failed",
+      "ImportLegacyUnknownError": "Unknown error",
       "Export": "Export",
       "Delete": "Delete",
+      "Summary": "Summary",
+      "Collapse": "Collapse",
+      "EnabledTasks": "Enabled tasks",
+      "SchedulerOrderHint": "Shown in scheduler priority order. Actual execution time is still determined by each task's NextRun.",
+      "SummaryLoadFailed": "Failed to load configuration summary: {error}",
+      "DeleteConfirm": "Delete configuration \"{name}\"? This cannot be undone. Logs and statistics will be kept.",
+      "DeleteRunning": "Configuration \"{name}\" is running. Stop it before deleting.",
+      "DeleteLast": "At least one configuration must be kept. Add another configuration first.",
+      "DeleteSuccess": "Configuration \"{name}\" deleted",
+      "DeleteFailed": "Failed to delete configuration: {error}",
       "OverrideWarning": "Existing configuration files will be overwritten",
       "ImportSuccess": "Import successful",
       "NewSuccess": "Added successfully",

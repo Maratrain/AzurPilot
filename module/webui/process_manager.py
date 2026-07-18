@@ -202,6 +202,17 @@ class ProcessManager:
             cls._processes[config_name] = ProcessManager(config_name)
         return cls._processes[config_name]
 
+    @classmethod
+    def is_running(cls, config_name: str) -> bool:
+        """检查指定配置实例是否正在运行。"""
+        manager = cls._processes.get(config_name)
+        return manager is not None and manager.alive
+
+    @classmethod
+    def remove_manager(cls, config_name: str) -> None:
+        """移除指定配置实例的进程管理器。"""
+        cls._processes.pop(config_name, None)
+
     @staticmethod
     def run_process(
         config_name, func: str, q: queue.Queue, e: threading.Event = None

@@ -1,6 +1,22 @@
 /* Theme: Lunar New Year (Spring Festival) */
 /* Festive Red: #D9363E, Gold: #F2C76E, Warm White: #FFFBF0 */
 
+:root {
+    --alas-entry-page: #FFFBF0;
+    --alas-entry-surface: rgba(255, 255, 255, 0.95);
+    --alas-entry-surface-muted: #FDF0D0;
+    --alas-entry-surface-subtle: rgba(255, 251, 240, 0.80);
+    --alas-entry-text: #4A1919;
+    --alas-entry-muted: #8B4513;
+    --alas-entry-border: #F2C76E;
+    --alas-entry-divider: rgba(242, 199, 110, 0.62);
+    --alas-entry-accent: #D9363E;
+    --alas-entry-on-accent: #ffffff;
+    --alas-entry-accent-soft: rgba(217, 54, 62, 0.10);
+    --alas-entry-shadow: 0 4px 10px rgba(217, 54, 62, 0.08);
+    --alas-entry-panel-shadow: 0 4px 10px rgba(217, 54, 62, 0.08);
+}
+
 /* Global Settings */
 body {
     background-color: #FFFBF0 !important; /* Warm creamy background */

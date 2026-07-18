@@ -1,8 +1,9 @@
 @font-face {
     font-family: 'MiSans';
     src: url('/static/assets/spa/MiSans-Demibold.ttf') format('truetype');
-    font-weight: normal;
+    font-weight: 450;
     font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
@@ -26,9 +27,19 @@ details[open]>div {
     margin-left: 0.625rem;
 }
 
+:root {
+    --alas-menu-font-size: .875rem;
+    --alas-menu-secondary-font-size: .8125rem;
+    --alas-menu-font-weight: 500;
+    --alas-menu-active-font-weight: 600;
+    --alas-menu-line-height: 1.5;
+}
+
 summary {
     background-color: transparent !important;
-    font-weight: 500;
+    font-size: var(--alas-menu-font-size);
+    font-weight: var(--alas-menu-font-weight);
+    line-height: var(--alas-menu-line-height);
 }
 
 body *:not(#pywebio-scope-log):not(#pywebio-scope-log *):not(.CodeMirror-line):not(pre.rich-traceback-code) {
@@ -50,7 +61,9 @@ footer {
 }
 
 .btn-menu {
-    font-weight: 500;
+    font-size: var(--alas-menu-font-size);
+    font-weight: var(--alas-menu-font-weight);
+    line-height: var(--alas-menu-line-height);
     background-color: transparent;
     padding: .5rem 1rem;
     border-radius: 100px;
@@ -63,7 +76,11 @@ footer {
 
 .btn-menu:hover,
 .btn-menu-active {
-    font-weight: bold;
+    font-weight: var(--alas-menu-active-font-weight);
+}
+
+#pywebio-scope-menu details .btn-menu {
+    font-size: var(--alas-menu-secondary-font-size);
 }
 
 .btn-aside {
@@ -1027,4 +1044,179 @@ pre.rich-traceback-code {
     width: 100% !important;
     max-width: 100% !important;
     table-layout: fixed !important;
+}
+
+/* 认证发生在业务壳层创建之前，保持独立的中性样式。 */
+body.alas-login-page {
+    min-height: 100dvh;
+    color: #202124;
+    background: #f4f5f7 !important;
+}
+
+body.alas-login-page *,
+body.alas-login-page *::before,
+body.alas-login-page *::after {
+    font-family: 'MiSans', "Microsoft YaHei", sans-serif !important;
+    letter-spacing: 0 !important;
+}
+
+body.alas-login-page::before,
+body.alas-login-page::after,
+.alas-login-page #output-container,
+.alas-login-page .footer {
+    display: none !important;
+}
+
+.alas-login-page .pywebio {
+    min-height: 100dvh;
+    padding: 0;
+}
+
+.alas-login-page #input-container {
+    position: fixed !important;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 24px;
+    overflow-y: auto;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.alas-login-page #input-cards {
+    width: min(420px, 100%);
+    max-width: 420px;
+    margin: auto;
+    padding: 0;
+}
+
+.alas-login-page #input-cards > .card {
+    width: 100% !important;
+    overflow: hidden;
+    color: #202124 !important;
+    background: #fff !important;
+    border: 1px solid #dde0e5 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 14px 36px rgba(31, 35, 48, .14) !important;
+}
+
+.alas-login-page #input-container h5.card-header {
+    padding: 22px 24px 14px !important;
+    color: #202124 !important;
+    background: #fff !important;
+    border-bottom: 0 !important;
+    font-size: 0;
+    font-weight: 700;
+    text-align: center;
+}
+
+.alas-login-page #input-container h5.card-header::before {
+    content: "";
+    display: block;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+    background: url('/static/doc/logo.webp') center / contain no-repeat;
+}
+
+.alas-login-page #input-container .card-body {
+    padding: 8px 24px 24px !important;
+    color: #202124 !important;
+    background: #fff !important;
+}
+
+.alas-login-page #input-container .form-group {
+    margin-bottom: 16px;
+}
+
+.alas-login-page #input-container label {
+    margin-bottom: 8px;
+    color: #5f6368 !important;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.alas-login-page #input-container .form-control {
+    min-height: 44px;
+    padding: 9px 12px;
+    color: #202124 !important;
+    background: #f7f7fa !important;
+    border: 1px solid #c9cdd3 !important;
+    border-radius: 6px !important;
+}
+
+.alas-login-page #input-container .form-control:focus {
+    background: #fff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .18) !important;
+}
+
+.alas-login-page #input-container .input-container .btn-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+.alas-login-page #input-container .btn {
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 9px 12px !important;
+    border-radius: 6px !important;
+    font-size: .875rem;
+    font-weight: 600;
+    transform: none !important;
+}
+
+.alas-login-page #input-container .btn-primary {
+    grid-column: 1 / -1;
+    color: #fff !important;
+    background: #2563eb !important;
+    border: 1px solid #2563eb !important;
+}
+
+.alas-login-page #input-container .btn-primary:hover,
+.alas-login-page #input-container .btn-primary:focus-visible {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+}
+
+.alas-login-page #input-container .btn-secondary {
+    color: #3c4043 !important;
+    background: #f4f5f7 !important;
+    border: 1px solid #c9cdd3 !important;
+}
+
+.alas-login-page #input-container .btn-secondary:hover,
+.alas-login-page #input-container .btn-secondary:focus-visible {
+    color: #202124 !important;
+    background: #e8eaed !important;
+    border-color: #aeb4bc !important;
+}
+
+@media (max-width: 640px) {
+    .alas-login-page #input-container {
+        padding: 24px 12px;
+    }
+
+    .alas-login-page #input-container h5.card-header {
+        padding: 20px 18px 12px !important;
+    }
+
+    .alas-login-page #input-container h5.card-header::before {
+        width: 136px;
+        height: 136px;
+    }
+
+    .alas-login-page #input-container .card-body {
+        padding: 8px 18px 20px !important;
+    }
+
+    .alas-login-page #input-container .input-container .btn-group {
+        grid-template-columns: 1fr;
+    }
 }

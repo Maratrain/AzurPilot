@@ -123,8 +123,30 @@ AppManage:
   Back:
   New:
   Import:
+  ImportLegacy:
+  ImportLegacyTitle:
+  ImportLegacyHint:
+  ImportLegacyContent:
+  ImportLegacyWarning:
+  ImportLegacyChoose:
+  ImportLegacySelecting:
+  ImportLegacySuccess:
+  ImportLegacyFailed:
+  ImportLegacyNoMatch:
+  ImportLegacyRequestFailed:
+  ImportLegacyUnknownError:
   Export:
   Delete:
+  Summary:
+  Collapse:
+  EnabledTasks:
+  SchedulerOrderHint:
+  SummaryLoadFailed:
+  DeleteConfirm:
+  DeleteRunning:
+  DeleteLast:
+  DeleteSuccess:
+  DeleteFailed:
   OverrideWarning:
   ImportSuccess:
   NewSuccess:

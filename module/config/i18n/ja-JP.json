@@ -378,6 +378,10 @@
       "name": "装備箱分解",
       "help": ""
     },
+    "AutoEquip": {
+      "name": "自動装備",
+      "help": "ドックの先頭艦から開始し、クイック装備変更を開いて装備中フィルターを有効化し、艦船詳細のスワイプで巡回します。実際の装備選択ロジックは未設定です。"
+    },
     "Benchmark": {
       "name": "パフォーマンステスト",
       "help": ""
@@ -2002,10 +2006,6 @@
       "only_05_hour": "0.5時間＋実行可能なプロジェクトがない場合",
       "only_no_project": "実行可能なプロジェクトがない場合",
       "do_not_use": "使用しない"
-    },
-    "CubePreserve": {
-      "name": "X個のキューブを保持",
-      "help": "現在のキューブ数がこの値以下の場合、研究ではキューブを消費するプロジェクトを一時的に選択しません。\n0で無効。"
     },
     "UseCoin": {
       "name": "資金を使用する",
@@ -5641,6 +5641,46 @@
       "help": ""
     }
   },
+  "AutoEquip": {
+    "_info": {
+      "name": "自動装備",
+      "help": "現在の骨組み: ドック、先頭艦、クイック変更、装備中フィルター、仮の装備ロジック、次の艦。"
+    },
+    "ShipLimit": {
+      "name": "処理する艦船数の上限",
+      "help": "0 は次の艦船が見つからなくなるまで処理します。デバッグ時は 1 など小さい値を指定してください。"
+    },
+    "EnableSlot1": {
+      "name": "装備スロット 1 を交換",
+      "help": "有効な場合、第 1 装備スロットが空のときだけ自動装備を試みます。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot2": {
+      "name": "装備スロット 2 を交換",
+      "help": "有効な場合、第 2 装備スロットが空のときだけ自動装備を試みます。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot3": {
+      "name": "装備スロット 3 を交換",
+      "help": "有効な場合、第 3 装備スロットが空のときだけ自動装備を試みます。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot4": {
+      "name": "装備スロット 4 を交換",
+      "help": "有効な場合、第 4 装備スロットが空のときだけ自動装備を試みます。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot5": {
+      "name": "装備スロット 5 を交換",
+      "help": "有効な場合、第 5 装備スロットが空のときだけ自動装備を試みます。",
+      "True": "True",
+      "False": "False"
+    }
+  },
   "Benchmark": {
     "_info": {
       "name": "パフォーマンステスト",
@@ -5943,10 +5983,32 @@
       "InvalidChar": "構成ファイル名には次の文字を含めることはできません: .\\/:*?\"<>|",
       "InvalidPrefixTemplate": "構成ファイル名をテンプレートで始めることはできません",
       "Back": "戻る",
-      "New": "に追加",
-      "Import": "輸入",
+      "New": "設定を追加",
+      "Import": "設定をインポート",
+      "ImportLegacy": "旧データをインポート",
+      "ImportLegacyTitle": "旧 AzurPilot/ALAS データをインポート",
+      "ImportLegacyHint": "旧 AzurPilot/ALAS のルートフォルダーを選択すると、次のデータが自動的にインポートされます。",
+      "ImportLegacyContent": "設定ファイル、データベース、ログ統計",
+      "ImportLegacyWarning": "同名のファイルは上書きされます。先に現在のプロジェクトをバックアップしてください。",
+      "ImportLegacyChoose": "旧 AzurPilot/ALAS フォルダーを選択",
+      "ImportLegacySelecting": "表示されたダイアログで旧 AzurPilot/ALAS のルートフォルダーを選択してください",
+      "ImportLegacySuccess": "旧データをインポートしました",
+      "ImportLegacyFailed": "旧データのインポートに失敗しました: {error}",
+      "ImportLegacyNoMatch": "選択したフォルダーの config/ または log/cl1/ に一致するファイルが見つかりませんでした",
+      "ImportLegacyRequestFailed": "アップロード要求に失敗しました",
+      "ImportLegacyUnknownError": "不明なエラー",
       "Export": "輸出",
       "Delete": "消去",
+      "Summary": "概要",
+      "Collapse": "折りたたむ",
+      "EnabledTasks": "有効なタスク",
+      "SchedulerOrderHint": "スケジューラーの優先順位で表示しています。実際の実行時刻は各タスクの NextRun によって決まります。",
+      "SummaryLoadFailed": "設定の概要を読み込めませんでした: {error}",
+      "DeleteConfirm": "設定「{name}」を削除しますか？この操作は元に戻せませんが、ログと統計データは削除されません。",
+      "DeleteRunning": "設定「{name}」は実行中です。停止してから削除してください。",
+      "DeleteLast": "設定は少なくとも1つ残す必要があります。先に別の設定を追加してください。",
+      "DeleteSuccess": "設定「{name}」を削除しました",
+      "DeleteFailed": "設定の削除に失敗しました: {error}",
       "OverrideWarning": "既存の設定ファイルは上書きされます",
       "ImportSuccess": "インポート成功",
       "NewSuccess": "正常に追加されました",

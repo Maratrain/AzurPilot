@@ -362,7 +362,6 @@ class GeneratedConfig:
 
     # 配置组 `Research`
     Research_UseCube = 'only_05_hour'  # always_use, only_05_hour, only_no_project, do_not_use
-    Research_CubePreserve = 0
     Research_UseCoin = 'always_use'  # always_use, only_05_hour, only_no_project, do_not_use
     Research_UsePart = 'always_use'  # always_use, only_05_hour, only_no_project, do_not_use
     Research_AllowDelay = True
@@ -971,6 +970,14 @@ class GeneratedConfig:
     BoxDisassemble_BlueBoxLimit = 1000
     BoxDisassemble_UseWhiteBox = True
     BoxDisassemble_WhiteBoxLimit = 2000
+
+    # 配置组 `AutoEquip`
+    AutoEquip_ShipLimit = 0
+    AutoEquip_EnableSlot1 = True  # True, False
+    AutoEquip_EnableSlot2 = True  # True, False
+    AutoEquip_EnableSlot3 = True  # True, False
+    AutoEquip_EnableSlot4 = True  # True, False
+    AutoEquip_EnableSlot5 = True  # True, False
 
     # 配置组 `Benchmark`
     Benchmark_DeviceType = 'emulator'  # emulator, plone_cloud_with_adb, phone_cloud_without_adb, android_phone, android_phone_vmos

@@ -1,0 +1,742 @@
+:root {
+    --alas-entry-page: #f4f5f7;
+    --alas-entry-surface: #ffffff;
+    --alas-entry-surface-muted: #f7f7fa;
+    --alas-entry-surface-subtle: rgba(255, 255, 255, .78);
+    --alas-entry-text: #202124;
+    --alas-entry-muted: #6f737a;
+    --alas-entry-border: #dde0e5;
+    --alas-entry-divider: #e7e9ed;
+    --alas-entry-accent: #4e4c97;
+    --alas-entry-on-accent: #ffffff;
+    --alas-entry-accent-soft: #e8e8f8;
+    --alas-entry-action: #2563eb;
+    --alas-entry-action-hover: #1d4ed8;
+    --alas-entry-on-action: #ffffff;
+    --alas-entry-success: #198754;
+    --alas-entry-on-success: #ffffff;
+    --alas-entry-shadow: 0 14px 36px rgba(31, 35, 48, .14);
+    --alas-entry-panel-shadow: 0 1px 2px rgba(0, 0, 0, .10);
+}
+
+/* 主页只约束内容宽度和节奏，继续沿用现有主题按钮。 */
+#pywebio-scope-content:has(> .alas-home-marker) {
+    padding: 28px clamp(18px, 5vw, 64px);
+}
+
+#pywebio-scope-content:has(> .alas-home-marker) > * {
+    width: min(880px, 100%);
+    margin-right: auto !important;
+    margin-left: auto !important;
+}
+
+.alas-home-marker {
+    height: 0;
+    margin-top: 18px;
+    margin-bottom: 22px;
+    border-top: 3px solid var(--alas-entry-accent);
+}
+
+#pywebio-scope-content:has(> .alas-home-marker) > p {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: var(--alas-entry-text);
+}
+
+#pywebio-scope-content:has(> .alas-home-marker) > .markdown-body {
+    margin-top: 0 !important;
+    padding-top: 0;
+    color: var(--alas-entry-muted);
+    line-height: 1.7;
+}
+
+/* 主页功能页使用统一表面，避免内容直接叠在主题背景上。 */
+#pywebio-scope-develop_detail {
+    width: min(960px, 100%);
+    margin: 12px auto 28px;
+    padding: 20px;
+    color: var(--alas-entry-text);
+    background: var(--alas-entry-surface);
+    border: 1px solid var(--alas-entry-border);
+    border-radius: 8px;
+    box-shadow: var(--alas-entry-panel-shadow);
+}
+
+#pywebio-scope-develop_detail .alas-develop-section-title {
+    margin: 0 0 16px;
+    color: var(--alas-entry-text);
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0;
+}
+
+#pywebio-scope-develop_detail > .btn,
+#pywebio-scope-develop_detail > .btn-group {
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
+#pywebio-scope-develop_detail .markdown-body {
+    color: var(--alas-entry-text);
+    line-height: 1.7;
+}
+
+#pywebio-scope-develop_detail .markdown-body blockquote {
+    color: var(--alas-entry-muted);
+    border-left-color: var(--alas-entry-accent);
+}
+
+#pywebio-scope-import_btn {
+    margin-top: 20px;
+}
+
+#pywebio-scope-remote_state > p {
+    margin: 0;
+    color: var(--alas-entry-text);
+    font-weight: 600;
+}
+
+#pywebio-scope-remote_info {
+    margin-top: 16px;
+    padding-top: 16px;
+    color: var(--alas-entry-muted);
+    border-top: 1px solid var(--alas-entry-divider);
+}
+
+#pywebio-scope-remote_info a {
+    overflow-wrap: anywhere;
+    color: var(--alas-entry-accent);
+}
+
+.launcher-setting-panel {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--alas-entry-divider);
+}
+
+#pywebio-scope-groups > .startup-run-panel,
+#pywebio-scope-groups > *:has(> .startup-run-panel) {
+    margin-top: .5rem;
+    margin-bottom: .5rem;
+    padding: 1rem;
+    color: var(--alas-entry-text);
+    background: var(--alas-entry-surface);
+    border: 1px solid var(--alas-entry-border);
+    border-radius: 16px;
+    box-shadow: var(--alas-entry-panel-shadow);
+}
+
+.startup-run-panel {
+    color: var(--alas-entry-text);
+}
+
+#pywebio-scope-groups > *:has(> .startup-run-panel) > .startup-run-panel {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.startup-run-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+}
+
+.startup-run-title {
+    margin: 0 0 4px;
+    color: var(--alas-entry-text);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.startup-run-desc,
+.startup-run-status {
+    color: var(--alas-entry-muted);
+    line-height: 1.55;
+}
+
+.startup-run-status {
+    margin-top: 10px;
+    font-size: .875rem;
+}
+
+.launcher-setting-row,
+.deploy-setting-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+}
+
+.launcher-setting-title {
+    margin-bottom: 4px;
+    color: var(--alas-entry-text);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.launcher-setting-desc,
+.launcher-setting-status,
+.deploy-setting-notice,
+.deploy-setting-status {
+    color: var(--alas-entry-muted);
+    line-height: 1.55;
+}
+
+.launcher-setting-status,
+.deploy-setting-notice,
+.deploy-setting-status {
+    font-size: .875rem;
+}
+
+.launcher-setting-status {
+    margin-top: 12px;
+}
+
+.launcher-switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 0;
+    cursor: pointer;
+}
+
+.launcher-switch input:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.deploy-setting-panel {
+    margin-top: 20px;
+}
+
+.deploy-setting-toolbar {
+    margin-bottom: 12px;
+}
+
+.deploy-setting-toolbar .alas-develop-section-title {
+    margin-bottom: 4px !important;
+}
+
+.deploy-setting-group {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--alas-entry-divider);
+}
+
+.deploy-setting-group-title {
+    margin-bottom: 10px;
+    color: var(--alas-entry-text);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.deploy-setting-field {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+    gap: 14px;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.deploy-setting-field label {
+    margin-bottom: 2px;
+    color: var(--alas-entry-text);
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.deploy-setting-help {
+    color: var(--alas-entry-muted);
+    font-size: .8125rem;
+    line-height: 1.45;
+}
+
+.deploy-setting-input,
+.deploy-setting-select {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 10px;
+    color: var(--alas-entry-text);
+    background: var(--alas-entry-surface-muted);
+    border: 1px solid var(--alas-entry-border);
+    border-radius: 6px;
+    outline: 0;
+}
+
+.deploy-setting-input:focus,
+.deploy-setting-select:focus {
+    border-color: var(--alas-entry-accent);
+    box-shadow: 0 0 0 3px var(--alas-entry-accent-soft);
+}
+
+.deploy-setting-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.deploy-setting-button {
+    min-height: 44px;
+    padding: 8px 14px;
+    color: var(--alas-entry-text);
+    background: var(--alas-entry-surface-muted);
+    border: 1px solid var(--alas-entry-border);
+    border-radius: 6px;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.deploy-setting-button:hover {
+    background: var(--alas-entry-surface);
+    border-color: var(--alas-entry-divider);
+}
+
+.deploy-setting-button:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 3px var(--alas-entry-accent-soft);
+}
+
+.deploy-setting-button.primary {
+    color: var(--alas-entry-on-accent);
+    background: var(--alas-entry-accent);
+    border-color: var(--alas-entry-accent);
+}
+
+.deploy-setting-button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+/* 管理页复用主壳层的二级菜单，右侧只承载当前详情。 */
+#pywebio-scope-menu:empty {
+    display: none;
+}
+
+#pywebio-scope-manage_config_list,
+#pywebio-scope-manage_add_form,
+#pywebio-scope-manage_import_panel {
+    width: min(960px, 100%);
+    margin: 0 auto;
+    padding: 12px clamp(8px, 3vw, 32px) 28px;
+}
+
+#pywebio-scope-manage_config_list {
+    display: grid;
+    gap: 8px;
+}
+
+*[style*="--manage-config-card--"] {
+    background: transparent;
+    border: 1px solid var(--alas-entry-border);
+    border-radius: 8px;
+    box-shadow: var(--alas-entry-panel-shadow);
+    transition: border-color .18s ease;
+    overflow: hidden;
+}
+
+*[style*="--manage-config-card--"]:hover {
+    border-color: var(--alas-entry-divider);
+}
+
+*[style*="--manage-config-row--"] {
+    align-items: center;
+    min-height: 72px;
+    padding: 12px 14px;
+    background: var(--alas-entry-surface);
+    transition: background-color .18s ease;
+}
+
+*[style*="--manage-config-card--"]:hover *[style*="--manage-config-row--"] {
+    background: var(--alas-entry-surface-muted);
+}
+
+*[style*="--manage-config-identity--"] {
+    min-width: 0;
+}
+
+*[style*="--manage-config-name--"] {
+    margin: 0 !important;
+    overflow-wrap: anywhere;
+    color: var(--alas-entry-text);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+*[style*="--manage-config-meta--"] {
+    margin: 3px 0 0 !important;
+    color: var(--alas-entry-muted);
+    font-size: .8125rem;
+    line-height: 1.4;
+}
+
+#pywebio-scope-manage_config_list *[style*="--manage-config-actions--"] {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+#pywebio-scope-manage_config_list *[style*="--manage-config-actions--"] .btn {
+    min-width: 72px;
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 9px 16px !important;
+    border-radius: 6px !important;
+    font-weight: 600;
+}
+
+#pywebio-scope-manage_config_list *[style*="--manage-config-actions--"] .btn-primary {
+    color: var(--alas-entry-on-action) !important;
+    background: var(--alas-entry-action) !important;
+    border: 1px solid var(--alas-entry-action) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    transform: none !important;
+}
+
+#pywebio-scope-manage_config_list *[style*="--manage-config-actions--"] .btn-primary:hover,
+#pywebio-scope-manage_config_list *[style*="--manage-config-actions--"] .btn-primary:focus-visible {
+    color: var(--alas-entry-on-action) !important;
+    background: var(--alas-entry-action-hover) !important;
+    border-color: var(--alas-entry-action-hover) !important;
+}
+
+*[style*="--manage-summary-panel--"] {
+    padding: 14px;
+    background: var(--alas-entry-surface-subtle);
+    border-top: 1px solid var(--alas-entry-divider);
+}
+
+*[style*="--manage-summary-title--"] {
+    margin: 0 0 4px !important;
+    color: var(--alas-entry-text);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+*[style*="--manage-summary-hint--"] {
+    margin: 0 0 16px !important;
+    color: var(--alas-entry-muted);
+    font-size: .8125rem;
+    line-height: 1.5;
+}
+
+*[style*="--manage-summary-task--"] {
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--alas-entry-divider);
+}
+
+*[style*="--manage-summary-rank--"] {
+    margin: 0 !important;
+    color: var(--alas-entry-muted);
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+*[style*="--manage-summary-name--"] {
+    margin: 0 !important;
+    overflow-wrap: anywhere;
+    color: var(--alas-entry-text);
+    font-size: .9375rem;
+    font-weight: 600;
+}
+
+*[style*="--manage-summary-code--"] {
+    margin: 2px 0 0 !important;
+    overflow-wrap: anywhere;
+    color: var(--alas-entry-muted);
+    font-family: "JetBrains Mono NL", monospace;
+    font-size: .75rem;
+}
+
+*[style*="--manage-summary-empty--"] {
+    margin: 20px 0 !important;
+    color: var(--alas-entry-muted);
+    text-align: center;
+}
+
+#pywebio-scope-manage_add_form,
+#pywebio-scope-manage_import_panel {
+    max-width: 680px;
+    margin-top: 8px;
+    padding: 20px;
+    background: var(--alas-entry-surface);
+    border: 1px solid var(--alas-entry-border);
+    border-radius: 8px;
+    box-shadow: var(--alas-entry-panel-shadow);
+}
+
+#pywebio-scope-manage_add_form .form-group {
+    margin-bottom: 16px;
+}
+
+#pywebio-scope-manage_add_form label {
+    margin-bottom: 6px;
+    color: var(--alas-entry-text);
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+#pywebio-scope-manage_add_form .form-control,
+#pywebio-scope-manage_add_form .bootstrap-select > .dropdown-toggle {
+    min-height: 44px;
+    color: var(--alas-entry-text) !important;
+    background: var(--alas-entry-surface-muted) !important;
+    border: 1px solid var(--alas-entry-border) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+}
+
+#pywebio-scope-manage_add_form .form-control:focus,
+#pywebio-scope-manage_add_form .bootstrap-select.show > .dropdown-toggle {
+    border-color: var(--alas-entry-accent) !important;
+    box-shadow: 0 0 0 3px var(--alas-entry-accent-soft) !important;
+}
+
+#pywebio-scope-manage_add_form > .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+#pywebio-scope-manage_add_form > .btn-group .btn,
+#pywebio-scope-manage_import_panel .btn {
+    min-width: 96px;
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 9px 16px !important;
+    border-radius: 6px !important;
+    font-weight: 600;
+}
+
+#pywebio-scope-manage_import_panel .alert {
+    margin-bottom: 16px;
+    border-radius: 6px;
+}
+
+body.alas-manage-active #input-container .btn-primary {
+    color: var(--alas-entry-on-accent) !important;
+    background: var(--alas-entry-accent) !important;
+    border: 1px solid var(--alas-entry-accent) !important;
+}
+
+body.alas-manage-active #input-container .btn-light {
+    color: var(--alas-entry-text) !important;
+    background: var(--alas-entry-surface) !important;
+    border: 1px solid var(--alas-entry-border) !important;
+}
+
+/* PyWebIO 输入组默认固定在页面底部，管理页统一为居中表单。 */
+body.alas-manage-active #input-container.fixed {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1100 !important;
+    display: flex;
+    align-items: center;
+    width: 100vw;
+    height: 100vh !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    overflow-y: auto !important;
+    background: rgba(15, 18, 24, .48) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+body.alas-manage-active #input-cards {
+    width: min(560px, 100%);
+    max-width: 560px;
+    margin: auto;
+    padding: 0;
+}
+
+body.alas-manage-active #input-cards > .card {
+    width: 100% !important;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    color: var(--alas-entry-text) !important;
+    background: var(--alas-entry-surface) !important;
+    border: 1px solid var(--alas-entry-border) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--alas-entry-shadow) !important;
+}
+
+body.alas-manage-active #input-container h5.card-header {
+    padding: 18px 20px !important;
+    color: var(--alas-entry-text) !important;
+    background: var(--alas-entry-surface-muted) !important;
+    border-bottom: 1px solid var(--alas-entry-divider) !important;
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+body.alas-manage-active #input-container .card-body {
+    padding: 20px !important;
+    color: var(--alas-entry-text) !important;
+    background: transparent !important;
+}
+
+body.alas-manage-active #input-container .form-group {
+    margin-bottom: 16px;
+}
+
+body.alas-manage-active #input-container label {
+    margin-bottom: 6px;
+    color: var(--alas-entry-text) !important;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+body.alas-manage-active #input-container .form-control,
+body.alas-manage-active #input-container .custom-file-label,
+body.alas-manage-active #input-container .bootstrap-select > .dropdown-toggle {
+    min-height: 44px;
+    color: var(--alas-entry-text) !important;
+    background: var(--alas-entry-surface-muted) !important;
+    border: 1px solid var(--alas-entry-border) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+}
+
+body.alas-manage-active #input-container .form-control:focus,
+body.alas-manage-active #input-container .bootstrap-select.show > .dropdown-toggle {
+    border-color: var(--alas-entry-accent) !important;
+    box-shadow: 0 0 0 3px var(--alas-entry-accent-soft) !important;
+}
+
+body.alas-manage-active #input-container .custom-file-label::after {
+    min-height: 42px;
+    color: var(--alas-entry-text) !important;
+    background: var(--alas-entry-surface) !important;
+    border-left: 1px solid var(--alas-entry-border) !important;
+}
+
+body.alas-manage-active #input-container .form-text {
+    color: var(--alas-entry-muted) !important;
+}
+
+body.alas-manage-active #input-container .input-container .btn-group,
+body.alas-manage-active #input-container .ws-form-submit-btns {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+body.alas-manage-active #input-container .input-container .btn,
+body.alas-manage-active #input-container .ws-form-submit-btns .btn {
+    min-width: 96px;
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 9px 16px !important;
+    border-radius: 6px !important;
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    #pywebio-scope-develop_detail {
+        width: 100%;
+        margin: 4px 0 20px;
+        padding: 16px 14px;
+    }
+
+    #pywebio-scope-develop_detail .alas-develop-section-title {
+        font-size: 1.125rem;
+    }
+
+    #pywebio-scope-develop_detail > .btn,
+    #pywebio-scope-develop_detail > .btn-group,
+    #pywebio-scope-develop_detail > .btn-group .btn,
+    #pywebio-scope-import_btn .btn {
+        width: 100%;
+        min-height: 44px;
+        margin-right: 0;
+    }
+
+    #pywebio-scope-develop_detail > .btn-group {
+        display: grid;
+        gap: 8px;
+    }
+
+    .deploy-setting-toolbar,
+    .deploy-setting-field {
+        grid-template-columns: 1fr;
+    }
+
+    .deploy-setting-actions {
+        justify-content: stretch;
+    }
+
+    .deploy-setting-button {
+        width: 100%;
+    }
+
+    #pywebio-scope-manage_config_list,
+    #pywebio-scope-manage_add_form,
+    #pywebio-scope-manage_import_panel {
+        width: 100%;
+        padding: 8px 4px 20px;
+    }
+
+    *[style*="--manage-config-row--"] {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+        min-height: 68px;
+        padding: 10px 12px;
+    }
+
+    *[style*="--manage-summary-panel--"] {
+        padding: 12px;
+    }
+
+    #pywebio-scope-manage_config_list *[style*="--manage-config-actions--"] {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    #pywebio-scope-manage_config_list *[style*="--manage-config-actions--"] .btn {
+        width: 100%;
+        min-width: 0;
+        padding: 8px !important;
+        white-space: normal;
+    }
+
+    #pywebio-scope-manage_add_form,
+    #pywebio-scope-manage_import_panel {
+        margin-top: 4px;
+        padding: 14px;
+    }
+
+    #pywebio-scope-manage_add_form > .btn-group {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    #pywebio-scope-manage_add_form > .btn-group .btn,
+    #pywebio-scope-manage_import_panel .btn {
+        width: 100%;
+    }
+
+    body.alas-manage-active #input-container.fixed {
+        align-items: flex-start;
+        padding: 12px !important;
+    }
+
+    body.alas-manage-active #input-cards > .card {
+        max-height: calc(100dvh - 24px);
+    }
+}

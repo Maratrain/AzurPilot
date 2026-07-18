@@ -1922,7 +1922,6 @@
     },
     "Research": {
       "UseCube": "only_05_hour",
-      "CubePreserve": 0,
       "UseCoin": "always_use",
       "UsePart": "always_use",
       "AllowDelay": true,
@@ -3337,6 +3336,19 @@
       "BlueBoxLimit": 1000,
       "UseWhiteBox": true,
       "WhiteBoxLimit": 2000
+    },
+    "Storage": {
+      "Storage": {}
+    }
+  },
+  "AutoEquip": {
+    "AutoEquip": {
+      "ShipLimit": 0,
+      "EnableSlot1": true,
+      "EnableSlot2": true,
+      "EnableSlot3": true,
+      "EnableSlot4": true,
+      "EnableSlot5": true
     },
     "Storage": {
       "Storage": {}

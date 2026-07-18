@@ -26,7 +26,6 @@ EQUIPMENT_PREVIEW = list([
 
 class EquipmentCodeHandler(StorageHandler):
     last_code: str = None
-    FASTINPUT_IME = 'com.github.uiautomator/.FastInputIME'
 
     @property
     def equipment_code_config_key(self):
@@ -194,21 +193,10 @@ class EquipmentCodeHandler(StorageHandler):
 
     def set_fastinput_ime(self):
         d = self.device.u2
-        failed = False
         try:
-            for command in ('enable', 'set'):
-                result = d.shell(['ime', command, self.FASTINPUT_IME])
-                exit_code = getattr(result, 'exit_code', 0)
-                output = getattr(result, 'output', result)
-                if exit_code:
-                    failed = True
-                    logger.warning(f"Unable to {command} FastInputIME: {output.strip()}")
-        except Exception as e:
-            failed = True
-            logger.warning(f"Unable to set FastInputIME: {e}")
-
-        if failed:
-            logger.warning("FastInputIME not enabled by adb shell, trying to enable it in settings")
+            d.set_fastinput_ime(True)
+        except Exception:
+            logger.warning("FastInputIME not enabled, trying to enable it")
             self.fastinput_ime_enable()
 
     @staticmethod
@@ -246,15 +234,11 @@ class EquipmentCodeHandler(StorageHandler):
 
     def _code_input(self, code):
         logger.info(f"Code input: {code}")
-        d = self.device.u2
-        click_timer = Timer(1, count=3)
-        for _ in self.loop():
-            name, shown = d.current_ime()
-            if shown:
-                if name != self.FASTINPUT_IME:
-                    self.set_fastinput_ime()
-                    continue
-                else:
+        for _ in range(2):
+            click_timer = Timer(1, count=3)
+            textbox_clicked = False
+            for _ in self.loop(timeout=5):
+                if textbox_clicked and self._code_input_adb(code):
                     break
                 if click_timer.reached_and_reset():
                     self.device.click(EQUIPMENT_CODE_TEXTBOX)

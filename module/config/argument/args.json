@@ -10311,14 +10311,6 @@
           "do_not_use"
         ]
       },
-      "CubePreserve": {
-        "type": "input",
-        "value": 0,
-        "validate": [
-          0,
-          999999
-        ]
-      },
       "UseCoin": {
         "type": "select",
         "value": "always_use",
@@ -17172,6 +17164,66 @@
       "WhiteBoxLimit": {
         "type": "input",
         "value": 2000
+      }
+    },
+    "Storage": {
+      "Storage": {
+        "type": "storage",
+        "value": {},
+        "valuetype": "ignore",
+        "display": "disabled"
+      }
+    }
+  },
+  "AutoEquip": {
+    "AutoEquip": {
+      "ShipLimit": {
+        "type": "input",
+        "value": 0,
+        "validate": [
+          0,
+          9999
+        ]
+      },
+      "EnableSlot1": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "EnableSlot2": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "EnableSlot3": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "EnableSlot4": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "EnableSlot5": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
       }
     },
     "Storage": {

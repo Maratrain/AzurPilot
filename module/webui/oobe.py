@@ -23,15 +23,31 @@ from module.config.deep import deep_set
 from module.config.server import VALID_CHANNEL_PACKAGE, VALID_PACKAGE, VALID_SERVER_LIST, to_server
 from module.submodule.submodule import load_config
 from module.webui.setting import State
-from module.webui.utils import Icon, add_css, filepath_css
+from module.webui.utils import Icon, load_webui_styles
 
 # PyWebIO scope 的 DOM ID 格式为 `pywebio-scope-{name}`
 OOBE_ROOT = "oobe_root"
 
 CSS = """
 /* === OOBE shell === */
+:root {
+    --oobe-page: var(--alas-entry-page, #f4f5f7);
+    --oobe-surface: var(--alas-entry-surface, #fff);
+    --oobe-surface-muted: var(--alas-entry-surface-muted, #f7f7fa);
+    --oobe-text: var(--alas-entry-text, #202124);
+    --oobe-muted: var(--alas-entry-muted, #6f737a);
+    --oobe-border: var(--alas-entry-border, #dde0e5);
+    --oobe-divider: var(--alas-entry-divider, #e7e9ed);
+    --oobe-accent: var(--alas-entry-accent, #4e4c97);
+    --oobe-on-accent: var(--alas-entry-on-accent, #fff);
+    --oobe-accent-soft: var(--alas-entry-accent-soft, #e8e8f8);
+    --oobe-success: var(--alas-entry-success, #198754);
+    --oobe-on-success: var(--alas-entry-on-success, #fff);
+    --oobe-shadow: var(--alas-entry-shadow, 0 14px 36px rgba(31, 35, 48, .14));
+}
+
 body {
-    background: #f5f5f7 !important;
+    background: var(--oobe-page) !important;
 }
 
 #pywebio-scope-oobe_root {
@@ -44,10 +60,10 @@ body {
 }
 
 #pywebio-scope-oobe_content {
-    background: var(--alas-content-bg, #fff);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 28px;
-    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.10), 0 2px 10px rgba(0, 0, 0, 0.04);
+    background: var(--oobe-surface);
+    border: 1px solid var(--oobe-border);
+    border-radius: 8px;
+    box-shadow: var(--oobe-shadow);
     width: 100% !important;
     max-width: 860px;
     min-height: 620px;
@@ -76,7 +92,7 @@ body {
 .oobe-brand {
     text-align: center;
     padding: 4px 0 24px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid var(--oobe-border);
 }
 
 .oobe-intro {
@@ -99,7 +115,7 @@ body {
 }
 
 .oobe-intro .oobe-hello-word {
-    font-size: 64px;
+    font-size: 52px;
     font-weight: 650;
 }
 
@@ -109,16 +125,16 @@ body {
     height: 52px !important;
     min-height: 52px !important;
     padding: 0 !important;
-    border-radius: 999px !important;
+    border-radius: 6px !important;
     font-size: 25px !important;
     line-height: 1 !important;
-    background: rgba(0, 122, 255, 0.10) !important;
+    background: var(--oobe-accent-soft) !important;
     border-color: transparent !important;
-    color: #007aff !important;
+    color: var(--oobe-accent) !important;
 }
 
 #pywebio-scope-oobe_content .oobe-intro + .btn-group .btn:hover {
-    background: rgba(0, 122, 255, 0.16) !important;
+    border-color: var(--oobe-accent) !important;
 }
 
 .oobe-brand-main {
@@ -150,7 +166,7 @@ body {
     align-items: center;
     justify-content: center;
     margin: 0;
-    color: var(--alas-content-text, #1d1d1f);
+    color: var(--oobe-text);
     font-size: 58px;
     font-weight: 650;
     line-height: 1;
@@ -220,10 +236,10 @@ body {
     width: 72px;
     height: 72px;
     flex: 0 0 72px;
-    border-radius: 18px;
+    border-radius: 8px;
     overflow: hidden;
-    background: #fff;
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+    background: var(--oobe-surface);
+    box-shadow: var(--oobe-shadow);
 }
 
 .oobe-brand-icon img {
@@ -248,7 +264,7 @@ body {
 .oobe-title {
     font-size: 24px;
     font-weight: 650;
-    color: var(--alas-content-text, #1d1d1f);
+    color: var(--oobe-text);
     margin: 0 0 5px;
     letter-spacing: 0;
     line-height: 1.18;
@@ -256,7 +272,7 @@ body {
 
 .oobe-subtitle {
     font-size: 14px;
-    color: #6e6e73;
+    color: var(--oobe-muted);
     margin: 0;
     line-height: 1.6;
     text-align: left;
@@ -264,7 +280,7 @@ body {
 
 .oobe-steps {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
     margin: 28px 0 30px;
 }
@@ -274,10 +290,10 @@ body {
     align-items: center;
     min-width: 0;
     padding: 10px 11px;
-    border-radius: 14px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    background: #fbfbfd;
-    color: #6e6e73;
+    border-radius: 6px;
+    border: 1px solid var(--oobe-border);
+    background: var(--oobe-surface-muted);
+    color: var(--oobe-muted);
 }
 
 .oobe-step-index {
@@ -289,8 +305,9 @@ body {
     flex: 0 0 22px;
     margin-right: 8px;
     border-radius: 999px;
-    background: #e8e8ed;
-    color: #6e6e73;
+    background: var(--oobe-surface);
+    color: var(--oobe-muted);
+    border: 1px solid var(--oobe-border);
     font-size: 12px;
     font-weight: 750;
 }
@@ -306,39 +323,40 @@ body {
 }
 
 .oobe-step.active {
-    border-color: rgba(0, 122, 255, 0.34);
-    background: rgba(0, 122, 255, 0.08);
-    color: #007aff;
+    border-color: var(--oobe-accent);
+    background: var(--oobe-accent-soft);
+    color: var(--oobe-accent);
 }
 
 .oobe-step.active .oobe-step-index,
 .oobe-step.done .oobe-step-index {
-    background: #007aff;
-    color: #fff;
+    background: var(--oobe-accent);
+    color: var(--oobe-on-accent);
+    border-color: var(--oobe-accent);
 }
 
 .oobe-step.done {
-    color: #007aff;
+    color: var(--oobe-accent);
 }
 
 .oobe-section-title {
     margin: 0 0 6px;
     font-size: 18px;
     font-weight: 720;
-    color: var(--alas-content-text, #1d1d1f);
+    color: var(--oobe-text);
     letter-spacing: 0;
 }
 
 .oobe-section-hint {
     margin: 0 0 18px;
-    color: #6e6e73;
+    color: var(--oobe-muted);
     font-size: 13px;
     line-height: 1.6;
 }
 
 .oobe-divider {
     border: none;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    border-top: 1px solid var(--oobe-border);
     margin: 22px 0;
 }
 
@@ -349,8 +367,8 @@ body {
     margin-top: 12px;
     padding: 0 12px;
     border-radius: 999px;
-    background: rgba(0, 122, 255, 0.08);
-    color: #007aff;
+    background: var(--oobe-accent-soft);
+    color: var(--oobe-accent);
     font-size: 12px;
     font-weight: 700;
 }
@@ -361,7 +379,7 @@ body {
 
 .oobe-choice-title {
     margin: 0 0 10px;
-    color: var(--alas-content-text, #1d1d1f);
+    color: var(--oobe-text);
     font-size: 14px;
     font-weight: 750;
     letter-spacing: 0;
@@ -376,21 +394,21 @@ body {
 .oobe-import-card {
     margin: 10px 0 18px;
     padding: 16px 18px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 16px;
-    background: #fbfbfd;
+    border: 1px solid var(--oobe-border);
+    border-radius: 8px;
+    background: var(--oobe-surface-muted);
 }
 
 .oobe-import-card-title {
     margin: 0 0 6px;
-    color: var(--alas-content-text, #1d1d1f);
+    color: var(--oobe-text);
     font-size: 14px;
     font-weight: 750;
 }
 
 .oobe-import-card-text {
     margin: 0;
-    color: #6e6e73;
+    color: var(--oobe-muted);
     font-size: 13px;
     line-height: 1.6;
 }
@@ -401,13 +419,13 @@ body {
     border-spacing: 0;
     margin: 6px 0 22px;
     overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 12px;
+    border: 1px solid var(--oobe-border);
+    border-radius: 8px;
 }
 
 .oobe-review-table td {
     padding: 13px 15px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    border-bottom: 1px solid var(--oobe-divider);
     font-size: 14px;
     line-height: 1.45;
 }
@@ -417,14 +435,14 @@ body {
 }
 
 .oobe-review-table td:first-child {
-    color: #6e6e73;
+    color: var(--oobe-muted);
     width: 34%;
     font-weight: 650;
-    background: #fbfbfd;
+    background: var(--oobe-surface-muted);
 }
 
 .oobe-review-table td:last-child {
-    color: var(--alas-content-text, #1d1d1f);
+    color: var(--oobe-text);
     word-break: break-all;
 }
 
@@ -433,7 +451,7 @@ body {
 }
 
 #pywebio-scope-oobe_content label {
-    color: var(--alas-content-text, #1d1d1f);
+    color: var(--oobe-text);
     font-size: 13px;
     font-weight: 700;
     margin-bottom: 8px;
@@ -441,17 +459,18 @@ body {
 
 #pywebio-scope-oobe_content .form-control {
     min-height: 44px;
-    border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    border-radius: 12px !important;
-    background: #fbfbfd !important;
+    color: var(--oobe-text) !important;
+    border: 1px solid var(--oobe-border) !important;
+    border-radius: 6px !important;
+    background: var(--oobe-surface-muted) !important;
     padding: 9px 12px;
     transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 
 #pywebio-scope-oobe_content .form-control:focus {
-    border-color: #007aff !important;
-    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12) !important;
-    background: #fff !important;
+    border-color: var(--oobe-accent) !important;
+    box-shadow: 0 0 0 4px var(--oobe-accent-soft) !important;
+    background: var(--oobe-surface) !important;
 }
 
 #pywebio-scope-oobe_content .bootstrap-select,
@@ -487,10 +506,10 @@ body {
 #pywebio-scope-oobe_content .bootstrap-select > .dropdown-toggle,
 #pywebio-scope-oobe_content select.form-control {
     min-height: 54px !important;
-    border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    border-radius: 16px !important;
-    background: #fbfbfd !important;
-    color: #1d1d1f !important;
+    border: 1px solid var(--oobe-border) !important;
+    border-radius: 8px !important;
+    background: var(--oobe-surface-muted) !important;
+    color: var(--oobe-text) !important;
     font-size: 15px !important;
     font-weight: 650 !important;
     line-height: 1.35 !important;
@@ -503,9 +522,9 @@ body {
 #pywebio-scope-oobe_content .bootstrap-select > .dropdown-toggle:active,
 #pywebio-scope-oobe_content .bootstrap-select.show > .dropdown-toggle,
 #pywebio-scope-oobe_content select.form-control:focus {
-    border-color: #007aff !important;
-    background: #fff !important;
-    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12) !important;
+    border-color: var(--oobe-accent) !important;
+    background: var(--oobe-surface) !important;
+    box-shadow: 0 0 0 4px var(--oobe-accent-soft) !important;
 }
 
 #pywebio-scope-oobe_content .bootstrap-select .filter-option {
@@ -522,16 +541,17 @@ body {
 }
 
 #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu {
-    border: 1px solid rgba(0, 0, 0, 0.10) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16) !important;
+    background: var(--oobe-surface) !important;
+    border: 1px solid var(--oobe-border) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--oobe-shadow) !important;
     padding: 8px !important;
     margin-top: 8px !important;
 }
 
 #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu li a {
     border-radius: 10px !important;
-    color: #1d1d1f !important;
+    color: var(--oobe-text) !important;
     font-size: 14px !important;
     font-weight: 600 !important;
     padding: 9px 11px !important;
@@ -539,17 +559,17 @@ body {
 
 #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu li.selected a,
 #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu li a:hover {
-    background: rgba(0, 122, 255, 0.10) !important;
-    color: #007aff !important;
+    background: var(--oobe-accent-soft) !important;
+    color: var(--oobe-accent) !important;
 }
 
 #pywebio-scope-oobe_content .bootstrap-select .bs-caret,
 #pywebio-scope-oobe_content .bootstrap-select .caret {
-    color: #86868b !important;
+    color: var(--oobe-muted) !important;
 }
 
 #pywebio-scope-oobe_content .btn {
-    border-radius: 999px !important;
+    border-radius: 6px !important;
     font-size: 14px;
     font-weight: 700;
     padding: 10px 18px;
@@ -561,25 +581,26 @@ body {
 
 #pywebio-scope-oobe_content .btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 20px rgba(28, 39, 58, 0.12) !important;
+    box-shadow: var(--oobe-shadow) !important;
 }
 
 #pywebio-scope-oobe_content .btn-primary,
 #pywebio-scope-oobe_content .btn-success {
-    border-color: #007aff !important;
-    background: #007aff !important;
-    color: #fff !important;
+    border-color: var(--oobe-accent) !important;
+    background: var(--oobe-accent) !important;
+    color: var(--oobe-on-accent) !important;
 }
 
 #pywebio-scope-oobe_content .btn-success {
-    border-color: #34c759 !important;
-    background: #34c759 !important;
+    border-color: var(--oobe-success) !important;
+    background: var(--oobe-success) !important;
+    color: var(--oobe-on-success) !important;
 }
 
 #pywebio-scope-oobe_content .btn-light {
-    border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    background: #fff !important;
-    color: #1d1d1f !important;
+    border: 1px solid var(--oobe-border) !important;
+    background: var(--oobe-surface) !important;
+    color: var(--oobe-text) !important;
 }
 
 #pywebio-scope-oobe_content .btn-group {
@@ -593,91 +614,6 @@ body {
     margin: 0 !important;
 }
 
-html[data-theme="dark"] #pywebio-scope-oobe_content,
-body.dark #pywebio-scope-oobe_content {
-    border-color: rgba(148, 163, 184, 0.16);
-}
-
-@media (prefers-color-scheme: dark) {
-    body {
-        background: #1c1c1e !important;
-    }
-    .oobe-subtitle,
-    .oobe-section-hint,
-    .oobe-review-table td:first-child {
-        color: #a1a1a6;
-    }
-    .oobe-hello-word,
-    .oobe-title,
-    .oobe-section-title,
-    #pywebio-scope-oobe_content label,
-    .oobe-review-table td:last-child {
-        color: #f5f5f7;
-    }
-    .oobe-step {
-        background: rgba(44, 44, 46, 0.72);
-        border-color: rgba(255, 255, 255, 0.10);
-    }
-    .oobe-review-table {
-        border-color: rgba(255, 255, 255, 0.10);
-    }
-    .oobe-review-table td {
-        border-bottom-color: rgba(255, 255, 255, 0.08);
-    }
-    .oobe-review-table td:first-child {
-        background: rgba(44, 44, 46, 0.58);
-    }
-    .oobe-choice-title {
-        color: #f5f5f7;
-    }
-    .oobe-import-card {
-        background: rgba(44, 44, 46, 0.58);
-        border-color: rgba(255, 255, 255, 0.10);
-    }
-    .oobe-import-card-title {
-        color: #f5f5f7;
-    }
-    .oobe-import-card-text {
-        color: #a1a1a6;
-    }
-    #pywebio-scope-oobe_content .form-control {
-        background: rgba(44, 44, 46, 0.72) !important;
-    }
-    #pywebio-scope-oobe_content .form-control:focus {
-        background: rgba(28, 28, 30, 0.92) !important;
-    }
-    #pywebio-scope-oobe_content .btn-light {
-        background: rgba(44, 44, 46, 0.72) !important;
-        color: #e5e7eb !important;
-    }
-    #pywebio-scope-oobe_content .bootstrap-select > .dropdown-toggle,
-    #pywebio-scope-oobe_content select.form-control {
-        background: rgba(44, 44, 46, 0.72) !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        color: #f5f5f7 !important;
-    }
-    #pywebio-scope-oobe_content .bootstrap-select > .dropdown-toggle:focus,
-    #pywebio-scope-oobe_content .bootstrap-select > .dropdown-toggle:active,
-    #pywebio-scope-oobe_content .bootstrap-select.show > .dropdown-toggle,
-    #pywebio-scope-oobe_content select.form-control:focus {
-        background: rgba(58, 58, 60, 0.86) !important;
-        border-color: #0a84ff !important;
-        box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.20) !important;
-    }
-    #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu {
-        background: #2c2c2e !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-    }
-    #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu li a {
-        color: #f5f5f7 !important;
-    }
-    #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu li.selected a,
-    #pywebio-scope-oobe_content .bootstrap-select .dropdown-menu li a:hover {
-        background: rgba(10, 132, 255, 0.18) !important;
-        color: #0a84ff !important;
-    }
-}
-
 @media (max-width: 640px) {
     #pywebio-scope-oobe_root {
         align-items: stretch;
@@ -686,7 +622,7 @@ body.dark #pywebio-scope-oobe_content {
     #pywebio-scope-oobe_content {
         min-height: calc(100vh - 24px);
         padding: 24px 18px 22px !important;
-        border-radius: 14px;
+        border-radius: 8px;
     }
     .oobe-brand {
         padding-bottom: 18px;
@@ -772,19 +708,7 @@ class OOBEWizard:
     @use_scope("ROOT", clear=True)
     def start(self):
         set_env(title="AzurPilot - Setup", output_animation=False)
-        add_css(filepath_css("alas"))
-        if self.gui.is_mobile:
-            add_css(filepath_css("alas-mobile"))
-        else:
-            add_css(filepath_css("alas-pc"))
-        if self.gui.theme == "dark":
-            add_css(filepath_css("dark-alas"))
-        elif self.gui.theme == "socialism":
-            add_css(filepath_css("socialism-alas"))
-        elif self.gui.theme == "children":
-            add_css(filepath_css("children-alas"))
-        else:
-            add_css(filepath_css("light-alas"))
+        load_webui_styles(theme=self.gui.theme, is_mobile=self.gui.is_mobile)
 
         put_html(f"<style>{CSS}</style>")
         put_scope(OOBE_ROOT)

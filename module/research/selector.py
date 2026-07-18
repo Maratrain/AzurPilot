@@ -39,19 +39,6 @@ class ResearchSelector(ResearchUI):
     # 来自 StorageHandler
     storage_has_boxes = True
 
-    def research_cube_preserve_triggered(self):
-        try:
-            threshold = int(getattr(self.config, 'Research_CubePreserve', 0) or 0)
-        except (TypeError, ValueError):
-            threshold = 0
-        try:
-            current = int(getattr(self.config, 'Cube_Value', 0) or 0)
-        except (TypeError, ValueError):
-            current = 0
-        triggered = threshold > 0 and current <= threshold
-        logger.info(f'Research cube preserve: current={current}, threshold={threshold}, triggered={triggered}')
-        return triggered
-
     def research_goto_detail(self, index, skip_first_screenshot=True):
         logger.info(f'Research goto detail (project {index})')
         click_timer = Timer(10)
@@ -165,14 +152,12 @@ class ResearchSelector(ResearchUI):
         """
         # 加载过滤器字符串
         preset = self.config.Research_PresetFilter
-        cube_preserve = self.research_cube_preserve_triggered()
         if preset == 'custom':
             string = self.config.Research_CustomFilter
             if enforce:
                 string = string + ' > ' + DICT_FILTER_PRESET[GeneratedConfig.Research_PresetFilter]
         else:
-            if not cube_preserve \
-                    and (self.config.Research_UseCube == 'always_use' or enforce) \
+            if (self.config.Research_UseCube == 'always_use' or enforce) \
                     and f'{preset}_cube' in DICT_FILTER_PRESET:
                 preset = f'{preset}_cube'
             if preset not in DICT_FILTER_PRESET:
@@ -197,14 +182,13 @@ class ResearchSelector(ResearchUI):
         string = re.sub(r'pr([\d\- >])', r'pry\1', string)
 
         FILTER.load(string)
-        priority = FILTER.apply(self.projects, func=partial(
-            self._research_check, enforce=enforce, cube_preserve=cube_preserve))
+        priority = FILTER.apply(self.projects, func=partial(self._research_check, enforce=enforce))
 
         # 日志
         logger.attr('Filter_sort', ' > '.join([str(project) for project in priority]))
         return priority
 
-    def _research_check(self, project, enforce=False, cube_preserve=False):
+    def _research_check(self, project, enforce=False):
         """
         Args:
             project (ResearchProject):
@@ -218,8 +202,6 @@ class ResearchSelector(ResearchUI):
         # 检查项目消耗
         is_05 = str(project.duration) == '0.5'
         if project.need_cube:
-            if cube_preserve:
-                return False
             if self.config.Research_UseCube == 'do_not_use':
                 return False
             if self.config.Research_UseCube == 'only_no_project' and not enforce:
@@ -274,10 +256,8 @@ class ResearchSelector(ResearchUI):
             list: ResearchProject 对象和预设字符串的列表，
                 如 [object, object, object, 'reset']
         """
-        cube_preserve = self.research_cube_preserve_triggered()
         FILTER.load(FILTER_STRING_SHORTEST)
-        priority = FILTER.apply(self.projects, func=partial(
-            self._research_check, enforce=enforce, cube_preserve=cube_preserve))
+        priority = FILTER.apply(self.projects, func=partial(self._research_check, enforce=enforce))
 
         logger.attr('Filter_sort', ' > '.join([str(project) for project in priority]))
         return priority
@@ -288,10 +268,8 @@ class ResearchSelector(ResearchUI):
             list: ResearchProject 对象和预设字符串的列表，
                 如 [object, object, object, 'reset']
         """
-        cube_preserve = self.research_cube_preserve_triggered()
         FILTER.load(FILTER_STRING_CHEAPEST)
-        priority = FILTER.apply(self.projects, func=partial(
-            self._research_check, enforce=enforce, cube_preserve=cube_preserve))
+        priority = FILTER.apply(self.projects, func=partial(self._research_check, enforce=enforce))
 
         logger.attr('Filter_sort', ' > '.join([str(project) for project in priority]))
         return priority

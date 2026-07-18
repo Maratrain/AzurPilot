@@ -378,6 +378,10 @@
       "name": "拆裝備箱",
       "help": ""
     },
+    "AutoEquip": {
+      "name": "自動裝備",
+      "help": "從船塢第一艘艦船開始，進入快速更換並開啟「裝備中」篩選，隨後按艦船詳情頁滑動遍歷。實際換裝策略尚待設定。"
+    },
     "Benchmark": {
       "name": "效能測試",
       "help": ""
@@ -2002,10 +2006,6 @@
       "only_05_hour": "0.5小時+無專案可做時",
       "only_no_project": "無專案可做時",
       "do_not_use": "不使用"
-    },
-    "CubePreserve": {
-      "name": "保留 X 個魔方",
-      "help": "當目前魔方數量小於等於該值時，科研暫時不選擇消耗魔方的專案。\n0 表示關閉。"
     },
     "UseCoin": {
       "name": "使用物資",
@@ -5641,6 +5641,46 @@
       "help": ""
     }
   },
+  "AutoEquip": {
+    "_info": {
+      "name": "自動裝備",
+      "help": "目前版本搭建點擊流程：船塢、第一艘、快速更換、裝備中、佔位換裝邏輯、下一艘。"
+    },
+    "ShipLimit": {
+      "name": "處理艦船上限",
+      "help": "0 表示一直處理到無法切換下一艘；除錯時可設定為 1 或其他較小數量。"
+    },
+    "EnableSlot1": {
+      "name": "更換第 1 個裝備",
+      "help": "啟用後，僅當第 1 個裝備位為空時嘗試自動裝備。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot2": {
+      "name": "更換第 2 個裝備",
+      "help": "啟用後，僅當第 2 個裝備位為空時嘗試自動裝備。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot3": {
+      "name": "更換第 3 個裝備",
+      "help": "啟用後，僅當第 3 個裝備位為空時嘗試自動裝備。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot4": {
+      "name": "更換第 4 個裝備",
+      "help": "啟用後，僅當第 4 個裝備位為空時嘗試自動裝備。",
+      "True": "True",
+      "False": "False"
+    },
+    "EnableSlot5": {
+      "name": "更換第 5 個裝備",
+      "help": "啟用後，僅當第 5 個裝備位為空時嘗試自動裝備。",
+      "True": "True",
+      "False": "False"
+    }
+  },
   "Benchmark": {
     "_info": {
       "name": "效能測試",
@@ -5943,10 +5983,32 @@
       "InvalidChar": "配置檔名不能包含下列任何字元：.\\/:*?\"<>|",
       "InvalidPrefixTemplate": "配置檔名不能以 template 開頭",
       "Back": "返回",
-      "New": "新增",
-      "Import": "匯入",
+      "New": "新增配置",
+      "Import": "匯入配置",
+      "ImportLegacy": "匯入舊資料",
+      "ImportLegacyTitle": "匯入舊 AzurPilot/ALAS 資料",
+      "ImportLegacyHint": "選擇舊 AzurPilot/ALAS 根目錄後，將自動匯入以下資料。",
+      "ImportLegacyContent": "配置檔案、資料庫和日誌統計",
+      "ImportLegacyWarning": "同名檔案會被覆蓋，建議先備份目前專案。",
+      "ImportLegacyChoose": "選擇舊 AzurPilot/ALAS 資料夾",
+      "ImportLegacySelecting": "請在彈出的視窗中選擇舊 AzurPilot/ALAS 根目錄",
+      "ImportLegacySuccess": "舊資料匯入成功",
+      "ImportLegacyFailed": "舊資料匯入失敗：{error}",
+      "ImportLegacyNoMatch": "所選資料夾中未找到 config/ 或 log/cl1/ 下的相符檔案",
+      "ImportLegacyRequestFailed": "上傳請求失敗",
+      "ImportLegacyUnknownError": "未知錯誤",
       "Export": "匯出",
       "Delete": "刪除",
+      "Summary": "概覽",
+      "Collapse": "收起",
+      "EnabledTasks": "已啟用任務",
+      "SchedulerOrderHint": "依調度優先順序顯示；實際執行時間仍由各任務的 NextRun 決定。",
+      "SummaryLoadFailed": "無法讀取配置概覽：{error}",
+      "DeleteConfirm": "確定刪除配置「{name}」嗎？此操作無法復原，但不會刪除日誌與統計資料。",
+      "DeleteRunning": "配置「{name}」正在執行，請先停止後再刪除。",
+      "DeleteLast": "至少需要保留一個配置，請先新增其他配置。",
+      "DeleteSuccess": "已刪除配置「{name}」",
+      "DeleteFailed": "刪除配置失敗：{error}",
       "OverrideWarning": "將會覆蓋現有的配置檔案",
       "ImportSuccess": "匯入成功",
       "NewSuccess": "新增成功",

@@ -136,6 +136,7 @@
       "OpsiDaemon",
       "EventStory",
       "BoxDisassemble",
+      "AutoEquip",
       "Benchmark",
       "OcrBenchmark",
       "AzurLaneUncensored",

@@ -1,5 +1,21 @@
 /* Children's Day theme (儿童节马卡龙主题) - based on light-alas.css */
 
+:root {
+    --alas-entry-page: #fffefb;
+    --alas-entry-surface: rgba(255, 255, 255, 0.94);
+    --alas-entry-surface-muted: #fff7fa;
+    --alas-entry-surface-subtle: rgba(255, 255, 255, 0.72);
+    --alas-entry-text: #4b4453;
+    --alas-entry-muted: #7b6d77;
+    --alas-entry-border: #ffd5df;
+    --alas-entry-divider: #ffe3e8;
+    --alas-entry-accent: #e05275;
+    --alas-entry-on-accent: #ffffff;
+    --alas-entry-accent-soft: #ffeef2;
+    --alas-entry-shadow: 0 4px 12px rgba(255, 182, 193, 0.12);
+    --alas-entry-panel-shadow: 0 4px 12px rgba(255, 182, 193, 0.12);
+}
+
 /* --- 核心动画定义 --- */
 @keyframes float-cute {
     0% { transform: translateY(0px); }

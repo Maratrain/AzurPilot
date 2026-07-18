@@ -13,13 +13,5 @@ module.exports = {
         './src/components/**/*.vue',
       ],
     },
-    {
-      root: './packages/main',
-      tsconfig: './tsconfig.json',
-    },
-    {
-      root: './packages/preload',
-      tsconfig: './tsconfig.json',
-    },
   ],
 };

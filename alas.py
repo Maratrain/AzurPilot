@@ -913,6 +913,10 @@ class AzurLaneAutoScript:
         from module.storage.box_disassemble import StorageBox
         StorageBox(config=self.config, device=self.device, task="BoxDisassemble").run()
 
+    def auto_equip(self):
+        from module.auto_equip.auto_equip import AutoEquip
+        AutoEquip(config=self.config, device=self.device, task="AutoEquip").run()
+
     def azur_lane_uncensored(self):
         from module.daemon.uncensored import AzurLaneUncensored
         AzurLaneUncensored(config=self.config, device=self.device, task="AzurLaneUncensored").run()
