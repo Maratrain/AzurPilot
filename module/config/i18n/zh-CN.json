@@ -2239,7 +2239,7 @@
     },
     "CustomFilter": {
       "name": "稀有度过滤器",
-      "help": "稀有度包括海上传奇ultra、超稀有super_rare、精锐elite、稀有rare、普通common，默认ultra > super_rare > elite > rare > common"
+      "help": "稀有度包括海上传奇ultra、超稀有super_rare、精锐elite、稀有rare、普通common\n请在下方填入自定义的顺序\n默认ultra > super_rare > elite > rare > common"
     },
     "LowFavorabilityPriority": {
       "name": "低好感度优先",

@@ -2239,7 +2239,7 @@
     },
     "CustomFilter": {
       "name": "Rarity Filter",
-      "help": "Rarities include ultra, super_rare, elite, rare, and common. Default priority: ultra > super_rare > elite > rare > common"
+      "help": "Rarities include ultra, super_rare, elite, rare, and common\nPlease enter the custom order below\nDefault priority: ultra > super_rare > elite > rare > common"
     },
     "LowFavorabilityPriority": {
       "name": "Low Favorability Priority",

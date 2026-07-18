@@ -2239,7 +2239,7 @@
     },
     "CustomFilter": {
       "name": "稀有度篩選器",
-      "help": "稀有度包含海上傳奇ultra、超稀有super_rare、精銳elite、稀有rare、普通common，預設排序為ultra > super_rare > elite > rare > common"
+      "help": "稀有度包含海上傳奇ultra、超稀有super_rare、精銳elite、稀有rare、普通common\n請在下方填入自訂的順序\n預設排序為ultra > super_rare > elite > rare > common"
     },
     "LowFavorabilityPriority": {
       "name": "低好感度優先",

@@ -2239,7 +2239,7 @@
     },
     "CustomFilter": {
       "name": "稀有度筛选器喵",
-      "help": "稀有度包含海上传奇ultra、超稀有super_rare、精锐elite、稀有rare、普通common喵，默认优先顺序为ultra > super_rare > elite > rare > common"
+      "help": "稀有度包含海上传奇ultra、超稀有super_rare、精锐elite、稀有rare、普通common喵\n请在下方填入自定义的顺序喵～\n默认优先顺序为ultra > super_rare > elite > rare > common"
     },
     "LowFavorabilityPriority": {
       "name": "低好感度优先喵",
