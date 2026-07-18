@@ -20,19 +20,19 @@ class SecretaryInfo:
 
 
 OCR_SECRETARY_NAME = Ocr(
-    SECRETARY_NAME,
+    [SECRETARY_NAME],
     lang="ppocr_v6",
     name="SECRETARY_NAME",
 )
 
-OCR_SECRETARY_LEVEL = Ocr(
-    SECRETARY_LEVEL,
+OCR_SECRETARY_LEVEL = SecretaryDigit(
+    [SECRETARY_LEVEL],
     lang="ppocr_v6",
     name="SECRETARY_LEVEL",
 )
 
 OCR_SECRETARY_FAVORABILITY = SecretaryDigit(
-    SECRETARY_FAVORABILITY,
+    [SECRETARY_FAVORABILITY],
     name="SECRETARY_FAVORABILITY",
 )
 

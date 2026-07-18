@@ -44,7 +44,7 @@ class Secretary(SecretaryDockMixin,UI):
     )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        self.replace_type = None
         self.secretary_scanner = SecretaryScanner()
         self.group_scanner = SecretaryGroupScanner()
 
@@ -66,7 +66,14 @@ class Secretary(SecretaryDockMixin,UI):
                 self.handle_random_group(False)
 
             # OCR 当前秘书舰
-            ship = self.scan_current_secretary()
+            old_ship = self.scan_current_secretary()
+
+            if old_ship is None:
+                logger.warning("Secretary OCR failed")
+                self.config.task_delay(success=False)
+                return
+
+            ship = old_ship
 
             if ship is None:
                 logger.warning("Secretary OCR failed")
@@ -80,10 +87,19 @@ class Secretary(SecretaryDockMixin,UI):
                 return
 
             # 已满好感，开始更换流程
-            self.notify_before_replace(ship)
+            group_ships = self.scan_secretary_group()
+            self.notify_before_replace(ship, group_ships)
 
-            if self.config.Secretary_BackupEnable:
+            if self.is_group_all_full(group_ships):
+                logger.info(
+                    "Secretary group all favorability >=90, "
+                    "refresh all secretary slots"
+                )
+                self.replace_all_secretary()
+
+            elif self.config.Secretary_BackupEnable:
                 self.handle_backup_secretary()
+
             else:
                 self.replace_secretary()
 
@@ -101,7 +117,7 @@ class Secretary(SecretaryDockMixin,UI):
             else:
                 next_run = self.schedule_next_run(ship.favorability)
 
-            self.notify_after_replace(ship, next_run)
+            self.notify_after_replace(ship, next_run, old_ship)
 
         finally:
             # 恢复随机秘书组
@@ -312,6 +328,8 @@ class Secretary(SecretaryDockMixin,UI):
 
     def replace_secretary(self):
 
+        self.replace_type = "船坞筛选"
+
         self.open_ship_select(SECRETARY_SLOT[0])
 
         if not self.choose_secretary():
@@ -384,23 +402,79 @@ class Secretary(SecretaryDockMixin,UI):
             daemon=True,
         ).start()
 
-    def notify_before_replace(self, ship):
-        self.notify(
-            title=f"AzurPilot <{self.config.config_name}> 秘书舰更换",
-            content=(
-                f"当前秘书舰好感度已达到 {ship.favorability}。\n"
-                f"准备更换秘书舰。"
-            ),
+    def notify_before_replace(self, ship, group_ships=None):
+
+        group_full = False
+
+        if group_ships:
+            group_full = all(
+                s.favorability >= 90
+                for s in group_ships
+            )
+
+        content = (
+            f"好感度已达到可获取上限。\n\n"
+            f"当前秘书舰：{ship.name}\n"
+            f"等级：Lv{ship.level}\n"
+            f"好感度：{ship.favorability}\n"
         )
 
-    def notify_after_replace(self, ship, next_run):
+        if group_full:
+            content += (
+                "\n秘书组状态：\n"
+                "所有候补秘书舰好感度已达到90"
+            )
+
+        content += (
+            "\n\n开始执行秘书舰更换。"
+        )
+
+        self.notify(
+            title=f"AzurPilot <{self.config.config_name}> 秘书舰提醒",
+            content=content,
+        )
+
+    def notify_after_replace(self, ship, next_run, old_ship=None):
+
+        # 更换后重新扫描秘书组
+        group_full = False
+
+        ships = self.scan_secretary_group()
+
+        if ships:
+            group_full = all(
+                s.favorability >= 90
+                for s in ships
+            )
+
+        content = (
+            f"秘书舰更换成功！\n\n"
+
+            f"原秘书舰："
+            f"{old_ship.name if old_ship else '船坞筛选'}\n"
+
+            f"新秘书舰：{ship.name}\n"
+            f"等级：Lv{ship.level}\n"
+            f"好感度：{ship.favorability}\n\n"
+
+            f"更换方式：{self.replace_type or '船坞筛选'}\n"
+        )
+
+        if group_full:
+            content += (
+                "\n秘书组状态：\n"
+                "所有候补秘书舰已成功更换"
+                "\n"
+            )
+
+        content += (
+            f"\n下次检查时间："
+            f"{next_run:%Y-%m-%d %H:%M:%S}"
+        )
+
         self.notify(
             title=f"AzurPilot <{self.config.config_name}> 秘书舰更换完成",
-            content=(
-                f"秘书舰更换成功！\n"
-                f"当前好感度：{ship.favorability}\n"
-                f"下次检查时间：{next_run:%Y-%m-%d %H:%M:%S}"
-            ),
+            content=content,
         )   
 
     def handle_random_group(self, enable):
@@ -460,6 +534,7 @@ class Secretary(SecretaryDockMixin,UI):
 
         # 有候补
         if candidate:
+            self.replace_type = "秘书组候补"
             self.promote_backup(candidate)
             return
 
@@ -481,6 +556,65 @@ class Secretary(SecretaryDockMixin,UI):
 
         if candidate:
             self.promote_backup(candidate)
+
+    def replace_all_secretary(self):
+        """
+        当秘书组全部满90时，
+        从主秘书舰开始依次替换。
+        """
+
+        ships = self.scan_secretary_group()
+
+        if not ships:
+            return False
+
+
+        # 找所有需要替换的位置
+        targets = [
+            ship
+            for ship in ships
+            if ship.favorability >= 90
+        ]
+
+
+        if not targets:
+            return False
+
+
+        logger.info(
+            f"Secretary all full, replace {len(targets)} ships"
+        )
+
+
+        count = 0
+
+        for ship in targets:
+
+            slot = SECRETARY_SLOT[ship.index]
+
+            logger.info(
+                f"Replace secretary slot {ship.index}: "
+                f"{ship.name} {ship.favorability}"
+            )
+
+            self.open_ship_select(slot)
+
+            if not self.choose_secretary():
+                logger.warning(
+                    f"No replacement for slot {ship.index}"
+                )
+                continue
+
+            self.confirm()
+
+            count += 1
+
+
+        logger.info(
+            f"Secretary replace finished {count}/{len(targets)}"
+        )
+
+        return count > 0
 
     def search_backup_secretary(self, ships):
 
@@ -554,3 +688,12 @@ class Secretary(SecretaryDockMixin,UI):
 
         self.confirm()
         return True
+
+    def is_group_all_full(self, ships):
+        if not ships:
+            return False
+
+        return all(
+            ship.favorability >= 90
+            for ship in ships
+        )
