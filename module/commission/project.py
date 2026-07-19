@@ -145,6 +145,10 @@ class Commission:
             self.duration_hour = str(int(self.duration.total_seconds() / 36) / 100).strip('.0')
             self.duration_hm = str(self.duration).rsplit(':', 1)[0]
 
+    @property
+    def is_gem_commission(self):
+        return self.valid and self.genre == 'urgent_gem'
+
     @Config.when(SERVER='en')
     def commission_parse(self):
         """解析委托信息（EN 服务器）。

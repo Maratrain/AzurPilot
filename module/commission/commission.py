@@ -502,6 +502,7 @@ class RewardCommission(UI, InfoHandler):
             out: page_commission
         """
         self._commission_scan_all()
+        gem_commissions = []
 
         logger.hr('Commission run', level=1)
         if self.daily_choose:
@@ -519,7 +520,16 @@ class RewardCommission(UI, InfoHandler):
                 self.handle_info_bar()
                 if self._commission_find_and_start(comm, is_urgent=True):
                     comm.convert_to_running()
+                    if comm.is_gem_commission:  
+                        gem_commissions.append(comm)
                 self._commission_mode_reset()
+        if gem_commissions:
+            try:
+                self._send_gem_commission_notify(gem_commissions)
+            except Exception as e:
+                logger.warning(
+                    f'Gem commission notification failed: {e}'
+                )
         if not self.daily_choose and not self.urgent_choose:
             logger.info('No commission chose')
 
@@ -829,6 +839,48 @@ class RewardCommission(UI, InfoHandler):
 
         logger.critical(f'Failed to handle oil maxed after 3 trial')
         raise RequestHumanTakeover
+
+    def _get_gem_reward(self, comm):
+        hour = int(comm.duration.total_seconds() // 3600)
+
+        return {
+            2: (10, 20),
+            4: (25, 40),
+            8: (50, 80),
+        }.get(hour, (0, 0))
+
+    def _send_gem_commission_notify(self, commissions):
+
+        instance = self.config.config_name
+
+        lines = []
+
+        for index, comm in enumerate(commissions, 1):
+
+            minimum, maximum = self._get_gem_reward(comm)
+
+            lines.append(
+                f'{index}. {comm.name}\n'
+                f'接取时间：'
+                f'{comm.create_time:%Y-%m-%d %H:%M:%S}\n'
+                f'预计完成：'
+                f'{comm.finish_time:%Y-%m-%d %H:%M:%S}\n'
+                f'预计收益：💎{minimum}~{maximum}'
+            )
+
+        content = '\n\n'.join(lines)
+
+        handle_notify(
+            self.config.Error_OnePushConfig,
+            title=f'AzurPilot <{instance}> 钻石委托开始执行喵！',
+            content=content,
+        )
+
+        notify_webui(
+            instance,
+            title=f'{instance} 钻石委托开始执行喵！',
+            content=content,
+        )
 
     def run(self):
         """
