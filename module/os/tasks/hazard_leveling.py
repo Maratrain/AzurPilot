@@ -952,7 +952,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
                     logger.info("[大世界-侵蚀1练级] 检测到自动配队已启用，开始执行自动配队")
                     try:
                         from module.os.tasks.fleet_auto_change import OpsiFleetAutoChange
-                        auto_change = OpsiFleetAutoChange(config=self.config, device=self.device)
+                        auto_change = OpsiFleetAutoChange(config=self.config, device=self.device,replace_positions=[int(p) for p in positions_full])
                         auto_change.run()
                         logger.info("[大世界-侵蚀1练级] 自动配队执行完成")
                     except Exception as e:
