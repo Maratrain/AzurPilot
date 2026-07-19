@@ -346,6 +346,7 @@ class GlobeOperation(ActionPointHandler):
                 self.device.screenshot()
 
             if self.is_in_map():
+                time.sleep(1)
                 break
 
             if self.appear(PORT_CHECK, offset=(20, 20), interval=3):
@@ -443,6 +444,8 @@ class GlobeOperation(ActionPointHandler):
 
             # End
             if self.is_in_map():
+                if click_count > 0:
+                    time.sleep(1)
                 break
 
             if self.is_zone_pinned():
