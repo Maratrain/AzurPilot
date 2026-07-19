@@ -3405,6 +3405,12 @@
       "True": "Enabled",
       "False": "Disabled"
     },
+    "AnyShipReached": {
+      "name": "Change when any ship reaches target level",
+      "help": "When enabled, automatically changes fleet when any checked ship reaches the target level.\nWhen disabled, all checked ships must reach the target level before changing",
+      "True": "Enabled",
+      "False": "Disabled"
+    },
     "CooldownHours": {
       "name": "Cooldown Hours",
       "help": "Cooldown period in hours after an auto-compose before the next one.",

@@ -13542,6 +13542,14 @@
           false
         ]
       },
+      "AnyShipReached": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
       "CooldownHours": {
         "type": "select",
         "value": 24,

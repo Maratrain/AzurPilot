@@ -1149,6 +1149,10 @@ OpsiFleetAutoChange:
     type: checkbox
     value: false
     option: [true, false]
+  AnyShipReached:
+    type: checkbox
+    value: false
+    option: [true, false]
   CooldownHours:
     value: 24
     option: [12, 24, 48, 72]

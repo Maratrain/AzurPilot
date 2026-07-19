@@ -658,6 +658,7 @@ class GeneratedConfig:
 
     # 配置组 `OpsiFleetAutoChange`
     OpsiFleetAutoChange_Enable = False  # True, False
+    OpsiFleetAutoChange_AnyShipReached = False  # True, False
     OpsiFleetAutoChange_CooldownHours = 24  # 12, 24, 48, 72
     OpsiFleetAutoChange_LastRun = datetime.datetime(2020, 1, 1, 0, 0)
 
