@@ -50,7 +50,10 @@ class OpsiFleetAutoChange(CoinTaskMixin, DockMixin, OSMap):
     
     当经验检测发现指定舰位已满经验时，自动进入船坞选择替换舰船
     """
-    
+    def __init__(self, config, device, replace_positions=None):
+        super().__init__(config, device)
+        self.replace_positions = replace_positions
+
     def run(self):
         """
         主入口方法
@@ -73,7 +76,10 @@ class OpsiFleetAutoChange(CoinTaskMixin, DockMixin, OSMap):
         try:
             self._goto_azur_port()
             
-            custom_positions = self._parse_custom_positions()
+            if hasattr(self, "replace_positions") and self.replace_positions:
+                custom_positions = self.replace_positions
+            else:
+                custom_positions = self._parse_custom_positions()
             
             logger.info(f"[大世界-自动配队] 开始执行自动配队，舰位: {custom_positions}")
             self._execute_fleet_auto_change(custom_positions)
