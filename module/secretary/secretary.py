@@ -47,6 +47,8 @@ class Secretary(SecretaryDockMixin,UI):
         self.replace_type = None
         self.secretary_scanner = SecretaryScanner()
         self.group_scanner = SecretaryGroupScanner()
+        self.search_priority = None
+        self.search_priority_index = 0
 
     def run(self):
         self.device.screenshot()
@@ -161,47 +163,74 @@ class Secretary(SecretaryDockMixin,UI):
                 logger.info("Enter secretary dock")
                 return
 
-    def choose_secretary(self):
-        logger.hr("Choose Secretary")
-        # 常用
-        self.dock_favourite_set(True)
-        ship = None
+    def choose_secretary(self, initialize=True):
 
-        # 从高到低尝试
-        ship = self.search_ship()
+        logger.hr("Choose Secretary")
+
+        if initialize:
+            self.dock_favourite_set(True)
+
+        ship = self.search_ship(initialize=initialize)
 
         if ship is None:
             logger.warning("未找到可用的舰船")
             return False
 
         self.select_ship(ship)
-        # 这里还在选择页面
         self.restore_sort()
-        self.confirm()
-
         logger.info("已成功更换秘书舰")
         return True
 
-    def search_ship(self):
-        self.RARITY_FILTER.load(self.config.Secretary_CustomFilter)
-        priority = self.RARITY_FILTER.apply(RARITIES)
+    def search_ship(self, initialize=True):
+        """
+        Search secretary.
 
-        for rarity in priority:
-            logger.info(f"Searching secretary: {rarity}")
+        Args:
+            initialize:
+                True：初始化筛选，从第一种稀有度开始。
+                False：继续当前搜索状态，不重新开始。
+        """
+        if initialize:
+            self.RARITY_FILTER.load(self.config.Secretary_CustomFilter)
+            self.search_priority = self.RARITY_FILTER.apply(RARITIES)
+            self.search_priority_index = 0
+
+            if not self.search_priority:
+                logger.warning("No secretary rarity configured")
+                return None
+
+            rarity = self.search_priority[0]
+            logger.info(f"Searching secretary: {rarity.rarity}")
+
             self.secretary_filter_set(
                 sort="intimacy",
                 rarity=rarity.rarity,
                 wait_loading=True,
             )
-            # ★★★★★ 筛选后重新设置排序 ★★★★★
             self.set_low_favorability_priority()
 
+        while self.search_priority_index < len(self.search_priority):
+
             ship = self.scan_ship()
-            if ship is not None:
-                logger.info(
-                    f"Found ship: Lv{ship.level} FAVORABILITY={ship.favorability}"
-                )
+
+            if ship:
+                logger.info(f"Found ship: Lv{ship.level} FAVORABILITY={ship.favorability}")
                 return ship
+
+            # 当前稀有度已经没有可选舰船
+            self.search_priority_index += 1
+
+            if self.search_priority_index >= len(self.search_priority):
+                break
+
+            rarity = self.search_priority[self.search_priority_index]
+            logger.info(f"Searching secretary: {rarity.rarity}")
+            self.secretary_filter_set(
+                sort="intimacy",
+                rarity=rarity.rarity,
+                wait_loading=True,
+            )
+            self.set_low_favorability_priority()
 
         logger.warning("No secretary candidate found")
         return None
@@ -332,7 +361,7 @@ class Secretary(SecretaryDockMixin,UI):
 
         self.open_ship_select(SECRETARY_SLOT[0])
 
-        if not self.choose_secretary():
+        if not self.choose_secretary(initialize=True):
             logger.warning("未找到可更换秘书舰")
             return False
 
@@ -543,7 +572,7 @@ class Secretary(SecretaryDockMixin,UI):
         # 只更换第五位
         self.open_ship_select(SECRETARY_SLOT[4])
 
-        if not self.choose_secretary():
+        if not self.choose_secretary(initialize=True):
             logger.warning("No secretary candidate")
             return
 
@@ -562,12 +591,9 @@ class Secretary(SecretaryDockMixin,UI):
         当秘书组全部满90时，
         从主秘书舰开始依次替换。
         """
-
         ships = self.scan_secretary_group()
-
         if not ships:
             return False
-
 
         # 找所有需要替换的位置
         targets = [
@@ -575,45 +601,26 @@ class Secretary(SecretaryDockMixin,UI):
             for ship in ships
             if ship.favorability >= 90
         ]
-
-
         if not targets:
             return False
-
-
-        logger.info(
-            f"Secretary all full, replace {len(targets)} ships"
-        )
-
-
+        logger.info(f"Secretary all full, replace {len(targets)} ships")
+        first = True
         count = 0
 
         for ship in targets:
-
             slot = SECRETARY_SLOT[ship.index]
-
-            logger.info(
-                f"Replace secretary slot {ship.index}: "
-                f"{ship.name} {ship.favorability}"
-            )
-
+            logger.info(f"Replace secretary slot {ship.index}: {ship.name} {ship.favorability}")
             self.open_ship_select(slot)
-
-            if not self.choose_secretary():
-                logger.warning(
-                    f"No replacement for slot {ship.index}"
-                )
+            initialize = first
+            first = False
+            if not self.choose_secretary(initialize=initialize):
+                logger.warning(f"No replacement for slot {ship.index}")
                 continue
 
             self.confirm()
-
             count += 1
 
-
-        logger.info(
-            f"Secretary replace finished {count}/{len(targets)}"
-        )
-
+        logger.info(f"Secretary replace finished {count}/{len(targets)}")
         return count > 0
 
     def search_backup_secretary(self, ships):
