@@ -10108,6 +10108,10 @@
         "type": "checkbox",
         "value": false
       },
+      "GemNotify": {
+        "type": "checkbox",
+        "value": false
+      },
       "CommissionNotifyReward": {
         "type": "checkbox",
         "value": false

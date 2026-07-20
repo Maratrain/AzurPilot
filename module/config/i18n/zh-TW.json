@@ -1916,6 +1916,10 @@
       "name": "做主要委託（1200油/1000油委託）",
       "help": "1200油委託現在已經過時，收益很低，建議關閉"
     },
+    "GemNotify": {
+      "name": "Commission.GemNotify.name",
+      "help": "Commission.GemNotify.help"
+    },
     "CommissionNotifyReward": {
       "name": "委託成功獲取鑽石推送",
       "help": "注意，請啟用並設定「錯誤推送設定」，否則此功能將不會生效。"

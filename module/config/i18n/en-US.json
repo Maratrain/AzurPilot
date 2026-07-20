@@ -1916,6 +1916,10 @@
       "name": "Make the main commission (1200 oil/1000 oil commission)",
       "help": "The 1200 oil commission is now obsolete and the yield is very low. It is recommended to close it."
     },
+    "GemNotify": {
+      "name": "Gem Commission Execution Notification",
+      "help": "Send the current running Gem Commission list after a new Gem Commission starts"
+    },
     "CommissionNotifyReward": {
       "name": "Successful Commission Gem Notification",
       "help": "Note: Please enable and configure Error Notification Settings; otherwise, this feature will not take effect."

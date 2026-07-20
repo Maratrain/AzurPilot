@@ -522,7 +522,7 @@ class RewardCommission(UI, InfoHandler):
                     if comm.is_gem_commission:  
                         has_new_gem_commission = True
                 self._commission_mode_reset()
-        if has_new_gem_commission:
+        if has_new_gem_commission and self.config.Commission_GemNotify:
             try:
                 self._send_gem_commission_notify()
             except Exception as e:

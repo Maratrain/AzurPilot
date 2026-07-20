@@ -641,6 +641,9 @@ Commission:
     > Extra-0:20 > Extra-0:30 > Extra-1:00 > Extra-1:30 > Extra-2:00
     > shortest
   DoMajorCommission: false
+  GemNotify:
+    type: checkbox
+    value: false
   CommissionNotifyReward:
     type: checkbox
     value: false
