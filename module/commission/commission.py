@@ -501,6 +501,8 @@ class RewardCommission(UI, InfoHandler):
             in: page_commission
             out: page_commission
         """
+        if not hasattr(self, '_running_gem_commissions'):
+            self._running_gem_commissions = []
         self._commission_scan_all()
         has_new_gem_commission = False
         logger.hr('Commission run', level=1)
@@ -519,8 +521,15 @@ class RewardCommission(UI, InfoHandler):
                 self.handle_info_bar()
                 if self._commission_find_and_start(comm, is_urgent=True):
                     comm.convert_to_running()
-                    if comm.is_gem_commission:  
+                    if comm.is_gem_commission:
                         has_new_gem_commission = True
+                        new_comm = copy.deepcopy(comm)
+                        if not any(
+                            c.name == new_comm.name
+                            and c.create_time == new_comm.create_time
+                            for c in self._running_gem_commissions
+                        ):
+                            self._running_gem_commissions.append(new_comm)
                 self._commission_mode_reset()
         if has_new_gem_commission and self.config.Commission_GemNotify:
             try:
@@ -865,25 +874,27 @@ class RewardCommission(UI, InfoHandler):
 
         instance = self.config.config_name
 
-        commissions = []
+        now = current_time()
 
-        for comm in self.urgent:
-            if comm.is_gem_commission and comm.status == 'running':
-                commissions.append(comm)
+        commissions = [
+            comm
+            for comm in self._running_gem_commissions
+            if comm.finish_time > now
+        ]
 
         if not commissions:
             return
 
+        self._running_gem_commissions = commissions
         commissions.sort(key=lambda comm: comm.finish_time)
 
         lines = []
 
         for index, comm in enumerate(commissions, 1):
-            start_time = comm.finish_time - comm.duration
 
             lines.append(
                 f'{index}. {comm.name}\n'
-                f'接取时间：{start_time:%Y-%m-%d %H:%M:%S}\n'
+                f'接取时间：{comm.create_time:%Y-%m-%d %H:%M:%S}\n'
                 f'预计完成：{comm.finish_time:%Y-%m-%d %H:%M:%S}\n'
                 f'剩余时间：{self._get_remaining_time(comm)}\n'
                 f'预计收益：{self._get_gem_reward(comm)}'
