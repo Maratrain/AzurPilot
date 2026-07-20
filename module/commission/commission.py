@@ -502,8 +502,7 @@ class RewardCommission(UI, InfoHandler):
             out: page_commission
         """
         self._commission_scan_all()
-        gem_commissions = []
-
+        has_new_gem_commission = False
         logger.hr('Commission run', level=1)
         if self.daily_choose:
             for comm in self.daily_choose:
@@ -521,11 +520,11 @@ class RewardCommission(UI, InfoHandler):
                 if self._commission_find_and_start(comm, is_urgent=True):
                     comm.convert_to_running()
                     if comm.is_gem_commission:  
-                        gem_commissions.append(comm)
+                        has_new_gem_commission = True
                 self._commission_mode_reset()
-        if gem_commissions:
+        if has_new_gem_commission:
             try:
-                self._send_gem_commission_notify(gem_commissions)
+                self._send_gem_commission_notify()
             except Exception as e:
                 logger.warning(
                     f'Gem commission notification failed: {e}'
@@ -844,41 +843,63 @@ class RewardCommission(UI, InfoHandler):
         hour = int(comm.duration.total_seconds() // 3600)
 
         return {
-            2: (10, 20),
-            4: (25, 40),
-            8: (50, 80),
-        }.get(hour, (0, 0))
+            2: '💎10~20',
+            4: '💎25~40',
+            8: '💎50~80',
+        }.get(hour, '未知')
 
-    def _send_gem_commission_notify(self, commissions):
+    def _get_remaining_time(self, comm):
+        remaining = comm.finish_time - current_time()
+
+        if remaining.total_seconds() <= 0:
+            return '已完成'
+
+        hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        if hours:
+            return f'{hours}小时{minutes}分钟'
+        return f'{minutes}分钟'
+
+    def _send_gem_commission_notify(self):
 
         instance = self.config.config_name
+
+        commissions = []
+
+        for comm in self.urgent:
+            if comm.is_gem_commission and comm.status == 'running':
+                commissions.append(comm)
+
+        if not commissions:
+            return
+
+        commissions.sort(key=lambda comm: comm.finish_time)
 
         lines = []
 
         for index, comm in enumerate(commissions, 1):
-
-            minimum, maximum = self._get_gem_reward(comm)
+            start_time = comm.finish_time - comm.duration
 
             lines.append(
                 f'{index}. {comm.name}\n'
-                f'接取时间：'
-                f'{comm.create_time:%Y-%m-%d %H:%M:%S}\n'
-                f'预计完成：'
-                f'{comm.finish_time:%Y-%m-%d %H:%M:%S}\n'
-                f'预计收益：💎{minimum}~{maximum}'
+                f'接取时间：{start_time:%Y-%m-%d %H:%M:%S}\n'
+                f'预计完成：{comm.finish_time:%Y-%m-%d %H:%M:%S}\n'
+                f'剩余时间：{self._get_remaining_time(comm)}\n'
+                f'预计收益：{self._get_gem_reward(comm)}'
             )
 
         content = '\n\n'.join(lines)
 
         handle_notify(
             self.config.Error_OnePushConfig,
-            title=f'AzurPilot <{instance}> 钻石委托开始执行喵！',
+            title=f'AzurPilot <{instance}> 当前钻石委托执行列表！',
             content=content,
         )
 
         notify_webui(
             instance,
-            title=f'{instance} 钻石委托开始执行喵！',
+            title=f'{instance} 当前钻石委托执行列表！',
             content=content,
         )
 
