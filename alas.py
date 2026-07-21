@@ -24,6 +24,7 @@ from module.config.utils import (
 from module.exception import *
 from module.logger import logger
 from module.notify import handle_notify, notify_webui
+from module.base.database_backup import backup_database
 
 # 缓存 i18n 任务名查找
 _i18n_task_names = None
@@ -1111,6 +1112,13 @@ class AzurLaneAutoScript:
                 "    python gui.py"
             )
             exit(1)
+
+        # 数据库每日备份
+        try:
+            from module.base.database_backup import backup_database
+            backup_database()
+        except Exception as e:
+            logger.warning(f'数据库自动备份异常，已跳过本次备份: {e}')
 
         # 全局异常连续失败计数与阈值
         consecutive_global_failures = 0
