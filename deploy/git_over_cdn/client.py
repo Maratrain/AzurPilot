@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import zipfile
 from typing import Callable, Generic, TypeVar
 
@@ -70,8 +71,10 @@ class GitOverCdnClient:
         path = os.path.join(self.folder, '.git', path)
         return os.path.abspath(path).replace('\\', '/')
 
-    def urlpath(self, path):
-        return f'{self.url}{path}'
+    def urlpath(self, path, base=None):
+        if base is None:
+            base = self.url
+        return f'{base}{path}'
 
     @cached_property
     def current_commit(self) -> str:
@@ -95,7 +98,7 @@ class GitOverCdnClient:
                 self.logger.error(f'Failed to get local commit: {e}')
         return ''
 
-    @property
+    @cached_property
     def session(self):
         session = requests.Session()
         session.trust_env = False
@@ -103,9 +106,47 @@ class GitOverCdnClient:
         session.mount('https://', HTTPAdapter(max_retries=3))
         return session
 
+    def probe_url(self, url_base):
+        """探测候选地址的可用性与延迟。"""
+        url = self.urlpath('/latest.json', base=url_base)
+        methods = (
+            ('HEAD', self.session.head, {}),
+            ('GET', self.session.get, {'stream': True}),
+        )
+        for method, request, extra in methods:
+            start = time.perf_counter()
+            try:
+                with request(url, timeout=3, allow_redirects=True, **extra) as resp:
+                    elapsed = time.perf_counter() - start
+                    if resp.ok:
+                        self.logger.info(f'Probe {method} {url} -> {elapsed:.3f}s')
+                        return elapsed
+                    self.logger.info(f'Probe {method} {url} failed, status={resp.status_code}')
+            except Exception as e:
+                self.logger.info(f'Probe {method} {url} failed: {e}')
+        return None
+
+    @cached_property
+    def preferred_urls(self):
+        scored = []
+        for index, url_base in enumerate(self.urls):
+            latency = self.probe_url(url_base)
+            if latency is None:
+                continue
+            scored.append((latency, index, url_base))
+
+        if not scored:
+            self.logger.warning('No CDN url passed probe, fall back to configured order')
+            return self.urls
+
+        scored.sort(key=lambda item: (item[0], item[1]))
+        ordered = [url_base for _, _, url_base in scored]
+        self.logger.attr('PreferredUrl', ordered[0])
+        return ordered
+
     @cached_property
     def latest_commit(self) -> str:
-        for url_base in self.urls:
+        for url_base in self.preferred_urls:
             self.url = url_base
             url = self.urlpath('/latest.json')
             self.logger.info(f'Fetch url: {url}')
@@ -132,18 +173,25 @@ class GitOverCdnClient:
         return ''
 
     def download_pack(self):
-        try:
-            url = self.urlpath(f'/{self.latest_commit}/{self.current_commit}.zip')
+        latest = self.latest_commit
+        current = self.current_commit
+        for url_base in self.preferred_urls:
+            self.url = url_base
+            url = self.urlpath(f'/{latest}/{current}.zip')
             self.logger.info(f'Fetch url: {url}')
-            resp = self.session.get(url, timeout=20)
-        except Exception as e:
-            self.logger.error(f'Failed to download pack: {e}')
-            return False
+            try:
+                resp = self.session.get(url, timeout=20)
+            except Exception as e:
+                self.logger.error(f'Failed to download pack: {e}')
+                continue
 
-        if resp.status_code == 200:
+            if resp.status_code != 200:
+                self.logger.error(f'Failed to download pack, status={resp.status_code}, text={resp.text}')
+                continue
+
             try:
                 zipped = zipfile.ZipFile(io.BytesIO(resp.content))
-                for file in [f'pack-{self.latest_commit}.pack', f'pack-{self.latest_commit}.idx']:
+                for file in [f'pack-{latest}.pack', f'pack-{latest}.idx']:
                     self.logger.info(f'Unzip {file}')
                     member = zipped.getinfo(file)
                     tmp = self.filepath(f'./objects/pack/{file}.tmp')
@@ -155,20 +203,13 @@ class GitOverCdnClient:
             except zipfile.BadZipFile as e:
                 # 文件不是有效的 zip 文件
                 self.logger.error(e)
-                return False
             except KeyError as e:
                 # 归档中不存在该文件
                 self.logger.error(e)
-                return False
             except Exception as e:
                 self.logger.error(e)
-                return False
-        elif resp.status_code == 404:
-            self.logger.error(f'Failed to download pack, status={resp.status_code}, no such pack files provided')
-            return False
-        else:
-            self.logger.error(f'Failed to download pack, status={resp.status_code}, text={resp.text}')
-            return False
+
+        return False
 
     def update_refs(self):
         file = self.filepath(f'./refs/remotes/{self.source}/{self.branch}')

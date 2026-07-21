@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "name": "azurpilot-git-over-cdn-scripts",
+  "description": "AzurPilot 更新包构建脚本",
+  "scripts": {
+    "build:git-over-cdn:eo-esa": "npm install --no-audit --no-fund --no-package-lock && node build_git_over_cdn_eo_esa.mjs"
+  },
+  "dependencies": {
+    "yazl": "3.3.1"
+  }
+}

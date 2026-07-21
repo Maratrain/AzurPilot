@@ -45,6 +45,8 @@ docs/
 .idea/**/shelf
 
 # Generated files
+.github/scripts/node_modules/
+.github/scripts/package-lock.json
 .idea/**/contentModel.xml
 
 # Sensitive or high-churn files

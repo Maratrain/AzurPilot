@@ -118,9 +118,8 @@ class GitManager(DeployConfig):
     def goc_client(self):
         client = GitOverCdnClient(
             url=[
-                'https://alas.nanoda.work/upd',
-                'https://1825239988.v.123pan.cn/1825239988/azur/AzurPilot_master',
-            ],
+                'https://ap.update.cdn.esa.nanoda.work',
+                'https://ap.update.cdn.cloudflare.3463343.xyz',            ],
             folder=self.root_filepath,
             source='origin',
             branch='master',
