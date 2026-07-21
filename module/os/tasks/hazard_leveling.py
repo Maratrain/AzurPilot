@@ -122,7 +122,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
 
     def run_hazard1_leveling(self):
         """执行大世界侵蚀 1 练级任务。"""
-        logger.hr("OS hazard 1 leveling", level=1)
+        logger.hr("大世界-侵蚀1练级", level=1)
 
         while True:
             self.run_hazard1_leveling_once()
@@ -161,7 +161,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
             logger.error(f"[大世界-侵蚀1练级] OCR识别错误: {e}")
             raise
 
-        # 侵蚀 1 练级时，行动力优先用于此任务，而非短猫。
+        # 侵蚀 1 练级时，行动力优先用于此任务，而非耄耋相接。
         self.action_point_set(
             cost=120, keep_current_ap=True, check_rest_ap=True
         )
@@ -204,7 +204,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
 
     def os_check_leveling(self):
         """检查大世界阵容练级进度。"""
-        logger.hr("OS check leveling", level=1)
+        logger.hr("大世界-侵蚀1练级检查", level=1)
         logger.attr("OpsiCheckLeveling_LastRun", self.config.OpsiCheckLeveling_LastRun)
         
         check_interval = self.config.OpsiCheckLeveling_CheckInterval

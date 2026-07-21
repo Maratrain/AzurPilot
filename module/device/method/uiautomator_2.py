@@ -413,11 +413,76 @@ class Uiautomator2(Connection):
     @retry
     def resolution_uiautomator2(self, cal_rotation=True) -> t.Tuple[int, int]:
         """
-        比 u2.window_size() 更快，因为后者会调用两次 `dumpsys display`。
+        获取设备的有效分辨率，优先通过 ADB wm size 获取（支持 wm size override），
+        回退到 uiautomator2 /info 接口。
+
+        当用户通过 `adb shell wm size 720x1280` 设置了覆盖分辨率时，
+        uiautomator2 /info 接口仍返回物理分辨率（如 1080x2400），
+        而 ADB wm size 能正确报告 Override size。
 
         Returns:
             (width, height)
         """
+        # 优先使用 ADB wm size，支持 override 分辨率
+        lines = []
+        result = ''
+        try:
+            result = self.adb_shell(['wm', 'size'])
+            lines = result.strip().split('\n')
+        except Exception:
+            logger.warning('Failed to execute adb shell wm size, fallback to u2 /info')
+
+        if lines:
+            w, h = None, None
+            import re
+            size_pattern = re.compile(r'^(\d+)x(\d+)$')
+
+            # 优先读取 Override size（用户通过 wm size 设置的值）
+            for line in lines:
+                line = line.strip()
+                if 'Override size:' in line:
+                    try:
+                        size_str = line.split(':', 1)[1].strip()
+                        m = size_pattern.match(size_str)
+                        if m:
+                            w, h = int(m.group(1)), int(m.group(2))
+                            break
+                    except (ValueError, IndexError):
+                        continue
+
+            if w is None:
+                # 没有 Override，尝试 Physical size 行或裸分辨率行
+                for line in lines:
+                    line = line.strip()
+                    try:
+                        if 'Physical size:' in line:
+                            size_str = line.split(':', 1)[1].strip()
+                            m = size_pattern.match(size_str)
+                            if m:
+                                w, h = int(m.group(1)), int(m.group(2))
+                                break
+                        elif size_pattern.match(line):
+                            # 旧版 Android 仅输出 "1080x2400"
+                            m = size_pattern.match(line)
+                            if m:
+                                w, h = int(m.group(1)), int(m.group(2))
+                                break
+                    except (ValueError, IndexError):
+                        continue
+
+            if w is not None and h is not None:
+                if cal_rotation:
+                    rotation = self.get_orientation()
+                    if (w > h) != (rotation % 2 == 1):
+                        w, h = h, w
+                return w, h
+
+            logger.warning(
+                'Failed to parse resolution from ADB wm size, fallback to u2 /info. '
+                f'Raw output: {result!r}'
+            )
+
+        # 回退到 uiautomator2 /info 接口
         info = self.u2.http.get('/info').json()
         w, h = info['display']['width'], info['display']['height']
         if cal_rotation:

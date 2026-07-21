@@ -139,22 +139,14 @@ class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
 
         if items:
             min_row = self.os_akashi_shop_items.grids[0, 0].area[1]
-
-            logger.info(
-                f"Shop row 1: {[str(i) for i in items if i.button[1] == min_row]}"
-            )
-            logger.info(
-                f"Shop row 2: {[str(i) for i in items if i.button[1] != min_row]}"
-            )
-
+            row = [str(item) for item in items if item.button[1] == min_row]
+            logger.info(f'明石商店第 1 行: {row}')
+            row = [str(item) for item in items if item.button[1] != min_row]
+            logger.info(f'明石商店第 2 行: {row}')
             return items
-
-        logger.info("No shop items found")
-        return []
-
-    # =========================================================
-    # 主流程
-    # =========================================================
+        else:
+            logger.info('未找到明石商店物品')
+            return []
 
     def os_shop_get_item_to_buy_in_akashi(self) -> Item:
 
@@ -169,10 +161,8 @@ class AkashiShop(OSStatus, OSShopUI, Selector, MapEventHandler):
         ap_box_captured = False
         # retry保证稳定
         for _ in range(2):
-
-            if not items or any(not i.is_known_item() for i in items):
-                logger.warning("Empty shop or unstable recognition")
-
+            if not len(items) or any(not item.is_known_item() for item in items):
+                logger.warning('明石商店为空或物品为空，正在确认')
                 self.device.sleep((0.3, 0.5))
                 self.device.screenshot()
 

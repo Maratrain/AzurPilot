@@ -11,6 +11,7 @@ from cached_property import cached_property
 
 from module.base.decorator import del_cached_property
 from module.base.api_client import ApiClient
+from module.base.ssh import clear_ssh_host_key
 from module.config.config import AzurLaneConfig, TaskEnd
 from module.config.deep import deep_get, deep_set
 from module.config.time_source import now as current_time
@@ -87,7 +88,13 @@ class AzurLaneAutoScript:
         import sys
 
         if not self.config.Error_AdbOfflineRestart:
-            logger.warning('[Alas] AdbOfflineRestart 已禁用，无法自动重启模拟器')
+            logger.error_context(
+                title='模拟器自动重启已禁用',
+                reason='配置项 Error.AdbOfflineRestart 未启用。',
+                impact='模拟器离线后无法自动恢复，当前任务可能终止。',
+                action='确认模拟器稳定性后，按需启用 AdbOfflineRestart 和合理的重试阈值。',
+                level=30,
+            )
             return False
 
         self.consecutive_adb_offline += 1
@@ -95,7 +102,13 @@ class AzurLaneAutoScript:
         logger.warning(f'[Alas] EmulatorNotRunningError: 连续次数 {self.consecutive_adb_offline}/{limit}')
 
         if self.consecutive_adb_offline > limit:
-            logger.critical(f'[Alas] EmulatorNotRunningError: 已达到重启限制 ({limit})')
+            logger.error_context(
+                title='模拟器自动重启次数已达上限',
+                reason=f'模拟器连续离线次数已超过配置限制 {limit} 次。',
+                impact='本次自动恢复停止，任务将进入失败处理。',
+                action='手动确认模拟器是否运行、ADB 是否可用，再重新启动 AzurPilot。',
+                level=50,
+            )
             return False
 
         logger.hr('[Alas] 正在重启模拟器', level=1)
@@ -123,7 +136,12 @@ class AzurLaneAutoScript:
                 del_cached_property(self, 'device')
             return True
         except Exception as e:
-            logger.error(f'[Alas] 重启模拟器失败: {e}')
+            logger.exception_context(
+                title='重启模拟器失败',
+                exc=e,
+                impact='模拟器仍可能处于离线状态，当前任务无法恢复。',
+                action='检查模拟器进程权限、ADB 服务和模拟器管理配置。',
+            )
             return False
 
     def _start_emulator_after_long_wait(self):
@@ -162,10 +180,21 @@ class AzurLaneAutoScript:
             config = AzurLaneConfig(config_name=self.config_name)
             return config
         except RequestHumanTakeover:
-            logger.critical('[Alas] 杂鱼杂鱼~ 没用的大叔连这点事都办不好？这就滚回来求我接管吧❤')
+            logger.error_context(
+                title='配置初始化需要人工介入',
+                reason='配置加载或配置校验未通过，自动修复无法继续。',
+                impact='调度器无法启动。',
+                action='检查配置文件和最近一次错误堆栈，修正配置后重新启动。',
+                level=50,
+            )
             exit(1)
         except Exception as e:
-            logger.exception(e)
+            logger.exception_context(
+                title='配置初始化失败', exc=e,
+                impact='调度器无法启动。',
+                action='检查 config 目录中的配置格式、参数名称和文件权限。',
+                level=50,
+            )
             exit(1)
 
     @cached_property
@@ -175,10 +204,21 @@ class AzurLaneAutoScript:
             device = Device(config=self.config)
             return device
         except RequestHumanTakeover:
-            logger.critical('[Alas] 杂鱼杂鱼~ 没用的大叔连这点事都办不好？这就滚回来求我接管吧❤')
+            logger.error_context(
+                title='设备初始化需要人工介入',
+                reason='设备连接或设备参数校验未通过，自动修复无法继续。',
+                impact='调度器无法控制模拟器。',
+                action='确认模拟器已启动、ADB 可用且分辨率为 1280x720，然后重新启动。',
+                level=50,
+            )
             exit(1)
         except Exception as e:
-            logger.exception(e)
+            logger.exception_context(
+                title='设备初始化失败', exc=e,
+                impact='调度器无法控制模拟器。',
+                action='检查模拟器、ADB 连接和当前截图/控制方案配置。',
+                level=50,
+            )
             exit(1)
 
     @cached_property
@@ -188,7 +228,12 @@ class AzurLaneAutoScript:
             checker = ServerChecker(server=self.config.Emulator_ServerName)
             return checker
         except Exception as e:
-            logger.exception(e)
+            logger.exception_context(
+                title='服务器状态检查器初始化失败', exc=e,
+                impact='无法判断服务器维护状态，调度器无法继续。',
+                action='检查网络连接、服务器配置和相关依赖后重新启动。',
+                level=50,
+            )
             exit(1)
 
     def _check_sensitive_exit(self, command, error):
@@ -211,8 +256,14 @@ class AzurLaneAutoScript:
         if not sensitive:
             return False
 
-        logger.critical(f'[Alas] 敏感任务 `{task_name}` 出错，禁止重启，AzurPilot 将停止运行')
-        logger.critical(f'[Alas] 异常: {error}')
+        logger.error_context(
+            title=f'敏感任务失败，禁止自动重启（{task_name}）',
+            reason=f'任务抛出了 {type(error).__name__}，且该任务被配置为重启敏感任务。',
+            impact='为避免状态或数据损坏，AzurPilot 将停止运行。',
+            action='查看错误现场并手动确认游戏状态；修复配置或根因后再启动。',
+            exc=error,
+            level=50,
+        )
         handle_notify(
             self.config.Error_OnePushConfig,
             title=f"AzurPilot <{self.config_name}> 敏感任务出错",
@@ -253,7 +304,14 @@ class AzurLaneAutoScript:
             return True
         except GameNotRunningError as e:
             # 游戏未运行，调度 Restart 任务自动恢复
-            logger.warning(e)
+            logger.error_context(
+                title='游戏进程未运行',
+                reason='任务执行前未检测到碧蓝航线游戏进程。',
+                impact='当前任务跳过，调度器将自动安排 Restart 任务。',
+                action='通常无需处理；若反复发生，请检查游戏包名、模拟器状态和登录流程。',
+                exc=e,
+                level=30,
+            )
             self._check_sensitive_exit(command, e)
             handle_notify(
                 self.config.Error_OnePushConfig,
@@ -269,7 +327,13 @@ class AzurLaneAutoScript:
             return 'recoverable'
         except (GameStuckError, GameTooManyClickError) as e:
             # 游戏卡住或点击过多，尝试重启游戏；连续卡死则重启模拟器
-            logger.error(e)
+            logger.error_context(
+                title='游戏状态无法推进',
+                reason='截图状态在限定时间内没有变化，或同一按钮被连续点击过多。',
+                impact='当前任务已中断，将尝试重启游戏；重复发生时会重启模拟器。',
+                action='确认模拟器没有被手动操作，检查截图方案、游戏分辨率和资源版本。',
+                exc=e,
+            )
             self.save_error_log()
             self._check_sensitive_exit(command, e)
 
@@ -301,7 +365,13 @@ class AzurLaneAutoScript:
             return 'recoverable'
         except GameBugError as e:
             # 游戏客户端 bug，重启游戏修复
-            logger.warning(e)
+            logger.error_context(
+                title='游戏客户端发生异常',
+                reason='检测到碧蓝航线客户端的异常状态。',
+                impact='当前任务已中断，正在重启游戏尝试恢复。',
+                action='等待自动重启；若反复出现，请更新游戏和 AzurPilot，并保留错误现场。',
+                exc=e,
+            )
             self.save_error_log()
             self._check_sensitive_exit(command, e)
             logger.warning('[Alas] 碧蓝航线游戏客户端发生错误，AzurPilot 无法处理')
@@ -319,11 +389,18 @@ class AzurLaneAutoScript:
             self.config.task_call('Restart')
             self.device.sleep(10)
             return 'recoverable'
-        except GamePageUnknownError:
+        except GamePageUnknownError as e:
             logger.info('[Alas] 游戏服务器可能正在维护或网络连接中断，正在检查服务器状态')
             self.checker.check_now()
             if self.checker.is_available():
-                logger.critical('[Alas] 哈？你这游戏进的是什么鬼地方？这种破页面我都懒得认识！真逊~')
+                logger.error_context(
+                    title='无法识别游戏页面',
+                    reason='服务器可用，但当前截图不符合任何已知游戏页面。',
+                    impact='无法安全继续任务，调度器即将终止。',
+                    action='确认游戏版本、服务器和分辨率；若更新后出现，请更新 AzurPilot 资源。',
+                    exc=e,
+                    level=50,
+                )
                 self.save_error_log()
                 handle_notify(
                     self.config.Error_OnePushConfig,
@@ -340,8 +417,12 @@ class AzurLaneAutoScript:
                 self.checker.wait_until_available()
                 return False
         except ScriptError as e:
-            logger.exception(e)
-            logger.critical('[Alas] 噗噗~ 恭喜大叔触发了诡异Bug！果然废材的人品就是差呢❤')
+            logger.exception_context(
+                title='任务脚本执行失败', exc=e,
+                impact='当前任务无法继续，调度器将终止并保留错误现场。',
+                action='根据堆栈定位脚本错误；如果是新版本回归，请提交错误日志和截图。',
+                level=50,
+            )
             handle_notify(
                 self.config.Error_OnePushConfig,
                 title=f"AzurPilot <{self.config_name}> 崩溃",
@@ -355,7 +436,13 @@ class AzurLaneAutoScript:
             raise
         except EmulatorNotRunningError as e:
             # 模拟器离线或死机，尝试自动重启
-            logger.error('[Alas] 任务执行期间模拟器未运行')
+            logger.error_context(
+                title='模拟器连接中断',
+                reason='任务执行期间无法访问模拟器或 ADB 设备。',
+                impact='当前任务中断，系统将按配置尝试重启模拟器。',
+                action='确认模拟器进程和 ADB 服务正常；连续失败时检查端口、代理和模拟器保活设置。',
+                exc=e,
+            )
             self.save_error_log()
             self._check_sensitive_exit(command, e)
             if self._try_restart_emulator():
@@ -374,7 +461,13 @@ class AzurLaneAutoScript:
                 return 'recoverable'
             else:
                 # 重启失败或未启用自动重启，终止程序
-                logger.critical('[Alas] 模拟器都死透了你还在那看？赶紧动手去救它啊，没用的大叔！')
+                logger.error_context(
+                    title='模拟器无法自动恢复',
+                    reason='模拟器离线重启失败或已达到自动重启次数限制。',
+                    impact='调度器将终止，任务不会继续执行。',
+                    action='手动启动模拟器并确认 ADB 可见，再重新启动 AzurPilot。',
+                    level=50,
+                )
                 handle_notify(
                     self.config.Error_OnePushConfig,
                     title=f"AzurPilot <{self.config_name}> 崩溃",
@@ -387,7 +480,13 @@ class AzurLaneAutoScript:
                 )
                 exit(1)
         except RequestHumanTakeover:
-            logger.critical('[Alas] 你行你上啊，盯着我看干什么？难道大叔也想让我这种小鬼帮你接管吗？❤')
+            logger.error_context(
+                title='任务需要人工介入',
+                reason='当前状态无法由自动化流程安全判断或修复。',
+                impact='调度器将终止，避免继续执行造成误操作。',
+                action='查看错误现场和堆栈，按日志中的具体建议处理后重新启动。',
+                level=50,
+            )
             handle_notify(
                 self.config.Error_OnePushConfig,
                 title=f"AzurPilot <{self.config_name}> 崩溃",
@@ -399,12 +498,23 @@ class AzurLaneAutoScript:
                 content=f"因为 需要人工介入 喵！",
             )
             exit(1)
-        except AutoSearchSetError:
-            logger.critical('[Alas] 笨——蛋——大叔！自动搜索都不会设，你是在等我也嘲笑你的困难编队吗？❤')
-            logger.critical('[Alas] 看懂了吗？滚过来接管。')
+        except AutoSearchSetError as e:
+            logger.error_context(
+                title='自动搜索设置失败',
+                reason='无法将游戏切换到所需的自动搜索状态。',
+                impact='当前任务无法安全继续，调度器将终止。',
+                action='检查编队、关卡限制和游戏页面；确认后手动设置自动搜索并重新启动。',
+                exc=e,
+                level=50,
+            )
             exit(1)
         except Exception as e:
-            logger.exception(e)
+            logger.exception_context(
+                title=f'任务执行发生未处理异常（{command}）', exc=e,
+                impact='当前任务无法确认执行结果，调度器将保留现场并终止。',
+                action='查看错误现场中的 log.txt、截图和完整堆栈，确认是否需要更新资源或提交问题。',
+                level=50,
+            )
             self.save_error_log()
             handle_notify(
                 self.config.Error_OnePushConfig,
@@ -456,7 +566,13 @@ class AzurLaneAutoScript:
                 if exc_value is not None:
                     analyze_exception(self.config, exc_value)
         except Exception as e:
-            logger.error(f'LLM Analysis failed: {e}')
+            logger.exception_context(
+                title='LLM 错误分析失败',
+                exc=e,
+                impact='不影响任务恢复，但本次错误不会生成 LLM 分析结果。',
+                action='检查 LLM API 配置、网络和配额；直接根据错误现场排查。',
+                level=30,
+            )
 
         if getattr(self.config, 'Error_SaveError', False):
             config_folder = pathlib.Path(f"./log/error/{self.config_name}")
@@ -963,13 +1079,19 @@ class AzurLaneAutoScript:
 
         logger.hr('Remote SSH Command', level=1)
         target = f'{user}@{host}' if user else host
+        clear_ssh_host_key(host, port)
         # -n: 禁用标准输入  -T: 禁用伪终端分配  BatchMode: 避免密码提示导致挂起
-        cmd = ['ssh', '-n', '-T', '-p', str(port), '-o', 'StrictHostKeyChecking=no', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10']
+        cmd = [
+            'ssh', '-n', '-T', '-p', str(port),
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', f'UserKnownHostsFile={os.devnull}',
+            '-o', f'GlobalKnownHostsFile={os.devnull}',
+            '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10',
+        ]
         
         key_file = None
         if key and len(key) > 50:
             import tempfile
-            import os
             try:
                 fd, key_file = tempfile.mkstemp()
                 with os.fdopen(fd, 'w') as f:
@@ -1100,6 +1222,7 @@ class AzurLaneAutoScript:
                 if (
                     self.config.Optimization_CloseEmulatorDuringLongWait
                     and wait_duration > timedelta(hours=3)
+                    and 'device' in self.__dict__ and self.device.emulator_instance is not None  # 远程设备（无线 ADB / SSH）没有本地模拟器实例可管理，跳过关闭流程，走常规等待逻辑
                 ):
                     logger.info(
                         f'下一个任务 `{task.command}` 将在 {wait_duration} 后运行，'
@@ -1169,13 +1292,12 @@ class AzurLaneAutoScript:
         from module.config.utils import is_oobe_needed
 
         if is_oobe_needed():
-            logger.critical(
-                "未检测到配置文件。\n"
-                "请先运行 WebUI 完成初次设置:\n"
-                "    python gui.py\n"
-                "No configuration files detected.\n"
-                "Please run the WebUI first:\n"
-                "    python gui.py"
+            logger.error_context(
+                title='未检测到配置文件',
+                reason='项目尚未完成首次配置，或 config 目录中的配置文件缺失。',
+                impact='调度器无法启动。',
+                action='运行 `uv run python gui.py` 打开 WebUI，完成初次设置后再启动调度器。',
+                level=50,
             )
             exit(1)
 
@@ -1274,12 +1396,18 @@ class AzurLaneAutoScript:
                     keys=f'{task}.Scheduler.Sensitive', default=False
                 )
                 if failed >= 3 or strict_restart:
-                    logger.critical(f"[Alas] 任务 `{task}` 失败 {failed} 次或更多。")
-                    logger.critical("[Alas] 可能原因 #1: 您未正确使用。请阅读选项的帮助文本。")
-                    logger.critical("[Alas] 可能原因 #2: 此任务存在问题。请联系开发者或尝试自行修复。")
+                    reason = '任务配置或使用方式不符合要求，也可能是任务本身存在问题。'
+                    action = '检查任务选项帮助和错误现场；确认配置正确后再重试。'
                     if strict_restart:
-                        logger.critical("[Alas] 可能原因 #3: 这是重启敏感任务。请手动接管游戏或关闭 'StrictRestart' 选项。")
-                    logger.critical('[Alas] 请求人工接管')
+                        reason += '该任务是重启敏感任务，失败后禁止自动重启。'
+                        action += '如需自动恢复，请关闭对应任务的 StrictRestart；否则手动接管游戏。'
+                    logger.error_context(
+                        title=f'任务连续失败，需要人工介入（{task}）',
+                        reason=f'该任务已连续失败 {failed} 次。{reason}',
+                        impact='调度器将停止，避免继续执行造成重复操作或数据异常。',
+                        action=action,
+                        level=50,
+                    )
                     handle_notify(
                         self.config.Error_OnePushConfig,
                         title=f"AzurPilot <{self.config_name}> crashed",
@@ -1312,9 +1440,13 @@ class AzurLaneAutoScript:
             except Exception as e:
                 consecutive_global_failures += 1
                 self.is_first_task = False
-                logger.error("[Alas] 调度器循环中发生意外的全局异常！")
                 import traceback
-                logger.error(traceback.format_exc())
+                logger.exception_context(
+                    title='调度器循环发生未处理异常',
+                    exc=e,
+                    impact='本轮任务中断，调度器将尝试执行 Restart 后继续运行。',
+                    action='关注下方堆栈；若连续发生，请检查设备连接、配置和最近更新的资源。',
+                )
                 
                 # 即使没有达到重启或失败上限，也第一时间自动请求分析崩溃原因
                 try:
@@ -1330,12 +1462,15 @@ class AzurLaneAutoScript:
 
                 # 检查是否达到重试上限
                 if consecutive_global_failures >= MAX_GLOBAL_FAILURES:
-                    logger.critical(
-                        f"连续崩了 {MAX_GLOBAL_FAILURES} 次！AzurPilot 已经被你气死了！"
+                    logger.error_context(
+                        title='调度器达到连续失败上限',
+                        reason=f'全局异常已连续发生 {MAX_GLOBAL_FAILURES} 次。',
+                        impact='自动恢复已停止，AzurPilot 将退出。',
+                        action='查看错误现场中的 log.txt 和截图，修复根因后重新启动；提交问题时请附带该现场。',
+                        exc=e,
+                        level=50,
                     )
-                    logger.critical("[Alas] 这错误没救了，重启一百次也没用。")
                     self.save_error_log()
-                    logger.critical("[Alas] 调度器罢工了！赶紧滚过来人工救场！")
                     logger.warning("[Alas] 遇到无法恢复的致命错误，正在上报错误日志...")
                     ApiClient.submit_bug_log(f"AzurPilot <{self.config_name}> 调度器终止。\n已达到最大全局失败次数 ({MAX_GLOBAL_FAILURES})。\n{traceback.format_exc()}")
                     exit(1)
@@ -1349,8 +1484,12 @@ class AzurLaneAutoScript:
                     del_cached_property(self, 'config')
                     logger.info("[Alas] 已为下一个循环安排了 `Restart` 任务。")
                 except Exception as restart_e:
-                    logger.error("[Alas] 甚至无法安排重启任务！")
-                    logger.error(f"[Alas] 安排错误: {restart_e}")
+                    logger.exception_context(
+                        title='无法安排 Restart 恢复任务',
+                        exc=restart_e,
+                        impact='调度器无法自动恢复，本轮循环结束后仍可能再次失败。',
+                        action='检查配置是否可读、Restart 任务是否启用，以及设备是否仍在线。',
+                    )
 
                 # 等待一段时间后开始下一次循环
                 wait_seconds = RESTART_DELAY if consecutive_global_failures < 4 else LONG_WAIT

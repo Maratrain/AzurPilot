@@ -1,4 +1,4 @@
-"""大世界商店购买执行类。
+"""大世界商店+购买执行类。
 
 整合港口商店与海域内明石商店的交互、购买确认逻辑，
 并记录行动力购买等大世界关键资源的变动明细。
@@ -18,7 +18,7 @@ from module.shop.clerk import OCR_SHOP_AMOUNT
 
 
 class OSShop(PortShop, AkashiShop):
-    """大世界商店购买执行器。
+    """大世界商店+购买执行器。
 
     继承港口商店和明石商店的功能，提供统一的购买执行接口。
     """
@@ -73,7 +73,7 @@ class OSShop(PortShop, AkashiShop):
                 amount_finish = self.shop_buy_amount_handler(button)
                 set_amount_retry += 1
                 if not amount_finish and set_amount_retry > 3:
-                    logger.warning(f'Item {button.name} cant get amount.')
+                    logger.warning(f'物品 {button.name} 无法识别购买数量')
                     self.close_shop_buy_confirm_amount(skip_first_screenshot)
                     break
                 continue
@@ -88,7 +88,7 @@ class OSShop(PortShop, AkashiShop):
             if not success and self.appear(PORT_SUPPLY_CHECK, offset=(20, 20), interval=5):
                 buy_retry += 1
                 if buy_retry > buy_retry_limit:
-                    logger.warning(f'Buy retry limit reached for {button.name}, likely not enough coins')
+                    logger.warning(f'物品 {button.name} 达到购买重试上限，可能货币不足')
                     break
                 amount_finish = False
                 self.device.click(button)
@@ -118,13 +118,13 @@ class OSShop(PortShop, AkashiShop):
         for _ in range(12):
             button = select_func()
             if button is None:
-                logger.info('Shop buy finished')
+                logger.info('大世界商店+购买完成')
                 return count
             else:
                 self.os_shop_buy_execute(button)
                 try:
                     if not getattr(self, 'is_running_cl1_leveling', False):
-                        logger.debug('Skipping akashi AP record because CL1 leveling is not active')
+                        logger.debug('侵蚀1练级未运行，跳过明石行动力购买记录')
                     else:
                         name = str(getattr(button, 'name', '') or '')
                         name_l = name.lower()
@@ -146,16 +146,16 @@ class OSShop(PortShop, AkashiShop):
                                     count=int(amount),
                                     source='akashi'
                                 )
-                                logger.info('Successfully recorded Akashi AP purchase to DB')
+                                logger.info('已记录明石行动力购买数据到数据库')
                             except Exception:
-                                logger.exception('Failed to persist akashi ap purchase')
+                                logger.exception('保存明石行动力购买数据失败')
                 except Exception:
-                    logger.exception('Error while recording akashi purchase')
+                    logger.exception('记录明石购买数据时发生异常')
 
                 count += 1
                 continue
 
-        logger.warning('Too many items to buy, stopped')
+        logger.warning('待购买物品过多，停止购买')
         return count
 
     def close_shop_buy_confirm_amount(self, skip_first_screenshot=True):
@@ -210,7 +210,7 @@ class OSShop(PortShop, AkashiShop):
             limit = OCR_SHOP_AMOUNT.ocr(self.device.image)
 
             if limit == 0:
-                logger.warning('OCR_SHOP_AMOUNT resulted 0, retrying')
+                logger.warning('OCR_SHOP_AMOUNT 识别为 0，正在重试')
                 self.close_shop_buy_confirm_amount()
                 return False
 
@@ -218,7 +218,7 @@ class OSShop(PortShop, AkashiShop):
                 break
 
             if retry.reached():
-                logger.critical('[大世界商店] OCR_SHOP_AMOUNT 识别结果错误，请检查资源文件')
+                logger.critical('[大世界商店+] OCR_SHOP_AMOUNT 识别结果错误，请检查资源文件')
                 raise ScriptError
         retry.reset()
 
@@ -267,15 +267,14 @@ class OSShop(PortShop, AkashiShop):
             # AMOUNT_MAX点击后数量仍为1，说明按钮可能被游戏禁用（如商品只能逐个购买）
             amount_max_stall += 1
             if amount_max_stall >= amount_max_stall_limit:
-                logger.info(f'AMOUNT_MAX clicked {amount_max_stall} times but amount still {current_amount}, '
-                            f'skipping to AMOUNT_PLUS')
+                logger.info(f'AMOUNT_MAX 点击 {amount_max_stall} 次后数量仍为 {current_amount}，改用 AMOUNT_PLUS')
                 break
 
         # 仅在已点击AMOUNT_MAX且数量成功增加时，才能读取游戏端实际允许的最大数量
         if set_to_max:
             game_max = OCR_SHOP_AMOUNT.ocr(self.device.image)
             if game_max > 1 and limit > game_max:
-                logger.info(f'Calculated limit {limit} exceeds game max {game_max}, using game max')
+                logger.info(f'计算购买上限 {limit} 超过游戏上限 {game_max}，使用游戏上限')
                 limit = game_max
 
         self.ui_ensure_index(limit, letter=OCR_SHOP_AMOUNT, prev_button=AMOUNT_MINUS, next_button=AMOUNT_PLUS,
@@ -296,44 +295,44 @@ class OSShop(PortShop, AkashiShop):
         self.os_shop_get_coins()
         items = self.scan_all()
         if not len(items):
-            logger.warning('Empty OS shop.')
+            logger.warning('大世界商店+为空')
             return False
         items = self.items_filter_in_os_shop(items)
         if not len(items):
-            logger.warning('Nothing to buy.')
+            logger.warning('大世界商店+没有可购买物品')
             return False
         skip_get_coins = True
         items.reverse()
         count = 0
         while len(items):
-            logger.hr('OpsiShop buy', level=2)
+            logger.hr('大世界商店+购买', level=2)
             item = items.pop()
             if not skip_get_coins:
                 self.os_shop_get_coins()
             if item.price > self.get_currency_coins(item):
-                logger.info(f'Not enough coins to buy item: {item.name}, skip.')
+                logger.info(f'货币不足，无法购买物品 {item.name}，跳过')
                 if self.is_coins_both_not_enough():
-                    logger.info('Not enough coins to buy any items, stop.')
+                    logger.info('货币不足，无法购买任何物品，停止购买')
                     break
                 continue
-            logger.info(f'Buying item: {item.name}. In shop {item.shop_index + 1}. At pos {item.scroll_pos:.2f}.')
+            logger.info(f'购买物品 {item.name}，商店 {item.shop_index + 1}，位置 {item.scroll_pos:.2f}')
             self.os_shop_side_navbar_ensure(upper=item.shop_index + 1)
             OS_SHOP_SCROLL.set(item.scroll_pos, main=self, skip_first_screenshot=False)
             _item = self.os_shop_get_items_to_buy(name=item.name, price=item.price)
             if _item is None:
-                logger.warning(f'Item {item.name} not found in shop {item.shop_index + 1} at pos {item.scroll_pos:.2f}, skip.')
+                logger.warning(f'商店 {item.shop_index + 1} 的位置 {item.scroll_pos:.2f} 未找到物品 {item.name}，跳过')
                 continue
             if not self.check_item_count(_item):
-                logger.warning(f'Get {_item.name} count error, skip.')
+                logger.warning(f'物品 {_item.name} 数量识别错误，跳过')
                 continue
             if self.os_shop_buy_execute(_item):
-                logger.info(f'Bought item: {_item.name}.')
+                logger.info(f'已购买物品 {_item.name}')
                 skip_get_coins = False
                 count += 1
             else:
-                logger.warning(f'Item {_item.name} cant be bought, skip.')
+                logger.warning(f'物品 {_item.name} 无法购买，跳过')
             self.device.click_record.clear()
-        logger.info(f'Bought {f"{count} items" if count else "nothing"} in port.')
+        logger.info(f'港口商店已购买 {count} 个物品' if count else '港口商店未购买任何物品')
         return True
 
     def handle_akashi_supply_buy(self, grid):

@@ -262,8 +262,13 @@ class Screenshot(Adb, WSA, DroidCast, AScreenCap, Scrcpy, NemuIpc, LDOpenGL):
                 logger.warning('Received orientated screenshot, game not running')
                 return True
             else:
-                logger.critical(f"[Device] 大叔，你看着分辨率对吗: {width}x{height}。真是个连分辨率都不会设的杂鱼呢❤")
-                logger.critical("[Device] 乖乖给我改成 1280x720 哦，不然我可不理你了❤")
+                logger.error_context(
+                    title='设备分辨率不受支持',
+                    reason=f'当前截图分辨率为 {width}x{height}，项目只支持 1280x720。',
+                    impact='无法可靠识别游戏界面，任务将停止。',
+                    action='将模拟器和游戏窗口调整为 1280x720 后重新连接设备。',
+                    level=50,
+                )
                 raise RequestHumanTakeover
 
     def check_screen_black(self):

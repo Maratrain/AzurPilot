@@ -6,6 +6,7 @@ import subprocess
 from pydantic import BaseModel
 
 from module.base.decorator import cached_property, del_cached_property
+from module.base.ssh import clear_ssh_host_key
 from module.device.connection import Connection
 from module.device.method.utils import get_serial_pair
 from module.device.platform.emulator_base import EmulatorInstanceBase, EmulatorManagerBase, remove_duplicated_path
@@ -109,10 +110,17 @@ class PlatformBase(Connection, EmulatorManagerBase):
 
         logger.hr('Remote SSH Command', level=1)
         target = f'{user}@{host}' if user else host
+        clear_ssh_host_key(host, port)
         # -n: 将 stdin 重定向到 /dev/null
         # -T: 禁用伪终端分配
         # BatchMode: 避免在密码提示时挂起
-        cmd = ['ssh', '-n', '-T', '-p', str(port), '-o', 'StrictHostKeyChecking=no', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10']
+        cmd = [
+            'ssh', '-n', '-T', '-p', str(port),
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', f'UserKnownHostsFile={os.devnull}',
+            '-o', f'GlobalKnownHostsFile={os.devnull}',
+            '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10',
+        ]
 
         key_file = None
         if key and len(key) > 50:

@@ -74,7 +74,7 @@ class ShipExpStats:
     # ========== 战斗时间记录 ==========
     
     def on_battle_start(self) -> None:
-        """战斗开始时调用（侵蚀1 / 短猫等统一入口）"""
+        """战斗开始时调用（侵蚀1 / 耄耋相接等统一入口）"""
         self._battle_start_time = time.time()
     
     def on_battle_end(self, fleet_index: int = 1, source: str = "cl1") -> float | None:
@@ -85,7 +85,7 @@ class ShipExpStats:
             fleet_index: 舰队索引 (1-6), 用于确定经验值
             source: 战斗来源:
                 - "cl1": 侵蚀1练级
-                - "meow": 短猫
+                - "meow": 耄耋相接
                 - 其他值默认按 "cl1" 处理
         
         Returns:
@@ -110,7 +110,7 @@ class ShipExpStats:
         # 旗舰 431 + 其他位置 288*5 = 1871, 平均 312
         avg_exp = self.AVG_EXP_PER_BATTLE
         
-        # 每日经验效率用于侵蚀1练级预估，避免被短猫耗时混入。
+        # 每日经验效率用于侵蚀1练级预估，避免被耄耋相接耗时混入。
         if source == "cl1":
             self._update_daily_stats(exp_gained=avg_exp, battle_duration=duration)
 
@@ -124,7 +124,7 @@ class ShipExpStats:
             duration: 本场战斗时长（秒）
             source: 战斗来源 ("cl1" / "meow")
         """
-        # 不同来源使用不同的键，避免侵蚀1与短猫混合统计
+        # 不同来源使用不同的键，避免侵蚀1与耄耋相接混合统计
         if source == "meow":
             key = 'meow_battle_times'
             default_avg = 52.0  # 默认值，后续会被真实样本覆盖
@@ -218,7 +218,7 @@ class ShipExpStats:
         return self.data.get('battle_times', {}).get('average', 52.0)
     
     def get_average_meow_battle_time(self) -> float:
-        """获取短猫平均每场战斗时间(秒)"""
+        """获取耄耋相接平均每场战斗时间(秒)"""
         return self.data.get('meow_battle_times', {}).get('average', self.get_average_battle_time())
     
     def get_average_round_time(self) -> float:

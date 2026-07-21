@@ -25,7 +25,7 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
             in: page_os, 大世界地球仪
             out: page_os, 大世界地图
         """
-        logger.hr('OS clear stronghold', level=1)
+        logger.hr('大世界-塞壬要塞', level=1)
         with self.config.multi_set():
             self.config.OpsiStronghold_HasStronghold = True
             self.cl1_ap_preserve()
@@ -141,7 +141,7 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
             in: 塞壬日志仪（深渊），Boss 已出现。
             out: 成功时为危险或安全海域，失败时仍在深渊中。
         """
-        logger.hr('Stronghold clear', level=1)
+        logger.hr('塞壬要塞清理', level=1)
         fleets = self.parse_fleet_filter()
         for fleet in fleets:
             logger.hr(f'Turn: {fleet}', level=2)

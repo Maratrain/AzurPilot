@@ -23,17 +23,15 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
         if next_reset < now:
             raise ScriptError(f'Invalid OpsiNextReset: {next_reset} < {now}')
         if next_reset - now > timedelta(days=3):
-            logger.error('Too long to next reset, OpSi might reset already. '
-                         'Running OpsiCrossMonth is meaningless, stopped.')
+            logger.error('距离下次大世界重置超过 3 天，大世界可能已经重置，停止跨月每日')
             self.os_cross_month_end()
         if next_reset - now > timedelta(minutes=10):
-            logger.error('Too long to next reset, too far from OpSi reset. '
-                         'Running OpsiCrossMonth is meaningless, stopped.')
+            logger.error('距离下次大世界重置超过 10 分钟，距离跨月每日执行时间过早，停止任务')
             self.os_cross_month_end()
 
         # 距离大世界重置还有 10 分钟
-        logger.hr('Wait until OpSi reset', level=1)
-        logger.warning('AzurPilot is now waiting for next OpSi reset, please DO NOT touch the game during wait')
+        logger.hr('跨月每日等待大世界重置', level=1)
+        logger.warning('AzurPilot 正在等待下次大世界重置，等待期间请不要操作游戏')
         while True:
             logger.info(f'Wait until {next_reset}')
             now = current_time()
@@ -44,7 +42,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
                 self.device.sleep(min(remain, 60))
                 continue
 
-        logger.hr('OpSi reset', level=3)
+        logger.hr('跨月每日处理大世界重置', level=3)
 
         def false_func(*args, **kwargs):
             return False
@@ -52,7 +50,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
         self.is_in_opsi_explore = false_func
         self.config.override(_disable_task_switch=True)
 
-        logger.hr('OpSi clear daily', level=1)
+        logger.hr('跨月每日清理大世界每日+', level=1)
         self.config.override(
             OpsiGeneral_DoRandomMapEvent=True,
             OpsiFleet_Fleet=self.config.cross_get('OpsiDaily.OpsiFleet.Fleet'),
@@ -70,19 +68,18 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
             # MISSION_ENTER 从右侧出现，需确认动画结束，否则会点击到 MAP_GOTO_GLOBE
             self.zone_init()
             if empty_trial >= 5:
-                logger.warning('No Opsi dailies found within 5 min, stop waiting')
+                logger.warning('5 分钟内没有找到大世界每日+，停止等待')
                 break
             count += self.os_finish_daily_mission()
             if not count:
-                logger.warning('Did not receive any OpSi dailies, '
-                               'probably game dailies are not refreshed, wait 1 minute')
+                logger.warning('未接取到大世界每日+，可能游戏每日尚未刷新，等待 1 分钟')
                 empty_trial += 1
                 self.device.sleep(60)
                 continue
             if success:
                 break
 
-        logger.hr('OS clear abyssal', level=1)
+        logger.hr('跨月每日清理深渊坐标', level=1)
         self.config.override(
             OpsiGeneral_DoRandomMapEvent=False,
             HOMO_EDGE_DETECT=False,
@@ -93,7 +90,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
             OpsiObscure_ForceRun=True,
             OpsiFleet_Fleet=self.config.cross_get('OpsiObscure.OpsiFleet.Fleet'),
             OpsiFleet_Submarine=False,
-            # 深渊海域
+            # 深渊坐标
             OpsiFleetFilter_Filter=self.config.cross_get('OpsiAbyssal.OpsiFleetFilter.Filter'),
             OpsiAbyssal_ForceRun=True,
         )
@@ -107,7 +104,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
             else:
                 break
 
-        logger.hr('OS clear obscure', level=1)
+        logger.hr('跨月每日清理隐秘海域', level=1)
         while True:
             if self.storage_get_next_item('OBSCURE', use_logger=True, 
                     skip_obscure_hazard_2=self.config.OpsiObscure_SkipHazard2Obscure):
@@ -125,13 +122,13 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
         OpsiMeowfficerFarming_HazardLevel = self.config.cross_get('OpsiMeowfficerFarming'
                                                                   '.OpsiMeowfficerFarming'
                                                                   '.HazardLevel')
-        logger.hr(f'OS meowfficer farming, hazard_level={OpsiMeowfficerFarming_HazardLevel}', level=1)
+        logger.hr(f'跨月每日清理耄耋相接, hazard_level={OpsiMeowfficerFarming_HazardLevel}', level=1)
         self.config.override(
             OpsiGeneral_DoRandomMapEvent=True,
             OpsiGeneral_BuyActionPointLimit=0,
             HOMO_EDGE_DETECT=True,
             STORY_OPTION=-2,
-            # 短猫相接
+            # 耄耋相接
             OpsiFleet_Fleet=self.config.cross_get('OpsiMeowfficerFarming.OpsiFleet.Fleet'),
             OpsiFleet_Submarine=False,
             OpsiMeowfficerFarming_ActionPointPreserve=0,
@@ -156,7 +153,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
                     target_zone_index += 1
                 else:
                     zone = traditional_zone
-                    logger.hr(f'OS meowfficer farming, zone_id={zone.zone_id}', level=1)
+                    logger.hr(f'跨月每日清理耄耋相接, zone_id={zone.zone_id}', level=1)
                 if len(target_zones) > 1:
                     self.globe_goto(zone)
                     self.fleet_set(self.config.OpsiFleet_Fleet)
@@ -179,7 +176,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
                     .delete(SelectedGrids([self.zone])) \
                     .delete(SelectedGrids(self.zones.select(is_port=True))) \
                     .sort_by_clock_degree(center=(1252, 1012), start=self.zone.location)
-                logger.hr(f'OS meowfficer farming, zone_id={zones[0].zone_id}', level=1)
+                logger.hr(f'跨月每日清理耄耋相接, zone_id={zones[0].zone_id}', level=1)
                 self.globe_goto(zones[0])
                 self.fleet_set(self.config.OpsiFleet_Fleet)
                 self.os_order_execute(

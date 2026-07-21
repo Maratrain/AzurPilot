@@ -1,6 +1,6 @@
 """大世界运行期统计入口。
 
-这里集中处理侵蚀1与短猫任务的运行事件，把任务代码里的战斗、地图、
+这里集中处理侵蚀1与耄耋相接任务的运行事件，把任务代码里的战斗、地图、
 塞壬研究装置等事件统一落到统计库，避免各个任务到处直接写数据库。
 """
 
@@ -126,7 +126,7 @@ def record_cl1_auto_search_battle(
 
 
 def meow_hazard_level_from_runtime(main: Any) -> int | None:
-    """读取短猫当前侵蚀等级，地图对象缺失时回退到配置值。"""
+    """读取耄耋相接当前侵蚀等级，地图对象缺失时回退到配置值。"""
     hazard_level = None
     try:
         hazard_level = getattr(getattr(main, "zone", None), "hazard_level", None)
@@ -150,7 +150,7 @@ def meow_hazard_level_from_runtime(main: Any) -> int | None:
 
 
 def meow_battles_per_round(hazard_level: int | None) -> int:
-    """返回短猫一个有效轮次包含的战斗场数。"""
+    """返回耄耋相接一个有效轮次包含的战斗场数。"""
     if hazard_level in {4, 5, 6}:
         return 3
     return 2
@@ -160,7 +160,7 @@ def record_meow_auto_search_battle(
     main: Any,
     battle_started_at: float | int | None,
 ) -> float:
-    """记录一次短猫战斗，并返回下一场战斗的计时起点。"""
+    """记录一次耄耋相接战斗，并返回下一场战斗的计时起点。"""
     hazard_level = meow_hazard_level_from_runtime(main)
     instance_name = instance_name_from_config(main.config)
 
@@ -190,7 +190,7 @@ def record_meow_auto_search_battle(
 
 
 def start_meow_search_timer(main: Any) -> tuple[float, int | None]:
-    """记录短猫开始搜索当前海域时的时间与行动力。"""
+    """记录耄耋相接开始搜索当前海域时的时间与行动力。"""
     try:
         refresh_action_point(main)
         start_ap = main._action_point_total
@@ -208,7 +208,7 @@ def finish_meow_search_timer(
     search_started_at: float,
     battle_count: int,
 ) -> float | None:
-    """按完成的海域搜索记录短猫单轮耗时。"""
+    """按完成的海域搜索记录耄耋相接单轮耗时。"""
     try:
         refresh_action_point(main)
     except Exception:
@@ -222,7 +222,7 @@ def finish_meow_search_timer(
                 source="meow",
             )
         except Exception:
-            logger.debug("记录短猫行动力快照失败", exc_info=True)
+            logger.debug("记录耄耋相接行动力快照失败", exc_info=True)
 
     duration = time.time() - search_started_at
     hazard_level = meow_hazard_level_from_runtime(main)
@@ -277,7 +277,7 @@ def record_cl1_akashi_encounter(config: Any) -> int | None:
 
 
 def record_siren_research_device(main: Any) -> None:
-    """记录一次塞壬研究装置（吊机）出现，按侵蚀1或短猫侵蚀等级拆分。"""
+    """记录一次塞壬研究装置（吊机）出现，按侵蚀1或耄耋相接侵蚀等级拆分。"""
     source = battle_source_from_config(main.config)
     if source not in {"cl1", "meow"}:
         return

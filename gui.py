@@ -121,7 +121,13 @@ def func(ev: Optional[Event]):
         else:
             uvicorn.run("module.webui.app:app", host=host, port=port, factory=True)
     except Exception as e:
-        logger.error(f"[GUI] Uvicorn服务崩溃: {str(e)}")
+        logger.exception_context(
+            title='WebUI 服务启动失败',
+            exc=e,
+            impact='WebUI 进程将退出，无法管理 AzurPilot。',
+            action='检查端口是否被占用、SSL 证书和密钥是否匹配，并确认依赖已通过 uv sync --frozen 安装。',
+            level=50,
+        )
         raise
 def _stop_process(process, timeout=5):
     """
@@ -174,7 +180,13 @@ if __name__ == "__main__":
                     should_exit = True
                     break
                 except Exception as e:
-                    logger.error(f"[GUI] 等待重启事件时出错: {str(e)}")
+                    logger.exception_context(
+                        title='WebUI 重启事件处理失败',
+                        exc=e,
+                        impact='WebUI 将停止热重载并退出。',
+                        action='检查 WebUI 子进程状态和系统进程权限。',
+                        level=50,
+                    )
                     should_exit = True
                     break
 
@@ -183,7 +195,13 @@ if __name__ == "__main__":
                     _stop_process(process)
                     break
                 elif not process.is_alive():
-                    logger.error("[GUI] AzurPilot Web服务意外退出")
+                    logger.error_context(
+                        title='AzurPilot Web 服务意外退出',
+                        reason='WebUI 子进程已结束，但没有收到正常退出或重启事件。',
+                        impact='WebUI 不再提供服务。',
+                        action='查看对应的 GUI 日志和子进程错误现场，确认启动失败原因。',
+                        level=50,
+                    )
                     should_exit = True
 
             # 确保子进程完全退出

@@ -58,9 +58,9 @@ class OperationSiren(
 
     def _os_target(self):
         if self.config.OpsiTarget_LastRun > get_server_last_update('00:00'):
-            logger.warning('Opsi Safe Achievement search has already been run today, stop')
+            logger.warning('海域成就今日已经运行过，停止任务')
         else:
-            logger.hr('OS target', level=1)
+            logger.hr('大世界-海域成就', level=1)
             self._os_target_enter()
             OSTargetHandler(self.config, self.device).run()
             self._os_target_exit()
@@ -75,7 +75,7 @@ class OperationSiren(
             if self.server_support_os_target():
                 self.os_target_receive()
             else:
-                logger.info(f'Server {self.config.SERVER} does not support OpsiTarget yet, please contact the developers.')
+                logger.info(f'服务器 {self.config.SERVER} 暂不支持海域成就，请联系开发者')
 
 
 if __name__ == '__main__':
@@ -87,5 +87,5 @@ if __name__ == '__main__':
     self.device.screenshot()
     self.os_init()
 
-    logger.hr("OS clear Month Boss", level=1)
+    logger.hr("大世界-月度Boss", level=1)
     self.clear_month_boss()

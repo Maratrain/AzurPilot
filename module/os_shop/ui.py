@@ -10,7 +10,7 @@ from module.ui.navbar import Navbar
 from module.ui.scroll import AdaptiveScroll
 from module.ui.ui import UI
 
-# 大世界商店滚动条配置
+# 大世界商店+滚动条配置
 OS_SHOP_SCROLL = AdaptiveScroll(
     OS_SHOP_SCROLL_AREA.button,
     parameters={
@@ -24,7 +24,7 @@ OS_SHOP_SCROLL.edge_threshold = 0.1
 
 
 class OSShopUI(UI):
-    """大世界商店 UI 操作类。
+    """大世界商店+ UI 操作类。
 
     提供商店页面加载检测、侧边栏导航、滚动条控制等功能。
     """
@@ -54,11 +54,11 @@ class OSShopUI(UI):
             if self.appear(OS_SHOP_CHECK):
                 return True
             else:
-                logger.warning('OpsiShop is not appear, retrying.')
+                logger.warning('大世界商店+未出现，正在重试')
 
             # 异常处理
             if ensure_timeout.reached():
-                raise GameStuckError('Waiting too long for OpsiShop to appear.')
+                raise GameStuckError('等待大世界商店+出现超时')
 
     @cached_property
     def _os_shop_side_navbar(self):
@@ -97,7 +97,7 @@ class OSShopUI(UI):
             in: PORT_SUPPLY_CHECK
             out: PORT_SUPPLY_CHECK
         """
-        logger.info(f'OpsiShop side navbar set to {upper or bottom}')
+        logger.info(f'大世界商店+侧边栏切换到 {upper or bottom}')
         self.os_shop_load_ensure()
         self._os_shop_side_navbar.set(self, upper=upper, bottom=bottom)
 
@@ -113,15 +113,15 @@ class OSShopUI(UI):
             GameStuckError: 滚动操作失败时抛出。
         """
         if not OS_SHOP_SCROLL.appear(main=self):
-            logger.warning('Scroll does not appear, try to rescue slider')
+            logger.warning('大世界商店+滚动条未出现，尝试修复')
             self.rescue_slider()
         retry = Timer(0, count=3)
         retry.start()
         while not OS_SHOP_SCROLL.at_top(main=self):
-            logger.info('Scroll does not at top, try to scroll')
+            logger.info('大世界商店+滚动条不在顶部，尝试滚动')
             OS_SHOP_SCROLL.set_top(main=self)
             if retry.reached():
-                raise GameStuckError('Scroll drag page error.')
+                raise GameStuckError('大世界商店+滚动条拖动页面失败')
         return -1.0, 0.0
 
     def rescue_slider(self, distance=200):
@@ -156,21 +156,21 @@ class OSShopUI(UI):
             GameStuckError: 滚动重试失败时抛出。
         """
         if pre_pos == cur_pos:
-            logger.warning('Scroll drag page failed')
+            logger.warning('大世界商店+滚动条拖动页面失败')
             if not OS_SHOP_SCROLL.appear(main=self):
-                logger.warning('Scroll does not appear, try to rescue slider')
+                logger.warning('大世界商店+滚动条未出现，尝试修复')
                 self.rescue_slider()
                 OS_SHOP_SCROLL.set(cur_pos, main=self)
             retry = Timer(0, count=3)
             retry.start()
             while True:
-                logger.warning('Scroll does not drag success, retrying scroll')
+                logger.warning('大世界商店+滚动条拖动未成功，正在重试')
                 OS_SHOP_SCROLL.next_page(main=self, page=0.5, skip_first_screenshot=False)
                 cur_pos = OS_SHOP_SCROLL.cal_position(main=self)
                 if pre_pos != cur_pos:
-                    logger.info(f'Scroll success drag page to {cur_pos}')
+                    logger.info(f'大世界商店+滚动条已拖动到 {cur_pos}')
                     return cur_pos
                 if retry.reached():
-                    raise GameStuckError('Scroll drag page error.')
+                    raise GameStuckError('大世界商店+滚动条拖动页面失败')
         else:
             return cur_pos

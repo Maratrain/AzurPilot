@@ -17,13 +17,13 @@ class OpsiVoucher(OSMap):
         self.os_globe_goto_map()
 
     def os_voucher(self):
-        logger.hr('OS voucher', level=1)
+        logger.hr('大世界-白票商店', level=1)
         self._os_voucher_enter()
         VoucherShop(self.config, self.device).run()
         self._os_voucher_exit()
         self.logger_use()
 
         next_reset = get_os_next_reset()
-        logger.info('OS voucher finished, delay to next reset')
+        logger.info('白票商店已完成，延迟到下次重置')
         logger.attr('OpsiNextReset', next_reset)
         self.config.task_delay(target=next_reset)

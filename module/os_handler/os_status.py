@@ -50,7 +50,7 @@ class OSStatus(UI):
 
     @property
     def is_in_task_meow(self) -> bool:
-        """判断当前任务是否是短猫任务"""
+        """判断当前任务是否是耄耋相接任务"""
         return self.config.task.command == 'OpsiMeowfficerFarming'
 
     @property
@@ -59,7 +59,7 @@ class OSStatus(UI):
 
     @property
     def is_cl1_mode_enabled(self) -> bool:
-        """判断侵蚀1相关策略是否启用，包括智能调度代理模式。"""
+        """判断侵蚀1相关策略是否启用，包括智能调度+代理模式。"""
         is_smart_scheduling_enabled = getattr(self, 'is_smart_scheduling_enabled', None)
         return self.is_cl1_enabled or (
             is_smart_scheduling_enabled is not None
@@ -68,7 +68,7 @@ class OSStatus(UI):
 
     @property
     def is_meow_enabled(self) -> bool:
-        """判断短猫任务是否启用"""
+        """判断耄耋相接任务是否启用"""
         return self.config.is_task_enabled('OpsiMeowfficerFarming')
 
     @property

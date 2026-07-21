@@ -216,7 +216,7 @@ class OSSimulator:
             self.meow_hazard_level = 3
         else:
             self.meow_hazard_level = 5
-        self.logger.info(f'[大世界模拟器] 短猫侵蚀等级: {self.meow_hazard_level}')
+        self.logger.info(f'[大世界模拟器] 耄耋相接侵蚀等级: {self.meow_hazard_level}')
         
         log_res = LogRes(self.config)
         ap = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.InitialAp')
@@ -244,7 +244,7 @@ class OSSimulator:
         self.ap_preserve = self.config.cross_get('OpsiScheduling.OpsiScheduling.ActionPointPreserve')
         self.logger.info(f'[大世界模拟器] 保留行动力: {self.ap_preserve}')
         self.coin_threshold = self.config.cross_get('OpsiScheduling.OpsiScheduling.OperationCoinsReturnThreshold')
-        self.logger.info(f'[大世界模拟器] 短猫直到获得多少黄币: {self.coin_threshold}')
+        self.logger.info(f'[大世界模拟器] 耄耋相接直到获得多少黄币: {self.coin_threshold}')
         
         self.instance_name = getattr(self.config, 'config_name', 'default')
         self.logger.info(f'[大世界模拟器] 实例名: {self.instance_name}')
@@ -252,14 +252,14 @@ class OSSimulator:
         if self.meow_hazard_level == 3:
             self.meow_time = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Meow3Time')
             if not self.meow_time:
-                # 尝试从数据库获取短猫统计，如果不区分等级则统一使用平均值
+                # 尝试从数据库获取耄耋相接统计，如果不区分等级则统一使用平均值
                 self.meow_time = db.get_meow_stats(self.instance_name).get('avg_round_time', 100)
         else: # hazard level 5
             self.meow_time = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Meow5Time')
             if not self.meow_time:
                 self.meow_time = db.get_meow_stats(self.instance_name).get('avg_round_time', 200)
         
-        self.logger.info(f'[大世界模拟器] 每轮短猫时间: {self.meow_time}')
+        self.logger.info(f'[大世界模拟器] 每轮耄耋相接时间: {self.meow_time}')
 
         self.cl1_time = self.config.cross_get('OpsiSimulator.OpsiSimulatorParameters.Cl1Time')
         if not self.cl1_time:
@@ -329,7 +329,7 @@ class OSSimulator:
             self.get_paras()
 
             if self.meow_hazard_level not in self.coin_expectation:
-                raise ValueError(f'不支持的短猫侵蚀等级: {self.meow_hazard_level}')
+                raise ValueError(f'不支持的耄耋相接侵蚀等级: {self.meow_hazard_level}')
 
             self.precompile()
 
@@ -497,13 +497,13 @@ class OSSimulator:
         self.result_cl1_count = np.mean(result[:, CL1_COUNT])
         self.logger.info(f'[大世界模拟器] [模拟结果] 侵蚀1次数: {self.result_cl1_count}')
         self.result_meow_count = np.mean(result[:, MEOW_COUNT])
-        self.logger.info(f'[大世界模拟器] [模拟结果] 短猫次数: {self.result_meow_count}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 耄耋相接次数: {self.result_meow_count}')
         self.result_crashed_probability = np.mean(result[:, HAS_CRASHED])
         self.logger.info(f'[大世界模拟器] [模拟结果] 坠机概率: {self.result_crashed_probability}')
         self.result_cl1_total_time = self.result_cl1_count * self.cl1_time
         self.logger.info(f'[大世界模拟器] [模拟结果] 侵蚀一总时长 (h): {self.result_cl1_total_time / 3600}')
         self.result_meow_total_time = self.result_meow_count * self.meow_time
-        self.logger.info(f'[大世界模拟器] [模拟结果] 短猫总时长 (h): {self.result_meow_total_time / 3600}')
+        self.logger.info(f'[大世界模拟器] [模拟结果] 耄耋相接总时长 (h): {self.result_meow_total_time / 3600}')
         self.result_ap = np.mean(result[:, AP])
         self.logger.info(f'[大世界模拟器] [模拟结果] 最终行动力: {self.result_ap}')
         self.result_coin = np.mean(result[:, COIN])

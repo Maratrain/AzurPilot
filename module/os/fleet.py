@@ -795,7 +795,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
 
         Args:
             has_fleet_step (bool): 是否限制舰队移动步数。
-            is_month (bool): 是否为月度 Boss。
+            is_month (bool): 是否为月度Boss。
             allow_submarine_call (bool): 是否允许呼叫潜艇。
 
         Returns:

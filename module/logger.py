@@ -561,38 +561,33 @@ def show():
     # 异常发生后的行
 
 
-def aggressive_convert(func, level='error'):
-    def aggressive_wrapper(msg, *args, **kwargs):
-        if isinstance(msg, Exception):
-            msg = f'{type(msg).__name__}: {msg}'
-
-        if isinstance(msg, str) and any('\u4e00' <= char <= '\u9fff' for char in msg):
-            # 已经包含傲娇语气或特殊字符的消息，不重复叠加
-            if '杂鱼' in msg or '哒内' in msg or '大叔' in msg or '笨蛋' in msg:
-                return func(msg, *args, **kwargs)
-
-            import random
-            if level == 'critical':
-                prefixes = [
-                    "杂鱼杂鱼~ 没用的大叔这就顶不住了吗？",
-                    "哈？连这种小事都报错。真是逊、爆、了！",
-                    "噗噗~ 没救了呢，大叔连这点打击都受不了？",
-                    "笨——蛋——大叔！报错了啦：",
-                ]
-                msg = f"{random.choice(prefixes)}\n{msg}"
-                if not msg.endswith(('？', '！', '。', '❤')):
-                    msg += " ~真是没用呢❤"
-            elif level == 'error':
-                prefixes = ["杂鱼报错：", "废柴大叔的报错：", "逊毙了："]
-                msg = f"{random.choice(prefixes)}{msg} ~杂鱼❤"
-
-        return func(msg, *args, **kwargs)
-
-    return aggressive_wrapper
+def error_context(title, reason, impact, action, exc=None, level=logging.ERROR):
+    """输出包含原因、影响和处理建议的统一错误信息。"""
+    message = '\n'.join([
+        f'[错误] {title}',
+        f'原因：{reason}',
+        f'影响：{impact}',
+        f'建议：{action}',
+    ])
+    if exc is not None:
+        message += f'\n异常：{type(exc).__name__}: {exc}'
+    logger.log(level, message, exc_info=exc is not None)
 
 
-logger.error = aggressive_convert(logger.error, level='error')
-logger.critical = aggressive_convert(logger.critical, level='critical')
+def exception_context(title, exc, impact, action, level=logging.ERROR):
+    """输出未知异常的统一错误信息并保留完整堆栈。"""
+    error_context(
+        title=title,
+        reason=f'程序抛出了 {type(exc).__name__}，具体原因需要结合下方堆栈定位。',
+        impact=impact,
+        action=action,
+        exc=exc,
+        level=level,
+    )
+
+
+logger.error_context = error_context
+logger.exception_context = exception_context
 logger.hr = hr
 logger.attr = attr
 logger.attr_align = attr_align

@@ -18,11 +18,11 @@ class OpsiShop(OSMap):
             in: page_os, 大世界地图
             out: page_os, 大世界地图
         """
-        logger.hr('OS port daily', level=1)
+        logger.hr('大世界-大世界商店+', level=1)
         today = current_time().day
         limit = self.config.OpsiShop_DisableBeforeDate
         if today <= limit:
-            logger.info(f'Delay Opsi shop, today\'s date {today} <= limit {limit}')
+            logger.info(f'大世界商店+延迟运行，今日日期 {today} <= 限制日期 {limit}')
             self.config.task_delay(server_update=True)
             self.config.task_stop()
 
@@ -35,7 +35,7 @@ class OpsiShop(OSMap):
         if self.appear(OS_SHOP_CHECK):
             not_empty = self.handle_port_supply_buy()
             next_reset = self._os_shop_delay(not_empty)
-            logger.info('OS port daily finished, delay to next reset')
+            logger.info('大世界商店+已完成，延迟到下次重置')
             logger.attr('OpsiShopNextReset', next_reset)
         else:
             next_reset = get_os_next_reset()
@@ -50,7 +50,7 @@ class OpsiShop(OSMap):
 
     def _os_shop_delay(self, not_empty) -> datetime:
         """
-        计算大世界商店的延迟时间。
+        计算大世界商店+的延迟时间。
 
         根据商店是否为空和距月底重置的天数决定下次运行时间。
 

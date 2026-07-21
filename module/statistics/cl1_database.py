@@ -72,7 +72,7 @@ class Cl1Database:
         Args:
             instance: 实例名称
             source: 数据来源 (cl1 / meow)
-            hazard_level: 侵蚀等级（短猫专用）
+            hazard_level: 侵蚀等级（耄耋相接专用）
         """
         month = datetime.now().strftime("%Y-%m")
         data = self.get_stats(instance, month)
@@ -333,11 +333,11 @@ class Cl1Database:
             "akashi_ap_entries": [],
             "yellow_coin_snapshots": [],
             "coins_snapshots": [],
-            # 短猫数据
+            # 耄耋相接数据
             "meow_battle_raw_count": 0,
             "meow_battle_count": 0,
             "meow_round_times": [],
-            "meow_battle_times": [],  # 短猫单场战斗时间
+            "meow_battle_times": [],  # 耄耋相接单场战斗时间
             "meow_hazard_stats": {},  # 按侵蚀等级拆分统计
             # 塞壬研究装置（吊机）
             "siren_research_devices": {"cl1": 0, "meow": {}},
@@ -349,7 +349,7 @@ class Cl1Database:
     def _normalize_meow_round_times(
         self, round_times: List[Any]
     ) -> List[Dict[str, Any]]:
-        """兼容旧格式短猫轮次样本，统一为字典结构。"""
+        """兼容旧格式耄耋相接轮次样本，统一为字典结构。"""
         normalized_times = []
         for entry in round_times:
             if isinstance(entry, dict) and "duration" in entry:
@@ -362,7 +362,7 @@ class Cl1Database:
         return normalized_times
 
     def _extract_meow_round_durations(self, round_times: List[Any]) -> List[float]:
-        """提取短猫轮次耗时，兼容旧格式浮点样本。"""
+        """提取耄耋相接轮次耗时，兼容旧格式浮点样本。"""
         return [
             entry["duration"] for entry in self._normalize_meow_round_times(round_times)
         ]
@@ -375,7 +375,7 @@ class Cl1Database:
     def _normalize_meow_hazard_stats(
         self, data: Dict[str, Any]
     ) -> Dict[str, Dict[str, Any]]:
-        """兼容旧格式的分级短猫统计结构。"""
+        """兼容旧格式的分级耄耋相接统计结构。"""
         raw_stats = data.get("meow_hazard_stats", {})
         if not isinstance(raw_stats, dict):
             return {}
@@ -456,7 +456,7 @@ class Cl1Database:
     def _infer_meow_battles_per_round(
         self, round_times: List[Any]
     ) -> Tuple[Optional[int], Optional[float]]:
-        """从短猫样本推断每轮战斗数。"""
+        """从耄耋相接样本推断每轮战斗数。"""
         hazard_levels = []
         for entry in round_times:
             if isinstance(entry, dict):
@@ -496,7 +496,7 @@ class Cl1Database:
         month_key: Optional[str] = None,
         persist: bool = False,
     ) -> Tuple[int, float, bool]:
-        """兼容旧数据并修正短猫真实战斗场次与等效轮次。"""
+        """兼容旧数据并修正耄耋相接真实战斗场次与等效轮次。"""
         inferred_divisor, inferred_battles_per_round = (
             self._infer_meow_battles_per_round(round_times)
         )
@@ -571,7 +571,7 @@ class Cl1Database:
     def backfill_meow_stats(
         self, instance: str, year: int = None, month: int = None
     ) -> bool:
-        """显式回填指定月份的短猫统计。
+        """显式回填指定月份的耄耋相接统计。
 
         仅在主动调用时落盘，避免读取统计时产生写入副作用。
         """
@@ -598,7 +598,7 @@ class Cl1Database:
         return changed
 
     def backfill_all_meow_stats(self, instance: Optional[str] = None) -> Dict[str, int]:
-        """批量回填数据库内已有月份的短猫统计。"""
+        """批量回填数据库内已有月份的耄耋相接统计。"""
         rows = self._list_stats_rows(instance=instance)
         result = {"checked": 0, "updated": 0}
 
@@ -947,12 +947,12 @@ class Cl1Database:
         except Exception as e:
             logger.error(f"Error during auto migration scan: {e}")
 
-    # ========== 短猫数据记录方法 ==========
+    # ========== 耄耋相接数据记录方法 ==========
 
     def increment_meow_battle_count(
         self, instance: str, hazard_level: int = None, delta: float = None
     ):
-        """增加短猫有效战斗轮数
+        """增加耄耋相接有效战斗轮数
 
         Args:
             instance: 实例名称
@@ -993,7 +993,7 @@ class Cl1Database:
     def add_meow_round_time(
         self, instance: str, duration: float, hazard_level: int = None
     ):
-        """记录短猫单轮战斗时间
+        """记录耄耋相接单轮战斗时间
 
         Args:
             instance: 实例名称
@@ -1037,7 +1037,7 @@ class Cl1Database:
     def add_meow_battle_time(
         self, instance: str, duration: float, hazard_level: int = None
     ):
-        """记录短猫单场战斗时间
+        """记录耄耋相接单场战斗时间
 
         Args:
             instance: 实例名称
@@ -1079,7 +1079,7 @@ class Cl1Database:
         self, instance: str, year: int = None, month: int = None,
         hazard_level: int = None,
     ) -> Dict[str, Any]:
-        """获取短猫统计数据
+        """获取耄耋相接统计数据
 
         Args:
             instance: 实例名称
@@ -1088,7 +1088,7 @@ class Cl1Database:
             hazard_level: 侵蚀等级，传入时只返回对应等级的数据
 
         Returns:
-            短猫统计数据字典
+            耄耋相接统计数据字典
         """
         if year is None or month is None:
             now = datetime.now()

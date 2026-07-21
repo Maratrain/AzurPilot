@@ -81,13 +81,13 @@ class AshCombat(Combat):
         if self.handle_get_items():
             return True
         if self.appear(BEACON_REWARD):
-            logger.info("Ash beacon already finished.")
+            logger.info("[META作战] 信标已完成")
             raise AshBeaconFinished
         if self.appear(BEACON_EMPTY, offset=(20, 20)):
-            logger.info("Ash beacon already empty.")
+            logger.info("[META作战] 信标为空")
             raise AshBeaconFinished
         if self.appear(ASH_SHOWDOWN, offset=(20, 20)):
-            logger.info("Ash beacon already at ASH_SHOWDOWN.")
+            logger.info("[META作战] 已在 META 对决页面")
             raise AshBeaconFinished
 
         return False
@@ -119,30 +119,30 @@ class OSAsh(UI, MapEventHandler):
         if self._ash_fully_collected:
             return 0
         if self.image_color_count(ASH_COLLECT_STATUS, color=(235, 235, 235), threshold=221, count=20):
-            logger.info('Ash beacon status: light')
+            logger.info('[META作战] 信标状态：可收集')
             ocr_collect = DigitCounter(
                 ASH_COLLECT_STATUS, letter=(235, 235, 235), threshold=160, name='OCR_ASH_COLLECT_STATUS')
             ocr_daily = DailyDigitCounter(
                 ASH_DAILY_STATUS, letter=(235, 235, 235), threshold=160, name='OCR_ASH_DAILY_STATUS')
         elif self.image_color_count(ASH_COLLECT_STATUS, color=(140, 142, 140), threshold=221, count=20):
-            logger.info('Ash beacon status: gray')
+            logger.info('[META作战] 信标状态：未收集满')
             ocr_collect = DigitCounter(
                 ASH_COLLECT_STATUS, letter=(140, 142, 140), threshold=160, name='OCR_ASH_COLLECT_STATUS')
             ocr_daily = DailyDigitCounter(
                 ASH_DAILY_STATUS, letter=(140, 142, 140), threshold=160, name='OCR_ASH_DAILY_STATUS')
         else:
-            # 大世界每日任务领取或完成时，弹窗会遮挡信标状态
-            logger.info('Ash beacon status is covered, will check next time')
+            # 大世界每日+任务领取或完成时，弹窗会遮挡信标状态
+            logger.info('[META作战] 信标状态被遮挡，下次再检查')
             return 0
 
         status, _, _ = ocr_collect.ocr(self.device.image)
         daily, _, _ = ocr_daily.ocr(self.device.image)
 
         if daily >= 200:
-            logger.info('Ash beacon fully collected today')
+            logger.info('[META作战] 今日信标数据已收集满')
             self._ash_fully_collected = True
         elif status >= 200:
-            logger.info('Ash beacon data reached the holding limit')
+            logger.info('[META作战] 信标数据达到持有上限')
             self._ash_fully_collected = True
 
         if status < 0:
