@@ -501,6 +501,7 @@ class RewardCommission(UI, InfoHandler):
             in: page_commission
             out: page_commission
         """
+        from module.statistics.cl1_database import db as cl1_db
         if not hasattr(self, '_running_gem_commissions'):
             self._running_gem_commissions = []
         self._commission_scan_all()
