@@ -61,6 +61,8 @@ def clear_ssh_host_key(host: str, port: int, ssh_executable: str = "ssh") -> boo
 
     removed = False
     for known_hosts in known_hosts_files:
+        if not known_hosts.is_file():
+            continue
         for target in targets:
             try:
                 result = run(

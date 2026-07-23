@@ -351,6 +351,9 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
                 if HOST_KEY_CHANGED_MARKER in stderr.upper():
                     clear_ssh_host_key(current_server, current_port)
                     self.info.error = "ssh_host_key_changed"
+                elif stderr:
+                    self.info.error = stderr.strip()
+                    logger.error(f"SSH remote access exited before registration: {stderr.strip()}")
                 else:
                     self.info.error = "invalid_provider_response"
                 break

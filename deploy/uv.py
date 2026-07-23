@@ -1,8 +1,11 @@
 import os
+import multiprocessing
+import queue
 import shlex
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 from urllib.parse import urlparse
@@ -12,6 +15,14 @@ BOOTSTRAPPED_ENV = "AZURPILOT_UV_BOOTSTRAPPED"
 BOOTSTRAP_UV_ENV = "AZURPILOT_BOOTSTRAP_UV"
 NO_BOOTSTRAP_ENV = "AZURPILOT_NO_UV_BOOTSTRAP"
 PYTHON_VERSION = "3.14.3"
+
+
+@dataclass
+class UvCommandResult:
+    """一次 uv 命令的可记录执行结果。"""
+
+    command: list[str]
+    output: str
 
 
 def project_root() -> Path:
@@ -210,18 +221,55 @@ def _remove_stale_venv_launcher(root: Path):
         pass
 
 
-def _run(command, root: Path, env=None):
+def _run(command, root: Path, env=None, capture_output: bool = False):
     command = [str(part) for part in command]
     print("+ " + _join_command(command))
     # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
-    subprocess.run(command, cwd=str(root), check=True, env=env)
+    if not capture_output:
+        subprocess.run(command, cwd=str(root), check=True, env=env)
+        return None
+
+    result = subprocess.run(
+        command,
+        cwd=str(root),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    output = result.stdout or ""
+    if result.returncode:
+        raise subprocess.CalledProcessError(
+            result.returncode,
+            command,
+            output=output,
+        )
+    return output
 
 
 def _run_output(command, root: Path, env=None) -> str:
     command = [str(part) for part in command]
     print("+ " + _join_command(command))
     # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
-    return subprocess.check_output(command, cwd=str(root), text=True, env=env).strip()
+    result = subprocess.run(
+        command,
+        cwd=str(root),
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if result.returncode:
+        raise subprocess.CalledProcessError(
+            result.returncode,
+            command,
+            output=(result.stderr or "") + (result.stdout or ""),
+        )
+    return (result.stdout or "").strip()
 
 
 def _join_command(command):
@@ -230,14 +278,25 @@ def _join_command(command):
     return " ".join(shlex.quote(part) for part in command)
 
 
-def _ensure_self_contained_python(root: Path, uv: Path):
+def _run_and_collect(command, root: Path, env, outputs: Optional[list[str]]):
+    output = _run(command, root, env=env, capture_output=outputs is not None)
+    if outputs is not None and output:
+        outputs.append(output)
+    return output
+
+
+def _ensure_self_contained_python(
+    root: Path,
+    uv: Path,
+    outputs: Optional[list[str]] = None,
+):
     if _venv_python_works(root) and _managed_python_executable(root):
         return
 
     env = _uv_python_env(root)
     managed_python = _managed_python_executable(root)
     if managed_python is None:
-        _run(
+        _run_and_collect(
             [
                 uv,
                 "python",
@@ -249,26 +308,25 @@ def _ensure_self_contained_python(root: Path, uv: Path):
                 PYTHON_VERSION,
             ],
             root,
-            env=env,
+            env,
+            outputs,
         )
         managed_python = _managed_python_executable(root)
     if managed_python is None:
-        managed_python = Path(
-            _run_output(
-                [
-                    uv,
-                    "python",
-                    "find",
-                    "--managed-python",
-                    PYTHON_VERSION,
-                ],
-                root,
-                env=env,
-            )
-        )
+        command = [
+            uv,
+            "python",
+            "find",
+            "--managed-python",
+            PYTHON_VERSION,
+        ]
+        output = _run_output(command, root, env=env)
+        if outputs is not None and output:
+            outputs.append(output)
+        managed_python = Path(output.strip())
 
     _remove_stale_venv_launcher(root)
-    _run(
+    _run_and_collect(
         [
             uv,
             "venv",
@@ -280,22 +338,46 @@ def _ensure_self_contained_python(root: Path, uv: Path):
         ]
         + _uv_index_args(root),
         root,
-        env=env,
+        env,
+        outputs,
     )
 
 
-def sync_project_venv(root: Path = None, bootstrap_uv: Optional[PathLikeArg] = None):
+def command_output(exc: BaseException) -> str:
+    """提取由 subprocess 保留的合并输出。"""
+    output = getattr(exc, "stdout", None)
+    if output is None:
+        output = getattr(exc, "output", "")
+    if isinstance(output, bytes):
+        return output.decode("utf-8", errors="replace")
+    return str(output or "")
+
+
+def log_command_output(logger, output: str, prefix: str = "[uv]"):
+    """将已捕获的子进程输出逐行交给调用方的日志器。"""
+    for line in output.splitlines():
+        logger.info(f"{prefix} {line}")
+
+
+def sync_project_venv(
+    root: Path = None,
+    bootstrap_uv: Optional[PathLikeArg] = None,
+    capture_output: bool = False,
+) -> Optional[UvCommandResult]:
     root = root or project_root()
     if not _deploy_bool(root, "InstallDependencies", default=True):
-        print("InstallDependencies is disabled, skip uv sync")
-        return
+        output = "InstallDependencies is disabled, skip uv sync"
+        print(output)
+        if capture_output:
+            return UvCommandResult(command=[], output=output)
+        return None
 
     uv = _resolve_uv(root, bootstrap_uv=bootstrap_uv)
+    outputs = [] if capture_output else None
 
-    _ensure_self_contained_python(root, uv)
-
-    _run(
-        [
+    try:
+        _ensure_self_contained_python(root, uv, outputs=outputs)
+        command = [
             uv,
             "sync",
             "--project",
@@ -303,11 +385,73 @@ def sync_project_venv(root: Path = None, bootstrap_uv: Optional[PathLikeArg] = N
             "--frozen",
             "--no-dev",
             "--no-install-project",
-        ]
-        + _uv_index_args(root),
-        root,
-        env=_uv_python_env(root),
-    )
+        ] + _uv_index_args(root)
+        _run_and_collect(
+            command,
+            root,
+            _uv_python_env(root),
+            outputs,
+        )
+    except subprocess.CalledProcessError as exc:
+        if outputs is not None:
+            output = command_output(exc)
+            if output:
+                outputs.append(output)
+            exc.output = "\n".join(outputs)
+        raise
+
+    if capture_output:
+        return UvCommandResult(command=[str(part) for part in command], output="\n".join(outputs))
+    return None
+
+
+def dependency_sync_service(request_queue, response_queue, root: PathLikeArg = None):
+    """空闲等待 WebUI 更新请求的独立依赖同步服务。"""
+    root = Path(root) if root is not None else project_root()
+    parent = multiprocessing.parent_process()
+
+    while True:
+        try:
+            request = request_queue.get(timeout=1)
+        except queue.Empty:
+            # 启动器强制结束 gui.py 时不会执行 finally，此处避免遗留服务。
+            if parent is not None and not parent.is_alive():
+                return
+            continue
+        if request == "shutdown":
+            return
+        if request != "sync":
+            response_queue.put(
+                {
+                    "success": False,
+                    "command": [],
+                    "output": "",
+                    "error": f"Unknown dependency sync request: {request}",
+                }
+            )
+            continue
+
+        try:
+            result = sync_project_venv(root=root, capture_output=True)
+        except Exception as exc:
+            response_queue.put(
+                {
+                    "success": False,
+                    "command": [str(part) for part in (getattr(exc, "cmd", None) or [])],
+                    "output": command_output(exc),
+                    "error": str(exc),
+                }
+            )
+            continue
+
+        response_queue.put(
+            {
+                "success": True,
+                "command": result.command,
+                "output": result.output,
+                "error": "",
+            }
+        )
 
 
 def ensure_uv_environment():

@@ -431,12 +431,14 @@ def load_webui_styles(theme=None, is_mobile=None):
         "entry-alas",
     ]
     theme_styles = {
-        "dark": "dark-alas",
-        "socialism": "socialism-alas",
-        "children": "children-alas",
-        "apple": "apple-alas",
+        "dark": ("dark-alas",),
+        "advanced_material": ("advanced-material-alas",),
+        "dark_advanced_material": (
+            "advanced-material-alas",
+            "dark-advanced-material-overrides-alas",
+        ),
     }
-    styles.append(theme_styles.get(theme, "light-alas"))
+    styles.extend(theme_styles.get(theme, ("light-alas",)))
 
     for name in styles:
         add_css(filepath_css(name))
@@ -709,7 +711,7 @@ def on_task_exception(self):
             word_wrap=True, extra_lines=1, show_locals=True
         )
 
-    if State.theme == "dark":
+    if State.theme in ("dark", "dark_advanced_material"):
         theme = DARK_TERMINAL_THEME
     else:
         theme = LIGHT_TERMINAL_THEME

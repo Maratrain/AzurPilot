@@ -1,0 +1,217 @@
+/* 高级材质暗色覆盖层：需在 advanced-material-alas.css 之后加载。 */
+
+:root {
+	--alas-apple-bg: #0b1220;
+	--alas-apple-card-bg: rgba(15, 23, 42, 0.78);
+	--alas-apple-card-bg-solid: #111827;
+	--alas-apple-glass-border: rgba(148, 163, 184, 0.24);
+	--alas-apple-text: #f4f8ff;
+	--alas-apple-text-secondary: #d2dceb;
+	--alas-apple-text-tertiary: #aebdd0;
+	--alas-apple-text-muted: #e1e9f5;
+	--alas-apple-accent: #2563eb;
+	--alas-apple-accent-hover: #1d4ed8;
+	--alas-apple-accent-light: rgba(37, 99, 235, 0.22);
+	--alas-apple-border: rgba(148, 163, 184, 0.18);
+	--alas-apple-border-color: #334155;
+	--alas-toggle-bg-off: #334155;
+	--alas-toggle-bg-on: #1d4ed8;
+	--alas-entry-page: var(--alas-apple-bg);
+	--alas-entry-surface: var(--alas-apple-card-bg);
+	--alas-entry-surface-muted: rgba(15, 23, 42, 0.9);
+	--alas-entry-surface-subtle: rgba(30, 41, 59, 0.68);
+	--alas-entry-text: var(--alas-apple-text);
+	--alas-entry-muted: var(--alas-apple-text-secondary);
+	--alas-entry-border: var(--alas-apple-glass-border);
+	--alas-entry-divider: var(--alas-apple-border);
+	--alas-entry-accent: var(--alas-apple-accent);
+	--alas-entry-on-accent: #eff6ff;
+	--alas-entry-accent-soft: var(--alas-apple-accent-light);
+	--alas-entry-action: #3b82f6;
+	--alas-entry-action-hover: #2563eb;
+	--alas-entry-on-action: #eff6ff;
+	--alas-entry-success: #34d399;
+	--alas-entry-on-success: #052e16;
+	--alas-apple-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.3);
+	--alas-apple-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+	--alas-apple-shadow-md: 0 12px 28px rgba(0, 0, 0, 0.38);
+	--alas-apple-shadow-lg: 0 18px 42px rgba(0, 0, 0, 0.46);
+	--alas-apple-shadow-accent: 0 4px 14px rgba(29, 78, 216, 0.34);
+	--alas-apple-shadow-accent-lg: 0 8px 24px rgba(29, 78, 216, 0.42);
+	--alas-entry-shadow: var(--alas-apple-shadow);
+	--alas-entry-panel-shadow: var(--alas-apple-shadow);
+	--scrollbar-thumb: rgba(148, 163, 184, 0.42);
+	--scrollbar-thumb-hover: rgba(148, 163, 184, 0.62);
+}
+
+body {
+	background-image: linear-gradient(rgba(4, 9, 19, 0.56), rgba(7, 15, 29, 0.66)), var(--alas-apple-bg-image) !important;
+}
+
+#pywebio-scope-content,
+#pywebio-scope-content .markdown-body,
+#pywebio-scope-groups,
+#pywebio-scope-groups p,
+#pywebio-scope-groups td {
+	color: var(--alas-apple-text) !important;
+}
+
+#pywebio-scope-content .markdown-body,
+#pywebio-scope-groups small,
+#pywebio-scope-groups .text-muted {
+	color: var(--alas-apple-text-secondary) !important;
+}
+
+#pywebio-scope-aside {
+	background-color: rgba(10, 17, 30, 0.9) !important;
+	border-right-color: rgba(148, 163, 184, 0.16) !important;
+}
+
+/* 实例侧边栏未使用菜单按钮类，需单独覆盖 Bootstrap 的深色文字。 */
+#pywebio-scope-aside .btn-aside {
+	color: var(--alas-apple-text-secondary) !important;
+}
+
+#pywebio-scope-aside .btn-aside:hover,
+#pywebio-scope-aside .btn-aside-active {
+	color: var(--alas-apple-text) !important;
+}
+
+#pywebio-scope-menu {
+	background-color: rgba(15, 23, 42, 0.72) !important;
+	border-right-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+#pywebio-scope-header {
+	background-color: rgba(11, 18, 32, 0.88) !important;
+	border-bottom-color: rgba(148, 163, 184, 0.18) !important;
+	box-shadow: 0 1px 0 rgba(148, 163, 184, 0.12), 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+#pywebio-scope-header::before {
+	background: linear-gradient(90deg, rgba(30, 64, 175, 0.32) 0%, rgba(15, 23, 42, 0.18) 50%, transparent 100%) !important;
+}
+
+#pywebio-scope-navigator .btn:hover,
+.btn-secondary:hover,
+.btn-light:hover {
+	background-color: rgba(30, 41, 59, 0.92) !important;
+	border-color: rgba(96, 165, 250, 0.38) !important;
+}
+
+#pywebio-scope-navigator .btn:active,
+.btn-secondary:active,
+.btn-light:active {
+	background-color: #1e293b !important;
+}
+
+.container-log {
+	background-color: rgba(8, 14, 25, 0.86) !important;
+	border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.btn-secondary,
+.btn-light {
+	background-color: rgba(30, 41, 59, 0.68) !important;
+}
+
+.form-control,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+select.form-control,
+.bootstrap-select > select {
+	background-color: rgba(15, 23, 42, 0.78) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+select,
+select.form-control,
+.bootstrap-select > select {
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+select:focus,
+select.form-control:focus,
+.bootstrap-select > select:focus {
+	box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.3), var(--alas-apple-shadow-md) !important;
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2393c5fd' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+input[type="checkbox"]::before {
+	background-color: #dbeafe;
+}
+
+.btn-menu:hover,
+#pywebio-scope-menu .btn-menu:hover {
+	background-color: rgba(37, 99, 235, 0.16) !important;
+}
+
+.btn-menu-active,
+#pywebio-scope-menu .btn-menu-active {
+	background-color: rgba(30, 64, 175, 0.38) !important;
+	box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.24) !important;
+}
+
+.btn-menu-active:hover,
+#pywebio-scope-menu .btn-menu-active:hover {
+	background-color: rgba(30, 64, 175, 0.56) !important;
+}
+
+.btn-menu-active::after {
+	background: radial-gradient(ellipse at center bottom, rgba(37, 99, 235, 0.34) 0%, transparent 70%) !important;
+}
+
+#pywebio-scope-opsi_stats tr:hover td,
+#pywebio-scope-ship_exp_table tr:hover td,
+#pywebio-scope-commission_income tr:hover td,
+#pywebio-scope-commission_income .commission-income-table tr:hover td,
+#pywebio-scope-commission_income .commission-income-recent-row:hover {
+	background-color: rgba(37, 99, 235, 0.16) !important;
+}
+
+#pywebio-scope-commission_income .commission-income-summary,
+#pywebio-scope-commission_income .commission-income-table-wrap,
+#pywebio-scope-commission_income .commission-income-recent {
+	background-color: rgba(15, 23, 42, 0.84) !important;
+	border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+#pywebio-scope-commission_income .commission-income-metric-card,
+#pywebio-scope-commission_income .commission-income-table,
+#pywebio-scope-commission_income .commission-income-table td,
+#pywebio-scope-commission_income .commission-income-recent-row {
+	background-color: rgba(30, 41, 59, 0.72) !important;
+}
+
+#pywebio-scope-commission_income .commission-income-table th {
+	background-color: rgba(15, 23, 42, 0.96) !important;
+}
+
+#pywebio-scope-updater_info::before,
+#pywebio-scope-updater_detail::before,
+#pywebio-scope-develop_detail::before,
+#pywebio-scope-manage_add_form::before,
+#pywebio-scope-manage_import_panel::before,
+*[style*="--manage-config-card--"]::before {
+	background-color: rgba(15, 23, 42, 0.66) !important;
+}
+
+*[style*="--manage-config-card--"] *[style*="--manage-config-row--"] {
+	background-color: rgba(30, 41, 59, 0.48) !important;
+}
+
+*[style*="--manage-config-card--"]:hover *[style*="--manage-config-row--"] {
+	background-color: rgba(37, 99, 235, 0.18) !important;
+}
+
+textarea,
+.CodeMirror {
+	background-color: rgba(8, 14, 25, 0.9) !important;
+	border-color: var(--alas-apple-border-color) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+select option {
+	color: var(--alas-apple-text);
+	background-color: #111827;
+}

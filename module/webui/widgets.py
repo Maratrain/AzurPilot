@@ -116,7 +116,7 @@ class RichLog:
         self.first_display = True
         self.last_display_time = {}
         self.dashboard_arg_group = None
-        if State.theme == "dark":
+        if State.theme in ("dark", "dark_advanced_material"):
             self.terminal_theme = DARK_TERMINAL_THEME
         else:
             self.terminal_theme = LIGHT_TERMINAL_THEME
@@ -340,7 +340,8 @@ def put_none() -> Output:
     return put_html("<div></div>")
 
 
-T_Output_Kwargs = Dict[str, Union[str, Dict[str, Any]]]
+# 配置表单同时承载字符串、布尔值、列表、输出组件及服务器专属选项。
+T_Output_Kwargs = Dict[str, Any]
 
 
 def get_title_help(kwargs: T_Output_Kwargs) -> Output:

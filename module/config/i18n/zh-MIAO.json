@@ -741,10 +741,14 @@
     },
     "OcrDevice": {
       "name": "OCR设备选择",
-      "help": "OCR跑在CPU/GPU/ANE上。GPU用Windows DirectML，ANE用macOS Neural Engine。自动：Apple Silicon选ANE，Windows显存>1G选GPU，否则CPU。",
+      "help": "选择 OCR 推理设备喵。\n自动选择：Windows 按 QNN NPU、OpenVINO NPU、OpenVINO 独显 GPU、DirectML 独显 GPU、OpenVINO CPU、CPU 的顺序尝试喵；关闭“自动安装并使用厂商 EP”后只尝试 DirectML 独显 GPU 和 CPU 喵。\nQNN/OpenVINO 设备仅适用于 ONNX Runtime，ANE 仅适用于 Apple Silicon Mac 喵。",
       "auto": "自动判断",
+      "qnn_npu": "QNN NPU喵",
+      "openvino_npu": "OpenVINO NPU喵",
+      "openvino_gpu": "OpenVINO 独显 GPU喵",
+      "gpu": "DirectML 独显 GPU喵",
+      "openvino_cpu": "OpenVINO CPU喵",
       "cpu": "CPU喵",
-      "gpu": "GPU喵",
       "ane": "ANE喵"
     },
     "OcrBackend": {
@@ -753,6 +757,12 @@
       "auto": "自动 喵",
       "onnxruntime": "ONNX Runtime 喵",
       "ncnn": "ncnn 喵"
+    },
+    "OcrWindowsMlVendorEp": {
+      "name": "自动安装并使用厂商 EP 喵",
+      "help": "允许 Windows ML 通过 Windows Update 下载并使用 QNN/OpenVINO 厂商 EP 喵。",
+      "True": "启用喵",
+      "False": "禁用喵"
     },
     "OcrModelVersionEnglish": {
       "name": "OCR英文模型版本喵",
@@ -1066,6 +1076,7 @@
       "coalition_20250626": "The Neon City Investigator",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "Light & Shadow Fashion Shoot!",
+      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "The Solomon Ranger Rerun",
       "event_20200326_cn": "Microlayer Medley",
@@ -1849,11 +1860,11 @@
     "Mode": {
       "name": "难度喵",
       "help": "SP图需用活动每日SP运行喵。 (´・ω・`)",
-      "tc1": "tc1",
-      "tc2": "tc2",
-      "tc3": "tc3",
-      "sp": "sp喵",
-      "ex": "ex"
+      "easy": "简单喵",
+      "normal": "普通喵",
+      "hard": "困难喵",
+      "sp": "SP喵",
+      "ex": "EX喵"
     },
     "Fleet": {
       "name": "出击队伍模式",

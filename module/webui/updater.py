@@ -5,9 +5,9 @@ import time
 from typing import Generator, List, Tuple
 
 import requests
+from deploy.atomic import atomic_write
 from deploy.config import ExecutionError
 from deploy.git import GitManager
-from deploy.pip import PipManager
 from deploy.utils import DEPLOY_CONFIG
 from module.base.retry import retry
 from module.logger import logger
@@ -17,7 +17,7 @@ from module.webui.setting import State
 from module.webui.utils import TaskHandler, get_next_time
 
 
-class Updater(DeployConfig, GitManager, PipManager):
+class Updater(DeployConfig, GitManager):
     def __init__(self, file=DEPLOY_CONFIG):
         super().__init__(file=file)
         self.state = 0
@@ -219,15 +219,10 @@ class Updater(DeployConfig, GitManager, PipManager):
     def git_install(self):
         return super().git_install()
 
-    @retry(ExecutionError, tries=3, delay=5, logger=None)
-    def pip_install(self):
-        return super().pip_install()
-
     def update(self):
         logger.hr("Run update")
         try:
             self.git_install()
-            self.pip_install()
         except ExecutionError:
             return False
         return True
@@ -279,9 +274,16 @@ class Updater(DeployConfig, GitManager, PipManager):
 
         if self.update():
             if State.restart_event is not None:
+                if State.dependency_sync_event is None:
+                    self.state = "failed"
+                    logger.critical("Dependency sync service is unavailable")
+                    self.event.clear()
+                    ProcessManager.restart_processes(instances, self.event)
+                    return False
+
                 self.state = "reload"
-                with open("./config/reloadalas", mode="w") as f:
-                    f.writelines(names)
+                atomic_write("./config/reloadalas", "".join(names))
+                State.dependency_sync_event.set()
                 from module.webui.app import clearup
 
                 self._trigger_reload(2)

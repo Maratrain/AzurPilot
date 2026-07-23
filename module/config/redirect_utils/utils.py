@@ -106,7 +106,7 @@ def api_redirect2(value):
 
 def coalition_to_frostfall(value):
     """
-    Redirect Little Academy stage names to Frostfall
+    将通用难度名转换为霜落活动的内部关卡编号。
     """
     if value == 'easy':
         return 'tc1'
@@ -120,13 +120,14 @@ def coalition_to_frostfall(value):
 
 def coalition_to_little_academy(value):
     """
-    Redirect Little Academy stage names to Frostfall
+    将旧联动活动的 TC 关卡编号转换为通用难度名。
     """
-    if value == 'tc1':
+    normalized = str(value).lower().replace('-', '')
+    if normalized == 'tc1':
         return 'easy'
-    elif value == 'tc2':
+    elif normalized == 'tc2':
         return 'normal'
-    elif value == 'tc3':
+    elif normalized == 'tc3':
         return 'hard'
     else:
         return value

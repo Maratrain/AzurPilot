@@ -67,10 +67,15 @@
     var seriesColors = ["#64b5f6", "#ce93d8", "#ffd54f", "#22d3ee", "#1565c0"];
     var seriesNames = ["体力", "紫币", "黄币", "资产", "海里数"];
 
+    var chartId = "__CHART_ID__";
+    window.__apChartCleanups = window.__apChartCleanups || {};
+    if (window.__apChartCleanups[chartId]) {
+        window.__apChartCleanups[chartId]();
+    }
+
     var nn = chartType === 'line' ? ap.length : labels.length;
     if (nn < 1) return;
 
-    var chartId = "__CHART_ID__";
     var cv = document.getElementById(chartId);
     if (!cv) return;
     var tipEl = document.getElementById(chartId + "_tip");
@@ -78,9 +83,32 @@
 
     var dpr = window.devicePixelRatio || 1;
     var W, H, pad, gW, gH;
+    var cleanupHandlers = [];
+    var animationFrameId = null;
+
+    function cleanup() {
+        cleanupHandlers.forEach(function (item) {
+            item.target.removeEventListener(item.type, item.handler, item.options);
+        });
+        cleanupHandlers = [];
+        if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+        if (window.__apChartCleanups[chartId] === cleanup) {
+            delete window.__apChartCleanups[chartId];
+        }
+    }
+
+    function addListener(target, type, handler, options) {
+        if (!target) return;
+        target.addEventListener(type, handler, options);
+        cleanupHandlers.push({ target: target, type: type, handler: handler, options: options });
+    }
+
+    window.__apChartCleanups[chartId] = cleanup;
 
     // 延迟渲染以确保 canvas 布局完成，避免首次加载坐标偏移
-    requestAnimationFrame(function () {
+    animationFrameId = requestAnimationFrame(function () {
+        animationFrameId = null;
         initChart();
     });
 
@@ -375,7 +403,7 @@
         drawSeriesLine(xOfLine, 0, nn);
 
         // ======== 鼠标交互：十字线 + 滚珠 + 提示框 ========
-        cv.addEventListener("mousemove", function (e) {
+        addListener(cv, "mousemove", function (e) {
             if (_isSelecting) return;
             var rect = cv.getBoundingClientRect();
             var mx_ = e.clientX - rect.left;
@@ -595,7 +623,7 @@
             tipEl.style.top = ty + "px";
         });
 
-        cv.addEventListener("mouseleave", function () {
+        addListener(cv, "mouseleave", function () {
             tipEl.style.display = "none";
             oc.setTransform(1, 0, 0, 1, 0, 0);
             oc.clearRect(0, 0, ovCv.width, ovCv.height);
@@ -629,7 +657,7 @@
                 });
                 (chartType === 'line' && typeof renderDetailChart === 'function' ? renderDetailChart : initChart)();
             };
-            legendEl.addEventListener("click", legendEl._legendHandler);
+            addListener(legendEl, "click", legendEl._legendHandler);
             legendEl.querySelectorAll(".ap-legend-item").forEach(function (li, i) {
                 var si = parseInt(li.getAttribute("data-series"), 10);
                 li.style.opacity = seriesVisible[si] ? "1" : "0.35";
@@ -726,7 +754,7 @@
             var dragStartPan = 0;
             var selStartX = 0;
 
-            cv.addEventListener("mousedown", function (e) {
+            addListener(cv, "mousedown", function (e) {
                 if (e.button !== 0) return;
                 var rect = cv.getBoundingClientRect();
                 var my = e.clientY - rect.top;
@@ -745,7 +773,7 @@
             }
             });
 
-            document.addEventListener("mousemove", function (e) {
+            addListener(document, "mousemove", function (e) {
                 if (!isDragging) return;
                 if (_isSelecting) {
                     // 选区矩形占满图表高度
@@ -778,7 +806,7 @@
                 }
             });
 
-            document.addEventListener("mouseup", function (e) {
+            addListener(document, "mouseup", function (e) {
                 if (!isDragging) return;
                 isDragging = false;
 
@@ -813,7 +841,7 @@
                 cv.style.cursor = "crosshair";
             });
 
-            cv.addEventListener("wheel", function (e) {
+            addListener(cv, "wheel", function (e) {
                 e.preventDefault();
                 var rect = cv.getBoundingClientRect();
                 var mx = e.clientX - rect.left;
@@ -833,7 +861,7 @@
                 }
             }, { passive: false });
 
-            cv.addEventListener("dblclick", function () {
+            addListener(cv, "dblclick", function () {
                 zoomLevel = 1.0;
                 panOffset = 0;
                 renderDetailChart();
@@ -844,7 +872,7 @@
             var zoomResetBtn = document.getElementById(chartId + "_reset");
 
             if (zoomInBtn) {
-                zoomInBtn.addEventListener("click", function () {
+                addListener(zoomInBtn, "click", function () {
                     zoomLevel = Math.min(maxZoom, zoomLevel * 1.5);
                     var visibleCount = Math.ceil(nn / zoomLevel);
                     var maxPan = Math.max(0, nn - visibleCount);
@@ -854,14 +882,14 @@
             }
 
             if (zoomOutBtn) {
-                zoomOutBtn.addEventListener("click", function () {
+                addListener(zoomOutBtn, "click", function () {
                     zoomLevel = Math.max(minZoom, zoomLevel / 1.5);
                     renderDetailChart();
                 });
             }
 
             if (zoomResetBtn) {
-                zoomResetBtn.addEventListener("click", function () {
+                addListener(zoomResetBtn, "click", function () {
                     zoomLevel = 1.0;
                     panOffset = 0;
                     renderDetailChart();

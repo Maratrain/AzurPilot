@@ -1,3 +1,4 @@
+import gc
 import re
 
 import module.config.server as server
@@ -91,6 +92,7 @@ def release_resources(next_task=''):
     # 释放所有 OCR 模型
     # 通常会加载 2 个模型，每个约占 20MB
     # 释放后可节省 20-40MB 内存
+    released_ocr_models = 0
     from module.webui.setting import State
     if State.deploy_config.UseOcrServer:
         if not next_task:
@@ -102,6 +104,7 @@ def release_resources(next_task=''):
                 pass
     else:
         # 仅在使用实例内 OCR 时释放
+        from module.ocr.al_ocr import release_ocr_models
         from module.ocr.ocr import OCR_MODEL
         if 'Opsi' in next_task or 'commission' in next_task:
             # OCR 模型即将被使用，不释放
@@ -113,6 +116,22 @@ def release_resources(next_task=''):
             models = ['azur_lane', 'cnocr', 'jp', 'tw']
         for model in models:
             del_cached_property(OCR_MODEL, model)
+
+        if models:
+            cache_model_names = {
+                'azur_lane': 'azur_lane',
+                'cnocr': 'cn',
+                'jp': 'jp',
+                'tw': 'tw',
+            }
+            cache_names = [cache_model_names[model] for model in models]
+            # 默认 OCR 实例会在连续任务间保留，可能仍持有检测模型；只有空闲时
+            # 所有语言模型均已释放，才能安全清理独立的 ``det`` 缓存。
+            if not next_task:
+                cache_names.append('det')
+            released_ocr_models = release_ocr_models(
+                names=cache_names
+            )
 
     # 释放资源缓存
     # module.ui 约有 80 个资源，占约 3MB
@@ -141,5 +160,7 @@ def release_resources(next_task=''):
     for attr in attr_list:
         del_cached_property(ASSETS, attr)
 
-    # 大多数情况下无明显效果，但仍然调用
-    # gc.collect()
+    # NumPy/OpenCV 图像的引用计数会立即释放；只在全局 OCR 缓存已实际剔除时
+    # 回收可能存在的 Python 循环引用，避免在截图和战斗循环中引入 GC 停顿。
+    if released_ocr_models:
+        gc.collect(2)

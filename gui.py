@@ -1,7 +1,8 @@
 import os
+import queue
 import sys
 import threading
-from multiprocessing import Event, Process, set_start_method
+from multiprocessing import Event, Process, Queue, set_start_method
 from typing import Optional
 
 if sys.platform != "win32":
@@ -14,11 +15,12 @@ if sys.platform != "win32":
     except Exception:
         pass
 
+from deploy.uv import dependency_sync_service, log_command_output
 from module.logger import logger
 from module.webui.setting import State
 
 
-def func(ev: Optional[Event]):
+def func(ev: Optional[Event], dependency_sync_event: Optional[Event] = None):
     """
     主函数：运行Web服务。
 
@@ -38,6 +40,7 @@ def func(ev: Optional[Event]):
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     State.restart_event = ev
+    State.dependency_sync_event = dependency_sync_event
 
     # 解析命令行参数
     parser = argparse.ArgumentParser(description="AzurPilot Web 服务")
@@ -152,6 +155,67 @@ def _stop_process(process, timeout=5):
         process.join(timeout=3)
 
 
+def _start_dependency_sync_service():
+    """启动空闲的依赖同步服务，避免 WebUI 进程修改自身环境。"""
+    request_queue = Queue()
+    response_queue = Queue()
+    process = Process(
+        target=dependency_sync_service,
+        args=(request_queue, response_queue),
+        daemon=True,
+        name="dependency-sync",
+    )
+    process.start()
+    logger.info(f"[GUI] 依赖同步服务已启动 (PID: {process.pid})")
+    return process, request_queue, response_queue
+
+
+def _stop_dependency_sync_service(process, request_queue):
+    """停止依赖同步服务，确保启动器关闭时不遗留后端进程。"""
+    if not process or not process.is_alive():
+        return
+
+    try:
+        request_queue.put("shutdown")
+        process.join(timeout=5)
+    except Exception as exc:
+        logger.warning(f"[GUI] 停止依赖同步服务失败: {exc}")
+
+    if process.is_alive():
+        logger.warning(f"[GUI] 依赖同步服务 (PID: {process.pid}) 超时未退出，强制终止...")
+        process.terminate()
+        process.join(timeout=3)
+
+
+def _sync_dependencies(process, request_queue, response_queue) -> bool:
+    """向独立服务请求同步，并将完整 uv 输出写入 GUI 日志。"""
+    logger.hr("Update Dependencies", 0)
+    if not process or not process.is_alive():
+        logger.critical("Dependency sync service is not running")
+        return False
+
+    request_queue.put("sync")
+    while True:
+        try:
+            result = response_queue.get(timeout=1)
+        except queue.Empty:
+            if not process.is_alive():
+                logger.critical("Dependency sync service exited unexpectedly")
+                return False
+            continue
+
+        command = result.get("command") or []
+        if command:
+            logger.info(f"Execute: {command}")
+        log_command_output(logger, result.get("output", ""))
+        if result.get("success"):
+            logger.info("Dependency sync success")
+            return True
+
+        logger.critical(f"uv sync failed: {result.get('error', 'unknown error')}")
+        return False
+
+
 if __name__ == "__main__":
     # 设置multiprocessing启动方式为spawn（macOS兼容性要求）
     try:
@@ -165,51 +229,71 @@ if __name__ == "__main__":
     # 启用热重载模式
     if State.deploy_config.EnableReload:
         should_exit = False
-        while not should_exit:
-            event = Event()
-            process = Process(target=func, args=(event,), name="gui")
-            process.start()
-            logger.info(f"[GUI] 启动AzurPilot Web服务 (PID: {process.pid})")
-
+        process = None
+        service, service_request_queue, service_response_queue = _start_dependency_sync_service()
+        try:
             while not should_exit:
-                try:
-                    # 等待重启事件，超时1秒
-                    restart_triggered = event.wait(1)
-                except KeyboardInterrupt:
-                    logger.info("[GUI] 收到KeyboardInterrupt，退出中...")
-                    should_exit = True
-                    break
-                except Exception as e:
-                    logger.exception_context(
-                        title='WebUI 重启事件处理失败',
-                        exc=e,
-                        impact='WebUI 将停止热重载并退出。',
-                        action='检查 WebUI 子进程状态和系统进程权限。',
-                        level=50,
-                    )
-                    should_exit = True
-                    break
+                event = Event()
+                dependency_sync_event = Event()
+                process = Process(
+                    target=func,
+                    args=(event, dependency_sync_event),
+                    name="gui",
+                )
+                process.start()
+                logger.info(f"[GUI] 启动AzurPilot Web服务 (PID: {process.pid})")
 
-                if restart_triggered:
-                    logger.info("[GUI] 重启事件触发，终止当前服务...")
-                    _stop_process(process)
-                    break
-                elif not process.is_alive():
-                    logger.error_context(
-                        title='AzurPilot Web 服务意外退出',
-                        reason='WebUI 子进程已结束，但没有收到正常退出或重启事件。',
-                        impact='WebUI 不再提供服务。',
-                        action='查看对应的 GUI 日志和子进程错误现场，确认启动失败原因。',
-                        level=50,
-                    )
-                    should_exit = True
+                while not should_exit:
+                    try:
+                        # 等待重启事件，超时1秒
+                        restart_triggered = event.wait(1)
+                    except KeyboardInterrupt:
+                        logger.info("[GUI] 收到KeyboardInterrupt，退出中...")
+                        should_exit = True
+                        break
+                    except Exception as e:
+                        logger.exception_context(
+                            title='WebUI 重启事件处理失败',
+                            exc=e,
+                            impact='WebUI 将停止热重载并退出。',
+                            action='检查 WebUI 子进程状态和系统进程权限。',
+                            level=50,
+                        )
+                        should_exit = True
+                        break
 
-            # 确保子进程完全退出
+                    if restart_triggered:
+                        logger.info("[GUI] 重启事件触发，终止当前服务...")
+                        _stop_process(process)
+                        if dependency_sync_event.is_set():
+                            # Git 更新后重建服务，使同步逻辑与刚更新的部署代码一致。
+                            _stop_dependency_sync_service(service, service_request_queue)
+                            service, service_request_queue, service_response_queue = (
+                                _start_dependency_sync_service()
+                            )
+                            if not _sync_dependencies(
+                                service,
+                                service_request_queue,
+                                service_response_queue,
+                            ):
+                                should_exit = True
+                        break
+                    elif not process.is_alive():
+                        logger.error_context(
+                            title='AzurPilot Web 服务意外退出',
+                            reason='WebUI 子进程已结束，但没有收到正常退出或重启事件。',
+                            impact='WebUI 不再提供服务。',
+                            action='查看对应的 GUI 日志和子进程错误现场，确认启动失败原因。',
+                            level=50,
+                        )
+                        should_exit = True
+
+                # 确保子进程完全退出
+                _stop_process(process)
+        finally:
             _stop_process(process)
-
-        # 最终清理（预防性）
-        _stop_process(process)
-        logger.info("[GUI] AzurPilot Web服务已成功退出")
+            _stop_dependency_sync_service(service, service_request_queue)
+            logger.info("[GUI] AzurPilot Web服务已成功退出")
     else:
         # 非重载模式：直接运行
-        func(None)
+        func(None, None)

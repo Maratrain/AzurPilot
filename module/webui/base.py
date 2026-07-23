@@ -1,3 +1,4 @@
+import json
 import threading
 
 from pywebio.output import clear, put_html, put_scope, put_text, use_scope
@@ -32,6 +33,26 @@ class Frame(Base):
         self.page = "Home"
         self._page_lock = threading.Lock()
 
+    @staticmethod
+    def cleanup_client_resources(*registry_names: str) -> None:
+        """调用前端资源清理器，释放已替换视图持有的事件回调。"""
+        if not registry_names:
+            return
+
+        run_js(
+            f"""
+            (function (keys) {{
+                keys.forEach(function (key) {{
+                    var cleanups = window[key];
+                    if (!cleanups) return;
+                    Object.keys(cleanups).forEach(function (id) {{
+                        if (typeof cleanups[id] === 'function') cleanups[id]();
+                    }});
+                }});
+            }})({json.dumps(registry_names)});
+            """
+        )
+
     def init_aside(self, expand_menu: bool = True, name: str = None) -> None:
         """
         侧边栏按钮点击时的初始化回调。
@@ -64,6 +85,7 @@ class Frame(Base):
         self.page = name
         self.task_handler.remove_pending_task()
         with self._page_lock:
+            self.cleanup_client_resources("__apChartCleanups", "__resourceChartCleanups")
             clear("content")
         if collapse_menu:
             self.collapse_menu()

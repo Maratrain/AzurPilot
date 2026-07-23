@@ -1,6 +1,6 @@
 from deploy.Windows.config import DeployConfig, ExecutionError
 from deploy.Windows.logger import Progress, logger
-from deploy.uv import sync_project_venv, venv_python
+from deploy.uv import command_output, log_command_output, sync_project_venv, venv_python
 from deploy.Windows.utils import cached_property
 
 
@@ -20,8 +20,11 @@ class PipManager(DeployConfig):
             Progress.UpdateDependency()
             return
         try:
-            sync_project_venv()
+            result = sync_project_venv(capture_output=True)
         except Exception as exc:
             logger.critical(f'uv sync failed: {exc}')
+            log_command_output(logger, command_output(exc))
             raise ExecutionError from exc
+        else:
+            log_command_output(logger, result.output)
         Progress.UpdateDependency()
