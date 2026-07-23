@@ -523,13 +523,18 @@ class RewardCommission(UI, InfoHandler):
                     comm.convert_to_running()
                     if comm.is_gem_commission:
                         has_new_gem_commission = True
-                        new_comm = copy.deepcopy(comm)
-                        if not any(
-                            c.name == new_comm.name
-                            and c.create_time == new_comm.create_time
-                            for c in self._running_gem_commissions
-                        ):
-                            self._running_gem_commissions.append(new_comm)
+
+                        cl1_db.add_running_gem_commission(
+                            instance=self.config.config_name,
+                            commission={
+                                "name": comm.name,
+                                "create_time": comm.create_time.isoformat(),
+                                "finish_time": comm.finish_time.isoformat(),
+                                "duration": int(
+                                    comm.duration.total_seconds() // 3600
+                                ),
+                            },
+                        )
                 self._commission_mode_reset()
         if has_new_gem_commission and self.config.Commission_GemNotify:
             try:
@@ -632,17 +637,31 @@ class RewardCommission(UI, InfoHandler):
             if merged_items:
                 instance = self.config.config_name
                 cl1_db.add_commission_income(instance, merged_items, commission_count=1)
+                commission = cl1_db.pop_running_gem_commission(instance,)
+                if commission:
+                    duration = commission["duration"]
+                    if duration in (2, 4, 8):
+                        cl1_db.add_gem_commission(
+                            instance,
+                            duration_hour=duration,
+                            reward=merged_items.get("Gem", 0),
+                        )
+                    else:
+                        logger.warning(f'Unknown gem commission duration: {duration}h')
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
+
 
                 # ===============================
                 # 推送开关
                 # ===============================
-                if self.config.Commission_CommissionNotifyReward:
+                if self.config.Commission_NotifyReward:
                     reward_stats = None
-                    if self.config.Commission_CommissionNotifyRewardStatistics:
+                    if self.config.Commission_NotifyRewardStatistics:
                         reward_stats = cl1_db.get_commission_reward_stats(instance)
-
+                    gem_stats = None
+                    if self.config.Commission_GemStatistics:
+                        gem_stats = cl1_db.get_gem_commission_stats(instance,period=self.config.Commission_GemStatisticsPeriod)
                     gem_count = merged_items.get("Gem", 0)
                     cube_count = merged_items.get("Cube", 0)
                     tracked = []
@@ -679,6 +698,8 @@ class RewardCommission(UI, InfoHandler):
                     if tracked:
 
                         msg = '\n'.join(tracked)
+                        if gem_count > 0 and gem_stats:
+                            msg += self._format_gem_statistics(gem_stats, self.config.Commission_GemStatisticsPeriod)
                         webui_msg = msg.replace('\n\n', '\n')
 
                         # ===============================
@@ -722,6 +743,90 @@ class RewardCommission(UI, InfoHandler):
 
         except Exception as e:
             logger.warning(f'Commission income recording failed: {e}')
+
+    def _format_gem_statistics(self, stats, period='month'):
+        """格式化钻石委托统计。
+
+        Args:
+            stats: get_gem_commission_stats() 返回的数据
+            period: today / week / month
+        """
+        now = datetime.now()
+        today = now.date()
+        week_start = today - timedelta(days=today.weekday())
+        month_start = today.replace(day=1)
+
+        if period == 'today':
+            title = f'{today.month}.{today.day}'
+        elif period == 'week':
+            title = (
+                f'{week_start.month}.{week_start.day}'
+                f'~{today.month}.{today.day}'
+            )
+        else:
+            title = (
+                f'{month_start.month}.{month_start.day}'
+                f'~{today.month}.{today.day}'
+            )
+
+        lines = [
+            '',
+            '━━━━━━━━━━━━',
+            f'💎钻石委托统计{title}',
+            '',
+        ]
+
+        total_count = 0
+        total_success = 0
+        total_reward = 0
+        commission_names = {
+           2: 'BIW/NYB要员护卫',
+           4: 'BIW/NYB度假护卫',
+           8: 'BIW/NYB巡视护卫',
+        }
+
+        for hour in (2, 4, 8):
+            item = stats[hour]
+
+            total_count += item['count']
+            total_success += item['success']
+            total_reward += item['reward']
+
+            avg_reward = (
+                item['reward'] / item['success']
+                if item['success']
+                else 0
+            )
+
+            lines.extend([
+                f'{commission_names[hour]}（{hour}小时）',
+                f'成功：{item["success"]} / {item["count"]}（{item["rate"]:.1f}%）',
+                f'累计：💎{item["reward"]}',
+                f'平均：💎{avg_reward:.1f}/次成功',
+                '',
+            ])
+
+        total_rate = (
+            total_success * 100 / total_count
+            if total_count
+            else 0
+        )
+
+        avg_total = (
+            total_reward / total_success
+            if total_success
+            else 0
+        )
+
+        lines.extend([
+            '━━━━━━━━━━━━',
+            '总计',
+            f'成功：{total_success} / {total_count}（{total_rate:.1f}%）',
+            f'累计：💎{total_reward}',
+            f'平均：💎{avg_total:.1f}/次成功',
+        ])
+
+        return '\n'.join(lines)
 
     def _handle_research_genre_t_update(self, completed_commission_count):
         if completed_commission_count <= 0:
@@ -848,17 +953,18 @@ class RewardCommission(UI, InfoHandler):
         logger.critical(f'Failed to handle oil maxed after 3 trial')
         raise RequestHumanTakeover
 
-    def _get_gem_reward(self, comm):
-        hour = int(comm.duration.total_seconds() // 3600)
-
-        return {
+    def _get_gem_reward(self, duration):
+        reward = {
             2: '💎10~20',
             4: '💎25~40',
             8: '💎50~80',
-        }.get(hour, '未知')
+        }
 
-    def _get_remaining_time(self, comm):
-        remaining = comm.finish_time - current_time()
+        return reward.get(duration, "未知")
+
+
+    def _get_remaining_time(self, finish_time):
+        remaining = finish_time - current_time()
 
         if remaining.total_seconds() <= 0:
             return '已完成'
@@ -874,32 +980,27 @@ class RewardCommission(UI, InfoHandler):
 
         instance = self.config.config_name
 
-        now = current_time()
-
-        commissions = [
-            comm
-            for comm in self._running_gem_commissions
-            if comm.finish_time > now
-        ]
+        commissions = cl1_db.get_running_gem_commissions(instance,)
 
         if not commissions:
             return
 
-        self._running_gem_commissions = commissions
-        commissions.sort(key=lambda comm: comm.finish_time)
+        commissions.sort(key=lambda item: datetime.fromisoformat(item["finish_time"]))
 
         lines = []
 
-        for index, comm in enumerate(commissions, 1):
+        for index, commission in enumerate(commissions, 1):
+
+            create_time = datetime.fromisoformat(commission["create_time"])
+            finish_time = datetime.fromisoformat(commission["finish_time"])
 
             lines.append(
-                f'{index}. {comm.name}\n'
-                f'接取时间：{comm.create_time:%Y-%m-%d %H:%M:%S}\n'
-                f'预计完成：{comm.finish_time:%Y-%m-%d %H:%M:%S}\n'
-                f'剩余时间：{self._get_remaining_time(comm)}\n'
-                f'预计收益：{self._get_gem_reward(comm)}'
+                f'{index}. {commission["name"]}\n'
+                f'接取时间：{create_time:%Y-%m-%d %H:%M:%S}\n'
+                f'预计完成：{finish_time:%Y-%m-%d %H:%M:%S}\n'
+                f'剩余时间：{self._get_remaining_time(finish_time)}\n'
+                f'预计收益：{self._get_gem_reward(commission["duration"])}'
             )
-
         content = '\n\n'.join(lines)
 
         handle_notify(

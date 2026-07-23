@@ -643,13 +643,19 @@ Commission:
   DoMajorCommission: false
   GemNotify:
     type: checkbox
-    value: false
-  CommissionNotifyReward:
-    type: checkbox
-    value: false
-  CommissionNotifyRewardStatistics:
+    value: true
+  NotifyReward:
     type: checkbox
     value: true
+  NotifyRewardStatistics:
+    type: checkbox
+    value: true
+  GemStatistics:
+    type: checkbox
+    value: true
+  GemStatisticsPeriod:
+    value: month
+    option: [today, week, month]
 Tactical:
   TacticalFilter: |-
     SameT4 > SameT3 > SameT2 > SameT1

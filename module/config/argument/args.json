@@ -10110,15 +10110,28 @@
       },
       "GemNotify": {
         "type": "checkbox",
-        "value": false
+        "value": true
       },
-      "CommissionNotifyReward": {
-        "type": "checkbox",
-        "value": false
-      },
-      "CommissionNotifyRewardStatistics": {
+      "NotifyReward": {
         "type": "checkbox",
         "value": true
+      },
+      "NotifyRewardStatistics": {
+        "type": "checkbox",
+        "value": true
+      },
+      "GemStatistics": {
+        "type": "checkbox",
+        "value": true
+      },
+      "GemStatisticsPeriod": {
+        "type": "select",
+        "value": "month",
+        "option": [
+          "today",
+          "week",
+          "month"
+        ]
       }
     },
     "Storage": {
