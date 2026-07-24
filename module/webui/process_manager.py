@@ -9,7 +9,7 @@ import threading
 import time
 from multiprocessing import Process
 from typing import Dict, List, Union
-
+from deploy.atomic import file_read_text
 import inflection
 from rich.console import Console, ConsoleRenderable
 from rich.text import Text
@@ -356,13 +356,10 @@ class ProcessManager:
             elif isinstance(instance, ProcessManager):
                 _instances.add(instance)
 
-        try:
-            with open("./config/reloadalas", mode="r") as f:
-                for line in f.readlines():
-                    line = line.strip()
-                    _instances.add(ProcessManager.get_manager(line))
-        except FileNotFoundError:
-            pass
+        for line in file_read_text("./config/reloadalas").splitlines():
+            line = line.strip()
+            if line:
+                _instances.add(ProcessManager.get_manager(line))
 
         for process in _instances:
             logger.info(f"Starting [{process.config_name}]")
@@ -370,6 +367,7 @@ class ProcessManager:
 
         try:
             os.remove("./config/reloadalas")
-        except:
+        except FileNotFoundError:
             pass
+
         logger.info("Start alas complete")
