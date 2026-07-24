@@ -132,11 +132,10 @@ def _is_private_redirect_host(host: str) -> bool:
 
 
 def _local_host() -> str:
-    if State.deploy_config.WebuiHost == "0.0.0.0":
+    host = State.webui_host or State.deploy_config.WebuiHost
+    if host in ("0.0.0.0", "::", "[::]"):
         return "127.0.0.1"
-    if State.deploy_config.WebuiHost == "::":
-        return "[::1]"
-    return State.deploy_config.WebuiHost
+    return host
 
 
 def _remote_mode() -> str:

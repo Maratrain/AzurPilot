@@ -219,14 +219,15 @@ def func(
 
     # 通配地址显式创建两个 socket，避免 Windows 将 IPv6 wildcard 作为仅 IPv6 监听。
     try:
+        uvicorn_options = {
+            "host": host,
+            "port": port,
+            "factory": True,
+        }
         if ssl:
-            uvicorn.run(
-                "module.webui.app:app",
-                host=host,
-                port=port,
-                factory=True,
+            uvicorn_options.update(
                 ssl_keyfile=ssl_key,
-                ssl_certfile=ssl_cert
+                ssl_certfile=ssl_cert,
             )
 
         if host in ("0.0.0.0", "::", "[::]"):
