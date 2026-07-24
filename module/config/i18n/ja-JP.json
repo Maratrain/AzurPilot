@@ -106,6 +106,10 @@
       "name": "光影風尚-撮影進行中",
       "help": ""
     },
+    "CoalitionScuttle": {
+      "name": "Task.CoalitionScuttle.name",
+      "help": "Task.CoalitionScuttle.help"
+    },
     "MaritimeEscort": {
       "name": "商船の護衛",
       "help": ""
@@ -1871,6 +1875,19 @@
       "help": "",
       "single": "単艦隊連戦",
       "multi": "複数艦隊出撃"
+    }
+  },
+  "CoalitionScuttle": {
+    "_info": {
+      "name": "CoalitionScuttle._info.name",
+      "help": "CoalitionScuttle._info.help"
+    },
+    "Sacrifice": {
+      "name": "CoalitionScuttle.Sacrifice.name",
+      "help": "CoalitionScuttle.Sacrifice.help",
+      "vanguard": "vanguard",
+      "flagship": "flagship",
+      "vanguard_flagship": "vanguard_flagship"
     }
   },
   "EventShop": {

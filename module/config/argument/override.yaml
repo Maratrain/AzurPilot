@@ -361,6 +361,30 @@ Coalition:
     Fleet2Recover: not_in_dormitory
     Fleet2Oath: false
 
+CoalitionScuttle:
+  Scheduler:
+    SuccessInterval: 30
+    FailureInterval: 30
+    ServerUpdate: 00:00
+  Campaign:
+    Name: dynamic
+    Event:
+      type: state
+    Mode: normal
+    UseClearMode: true
+    UseFleetLock: true
+    UseAutoSearch: false
+    Use2xBook: false
+    AmbushEvade: true
+  Coalition:
+    Mode:
+      option: [ easy, normal, hard, ex, sp ]
+  StopCondition:
+    MapAchievement: non_stop
+    StageIncrease: false
+    GetNewShip: false
+    ReachLevel: 0
+
 CoalitionSp:
   Scheduler:
     SuccessInterval: 30

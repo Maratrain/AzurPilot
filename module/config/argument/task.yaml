@@ -135,6 +135,13 @@ Event:
       - Coalition
       - StopCondition
       - Emotion
+    CoalitionScuttle:
+      - Scheduler
+      - CoalitionScuttle
+      - Campaign
+      - Coalition
+      - StopCondition
+      - Emotion
     MaritimeEscort:
       - Scheduler
       - MaritimeEscort

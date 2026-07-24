@@ -595,6 +595,10 @@ Coalition:
   Fleet:
     value: single
     option: [ single, multi ]
+CoalitionScuttle:
+  Sacrifice:
+    value: vanguard
+    option: [ vanguard, flagship, vanguard_flagship ]
 EventShop:
   UnlockSSRShip: true
   BuyURShip:

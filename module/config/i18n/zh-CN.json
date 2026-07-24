@@ -106,6 +106,10 @@
       "name": "夜勤病栋",
       "help": ""
     },
+    "CoalitionScuttle": {
+      "name": "联盟沉船",
+      "help": "联盟活动中舰船被击沉后刷取好感度，建议多队出击，第一队就沉，建议看相关教程"
+    },
     "MaritimeEscort": {
       "name": "商船护航",
       "help": ""
@@ -1871,6 +1875,19 @@
       "help": "",
       "single": "单队连战",
       "multi": "多队出击"
+    }
+  },
+  "CoalitionScuttle": {
+    "_info": {
+      "name": "联盟沉船",
+      "help": "联盟活动沉船设置，选择被击沉舰船位置"
+    },
+    "Sacrifice": {
+      "name": "牺牲船位置",
+      "help": "选择被击沉的舰船位置，前排/旗舰/前排+旗舰",
+      "vanguard": "前排",
+      "flagship": "旗舰",
+      "vanguard_flagship": "前排+旗舰"
     }
   },
   "EventShop": {

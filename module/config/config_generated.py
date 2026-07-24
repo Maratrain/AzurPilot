@@ -330,6 +330,9 @@ class GeneratedConfig:
     Coalition_Mode = 'hard'  # easy, normal, hard, sp, ex
     Coalition_Fleet = 'single'  # single, multi
 
+    # 配置组 `CoalitionScuttle`
+    CoalitionScuttle_Sacrifice = 'vanguard'  # vanguard, flagship, vanguard_flagship
+
     # 配置组 `EventShop`
     EventShop_UnlockSSRShip = True
     EventShop_BuyURShip = 2  # 0, 1, 2
