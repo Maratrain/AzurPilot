@@ -316,13 +316,19 @@ class ItemGrid:
         names = np.array(list(self.templates.keys()))[np.argsort(list(self.templates_hit.values()))][::-1]
         # 优先匹配已知模板，再匹配数字编号模板
         names = [name for name in names if not name.isdigit()] + [name for name in names if name.isdigit()]
+        best_name = None
+        best_similarity = similarity
         for name in names:
             if color_similar(color1=color, color2=self.colors[name], threshold=30):
                 res = cv2.matchTemplate(image, self.templates[name], cv2.TM_CCOEFF_NORMED)
-                _, sim, _, _ = cv2.minMaxLoc(res)
-                if sim > similarity:
-                    self.templates_hit[name] += 1
-                    return name
+                _, current_similarity, _, _ = cv2.minMaxLoc(res)
+                if current_similarity > best_similarity:
+                    best_name = name
+                    best_similarity = current_similarity
+
+        if best_name is not None:
+            self.templates_hit[best_name] += 1
+            return best_name
 
         self.next_template_index += 1
         name = str(self.next_template_index)
