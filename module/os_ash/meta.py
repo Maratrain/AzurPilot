@@ -267,12 +267,14 @@ class OpsiAshBeacon(Meta):
                 if damage > 0:
                     logger.info('Enable OneHitMode and meta damage is ' + str(damage) + ', check after 30 minutes')
                     self.config.task_delay(minute=30)
+                    self.ui_goto_main()
                     self.config.task_stop()
         if self.appear(DOSSIER_LIST, offset=(20, 20)):
             # META 正在自动攻击中
             if self.appear(META_AUTO_ATTACKING, offset=(20, 20)):
                 logger.info('This meta is auto attacking, check after 15 minutes')
                 self.config.task_delay(minute=15)
+                self.ui_goto_main()
                 self.config.task_stop()
         return True
 
@@ -606,6 +608,7 @@ class OpsiAshBeacon(Meta):
         """执行信标攻击任务主流程：进入 META 页面、攻击、领取奖励、延迟到下次服务器更新。"""
         self.ui_ensure(page_reward)
         self._begin_beacon()
+        self.ui_goto_main()
 
         with self.config.multi_set():
             for meta in self._meta_receive:
