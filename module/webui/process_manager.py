@@ -5,6 +5,7 @@ import argparse
 from collections.abc import Sequence
 import os
 import queue
+import subprocess
 import threading
 import time
 from multiprocessing import Process
@@ -97,6 +98,7 @@ class ProcessManager:
             )
             self._process = process
             process.start()
+            self._register_process(process.pid)
             self.start_log_queue_handler()
 
     def start_log_queue_handler(self) -> None:
@@ -236,7 +238,14 @@ class ProcessManager:
     @property
     def alive(self) -> bool:
         process = self._process
-        return process is not None and process.is_alive()
+        if process is not None and process.is_alive():
+            return True
+        pid = self._registered_pid()
+        if pid is not None and self._pid_exists(pid):
+            return True
+        if pid is not None:
+            self._unregister_process()
+        return False
 
     @property
     def state(self) -> int:
@@ -413,11 +422,10 @@ class ProcessManager:
 
     @classmethod
     def running_instances(cls) -> List["ProcessManager"]:
-        l = []
-        for process in cls._processes.values():
-            if process.alive:
-                l.append(process)
-        return l
+        names = set(cls._processes)
+        if State.process_registry is not None:
+            names.update(State.process_registry.keys())
+        return [cls.get_manager(name) for name in names if cls.get_manager(name).alive]
 
     @staticmethod
     def restart_processes(

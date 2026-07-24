@@ -60,6 +60,7 @@ class State:
     restart_event: threading.Event = None
     dependency_sync_event: threading.Event = None
     manager: SyncManager = None
+    process_registry = None
     electron: bool = False
     webui_host: str = None
     theme: str = "default"
@@ -109,6 +110,9 @@ class State:
     @classmethod
     def init(cls):
         cls.manager = multiprocessing.Manager()
+        # Browser sessions may run in separate processes, so workers need a
+        # process-wide registry instead of session-local Python objects.
+        cls.process_registry = cls.manager.dict()
         cls._init = True
 
     @classmethod
