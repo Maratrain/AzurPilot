@@ -77,8 +77,9 @@ class GitManager(DeployConfig):
     def goc_client(self):
         client = GitOverCdnClient(
             url=[
-                'https://ap.update.cdn.esa.nanoda.work',
+                'https://ap-update-cdn-cloudflare.3463343.xyz',
                 'https://ap.update.cdn.cloudflare.3463343.xyz',
+                'https://ap.update.cdn.esa.nanoda.work',
             ],
             folder=self.root_filepath,
             source='origin',

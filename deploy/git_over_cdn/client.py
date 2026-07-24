@@ -106,7 +106,7 @@ class GitOverCdnClient:
         session.mount('https://', HTTPAdapter(max_retries=3))
         return session
 
-    def probe_url(self, url_base):
+    def probe_url(self, url_base, timeout=3):
         """探测候选地址的可用性与延迟。"""
         url = self.urlpath('/latest.json', base=url_base)
         methods = (
@@ -116,7 +116,7 @@ class GitOverCdnClient:
         for method, request, extra in methods:
             start = time.perf_counter()
             try:
-                with request(url, timeout=3, allow_redirects=True, **extra) as resp:
+                with request(url, timeout=timeout, allow_redirects=True, **extra) as resp:
                     elapsed = time.perf_counter() - start
                     if resp.ok:
                         self.logger.info(f'Probe {method} {url} -> {elapsed:.3f}s')
@@ -128,8 +128,15 @@ class GitOverCdnClient:
 
     @cached_property
     def preferred_urls(self):
+        primary = self.urls[0]
+        latency = self.probe_url(primary, timeout=10)
+        if latency is not None:
+            self.logger.attr('PreferredUrl', primary)
+            return self.urls
+
+        self.logger.warning(f'Primary CDN url did not pass probe within 10s, trying fallback urls: {primary}')
         scored = []
-        for index, url_base in enumerate(self.urls):
+        for index, url_base in enumerate(self.urls[1:], start=1):
             latency = self.probe_url(url_base)
             if latency is None:
                 continue
