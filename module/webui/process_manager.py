@@ -34,10 +34,20 @@ from module.submodule.utils import (
     list_mod_instance,
 )
 from module.webui.setting import State
+from module.webui.worker_registry import (
+    get_workers,
+    is_current_owner,
+    process_matches,
+    register_worker,
+    unregister_worker,
+)
 
 
 class ProcessManager:
     _processes: Dict[str, "ProcessManager"] = {}
+    _managers_lock = threading.RLock()
+    _lifecycle_locks: Dict[str, threading.RLock] = {}
+    _lifecycle_locks_lock = threading.Lock()
 
     def __init__(self, config_name: str = DEFAULT_CONFIG_NAME) -> None:
         self.config_name = config_name
@@ -46,10 +56,20 @@ class ProcessManager:
         self.renderables_max_length = 400
         self.renderables_reduce_length = 80
         self._process: Process | None = None
-        self._process_locks: Dict[str, threading.Lock] = {}
         self.thd_log_queue_handler: threading.Thread | None = None
         self._state_override: int | None = None
         self._state_override_deadline: float | None = None
+
+    @classmethod
+    def _get_lifecycle_lock(cls, config_name: str) -> threading.RLock:
+        """返回配置实例共享的生命周期锁。"""
+        with cls._lifecycle_locks_lock:
+            try:
+                return cls._lifecycle_locks[config_name]
+            except KeyError:
+                lock = threading.RLock()
+                cls._lifecycle_locks[config_name] = lock
+                return lock
 
     def set_state_override(self, state: int, duration: float = 10) -> None:
         """
@@ -83,23 +103,49 @@ class ProcessManager:
         return self._state_override
 
     def start(self, func: str | None, ev: threading.Event | None = None) -> None:
-        if not self.alive:
-            if func is None:
-                func = get_config_mod(self.config_name)
-            args = (
-                self.config_name,
-                func,
-                self._renderable_queue,
-                ev,
-            )
-            process = Process(
-                target=ProcessManager.run_process,
-                args=args,
-            )
-            self._process = process
-            process.start()
-            self._register_process(process.pid)
-            self.start_log_queue_handler()
+        # 更新事务持有 restart_lock；清理过程持有 cleanup_lock。请求线程不能在事务
+        # 期间长期阻塞；同线程的 RLock 重入仍允许更新失败后的实例恢复。
+        if not State.restart_lock.acquire(blocking=False):
+            logger.info(f"[{self.config_name}] WebUI 更新或重启事务进行中，拒绝启动 worker")
+            return
+        try:
+            if not State.cleanup_lock.acquire(blocking=False):
+                logger.info(f"[{self.config_name}] WebUI 清理进行中，拒绝启动 worker")
+                return
+            try:
+                with self._get_lifecycle_lock(self.config_name):
+                    if State._restart_requested or State._clearup:
+                        logger.warning(
+                            f"[{self.config_name}] WebUI 正在重启或已清理，拒绝启动 worker"
+                        )
+                        return
+                    if self.alive:
+                        return
+                    if func is None:
+                        func = get_config_mod(self.config_name)
+                    args = (
+                        self.config_name,
+                        func,
+                        self._renderable_queue,
+                        ev,
+                    )
+                    process = Process(
+                        target=ProcessManager.run_process,
+                        args=args,
+                    )
+                    self._process = process
+                    try:
+                        process.start()
+                        self._register_process(process.pid)
+                    except Exception:
+                        self._terminate_unregistered_process(process)
+                        self._process = None
+                        raise
+                    self.start_log_queue_handler()
+            finally:
+                State.cleanup_lock.release()
+        finally:
+            State.restart_lock.release()
 
     def start_log_queue_handler(self) -> None:
         log_queue_handler = self.thd_log_queue_handler
@@ -110,34 +156,36 @@ class ProcessManager:
         )
         self.thd_log_queue_handler.start()
 
-    def stop(self) -> None:
-        try:
-            lock = self._process_locks[self.config_name]
-        except KeyError:
-            lock = threading.Lock()
-            self._process_locks[self.config_name] = lock
-
-        with lock:
+    def stop(self) -> bool:
+        """停止 worker 进程树，并返回是否确认全部结束。"""
+        with self._get_lifecycle_lock(self.config_name):
             process = self._process
-            pid = (
-                process.pid
-                if process is not None and process.is_alive()
-                else self._registered_pid()
-            )
-            stopped = pid is None
-            if pid is not None:
-                stopped = self._kill_process_tree(pid)
-                if process is not None:
+            local_process_alive = self._is_process_alive(process)
+
+            if local_process_alive:
+                pid, record, pid_verified = self._registered_worker(process.pid)
+            else:
+                pid, record, pid_verified = self._registered_worker()
+
+            stopped = pid is None and not local_process_alive
+            if pid is not None and not pid_verified:
+                logger.error(
+                    f"[{self.config_name}] worker PID {pid} 身份无法确认，拒绝终止未知进程"
+                )
+                stopped = False
+            elif pid is not None:
+                stopped = self._kill_registered_process_tree(pid, record)
+                if local_process_alive and stopped:
                     process.join(timeout=3)
-                    stopped = stopped and not process.is_alive()
+                    stopped = stopped and not self._is_process_alive(process)
             if stopped:
                 self._process = None
-                self._unregister_process()
-                if pid is not None:
+                stopped = self._unregister_process()
+                if stopped and pid is not None:
                     self.renderables.append(
                         Text(f"[{self.config_name}] exited. Reason: Manual stop\n")
                     )
-            else:
+            if not stopped:
                 logger.error(f"[{self.config_name}] failed to stop worker PID {pid}")
             log_queue_handler = self.thd_log_queue_handler
             if log_queue_handler is not None:
@@ -146,7 +194,61 @@ class ProcessManager:
                     logger.warning(
                         "Log queue handler thread does not stop within 1 seconds"
                     )
-        logger.info(f"[{self.config_name}] exited")
+        if stopped:
+            logger.info(f"[{self.config_name}] exited")
+        else:
+            logger.warning(f"[{self.config_name}] worker 未完全停止")
+        return stopped
+
+    @staticmethod
+    def _is_process_alive(process: Process | None) -> bool:
+        """读取本地进程状态，并将失效句柄视为已退出。"""
+        try:
+            return process is not None and process.is_alive()
+        except (OSError, ValueError, AssertionError):
+            return False
+
+    @classmethod
+    def _terminate_unregistered_process(cls, process: Process) -> None:
+        """通过本地进程句柄回滚启动失败的未登记 worker。"""
+        if not cls._is_process_alive(process):
+            try:
+                process.join(timeout=0)
+            except (OSError, ValueError, AssertionError):
+                pass
+            return
+
+        try:
+            # Process 句柄绑定创建时的子进程，可避免按已复用 PID 误杀其他进程。
+            process.terminate()
+            process.join(timeout=3)
+            if cls._is_process_alive(process):
+                process.kill()
+                process.join(timeout=3)
+        except (OSError, ValueError, AssertionError):
+            pass
+
+    def _kill_registered_process_tree(self, pid: int, record: dict | None) -> bool:
+        """在 taskkill 前再次校验登记身份，缩小 PID 复用窗口。"""
+        if record is None:
+            logger.error(f"[{self.config_name}] worker PID {pid} 缺少持久化身份记录")
+            return False
+        try:
+            matches = process_matches(record)
+        except RuntimeError as exc:
+            logger.error(f"[{self.config_name}] 无法再次验证 worker PID {pid}: {exc}")
+            return False
+
+        if matches is True:
+            return self._kill_process_tree(pid)
+        if matches is None:
+            logger.info(f"[{self.config_name}] worker PID {pid} 已在终止前退出")
+            return True
+
+        logger.error(
+            f"[{self.config_name}] worker PID {pid} 已复用，拒绝终止未知进程"
+        )
+        return False
 
     @staticmethod
     def _kill_process_tree(pid: int) -> bool:
@@ -161,14 +263,15 @@ class ProcessManager:
                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                     timeout=3,
                 )
-                return result.returncode == 0
+                if result.returncode == 0:
+                    return ProcessManager._wait_pid_exit(pid, timeout=3)
+                if not ProcessManager._pid_exists(pid):
+                    return True
+                logger.warning(f"Failed to stop worker PID {pid}: taskkill returned {result.returncode}")
+                return False
             except (OSError, subprocess.TimeoutExpired) as exc:
                 logger.warning(f"Failed to stop worker PID {pid}: {exc}")
-                try:
-                    os.kill(pid, 9)
-                except (PermissionError, ProcessLookupError):
-                    return not ProcessManager._pid_exists(pid)
-                return not ProcessManager._pid_exists(pid)
+                return False
         else:
             try:
                 import psutil
@@ -206,23 +309,109 @@ class ProcessManager:
             time.sleep(0.1)
         return not ProcessManager._pid_exists(pid)
 
-    def _registered_pid(self) -> int | None:
+    def _registered_worker(
+        self, expected_pid: int | None = None
+    ) -> tuple[int | None, dict | None, bool]:
+        """返回已验证的 worker 身份；调用方必须持有生命周期锁。"""
         registry = State.process_registry
-        if registry is None:
-            return None
+        cached_pid = None
+        if registry is not None:
+            try:
+                cached_pid = registry.get(self.config_name)
+                cached_pid = int(cached_pid) if cached_pid is not None else None
+            except (TypeError, ValueError):
+                logger.error(f"[{self.config_name}] worker PID 登记无效")
+                return expected_pid, None, False
+            except Exception as exc:
+                logger.error(f"[{self.config_name}] 无法读取 worker PID 登记: {exc}")
+                return expected_pid, None, False
+
         try:
-            pid = registry.get(self.config_name)
-            return int(pid) if pid is not None else None
+            expected_pid = int(expected_pid) if expected_pid is not None else None
         except (TypeError, ValueError):
-            return None
+            logger.error(f"[{self.config_name}] 本地 worker PID 无效")
+            return None, None, False
+
+        if expected_pid is not None and cached_pid not in (None, expected_pid):
+            logger.error(
+                f"[{self.config_name}] 本地 worker PID {expected_pid} 与共享登记 {cached_pid} 不一致"
+            )
+            return expected_pid, None, False
+
+        pid = expected_pid if expected_pid is not None else cached_pid
+        if pid is None:
+            return None, None, True
+
+        try:
+            if not is_current_owner(os.getpid()):
+                logger.error(
+                    f"[{self.config_name}] 当前 WebUI 不拥有 worker 登记，拒绝操作 PID {pid}"
+                )
+                return pid, None, False
+            record = get_workers(os.getpid()).get(self.config_name)
+            try:
+                record_pid = int(record["pid"])
+            except (KeyError, TypeError, ValueError):
+                record_pid = None
+            if not isinstance(record, dict) or record_pid != pid:
+                logger.error(
+                    f"[{self.config_name}] worker PID {pid} 缺少匹配的持久化登记"
+                )
+                return pid, None, False
+            matches = process_matches(record)
+        except RuntimeError as exc:
+            logger.error(f"[{self.config_name}] 无法验证 worker PID {pid}: {exc}")
+            return pid, None, False
+
+        if matches is True:
+            return pid, record, True
+
+        if matches is False:
+            logger.error(
+                f"[{self.config_name}] worker PID {pid} 已复用，清除过期登记但不终止该进程"
+            )
+        else:
+            logger.info(f"[{self.config_name}] worker PID {pid} 已退出，清除过期登记")
+
+        unregistered = self._unregister_process()
+        if expected_pid is not None:
+            # 本地句柄仍报告存活时，登记不匹配不能视作已安全结束。
+            return expected_pid, None, False
+        if unregistered:
+            return None, None, True
+        return pid, None, False
+
+    def _registered_pid(self) -> tuple[int | None, bool]:
+        """返回登记的 worker PID 及其身份是否已被持久化记录确认。"""
+        pid, _, verified = self._registered_worker()
+        return pid, verified
 
     def _register_process(self, pid: int | None) -> None:
-        if pid is not None and State.process_registry is not None:
+        if pid is None:
+            return
+        register_worker(os.getpid(), self.config_name, pid)
+        if State.process_registry is not None:
             State.process_registry[self.config_name] = pid
 
-    def _unregister_process(self) -> None:
+    def _unregister_process(self) -> bool:
+        try:
+            if not unregister_worker(os.getpid(), self.config_name):
+                logger.error(
+                    f"[{self.config_name}] 当前 WebUI 不拥有 worker 登记，拒绝清除"
+                )
+                return False
+        except Exception as exc:
+            logger.exception_context(
+                title='无法清除 worker 登记',
+                exc=exc,
+                impact='父进程会在下一次重启前再次验证该 PID。',
+                action='检查 config 目录写入权限。',
+                level=40,
+            )
+            return False
         if State.process_registry is not None:
             State.process_registry.pop(self.config_name, None)
+        return True
 
     def _thread_log_queue_handler(self) -> None:
         while self.alive:
@@ -237,15 +426,13 @@ class ProcessManager:
 
     @property
     def alive(self) -> bool:
-        process = self._process
-        if process is not None and process.is_alive():
-            return True
-        pid = self._registered_pid()
-        if pid is not None and self._pid_exists(pid):
-            return True
-        if pid is not None:
-            self._unregister_process()
-        return False
+        with self._get_lifecycle_lock(self.config_name):
+            if self._is_process_alive(self._process):
+                return True
+            pid, pid_verified = self._registered_pid()
+            if not pid_verified:
+                return True
+            return pid is not None
 
     @property
     def state(self) -> int:
@@ -306,20 +493,23 @@ class ProcessManager:
         Returns:
             对应的 ProcessManager 实例。
         """
-        if config_name not in cls._processes:
-            cls._processes[config_name] = ProcessManager(config_name)
-        return cls._processes[config_name]
+        with cls._managers_lock:
+            if config_name not in cls._processes:
+                cls._processes[config_name] = ProcessManager(config_name)
+            return cls._processes[config_name]
 
     @classmethod
     def is_running(cls, config_name: str) -> bool:
         """检查指定配置实例是否正在运行。"""
-        manager = cls._processes.get(config_name)
+        with cls._managers_lock:
+            manager = cls._processes.get(config_name)
         return manager is not None and manager.alive
 
     @classmethod
     def remove_manager(cls, config_name: str) -> None:
         """移除指定配置实例的进程管理器。"""
-        cls._processes.pop(config_name, None)
+        with cls._managers_lock:
+            cls._processes.pop(config_name, None)
 
     @staticmethod
     def run_process(
@@ -422,7 +612,8 @@ class ProcessManager:
 
     @classmethod
     def running_instances(cls) -> List["ProcessManager"]:
-        names = set(cls._processes)
+        with cls._managers_lock:
+            names = set(cls._processes)
         if State.process_registry is not None:
             names.update(State.process_registry.keys())
         return [cls.get_manager(name) for name in names if cls.get_manager(name).alive]

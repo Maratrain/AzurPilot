@@ -20,6 +20,21 @@ from module.webui.app_helpers import (
 )
 
 
+def _clearup_step(name, handler) -> bool:
+    """执行单项清理；一项失败不应阻断其余资源回收。"""
+    try:
+        return handler() is not False
+    except Exception as exc:
+        logger.exception_context(
+            title=f'WebUI 清理失败: {name}',
+            exc=exc,
+            impact='其余 WebUI 资源仍会继续清理。',
+            action='检查对应资源的退出日志，确认是否遗留子进程。',
+            level=40,
+        )
+        return False
+
+
 def startup() -> None:
     """初始化 WebUI 进程级后台服务。"""
     State.init()
@@ -39,14 +54,51 @@ def startup() -> None:
         task_handler.add(RemoteAccess.keep_ssh_alive(), 60)
 
 
-def clearup() -> None:
+def clearup() -> bool:
     """停止 WebUI 进程级资源，避免热重载遗留子进程。"""
-    logger.info("Start clearup")
-    RemoteAccess.kill_ssh_process()
-    close_discord_rpc()
-    stop_ocr_server_process()
-    for alas in ProcessManager._processes.values():
-        alas.stop()
-    State.clearup()
-    task_handler.stop()
-    logger.info("Alas closed.")
+    with State.cleanup_lock:
+        if State._clearup:
+            return True
+
+        logger.info("Start clearup")
+        success = _clearup_step("任务处理器", task_handler.stop)
+
+        for name, handler in (
+            ("远程访问", RemoteAccess.kill_ssh_process),
+            ("Discord RPC", close_discord_rpc),
+            ("OCR 服务", stop_ocr_server_process),
+        ):
+            success = _clearup_step(name, handler) and success
+
+        try:
+            instances = ProcessManager.running_instances()
+        except Exception as exc:
+            logger.exception_context(
+                title='WebUI 清理失败: 枚举运行实例',
+                exc=exc,
+                impact='无法确认所有 AzurPilot 工作进程是否已停止。',
+                action='检查 WebUI 进程注册表和 Manager 服务状态。',
+                level=40,
+            )
+            instances = []
+            success = False
+
+        for alas in instances:
+            success = _clearup_step(f"AzurPilot 实例 {alas.config_name}", alas.stop) and success
+
+        if success:
+            try:
+                State.clearup()
+            except Exception as exc:
+                logger.exception_context(
+                    title='WebUI 清理失败: 共享状态',
+                    exc=exc,
+                    impact='Manager 未能完全关闭，父进程将通过进程树终止兜底。',
+                    action='检查 Manager 服务和系统进程权限。',
+                    level=40,
+                )
+                success = False
+        else:
+            logger.error("WebUI 清理未完成，保留 Manager 直到父进程终止进程树")
+        logger.info("Alas closed.")
+        return success

@@ -1,15 +1,37 @@
 # 此文件专门用于管理 Web 界面自身的偏好设置及持久化状态类文件。
 # 包括界面主题、常用项展开折叠状态以及各类预览占位图、图标资源的路径定义与缓存管理机制。
 import multiprocessing
+import os
 import threading
 from multiprocessing.managers import SyncManager
 from typing import TYPE_CHECKING, Callable, Generic, TypeVar
+
+from deploy.atomic import atomic_remove, atomic_write
 
 if TYPE_CHECKING:
     from module.config.config_updater import ConfigUpdater
     from module.webui.config import DeployConfig
 
 T = TypeVar("T")
+
+
+# 代码更新后，父监督器必须先完成独立环境同步，才能创建新的 WebUI 子进程。
+DEPENDENCY_SYNC_PENDING_FILE = "./config/webui-dependency-sync-pending"
+
+
+def mark_dependency_sync_pending() -> None:
+    """持久化依赖同步待处理状态，供新父进程在启动前恢复。"""
+    atomic_write(DEPENDENCY_SYNC_PENDING_FILE, "pending\n")
+
+
+def is_dependency_sync_pending() -> bool:
+    """返回当前启动前是否必须执行依赖同步。"""
+    return os.path.isfile(DEPENDENCY_SYNC_PENDING_FILE)
+
+
+def clear_dependency_sync_pending() -> None:
+    """仅在父监督器确认依赖同步成功后清除待处理状态。"""
+    atomic_remove(DEPENDENCY_SYNC_PENDING_FILE)
 
 
 class cached_class_property(Generic[T]):
@@ -56,6 +78,9 @@ class State:
 
     _init = False
     _clearup = False
+    cleanup_lock = threading.Lock()
+    restart_lock = threading.RLock()
+    _restart_requested = False
 
     restart_event: threading.Event = None
     dependency_sync_event: threading.Event = None
@@ -109,16 +134,47 @@ class State:
     
     @classmethod
     def init(cls):
-        cls.manager = multiprocessing.Manager()
+        cls._clearup = False
+        cls._restart_requested = False
+        manager = multiprocessing.Manager()
+        cls.manager = manager
         # Browser sessions may run in separate processes, so workers need a
         # process-wide registry instead of session-local Python objects.
-        cls.process_registry = cls.manager.dict()
+        cls.process_registry = manager.dict()
+        from module.webui.worker_registry import claim_owner
+
+        try:
+            claim_owner(os.getpid())
+        except Exception:
+            # 所有者认领失败时不能留下无主的 Manager 子进程。
+            cls.process_registry = None
+            cls.manager = None
+            cls._init = False
+            try:
+                manager.shutdown()
+            except Exception:
+                pass
+            raise
         cls._init = True
 
     @classmethod
     def clearup(cls):
-        cls.manager.shutdown()
+        if cls._clearup:
+            return
+        from module.webui.worker_registry import clear_owner, get_workers
+
+        workers = get_workers(os.getpid())
+        if workers:
+            raise RuntimeError(f"仍有未回收的 worker 登记: {list(workers)}")
         cls._clearup = True
+        manager = cls.manager
+        try:
+            if manager is not None:
+                manager.shutdown()
+        finally:
+            cls.manager = None
+            cls.process_registry = None
+            clear_owner(os.getpid())
 
     @cached_class_property
     def deploy_config(self) -> "DeployConfig":

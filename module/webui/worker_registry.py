@@ -1,0 +1,396 @@
+"""将 WebUI worker 的身份写入父进程可读取的运行时登记文件。"""
+
+import errno
+import json
+import os
+import threading
+import time
+from contextlib import contextmanager
+from copy import deepcopy
+from pathlib import Path
+from typing import Iterator
+
+from deploy.atomic import atomic_write
+
+
+WORKER_REGISTRY_FILE = Path("./config/webui-workers.json")
+REGISTRY_LOCK_TIMEOUT = 10.0
+REGISTRY_LOCK_RETRY_INTERVAL = 0.05
+
+# 同一 Python 进程内先串行化，避免重复竞争系统级文件锁。
+_registry_lock = threading.RLock()
+
+
+class WorkerRegistryOwnershipError(RuntimeError):
+    """当前进程无权修改 WebUI worker 登记。"""
+
+
+class WorkerRegistryLockError(RuntimeError):
+    """无法在限定时间内取得 WebUI worker 登记锁。"""
+
+
+def _empty_registry(
+    owner_pid: int | None = None,
+    owner_created_at: float | None = None,
+) -> dict:
+    return {
+        "owner_created_at": owner_created_at,
+        "owner_pid": owner_pid,
+        "workers": {},
+    }
+
+
+def _registry_lock_file() -> Path:
+    """返回与登记文件同目录的跨进程锁文件路径。"""
+    return WORKER_REGISTRY_FILE.with_name(f"{WORKER_REGISTRY_FILE.name}.lock")
+
+
+def _prepare_lock_file(lock_file: Path):
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    handle = lock_file.open("a+b")
+    try:
+        # msvcrt.locking() 不能锁定空文件，因此保留一个锁字节。
+        if lock_file.stat().st_size == 0:
+            handle.seek(0)
+            handle.write(b"\0")
+            handle.flush()
+            os.fsync(handle.fileno())
+        handle.seek(0)
+        return handle
+    except Exception:
+        handle.close()
+        raise
+
+
+def _is_lock_conflict(exc: OSError) -> bool:
+    return (
+        isinstance(exc, PermissionError)
+        or exc.errno in (errno.EACCES, errno.EAGAIN)
+        or getattr(exc, "winerror", None) in (32, 33)
+    )
+
+
+def _acquire_file_lock(handle) -> None:
+    deadline = time.monotonic() + REGISTRY_LOCK_TIMEOUT
+
+    if os.name == "nt":
+        import msvcrt
+
+        def acquire() -> None:
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+
+    else:
+        try:
+            import fcntl
+        except ImportError as exc:
+            raise WorkerRegistryLockError("当前平台不支持 worker 登记文件锁") from exc
+
+        def acquire() -> None:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    while True:
+        try:
+            acquire()
+            return
+        except OSError as exc:
+            if not _is_lock_conflict(exc):
+                raise WorkerRegistryLockError(f"无法锁定 worker 登记文件: {exc}") from exc
+            if time.monotonic() >= deadline:
+                raise WorkerRegistryLockError("等待 worker 登记文件锁超时") from exc
+            time.sleep(REGISTRY_LOCK_RETRY_INTERVAL)
+
+
+def _release_file_lock(handle) -> None:
+    handle.seek(0)
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _locked_registry() -> Iterator[None]:
+    """以进程内锁和系统级文件锁保护一次完整的读改写事务。"""
+    with _registry_lock:
+        handle = _prepare_lock_file(_registry_lock_file())
+        acquired = False
+        try:
+            _acquire_file_lock(handle)
+            acquired = True
+            yield
+        finally:
+            if acquired:
+                _release_file_lock(handle)
+            handle.close()
+
+
+def _read_registry() -> dict:
+    try:
+        raw = WORKER_REGISTRY_FILE.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return _empty_registry()
+    except OSError as exc:
+        raise RuntimeError(f"无法读取 worker 登记文件: {exc}") from exc
+
+    try:
+        registry = json.loads(raw)
+        owner_pid = registry.get("owner_pid")
+        owner_created_at = registry.get("owner_created_at")
+        workers = registry.get("workers")
+        if owner_pid is not None:
+            owner_pid = int(owner_pid)
+            if owner_created_at is not None:
+                owner_created_at = float(owner_created_at)
+        else:
+            owner_created_at = None
+        if not isinstance(workers, dict):
+            raise ValueError("workers 不是对象")
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"worker 登记文件格式无效: {exc}") from exc
+
+    return {
+        "owner_created_at": owner_created_at,
+        "owner_pid": owner_pid,
+        "workers": workers,
+    }
+
+
+def _write_registry(registry: dict) -> None:
+    atomic_write(
+        WORKER_REGISTRY_FILE,
+        json.dumps(registry, ensure_ascii=True, sort_keys=True),
+    )
+
+
+def _process_created_at(pid: int) -> float:
+    try:
+        import psutil
+
+        return psutil.Process(pid).create_time()
+    except Exception as exc:
+        raise RuntimeError(f"无法读取 worker PID {pid} 的创建时间: {exc}") from exc
+
+
+def _owner_record(registry: dict) -> dict | None:
+    owner_pid = registry["owner_pid"]
+    if owner_pid is None:
+        return None
+    record = {"pid": owner_pid}
+    if registry["owner_created_at"] is not None:
+        record["created_at"] = registry["owner_created_at"]
+    return record
+
+
+def _require_current_owner(registry: dict, owner_pid: int) -> None:
+    """确认调用者 PID 仍是登记文件中的同一 WebUI 进程。"""
+    try:
+        expected_pid = int(owner_pid)
+    except (TypeError, ValueError) as exc:
+        raise WorkerRegistryOwnershipError(f"无效的 WebUI 所有者 PID: {owner_pid}") from exc
+
+    record = _owner_record(registry)
+    if record is None or record["pid"] != expected_pid:
+        raise WorkerRegistryOwnershipError(
+            f"worker 登记所有者不匹配: {registry['owner_pid']} != {expected_pid}"
+        )
+    if "created_at" not in record:
+        raise WorkerRegistryOwnershipError("worker 登记所有者缺少进程身份信息")
+
+    try:
+        created_at = _process_created_at(expected_pid)
+    except RuntimeError as exc:
+        raise WorkerRegistryOwnershipError(
+            f"无法验证 WebUI 所有者 PID {expected_pid}: {exc}"
+        ) from exc
+    if abs(created_at - record["created_at"]) < 0.01:
+        return
+    raise WorkerRegistryOwnershipError(
+        f"WebUI 所有者 PID {expected_pid} 身份不匹配，拒绝修改登记"
+    )
+
+
+def is_current_owner(owner_pid: int) -> bool:
+    """返回 PID 是否仍对应登记文件中的当前 WebUI 所有者。"""
+    with _locked_registry():
+        registry = _read_registry()
+        try:
+            _require_current_owner(registry, owner_pid)
+        except WorkerRegistryOwnershipError:
+            return False
+        return True
+
+
+def claim_owner(owner_pid: int) -> None:
+    """原子地声明当前 WebUI 进程为 worker 登记文件的唯一所有者。"""
+    try:
+        owner_pid = int(owner_pid)
+    except (TypeError, ValueError) as exc:
+        raise WorkerRegistryOwnershipError(f"无效的 WebUI 所有者 PID: {owner_pid}") from exc
+    owner_created_at = _process_created_at(owner_pid)
+
+    with _locked_registry():
+        registry = _read_registry()
+        previous_owner = _owner_record(registry)
+        if previous_owner is not None:
+            same_owner = (
+                previous_owner["pid"] == owner_pid
+                and previous_owner.get("created_at") is not None
+                and abs(previous_owner["created_at"] - owner_created_at) < 0.01
+            )
+            if same_owner:
+                # 同一 WebUI 的重复初始化必须保留已登记的 worker。
+                return
+
+            if "created_at" not in previous_owner:
+                raise WorkerRegistryOwnershipError(
+                    "旧 WebUI 所有者缺少进程身份信息，拒绝覆盖其 worker 登记"
+                )
+            try:
+                previous_owner_alive = process_matches(previous_owner)
+            except RuntimeError as exc:
+                raise WorkerRegistryOwnershipError(
+                    f"无法验证旧 WebUI 所有者: {exc}"
+                ) from exc
+            if previous_owner_alive is True:
+                raise WorkerRegistryOwnershipError(
+                    f"WebUI 所有者仍在运行 (PID: {previous_owner['pid']})，拒绝启动第二个 WebUI"
+                )
+            if registry["workers"]:
+                raise WorkerRegistryOwnershipError(
+                    "旧 WebUI 仍有 worker 登记，必须先由父进程完成回收"
+                )
+
+        _write_registry(_empty_registry(owner_pid, owner_created_at))
+
+
+def register_worker(owner_pid: int, config_name: str, pid: int) -> None:
+    """登记已启动的 worker，以便父进程在 WebUI 异常退出后回收它。"""
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"无效的 worker PID: {pid}") from exc
+
+    with _locked_registry():
+        registry = _read_registry()
+        _require_current_owner(registry, owner_pid)
+        registry["workers"][config_name] = {
+            "created_at": _process_created_at(pid),
+            "pid": pid,
+        }
+        _write_registry(registry)
+
+
+def unregister_worker(owner_pid: int, config_name: str) -> bool:
+    """移除已正常退出的 worker 登记，返回是否仍拥有该登记。"""
+    with _locked_registry():
+        registry = _read_registry()
+        try:
+            _require_current_owner(registry, owner_pid)
+        except WorkerRegistryOwnershipError:
+            return False
+        registry["workers"].pop(config_name, None)
+        _write_registry(registry)
+        return True
+
+
+def get_workers(owner_pid: int) -> dict[str, dict]:
+    """返回指定 WebUI 所登记的 worker 快照。"""
+    with _locked_registry():
+        registry = _read_registry()
+        if registry["owner_pid"] != owner_pid:
+            return {}
+        return deepcopy(registry["workers"])
+
+
+def get_owner() -> int | None:
+    """返回当前登记文件所有者的 PID。"""
+    with _locked_registry():
+        return _read_registry()["owner_pid"]
+
+
+def get_owner_record() -> dict | None:
+    """返回 WebUI 所有者的 PID 与创建时间，供父进程验证进程身份。"""
+    with _locked_registry():
+        registry = _read_registry()
+        return _owner_record(registry)
+
+
+def clear_owner(owner_pid: int) -> bool:
+    """在 worker 已确认结束后清除指定 WebUI 的登记。"""
+    with _locked_registry():
+        registry = _read_registry()
+        record = _owner_record(registry)
+        if record is None:
+            return True
+        if record["pid"] != owner_pid:
+            raise WorkerRegistryOwnershipError(
+                f"worker 登记所有者不匹配: {record['pid']} != {owner_pid}"
+            )
+
+        if owner_pid == os.getpid():
+            _require_current_owner(registry, owner_pid)
+        elif "created_at" not in record:
+            if _pid_exists(owner_pid):
+                raise WorkerRegistryOwnershipError(
+                    f"旧 WebUI 所有者 PID {owner_pid} 仍存在，拒绝清除登记"
+                )
+        else:
+            try:
+                owner_matches = process_matches(record)
+            except RuntimeError as exc:
+                raise WorkerRegistryOwnershipError(
+                    f"无法验证旧 WebUI 所有者 PID {owner_pid}: {exc}"
+                ) from exc
+            if owner_matches is True:
+                raise WorkerRegistryOwnershipError(
+                    f"WebUI 所有者仍在运行 (PID: {owner_pid})，拒绝清除登记"
+                )
+
+        _write_registry(_empty_registry())
+        return True
+
+
+def _pid_exists(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True
+
+
+def process_matches(record: dict) -> bool | None:
+    """确认登记 PID 仍指向同一进程；不存在时返回 ``None``。"""
+    try:
+        pid = int(record["pid"])
+        created_at = float(record["created_at"])
+    except (KeyError, TypeError, ValueError):
+        raise RuntimeError("worker 登记记录无效")
+
+    try:
+        import psutil
+
+        process = psutil.Process(pid)
+        return abs(process.create_time() - created_at) < 0.01
+    except Exception as exc:
+        try:
+            if not os.path.exists(f"/proc/{pid}") and os.name != "nt":
+                return None
+        except OSError:
+            pass
+        try:
+            import psutil
+
+            if isinstance(exc, psutil.NoSuchProcess):
+                return None
+        except ImportError:
+            pass
+        raise RuntimeError(f"无法验证 worker PID {pid}: {exc}") from exc

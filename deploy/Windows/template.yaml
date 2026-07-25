@@ -120,7 +120,8 @@ Deploy:
 
   Webui:
     # --host. Host to listen
-    # [Use IPv6] '::'
+    # [0.0.0.0 或 :: 均支持 IPv4/IPv6 双栈]
+    # [Both 0.0.0.0 and :: support IPv4/IPv6 dual stack]
     # [In most cases] Default to '0.0.0.0'
     WebuiHost: 0.0.0.0
     # --port. Port to listen

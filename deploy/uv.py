@@ -1,10 +1,12 @@
 import os
 import multiprocessing
 import queue
+import re
 import shlex
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
@@ -15,6 +17,16 @@ BOOTSTRAPPED_ENV = "AZURPILOT_UV_BOOTSTRAPPED"
 BOOTSTRAP_UV_ENV = "AZURPILOT_BOOTSTRAP_UV"
 NO_BOOTSTRAP_ENV = "AZURPILOT_NO_UV_BOOTSTRAP"
 PYTHON_VERSION = "3.14.3"
+DEPENDENCY_SYNC_TIMEOUT = 30 * 60
+
+
+_URL_USERINFO_RE = re.compile(r"(?P<scheme>\b[a-z][a-z0-9+.-]*://)[^/\s@]+@", re.IGNORECASE)
+_SENSITIVE_QUERY_RE = re.compile(
+    r"(?i)([?&](?:access[_-]?token|api[_-]?key|token|password|passwd|secret)=)[^&#\s]+"
+)
+_SENSITIVE_ASSIGNMENT_RE = re.compile(
+    r"(?i)\b(authorization|access[_-]?token|api[_-]?key|token|password|passwd|secret)\s*([:=])\s*(?:bearer\s+)?[^\s,;]+"
+)
 
 
 @dataclass
@@ -223,12 +235,18 @@ def _remove_stale_venv_launcher(root: Path):
         pass
 
 
-def _run(command, root: Path, env=None, capture_output: bool = False):
+def _run(
+    command,
+    root: Path,
+    env=None,
+    capture_output: bool = False,
+    timeout: float | None = None,
+):
     command = [str(part) for part in command]
     print("+ " + _join_command(command))
     # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
     if not capture_output:
-        subprocess.run(command, cwd=str(root), check=True, env=env)
+        subprocess.run(command, cwd=str(root), check=True, env=env, timeout=timeout)
         return None
 
     result = subprocess.run(
@@ -240,6 +258,7 @@ def _run(command, root: Path, env=None, capture_output: bool = False):
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=timeout,
     )
     output = result.stdout or ""
     if result.returncode:
@@ -251,7 +270,7 @@ def _run(command, root: Path, env=None, capture_output: bool = False):
     return output
 
 
-def _run_output(command, root: Path, env=None) -> str:
+def _run_output(command, root: Path, env=None, timeout: float | None = None) -> str:
     command = [str(part) for part in command]
     print("+ " + _join_command(command))
     # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
@@ -264,6 +283,7 @@ def _run_output(command, root: Path, env=None) -> str:
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=timeout,
     )
     if result.returncode:
         raise subprocess.CalledProcessError(
@@ -280,17 +300,40 @@ def _join_command(command):
     return " ".join(shlex.quote(part) for part in command)
 
 
-def _run_and_collect(command, root: Path, env, outputs: Optional[list[str]]):
-    output = _run(command, root, env=env, capture_output=outputs is not None)
+def _run_and_collect(
+    command,
+    root: Path,
+    env,
+    outputs: Optional[list[str]],
+    timeout: float | None = None,
+):
+    output = _run(
+        command,
+        root,
+        env=env,
+        capture_output=outputs is not None,
+        timeout=timeout,
+    )
     if outputs is not None and output:
         outputs.append(output)
     return output
+
+
+def _remaining_timeout(deadline: float | None, command) -> float | None:
+    """返回同步总预算的剩余时间，并在预算耗尽时阻止新的 uv 命令。"""
+    if deadline is None:
+        return None
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise subprocess.TimeoutExpired(command, 0)
+    return remaining
 
 
 def _ensure_self_contained_python(
     root: Path,
     uv: Path,
     outputs: Optional[list[str]] = None,
+    deadline: float | None = None,
 ):
     if _venv_python_works(root) and _managed_python_executable(root):
         return
@@ -298,20 +341,22 @@ def _ensure_self_contained_python(
     env = _uv_python_env(root)
     managed_python = _managed_python_executable(root)
     if managed_python is None:
+        command = [
+            uv,
+            "python",
+            "install",
+            "--install-dir",
+            venv_python_install_dir(root),
+            "--no-bin",
+            "--managed-python",
+            PYTHON_VERSION,
+        ]
         _run_and_collect(
-            [
-                uv,
-                "python",
-                "install",
-                "--install-dir",
-                venv_python_install_dir(root),
-                "--no-bin",
-                "--managed-python",
-                PYTHON_VERSION,
-            ],
+            command,
             root,
             env,
             outputs,
+            _remaining_timeout(deadline, command),
         )
         managed_python = _managed_python_executable(root)
     if managed_python is None:
@@ -322,26 +367,32 @@ def _ensure_self_contained_python(
             "--managed-python",
             PYTHON_VERSION,
         ]
-        output = _run_output(command, root, env=env)
+        output = _run_output(
+            command,
+            root,
+            env=env,
+            timeout=_remaining_timeout(deadline, command),
+        )
         if outputs is not None and output:
             outputs.append(output)
         managed_python = Path(output.strip())
 
     _remove_stale_venv_launcher(root)
+    command = [
+        uv,
+        "venv",
+        "--allow-existing",
+        "--relocatable",
+        "--python",
+        managed_python,
+        venv_path(root),
+    ] + _uv_index_args(root)
     _run_and_collect(
-        [
-            uv,
-            "venv",
-            "--allow-existing",
-            "--relocatable",
-            "--python",
-            managed_python,
-            venv_path(root),
-        ]
-        + _uv_index_args(root),
+        command,
         root,
         env,
         outputs,
+        _remaining_timeout(deadline, command),
     )
 
 
@@ -355,17 +406,27 @@ def command_output(exc: BaseException) -> str:
     return str(output or "")
 
 
+def redact_sensitive_text(value: object) -> str:
+    """脱敏命令输出中的 URL 凭据和常见认证字段。"""
+    text = str(value or "")
+    text = _URL_USERINFO_RE.sub(r"\g<scheme>***@", text)
+    text = _SENSITIVE_QUERY_RE.sub(r"\1***", text)
+    return _SENSITIVE_ASSIGNMENT_RE.sub(r"\1\2***", text)
+
+
 def log_command_output(logger, output: str, prefix: str = "[uv]"):
     """将已捕获的子进程输出逐行交给调用方的日志器。"""
     for line in output.splitlines():
-        logger.info(f"{prefix} {line}")
+        logger.info(f"{prefix} {redact_sensitive_text(line)}")
 
 
 def sync_project_venv(
     root: Path = None,
     bootstrap_uv: Optional[PathLikeArg] = None,
     capture_output: bool = False,
+    timeout: float | None = None,
 ) -> Optional[UvCommandResult]:
+    """在单一总时限内准备解释器、虚拟环境并同步项目依赖。"""
     root = root or project_root()
     if not _deploy_bool(root, "InstallDependencies", default=True):
         output = "InstallDependencies is disabled, skip uv sync"
@@ -376,9 +437,10 @@ def sync_project_venv(
 
     uv = _resolve_uv(root, bootstrap_uv=bootstrap_uv)
     outputs = [] if capture_output else None
+    deadline = time.monotonic() + timeout if timeout is not None else None
 
     try:
-        _ensure_self_contained_python(root, uv, outputs=outputs)
+        _ensure_self_contained_python(root, uv, outputs=outputs, deadline=deadline)
         command = [
             uv,
             "sync",
@@ -395,8 +457,9 @@ def sync_project_venv(
             root,
             _uv_python_env(root),
             outputs,
+            _remaining_timeout(deadline, command),
         )
-    except subprocess.CalledProcessError as exc:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         if outputs is not None:
             output = command_output(exc)
             if output:
@@ -409,7 +472,12 @@ def sync_project_venv(
     return None
 
 
-def dependency_sync_service(request_queue, response_queue, root: PathLikeArg = None):
+def dependency_sync_service(
+    request_queue,
+    response_queue,
+    root: PathLikeArg = None,
+    timeout: float | None = DEPENDENCY_SYNC_TIMEOUT,
+):
     """空闲等待 WebUI 更新请求的独立依赖同步服务。"""
     root = Path(root) if root is not None else project_root()
     parent = multiprocessing.parent_process()
@@ -436,7 +504,11 @@ def dependency_sync_service(request_queue, response_queue, root: PathLikeArg = N
             continue
 
         try:
-            result = sync_project_venv(root=root, capture_output=True)
+            result = sync_project_venv(
+                root=root,
+                capture_output=True,
+                timeout=timeout,
+            )
         except Exception as exc:
             response_queue.put(
                 {

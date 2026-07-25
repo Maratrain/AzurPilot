@@ -263,17 +263,24 @@ class TaskHandler:
         self._thread = self._get_thread()
         self._thread.start()
 
-    def stop(self) -> None:
+    def stop(self) -> bool:
+        """停止任务线程，并返回是否已能安全释放共享状态。"""
         self.remove_pending_task()
         self._alive = False
+        if self._thread is None:
+            logger.info("[WebUI] 任务处理器未启动，跳过停止")
+            return True
         if threading.current_thread() is not self._thread:
             self._thread.join(timeout=2)
             if not self._thread.is_alive():
                 logger.info("Finish task handler")
+                return True
             else:
                 logger.warning("[WebUI] 任务处理器未在 2 秒内停止")
+                return False
         else:
             logger.info("[WebUI] 任务处理器在其自身线程内调用了停止，跳过 join")
+            return True
 
 
 class WebIOTaskHandler(TaskHandler):

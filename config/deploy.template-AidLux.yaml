@@ -195,8 +195,8 @@ Deploy:
   Webui:
     # --host. 监听的主机地址
     # --host. Host to listen
-    # [使用 IPv6] '::'
-    # [Use IPv6] '::'
+    # [0.0.0.0 或 :: 均支持 IPv4/IPv6 双栈]
+    # [Both 0.0.0.0 and :: support IPv4/IPv6 dual stack]
     # [大多数情况] 默认 '0.0.0.0'
     # [In most cases] Default to '0.0.0.0'
     WebuiHost: 0.0.0.0
