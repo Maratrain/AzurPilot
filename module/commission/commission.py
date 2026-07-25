@@ -1,4 +1,6 @@
 import copy
+from datetime import timedelta
+
 from scipy import signal
 
 from module.base.timer import Timer
@@ -749,7 +751,6 @@ class RewardCommission(UI, InfoHandler):
             stats: get_gem_commission_stats() 返回的数据
             period: today / week / month
         """
-        from datetime import datetime
         now = datetime.now()
         today = now.date()
         week_start = today - timedelta(days=today.weekday())
@@ -976,8 +977,7 @@ class RewardCommission(UI, InfoHandler):
         return f'{minutes}分钟'
 
     def _send_gem_commission_notify(self):
-        from datetime import datetime
-        from module.statistics.cl1_database import db as cl1_db
+
         instance = self.config.config_name
 
         commissions = cl1_db.get_running_gem_commissions(instance)
