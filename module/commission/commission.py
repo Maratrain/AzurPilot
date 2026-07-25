@@ -988,9 +988,10 @@ class RewardCommission(UI, InfoHandler):
 
     def _send_gem_commission_notify(self):
         from datetime import datetime
+        from module.statistics.cl1_database import db as cl1_db
         instance = self.config.config_name
 
-        commissions = cl1_db.get_running_gem_commissions(instance,)
+        commissions = cl1_db.get_running_gem_commissions(instance)
 
         if not commissions:
             return
