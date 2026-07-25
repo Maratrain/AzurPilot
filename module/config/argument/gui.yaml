@@ -231,8 +231,6 @@ DeploySetting:
   GitProxyHelp:
   SSLVerify:
   SSLVerifyHelp:
-  AutoUpdate:
-  AutoUpdateHelp:
   PythonExecutable:
   PythonExecutableHelp:
   PypiMirror:

@@ -6142,8 +6142,6 @@
       "GitProxyHelp": "HTTP 或 SOCKS5 代理地址，留空表示不使用代理。",
       "SSLVerify": "Git SSL 驗證",
       "SSLVerifyHelp": "連線可信網路時建議開啟。",
-      "AutoUpdate": "啟動時自動更新",
-      "AutoUpdateHelp": "啟動 AzurPilot 時自動檢查並更新程式碼。",
       "PythonExecutable": "Python 可執行檔",
       "PythonExecutableHelp": "用於執行 AzurPilot 的 Python 路徑。",
       "PypiMirror": "PyPI 鏡像",

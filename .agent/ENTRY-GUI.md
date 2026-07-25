@@ -308,7 +308,6 @@ class ConfigModel:
     GitExecutable: str = ...
     GitProxy: Optional[str] = None
     SSLVerify: bool = False
-    AutoUpdate: bool = True
 
     # Python 配置
     PythonExecutable: str = ...

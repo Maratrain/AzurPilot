@@ -21,7 +21,6 @@ class ConfigModel:
     GitExecutable: str = "./.venv/Scripts/git/cmd/git.exe" if sys.platform == "win32" else "./.venv/bin/git"
     GitProxy: Optional[str] = None
     SSLVerify: bool = False
-    AutoUpdate: bool = True
 
     # Python 配置
     PythonExecutable: str = "./.venv/Scripts/python.exe" if sys.platform == "win32" else "./.venv/bin/python"
@@ -125,6 +124,7 @@ class DeployConfig(ConfigModel):
 
         每次 `read()` 之后必须调用。
         """
+        self.config.pop('AutoUpdate', None)
         if self.Repository in [
             'https://gitee.com/LmeSzinc/AzurLaneAutoScript',
             'https://gitee.com/lmeszinc/azur-lane-auto-script-mirror',

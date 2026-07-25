@@ -19,10 +19,6 @@ Deploy:
     # [In most cases] Use true
     # [Other] Use false to when connected to an untrusted network
     SSLVerify: true
-    # Update AzurPilot at startup
-    # [In most cases] Use true
-    AutoUpdate: true
-
   Python:
     # Filepath of python executable `python.exe`
     # [Other] Use you own python, and its version should be 3.14.x 64bit

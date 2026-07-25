@@ -6142,8 +6142,6 @@
       "GitProxyHelp": "HTTP or SOCKS5 proxy. Leave empty to disable.",
       "SSLVerify": "Git SSL Verify",
       "SSLVerifyHelp": "Recommended when connected to trusted networks.",
-      "AutoUpdate": "Auto Update on Startup",
-      "AutoUpdateHelp": "Check and update AzurPilot during startup.",
       "PythonExecutable": "Python Executable",
       "PythonExecutableHelp": "Python used to run AzurPilot.",
       "PypiMirror": "PyPI Mirror",

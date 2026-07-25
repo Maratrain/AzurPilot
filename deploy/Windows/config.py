@@ -23,7 +23,6 @@ class ConfigModel:
     GitExecutable: str = "./.venv/Scripts/git/cmd/git.exe"
     GitProxy: Optional[str] = None
     SSLVerify: bool = False
-    AutoUpdate: bool = True
 
     # Python 配置
     PythonExecutable: str = "./.venv/Scripts/python.exe"
@@ -125,6 +124,7 @@ class DeployConfig(ConfigModel):
 
         每次 `read()` 之后必须调用。
         """
+        self.config.pop('AutoUpdate', None)
         # 绕过 webui.config.DeployConfig.__setattr__()，不写入 deploy.yaml
         super().__setattr__('GitOverCdn', self.Repository in ['cn', GIT_OVER_CDN_REPOSITORY])
         if self.Repository in ['global']:

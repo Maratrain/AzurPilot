@@ -31,12 +31,6 @@ Deploy:
     # [其他情况] 连接到不受信任的网络时使用 false
     # [Other] Use false to when connected to an untrusted network
     SSLVerify: true
-    # 启动时自动更新 AzurPilot
-    # Update AzurPilot at startup
-    # [大多数情况] 使用 true
-    # [In most cases] Use true
-    AutoUpdate: true
-
   Python:
     # Python 可执行文件路径
     # Filepath of python executable.
