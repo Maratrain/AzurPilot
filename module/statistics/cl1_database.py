@@ -1661,14 +1661,21 @@ class Cl1Database:
     def pop_running_gem_commission(
         self,
         instance: str,
+        finish_time: str,
     ) -> Optional[Dict[str, Any]]:
-        """取出最早完成的一条钻石委托。"""
+        """根据完成时间取出对应的钻石委托。"""
+
         commissions = self.get_running_gem_commissions(instance)
-        if not commissions:
-            return None
-        commissions.sort(key=lambda item: item["finish_time"])
-        commission = commissions.pop(0)
-        self.save_running_gem_commissions(instance,commissions,)
-        return commission
+
+        for index, commission in enumerate(commissions):
+            if commission.get("finish_time") == finish_time:
+                commissions.pop(index)
+                self.save_running_gem_commissions(
+                    instance,
+                    commissions,
+                )
+                return commission
+
+        return None
 # 单例实例
 db = Cl1Database()

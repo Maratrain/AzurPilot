@@ -636,9 +636,17 @@ class RewardCommission(UI, InfoHandler):
             if merged_items:
                 instance = self.config.config_name
                 cl1_db.add_commission_income(instance, merged_items, commission_count=1)
-                commission = cl1_db.pop_running_gem_commission(instance,)
+                running_commission = None
+
                 if commission:
-                    duration = commission["duration"]
+                    running_commission = cl1_db.pop_running_gem_commission(
+                        instance,
+                        commission.finish_time.isoformat(),
+                    )
+
+                if running_commission:
+                    duration = running_commission["duration"]
+
                     if duration in (2, 4, 8):
                         cl1_db.add_gem_commission(
                             instance,
@@ -646,7 +654,9 @@ class RewardCommission(UI, InfoHandler):
                             reward=merged_items.get("Gem", 0),
                         )
                     else:
-                        logger.warning(f'Unknown gem commission duration: {duration}h')
+                        logger.warning(
+                            f"Unknown gem commission duration: {duration}h"
+                        )
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
 
