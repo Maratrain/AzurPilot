@@ -117,11 +117,26 @@ class ProcessManager:
 
         with lock:
             process = self._process
-            if process is not None and process.is_alive():
-                process.kill()
-                self.renderables.append(
-                    Text(f"[{self.config_name}] exited. Reason: Manual stop\n")
-                )
+            pid = (
+                process.pid
+                if process is not None and process.is_alive()
+                else self._registered_pid()
+            )
+            stopped = pid is None
+            if pid is not None:
+                stopped = self._kill_process_tree(pid)
+                if process is not None:
+                    process.join(timeout=3)
+                    stopped = stopped and not process.is_alive()
+            if stopped:
+                self._process = None
+                self._unregister_process()
+                if pid is not None:
+                    self.renderables.append(
+                        Text(f"[{self.config_name}] exited. Reason: Manual stop\n")
+                    )
+            else:
+                logger.error(f"[{self.config_name}] failed to stop worker PID {pid}")
             log_queue_handler = self.thd_log_queue_handler
             if log_queue_handler is not None:
                 log_queue_handler.join(timeout=1)
@@ -130,6 +145,82 @@ class ProcessManager:
                         "Log queue handler thread does not stop within 1 seconds"
                     )
         logger.info(f"[{self.config_name}] exited")
+
+    @staticmethod
+    def _kill_process_tree(pid: int) -> bool:
+        """终止 worker 及其派生进程，避免关闭 WebUI 后任务留在后台。"""
+        if os.name == "nt":
+            try:
+                result = subprocess.run(
+                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                    timeout=3,
+                )
+                return result.returncode == 0
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                logger.warning(f"Failed to stop worker PID {pid}: {exc}")
+                try:
+                    os.kill(pid, 9)
+                except (PermissionError, ProcessLookupError):
+                    return not ProcessManager._pid_exists(pid)
+                return not ProcessManager._pid_exists(pid)
+        else:
+            try:
+                import psutil
+
+                parent = psutil.Process(pid)
+                for child in reversed(parent.children(recursive=True)):
+                    try:
+                        child.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+            except (ImportError, psutil.Error if "psutil" in locals() else OSError):
+                pass
+        try:
+            os.kill(pid, 9)
+        except ProcessLookupError:
+            return True
+        return ProcessManager._wait_pid_exit(pid, timeout=3)
+
+    @staticmethod
+    def _pid_exists(pid: int) -> bool:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
+
+    @staticmethod
+    def _wait_pid_exit(pid: int, timeout: float) -> bool:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if not ProcessManager._pid_exists(pid):
+                return True
+            time.sleep(0.1)
+        return not ProcessManager._pid_exists(pid)
+
+    def _registered_pid(self) -> int | None:
+        registry = State.process_registry
+        if registry is None:
+            return None
+        try:
+            pid = registry.get(self.config_name)
+            return int(pid) if pid is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def _register_process(self, pid: int | None) -> None:
+        if pid is not None and State.process_registry is not None:
+            State.process_registry[self.config_name] = pid
+
+    def _unregister_process(self) -> None:
+        if State.process_registry is not None:
+            State.process_registry.pop(self.config_name, None)
 
     def _thread_log_queue_handler(self) -> None:
         while self.alive:
