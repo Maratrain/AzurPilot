@@ -78,9 +78,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
         elif event == 'coalition_20260122':
             ocr = Digit(FASHION_PT_OCR, name='OCR_PT', letter=(41, 40, 40), threshold=128)
         elif event == 'coalition_20260723':
-            # 本期尚未提供 PT 数值模板，保留任务运行并禁用 PT 上限判断。
-            logger.info('Mystery Record event does not support PT OCR, skip')
-            return 0
+            ocr = Digit(HORROR_PT_OCR, name='OCR_PT', lang='cnocr', letter=(228, 230, 237), threshold=256)
         else:
             logger.error(f'ocr object is not defined in event {event}')
             raise ScriptError
@@ -139,6 +137,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
         if self.config.Campaign_Event in [
             'coalition_20260122',
             'coalition_20260723',
+            "coalition_20260723"
         ]:
             return False
         return True
