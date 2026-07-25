@@ -292,6 +292,178 @@ function cleanupPackArtifacts(outputDir) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function shortCommit(commit) {
+  return commit.slice(0, 8);
+}
+
+function writeIndexHtml(outputDir, options, latest, oldCommits) {
+  const generatedAt = new Date().toISOString();
+  const packRows = oldCommits.map((commit) => {
+    const filename = `${latest}/${commit}.zip`;
+    return `
+          <tr>
+            <td><code>${escapeHtml(shortCommit(commit))}</code></td>
+            <td><a href="${escapeHtml(filename)}">${escapeHtml(filename)}</a></td>
+          </tr>`;
+  }).join("");
+
+  const html = `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AzurPilot 更新 CDN</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8fb;
+      --fg: #172033;
+      --muted: #667085;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --accent: #246bfe;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121722;
+        --fg: #eef3ff;
+        --muted: #aab4c5;
+        --line: #2a3344;
+        --panel: #181f2d;
+        --accent: #8ab4ff;
+      }
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+    section {
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 12px 18px;
+      margin: 0;
+    }
+    dt {
+      color: var(--muted);
+    }
+    dd {
+      margin: 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.95em;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .empty {
+      padding: 14px 0;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>AzurPilot 更新 CDN</h1>
+    <p>此页面由构建脚本自动生成，用于确认静态更新文件已发布。</p>
+
+    <section>
+      <dl>
+        <dt>最新版本</dt>
+        <dd><code>${escapeHtml(latest)}</code></dd>
+        <dt>构建分支</dt>
+        <dd><code>${escapeHtml(options.branch)}</code></dd>
+        <dt>更新包数量</dt>
+        <dd>${oldCommits.length}</dd>
+        <dt>生成时间</dt>
+        <dd><time datetime="${escapeHtml(generatedAt)}">${escapeHtml(generatedAt)}</time></dd>
+        <dt>版本接口</dt>
+        <dd><a href="latest.json">latest.json</a></dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2>更新包</h2>
+      ${oldCommits.length ? `<table>
+        <thead>
+          <tr>
+            <th>本地版本</th>
+            <th>下载路径</th>
+          </tr>
+        </thead>
+        <tbody>${packRows}
+        </tbody>
+      </table>` : '<p class="empty">当前没有生成旧版本更新包。</p>'}
+    </section>
+  </main>
+</body>
+</html>
+`;
+
+  fs.writeFileSync(path.join(outputDir, "index.html"), html, "utf8");
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const repoRoot = resolveRepoRoot();
@@ -319,13 +491,14 @@ async function main() {
     await buildPack(latest, old, latestDir, repoRoot);
   }
   cleanupPackArtifacts(latestDir);
+  writeIndexHtml(outputDir, options, latest, oldCommits);
 
   console.log("Build git-over-cdn files");
   console.log(`  branch : ${options.branch}`);
   console.log(`  ref    : ${latest}`);
   console.log(`  history: ${options.history}`);
   console.log(`  output : ${path.relative(repoRoot, outputDir).replaceAll(path.sep, "/")}`);
-  console.log(`Generated latest.json and ${oldCommits.length} update pack(s)`);
+  console.log(`Generated index.html, latest.json and ${oldCommits.length} update pack(s)`);
 }
 
 main().catch((error) => {
