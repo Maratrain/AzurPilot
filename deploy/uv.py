@@ -162,7 +162,9 @@ def _resolve_uv(root: Path, bootstrap_uv: Optional[PathLikeArg] = None) -> Path:
 
 def _uv_python_env(root: Path):
     env = os.environ.copy()
+    env.pop("UV_PYTHON", None)
     env["UV_PYTHON_INSTALL_DIR"] = str(venv_python_install_dir(root))
+    env["UV_CACHE_DIR"] = str(root / ".uv-cache")
     env.setdefault("UV_NO_PROGRESS", "1")
     return env
 
@@ -382,10 +384,12 @@ def sync_project_venv(
             "sync",
             "--project",
             str(root),
-            "--frozen",
-            "--no-dev",
-            "--no-install-project",
-        ] + _uv_index_args(root)
+            "--python",
+            venv_python(root),
+        ]
+        if (root / "uv.lock").exists():
+            command.append("--frozen")
+        command += ["--no-dev", "--no-install-project"] + _uv_index_args(root)
         _run_and_collect(
             command,
             root,
