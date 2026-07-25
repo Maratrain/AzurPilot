@@ -1948,24 +1948,13 @@
       "name": "钻石委托执行通知喵",
       "help": "开始新的钻石委托后，把当前正在执行的钻石委托列表推给主人喵~"
     },
-    "NotifyReward": {
-      "name": "委托成功获取钻石通知",
-      "help": "委托完成后推送获得的钻石奖励信息喵，注意，请开启错误推送设置并完成配置，否则这个功能不会生效喵(´・ω・`)"
+    "CommissionNotifyReward": {
+      "name": "委托成功获取钻石推送喵",
+      "help": "注意，请开启错误推送设置并配置，否则此功能不生效喵。 (´・ω・`)"
     },
-    "NotifyRewardStatistics": {
-      "name": "钻石推送详情",
-      "help": "开启后，AzurPilot 会在推送本次委托获取钻石数量时，一起推送今日/本周/本月钻石获取数量喵(´・ω・`)"
-    },
-    "GemStatistics": {
-      "name": "钻石委托统计",
-      "help": "统计钻石委托的执行次数、成功率以及获得收益喵(´・ω・`)"
-    },
-    "GemStatisticsPeriod": {
-      "name": "钻石委托统计周期",
-      "help": "选择钻石委托统计的数据周期喵(´・ω・`)",
-      "today": "今日喵",
-      "week": "本周喵",
-      "month": "本月喵"
+    "CommissionNotifyRewardStatistics": {
+      "name": "钻石推送详情喵",
+      "help": "开启后，AzurPilot在推送本次委托获取钻石数量的同时推送当日/本周/本月的钻石获取数量喵。 (´・ω・`)"
     }
   },
   "Tactical": {

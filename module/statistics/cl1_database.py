@@ -344,10 +344,6 @@ class Cl1Database:
             "siren_research_device_entries": [],
             # 委托收益数据
             "commission_income_entries": [],
-            # 当前运行中的钻石委托（不按月份统计）
-            "running_gem_commissions": [],
-            # 钻石委托历史
-            "gem_commission_entries": [],
         }
 
     def _normalize_meow_round_times(
@@ -1381,6 +1377,82 @@ class Cl1Database:
         data["commission_income_entries"] = entries
         self.save_stats(instance, month, data)
 
+    def get_commission_reward_stats(self, instance: str):
+        """
+        获取委托奖励统计
+
+        Returns:
+            {
+                "today": {...},
+                "week": {...},
+                "month": {...},
+            }
+        """
+        now = datetime.now()
+        today = now.date()
+        week_start = today - timedelta(days=today.weekday())
+
+        entries = []
+
+        entries.extend(
+            self.get_commission_income(
+                instance,
+                year=now.year,
+                month=now.month,
+            )
+        )
+
+        # 周跨月
+        if week_start.month != now.month or week_start.year != now.year:
+            prev_month_date = now.replace(day=1) - timedelta(days=1)
+            entries.extend(
+                self.get_commission_income(
+                    instance,
+                    year=prev_month_date.year,
+                    month=prev_month_date.month,
+                )
+            )
+
+        result = {
+            "today": defaultdict(int),
+            "week": defaultdict(int),
+            "month": defaultdict(int),
+        }
+
+        for entry in entries:
+            try:
+                ts = datetime.fromisoformat(entry.get("ts", ""))
+                items = entry.get("items", {})
+
+                if not isinstance(items, dict):
+                    continue
+
+                for item, value in items.items():
+                    value = self._coerce_int(value)
+
+                    if ts.year == now.year and ts.month == now.month:
+                        result["month"][item] += value
+
+                    if ts.date() == today:
+                        result["today"][item] += value
+
+                    if week_start <= ts.date() <= today:
+                        result["week"][item] += value
+
+            except Exception:
+                continue
+
+        # 保留常用字段，兼容旧代码
+        for period in ("today", "week", "month"):
+            result[period].setdefault("Gem", 0)
+            result[period].setdefault("Cube", 0)
+
+        return {
+            "today": dict(result["today"]),
+            "week": dict(result["week"]),
+            "month": dict(result["month"]),
+        }
+
     def get_commission_income(
         self, instance: str, year: int = None, month: int = None
     ) -> List[Dict[str, Any]]:
@@ -1478,197 +1550,6 @@ class Cl1Database:
 
         return async_executor.submit(self.get_commission_income, instance, year, month)
 
-    # ========== 钻石委托运行列表 ==========
-    def add_gem_commission(
-        self,
-        instance: str,
-        duration_hour: int,
-        reward: int = 0,
-    ):
-        """记录一次钻石委托结果。
 
-        Args:
-            instance: 实例名称
-            duration_hour: 委托时长（2 / 4 / 8）
-            reward: 获得钻石数量，0 表示失败
-        """
-        month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-
-        entry = {
-            "ts": datetime.now().isoformat(),
-            "duration": self._coerce_int(duration_hour),
-            "reward": self._coerce_int(reward),
-            "success": reward > 0,
-        }
-
-        entries = data.get("gem_commission_entries", [])
-        entries.append(entry)
-
-        if len(entries) > 5000:
-            entries = entries[-5000:]
-
-        data["gem_commission_entries"] = entries
-        self.save_stats(instance, month, data)
-
-    def get_gem_commission(
-        self,
-        instance: str,
-        year: int = None,
-        month: int = None,
-    ) -> List[Dict[str, Any]]:
-        """获取指定月份钻石委托记录。"""
-
-        if year is None or month is None:
-            now = datetime.now()
-            year = year or now.year
-            month = month or now.month
-
-        month_key = f"{year:04d}-{month:02d}"
-        data = self.get_stats(instance, month_key)
-
-        return data.get("gem_commission_entries", [])
-
-    def get_gem_commission_stats(self, instance: str, period: str = "month",):
-        """获取钻石委托统计。"""
-
-        now = datetime.now()
-        today = now.date()
-        week_start = today - timedelta(days=today.weekday())
-
-        entries = []
-
-        entries.extend(
-            self.get_gem_commission(
-                instance,
-                year=now.year,
-                month=now.month,
-            )
-        )
-
-        if week_start.month != now.month or week_start.year != now.year:
-            prev = now.replace(day=1) - timedelta(days=1)
-            entries.extend(
-                self.get_gem_commission(
-                    instance,
-                    year=prev.year,
-                    month=prev.month,
-                )
-            )
-
-        def create_period():
-            return {
-                2: {
-                    "count": 0,
-                    "success": 0,
-                    "reward": 0,
-                },
-                4: {
-                    "count": 0,
-                    "success": 0,
-                    "reward": 0,
-                },
-                8: {
-                    "count": 0,
-                    "success": 0,
-                    "reward": 0,
-                },
-            }
-
-        result = {
-            "today": create_period(),
-            "week": create_period(),
-            "month": create_period(),
-        }
-
-        for entry in entries:
-            try:
-                ts = datetime.fromisoformat(entry["ts"])
-                duration = self._coerce_int(entry["duration"])
-                reward = self._coerce_int(entry["reward"])
-                success = bool(entry["success"])
-
-                if duration not in (2, 4, 8):
-                    continue
-
-                periods = []
-
-                if ts.year == now.year and ts.month == now.month:
-                    periods.append(result["month"])
-
-                if ts.date() == today:
-                    periods.append(result["today"])
-
-                if week_start <= ts.date() <= today:
-                    periods.append(result["week"])
-
-                for period in periods:
-                    item = period[duration]
-                    item["count"] += 1
-                    item["reward"] += reward
-
-                    if success:
-                        item["success"] += 1
-
-            except Exception:
-                continue
-
-        for period in result.values():
-            for item in period.values():
-                count = item["count"]
-
-                if count:
-                    item["rate"] = round(item["success"] * 100 / count, 1)
-                else:
-                    item["rate"] = 0.0
-
-        if period not in ("today", "week", "month"):
-            period = "month"
-        return result[period]
-        
-    def save_running_gem_commissions(
-        self,
-        instance: str,
-        commissions: List[Dict[str, Any]],
-    ):
-        """保存运行中的钻石委托列表。"""
-        month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        data["running_gem_commissions"] = commissions
-        self.save_stats(instance, month, data)
-
-    def get_running_gem_commissions(
-        self,
-        instance: str,
-    ) -> List[Dict[str, Any]]:
-        """获取运行中的钻石委托列表。"""
-        month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        commissions = data.get("running_gem_commissions", [])
-        return commissions if isinstance(commissions, list) else []
-    
-    def add_running_gem_commission(
-        self,
-        instance: str,
-        commission: Dict[str, Any],
-    ):
-        """新增一个运行中的钻石委托。"""
-        commissions = self.get_running_gem_commissions(instance)
-        commissions.append(commission)
-        commissions.sort(key=lambda item: item["finish_time"])
-        self.save_running_gem_commissions(instance,commissions,)
-
-    def pop_running_gem_commission(
-        self,
-        instance: str,
-    ) -> Optional[Dict[str, Any]]:
-        """取出最早完成的一条钻石委托。"""
-        commissions = self.get_running_gem_commissions(instance)
-        if not commissions:
-            return None
-        commissions.sort(key=lambda item: item["finish_time"])
-        commission = commissions.pop(0)
-        self.save_running_gem_commissions(instance,commissions,)
-        return commission
 # 单例实例
 db = Cl1Database()

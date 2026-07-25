@@ -1948,24 +1948,13 @@
       "name": "Commission.GemNotify.name",
       "help": "Commission.GemNotify.help"
     },
-    "NotifyReward": {
-      "name": "委託成功獲取鑽石通知",
-      "help": "委託完成後推送獲得的鑽石獎勵資訊，注意，請開啟錯誤推送設定並配置，否則此功能不會生效"
+    "CommissionNotifyReward": {
+      "name": "委託成功獲取鑽石推送",
+      "help": "注意，請啟用並設定「錯誤推送設定」，否則此功能將不會生效。"
     },
-    "NotifyRewardStatistics": {
+    "CommissionNotifyRewardStatistics": {
       "name": "鑽石推送詳情",
-      "help": "開啟後，AzurPilot 在推送本次委託獲取鑽石數量的同時推送當日/本週/本月的鑽石獲取數量"
-    },
-    "GemStatistics": {
-      "name": "鑽石委託統計",
-      "help": "統計鑽石委託的執行次數、成功率以及獲得收益"
-    },
-    "GemStatisticsPeriod": {
-      "name": "鑽石委託統計週期",
-      "help": "選擇鑽石委託統計的資料週期",
-      "today": "今日",
-      "week": "本週",
-      "month": "本月"
+      "help": "開啟後，AzurPilot在推送本次委託獲取鑽石數量的同時推送當日/本週/本月的鑽石獲取數量"
     }
   },
   "Tactical": {

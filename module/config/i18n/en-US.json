@@ -1948,24 +1948,13 @@
       "name": "Gem Commission Execution Notification",
       "help": "Send the current running Gem Commission list after a new Gem Commission starts"
     },
-    "NotifyReward": {
-      "name": "Commission Gem Reward Notification",
-      "help": "Send a notification with the gem rewards obtained after a commission is completed. Note: Error notification settings must be enabled and configured, otherwise this feature will not work"
+    "CommissionNotifyReward": {
+      "name": "Successful Commission Gem Notification",
+      "help": "Note: Please enable and configure Error Notification Settings; otherwise, this feature will not take effect."
     },
-    "NotifyRewardStatistics": {
+    "CommissionNotifyRewardStatistics": {
       "name": "Gem Notification Details",
-      "help": "When enabled, AzurPilot will send the gem amount obtained from this commission along with today's/this week's/this month's total gem acquisition"
-    },
-    "GemStatistics": {
-      "name": "Gem Commission Statistics",
-      "help": "Track gem commission attempts, success rate, and obtained rewards"
-    },
-    "GemStatisticsPeriod": {
-      "name": "Gem Commission Statistics Period",
-      "help": "Select the data period for gem commission statistics",
-      "today": "Today",
-      "week": "This Week",
-      "month": "This Month"
+      "help": "After enabling, AzurPilot will notify the number of diamonds obtained from the current commission, as well as the total diamonds obtained for the day/week/month."
     }
   },
   "Tactical": {
