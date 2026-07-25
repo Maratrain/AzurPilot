@@ -248,7 +248,7 @@ class Updater:
 
         removelist_path = os.path.join(self.path, 'removelist.txt')
         if os.path.isfile(removelist_path):
-            with open(removelist_path, 'r') as f:
+            with open(removelist_path, 'r', encoding='utf-8') as f:
                 file_list = f.readlines()
                 for file in file_list:
                     file_path = os.path.join(self.path, file)

@@ -356,10 +356,13 @@ class ProcessManager:
             elif isinstance(instance, ProcessManager):
                 _instances.add(instance)
 
-        for line in file_read_text("./config/reloadalas").splitlines():
-            line = line.strip()
-            if line:
-                _instances.add(ProcessManager.get_manager(line))
+        try:
+            with open("./config/reloadalas", mode="r", encoding="utf-8") as f:
+                for line in f.readlines():
+                    line = line.strip()
+                    _instances.add(ProcessManager.get_manager(line))
+        except FileNotFoundError:
+            pass
 
         for process in _instances:
             logger.info(f"Starting [{process.config_name}]")

@@ -53,7 +53,7 @@ def _collect_hardware_fingerprint() -> str:
     else:
         for mid_path in ('/etc/machine-id', '/var/lib/dbus/machine-id'):
             try:
-                mid = Path(mid_path).read_text().strip()
+                mid = Path(mid_path).read_text(encoding='utf-8').strip()
                 if mid:
                     parts.append(f'machine-id={mid}')
                     break
