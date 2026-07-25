@@ -6,6 +6,7 @@ import sys
 import tempfile
 import time
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -26,6 +27,117 @@ def _get_gui():
 
 
 class TestWorkerRegistry(unittest.TestCase):
+    def test_new_registry_is_only_written_to_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            current_file = Path(directory) / "cache" / "webui-workers.json"
+            legacy_file = Path(directory) / "config" / "webui-workers.json"
+
+            with patch.multiple(
+                worker_registry,
+                WORKER_REGISTRY_FILE=current_file,
+                LEGACY_WORKER_REGISTRY_FILE=legacy_file,
+                DEFAULT_WORKER_REGISTRY_FILE=current_file,
+            ), patch.object(worker_registry, "_process_created_at", return_value=10.5):
+                worker_registry.claim_owner(100)
+
+            self.assertTrue(current_file.exists())
+            self.assertFalse(legacy_file.exists())
+
+    def test_default_registry_locks_legacy_path_before_current_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            current_file = Path(directory) / "cache" / "webui-workers.json"
+            legacy_file = Path(directory) / "config" / "webui-workers.json"
+            lock_files = []
+
+            @contextmanager
+            def capture_lock(lock_file):
+                lock_files.append(lock_file)
+                yield
+
+            with patch.multiple(
+                worker_registry,
+                WORKER_REGISTRY_FILE=current_file,
+                LEGACY_WORKER_REGISTRY_FILE=legacy_file,
+                DEFAULT_WORKER_REGISTRY_FILE=current_file,
+            ), patch.object(worker_registry, "_locked_file", side_effect=capture_lock):
+                with worker_registry._locked_registry() as registry_file:
+                    self.assertEqual(current_file, registry_file)
+
+            self.assertEqual(
+                [
+                    worker_registry._registry_lock_file(legacy_file),
+                    worker_registry._registry_lock_file(current_file),
+                ],
+                lock_files,
+            )
+
+    def test_legacy_registry_is_migrated_out_of_config_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            current_file = Path(directory) / "cache" / "webui-workers.json"
+            legacy_file = Path(directory) / "config" / "webui-workers.json"
+            legacy_file.parent.mkdir(parents=True)
+            legacy_file.write_text(
+                json.dumps(
+                    {
+                        "owner_created_at": 10.5,
+                        "owner_pid": 100,
+                        "workers": {"alas": {"created_at": 11.5, "pid": 200}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with patch.multiple(
+                worker_registry,
+                WORKER_REGISTRY_FILE=current_file,
+                LEGACY_WORKER_REGISTRY_FILE=legacy_file,
+                DEFAULT_WORKER_REGISTRY_FILE=current_file,
+            ), patch.object(worker_registry, "process_matches", return_value=None):
+                self.assertEqual(100, worker_registry.get_owner())
+
+            self.assertFalse(legacy_file.exists())
+            self.assertEqual(
+                {
+                    "owner_created_at": 10.5,
+                    "owner_pid": 100,
+                    "workers": {"alas": {"created_at": 11.5, "pid": 200}},
+                },
+                json.loads(current_file.read_text(encoding="utf-8")),
+            )
+
+    def test_active_legacy_owner_remains_authoritative_until_it_exits(self):
+        with tempfile.TemporaryDirectory() as directory:
+            current_file = Path(directory) / "cache" / "webui-workers.json"
+            legacy_file = Path(directory) / "config" / "webui-workers.json"
+            legacy_file.parent.mkdir(parents=True)
+            legacy_file.write_text(
+                json.dumps(
+                    {
+                        "owner_created_at": 10.5,
+                        "owner_pid": 100,
+                        "workers": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            with (
+                patch.multiple(
+                    worker_registry,
+                    WORKER_REGISTRY_FILE=current_file,
+                    LEGACY_WORKER_REGISTRY_FILE=legacy_file,
+                    DEFAULT_WORKER_REGISTRY_FILE=current_file,
+                ),
+                patch.object(worker_registry, "process_matches", return_value=True),
+                patch.object(worker_registry, "_process_created_at", return_value=20.5),
+            ):
+                self.assertEqual(100, worker_registry.get_owner())
+                with self.assertRaises(worker_registry.WorkerRegistryOwnershipError):
+                    worker_registry.claim_owner(200)
+
+            self.assertTrue(legacy_file.exists())
+            self.assertFalse(current_file.exists())
+
     def test_registry_records_worker_identity(self):
         with tempfile.TemporaryDirectory() as directory:
             registry_file = Path(directory) / "workers.json"

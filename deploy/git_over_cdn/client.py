@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, Generic, TypeVar
 
 import requests
@@ -47,25 +48,35 @@ class PrintLogger:
 class GitOverCdnClient:
     logger = PrintLogger()
 
-    def __init__(self, url, folder, source='origin', branch='master', git='git'):
+    def __init__(self, url, folder, source='origin', branch='master', git='git', fallback_urls=None):
         """初始化 Git over CDN 客户端。
 
         Args:
-            url (str | list[str]): CDN 服务地址，如 'http://127.0.0.1:22251/pack/...'。
+            url (str | list[str]): 优先 CDN 服务地址，如 'http://127.0.0.1:22251/pack/...'。
             folder: 本地仓库路径，如 'D:/AzurLaneAutoScript'。
             source: 远程源名称，默认 'origin'。
             branch: 分支名称，默认 'master'。
             git: git 可执行文件路径。
+            fallback_urls (str | list[str] | None): 所有优先地址不可用时使用的回退地址。
         """
-        if isinstance(url, str):
-            self.urls = [url.strip('/')]
-        else:
-            self.urls = [u.strip('/') for u in url]
-        self.url = self.urls[0]
+        self.urls = self._normalize_urls(url)
+        self.fallback_urls = self._normalize_urls(fallback_urls)
+        all_urls = self.urls + self.fallback_urls
+        if not all_urls:
+            raise ValueError('至少需要一个 CDN 地址')
+        self.url = all_urls[0]
         self.folder = folder.replace('\\', '/')
         self.source = source
         self.branch = branch
         self.git = git
+
+    @staticmethod
+    def _normalize_urls(urls):
+        if urls is None:
+            return []
+        if isinstance(urls, str):
+            return [urls.strip('/')]
+        return [url.strip('/') for url in urls]
 
     def filepath(self, path):
         path = os.path.join(self.folder, '.git', path)
@@ -98,58 +109,85 @@ class GitOverCdnClient:
                 self.logger.error(f'Failed to get local commit: {e}')
         return ''
 
-    @cached_property
-    def session(self):
+    @staticmethod
+    def _create_session(max_retries=3):
         session = requests.Session()
         session.trust_env = False
-        session.mount('http://', HTTPAdapter(max_retries=3))
-        session.mount('https://', HTTPAdapter(max_retries=3))
+        session.mount('http://', HTTPAdapter(max_retries=max_retries))
+        session.mount('https://', HTTPAdapter(max_retries=max_retries))
         return session
 
+    @cached_property
+    def session(self):
+        return self._create_session()
+
     def probe_url(self, url_base, timeout=3):
-        """探测候选地址的可用性与延迟。"""
+        """在给定总时限内探测候选地址的可用性与延迟。"""
         url = self.urlpath('/latest.json', base=url_base)
-        methods = (
-            ('HEAD', self.session.head, {}),
-            ('GET', self.session.get, {'stream': True}),
-        )
-        for method, request, extra in methods:
-            start = time.perf_counter()
-            try:
-                with request(url, timeout=timeout, allow_redirects=True, **extra) as resp:
-                    elapsed = time.perf_counter() - start
-                    if resp.ok:
-                        self.logger.info(f'Probe {method} {url} -> {elapsed:.3f}s')
-                        return elapsed
-                    self.logger.info(f'Probe {method} {url} failed, status={resp.status_code}')
-            except Exception as e:
-                self.logger.info(f'Probe {method} {url} failed: {e}')
+        started = time.perf_counter()
+        session = self._create_session(max_retries=0)
+        try:
+            with session.get(url, timeout=timeout, allow_redirects=False) as resp:
+                elapsed = time.perf_counter() - started
+                if elapsed > timeout:
+                    self.logger.info(f'Probe GET {url} exceeded {timeout}s')
+                    return None
+                if resp.status_code != 200:
+                    self.logger.info(f'Probe GET {url} failed, status={resp.status_code}')
+                    return None
+                try:
+                    commit = json.loads(resp.text)['commit']
+                except (json.JSONDecodeError, KeyError, TypeError):
+                    self.logger.info(f'Probe GET {url} failed, invalid latest.json')
+                    return None
+                if not isinstance(commit, str) or not re.fullmatch(r'[0-9a-f]{40}', commit):
+                    self.logger.info(f'Probe GET {url} failed, invalid commit')
+                    return None
+                self.logger.info(f'Probe GET {url} -> {elapsed:.3f}s')
+                return elapsed
+        except Exception as e:
+            self.logger.info(f'Probe GET {url} failed: {e}')
+        finally:
+            session.close()
         return None
+
+    def _probe_urls(self, urls, timeout):
+        """并发测速并返回在时限内可用的地址，按延迟排序。"""
+        scored = []
+        if not urls:
+            return scored
+
+        with ThreadPoolExecutor(max_workers=len(urls), thread_name_prefix='cdn-probe') as executor:
+            futures = {
+                executor.submit(self.probe_url, url_base, timeout): (index, url_base)
+                for index, url_base in enumerate(urls)
+            }
+            for future in as_completed(futures):
+                index, url_base = futures[future]
+                try:
+                    latency = future.result()
+                except Exception as e:
+                    self.logger.info(f'Probe {url_base} failed: {e}')
+                    continue
+                if latency is not None and latency <= timeout:
+                    scored.append((latency, index, url_base))
+
+        scored.sort(key=lambda item: (item[0], item[1]))
+        return [url_base for _, _, url_base in scored]
 
     @cached_property
     def preferred_urls(self):
-        primary = self.urls[0]
-        latency = self.probe_url(primary, timeout=10)
-        if latency is not None:
-            self.logger.attr('PreferredUrl', primary)
-            return self.urls
+        ordered = self._probe_urls(self.urls, timeout=5)
+        if ordered:
+            self.logger.attr('PreferredUrl', ordered[0])
+            return ordered
 
-        self.logger.warning(f'Primary CDN url did not pass probe within 10s, trying fallback urls: {primary}')
-        scored = []
-        for index, url_base in enumerate(self.urls[1:], start=1):
-            latency = self.probe_url(url_base)
-            if latency is None:
-                continue
-            scored.append((latency, index, url_base))
+        if self.fallback_urls:
+            self.logger.warning('No primary CDN url passed probe within 5s, using fallback urls')
+            return self.fallback_urls
 
-        if not scored:
-            self.logger.warning('No CDN url passed probe, fall back to configured order')
-            return self.urls
-
-        scored.sort(key=lambda item: (item[0], item[1]))
-        ordered = [url_base for _, _, url_base in scored]
-        self.logger.attr('PreferredUrl', ordered[0])
-        return ordered
+        self.logger.warning('No CDN url passed probe within 5s, fall back to configured order')
+        return self.urls
 
     @cached_property
     def latest_commit(self) -> str:
@@ -176,7 +214,7 @@ class GitOverCdnClient:
             else:
                 self.logger.error(f'Failed to get remote commit, status={resp.status_code}, text={resp.text}')
 
-        self.url = self.urls[0]
+        self.url = (self.urls + self.fallback_urls)[0]
         return ''
 
     def download_pack(self):
