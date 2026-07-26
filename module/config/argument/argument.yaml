@@ -116,6 +116,10 @@ Emulator:
   ControlMethod:
     value: MaaTouch
     option: [ADB, uiautomator2, minitouch, Hermit, MaaTouch]
+  GameSettings:
+    type: checkbox
+    value: false
+    option: [true, false]
   ScreenshotDedithering: false
   AdbRestart: false
 EmulatorInfo:

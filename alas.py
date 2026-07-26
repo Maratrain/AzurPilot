@@ -311,6 +311,8 @@ class AzurLaneAutoScript:
                 action='通常无需处理；若反复发生，请检查游戏包名、模拟器状态和登录流程。',
                 exc=e,
                 level=30,
+                # 预期恢复路径仅保留异常摘要，避免堆栈淹没后续重启日志。
+                with_traceback=False,
             )
             self._check_sensitive_exit(command, e)
             handle_notify(

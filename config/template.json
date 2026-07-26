@@ -74,6 +74,7 @@
       "ServerName": "disabled",
       "ScreenshotMethod": "auto",
       "ControlMethod": "MaaTouch",
+      "GameSettings": false,
       "ScreenshotDedithering": false,
       "AdbRestart": false
     },

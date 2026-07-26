@@ -601,6 +601,12 @@
       "Hermit": "Hermit",
       "MaaTouch": "MaaTouch"
     },
+    "GameSettings": {
+      "name": "Automatically apply recommended game settings",
+      "help": "Before starting the game, automatically attempt to apply the recommended frame-rate, story, Operation Siren, notification, and confirmation settings. It runs only when the game process has fully stopped, root or su access is available, and the write passes verification. Settings data is processed in memory only; no backup or recovery file is created. If it cannot run safely, it is skipped without affecting normal game startup.",
+      "True": "Enabled",
+      "False": "Disabled"
+    },
     "ScreenshotDedithering": {
       "name": "Remove Image Color Dithering",
       "help": "Enable when running on a real device"

@@ -561,8 +561,11 @@ def show():
     # 异常发生后的行
 
 
-def error_context(title, reason, impact, action, exc=None, level=logging.ERROR):
-    """输出包含原因、影响和处理建议的统一错误信息。"""
+def error_context(title, reason, impact, action, exc=None, level=logging.ERROR, with_traceback=None):
+    """输出包含原因、影响和处理建议的统一错误信息。
+
+    ``with_traceback`` 为 ``None`` 时，保持原有行为：传入异常对象则输出完整堆栈。
+    """
     message = '\n'.join([
         f'[错误] {title}',
         f'原因：{reason}',
@@ -571,7 +574,9 @@ def error_context(title, reason, impact, action, exc=None, level=logging.ERROR):
     ])
     if exc is not None:
         message += f'\n异常：{type(exc).__name__}: {exc}'
-    logger.log(level, message, exc_info=exc is not None)
+    if with_traceback is None:
+        with_traceback = exc is not None
+    logger.log(level, message, exc_info=with_traceback)
 
 
 def exception_context(title, exc, impact, action, level=logging.ERROR):

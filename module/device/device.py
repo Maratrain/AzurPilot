@@ -451,6 +451,12 @@ class Device(Screenshot, Control, AppControl, Input):
             logger.critical('[Device] 错误 没有启动/停止应用，因为 HandleError 已禁用')
             logger.critical('[Device] 请启用 Alas.Error.HandleError 或手动登录碧蓝航线')
             raise RequestHumanTakeover
+        if getattr(self.config, 'Emulator_GameSettings', False):
+            from module.game_setting.player_prefs import apply_recommended_game_settings
+
+            wait_for_stop = getattr(self, '_game_settings_wait_for_stop', False)
+            apply_recommended_game_settings(self, wait_for_stop=wait_for_stop)
+            self._game_settings_wait_for_stop = False
         super().app_start()
         self.stuck_record_clear()
         self.click_record_clear()
@@ -461,5 +467,7 @@ class Device(Screenshot, Control, AppControl, Input):
             logger.critical('[Device] 请启用 Alas.Error.HandleError 或手动登录碧蓝航线')
             raise RequestHumanTakeover
         super().app_stop()
+        if getattr(self.config, 'Emulator_GameSettings', False):
+            self._game_settings_wait_for_stop = True
         self.stuck_record_clear()
         self.click_record_clear()
