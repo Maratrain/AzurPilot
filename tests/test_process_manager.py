@@ -67,12 +67,47 @@ class TestProcessManagerRegistry(unittest.TestCase):
         kill.assert_called_once_with(12345)
         self.assertNotIn("alas", State.process_registry)
 
-    def test_stop_uses_process_tree_kill_with_local_process(self):
+    def test_stop_uses_local_process_handle_before_tree_kill(self):
+        """本地 Process 句柄存活时应优先使用 terminate/kill，而非 taskkill。"""
         State.process_registry["alas"] = 12345
         manager = ProcessManager.get_manager("alas")
         process = Mock()
         process.pid = 12345
-        process.is_alive.side_effect = [True, False]
+        # _is_process_alive: 初始 + 同步各两次 True；_stop_local_process:
+        # terminate 后仍 True，kill 后变 False → 本地句柄成功停止。
+        process.is_alive.side_effect = [True, True, True, True, True, False]
+        manager._process = process
+
+        with (
+            patch.object(ProcessManager, "_kill_process_tree") as kill,
+            patch(
+                "module.webui.process_manager.is_current_owner", return_value=True
+            ),
+            patch(
+                "module.webui.process_manager.get_workers",
+                return_value={"alas": {"pid": 12345, "created_at": 1}},
+            ),
+            patch("module.webui.process_manager.process_matches", return_value=True),
+            patch("module.webui.process_manager.unregister_worker"),
+        ):
+            self.assertTrue(manager.stop())
+
+        # 本地句柄成功停止，不应回退到 taskkill
+        kill.assert_not_called()
+        process.terminate.assert_called_once()
+        process.kill.assert_called_once()
+        self.assertNotIn("alas", State.process_registry)
+
+    def test_stop_falls_back_to_tree_kill_when_local_fails(self):
+        """本地句柄 terminate/kill 均失败时回退到 taskkill 终止进程树。"""
+        State.process_registry["alas"] = 12345
+        manager = ProcessManager.get_manager("alas")
+        process = Mock()
+        process.pid = 12345
+        # _is_process_alive: 初始 + 同步各两次 True
+        # _stop_local_process: terminate 后 True，kill 后仍 True → 本地失败
+        # 回退 _kill_process_tree 后 join(3)，最终检查 _is_process_alive → False
+        process.is_alive.side_effect = [True, True, True, True, True, True, False]
         manager._process = process
 
         with (
@@ -89,8 +124,9 @@ class TestProcessManagerRegistry(unittest.TestCase):
         ):
             self.assertTrue(manager.stop())
 
+        # 本地句柄失败，应回退到 taskkill
         kill.assert_called_once_with(12345)
-        process.join.assert_called_once_with(timeout=3)
+        process.kill.assert_called()  # _stop_local_process 中调用
         self.assertNotIn("alas", State.process_registry)
 
     def test_failed_cross_session_stop_keeps_worker_registered(self):
@@ -171,7 +207,9 @@ class TestProcessManagerRegistry(unittest.TestCase):
             self.assertFalse(manager.stop())
 
         kill.assert_not_called()
-        process.join.assert_not_called()
+        # join(timeout=0) 是僵尸检测探针（不阻塞），不应与实际 join(timeout>0) 混淆
+        join_calls = [c.kwargs.get("timeout") for c in process.join.call_args_list]
+        self.assertNotIn(3, join_calls, "不应调用阻塞式 join(timeout=3)")
         self.assertIs(manager._process, process)
         self.assertNotIn("alas", State.process_registry)
 

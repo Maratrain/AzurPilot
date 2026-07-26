@@ -121,6 +121,14 @@ class ProcessManager:
                         return
                     if self.alive:
                         return
+                    # alive 在登记不可验证时保守返回 False；
+                    # 此处再次确认登记状态，防止在登记不一致时启动重复 worker。
+                    _pid, _, _verified = self._registered_worker()
+                    if not _verified and _pid is not None:
+                        logger.warning(
+                            f"[{self.config_name}] Worker 登记不一致，拒绝启动以避免重复"
+                        )
+                        return
                     if func is None:
                         func = get_config_mod(self.config_name)
                     args = (
@@ -167,17 +175,42 @@ class ProcessManager:
             else:
                 pid, record, pid_verified = self._registered_worker()
 
+            # _registered_worker 可能已通过 join(0) 回收僵尸句柄，
+            # 或 worker 在此期间自然退出。同步本地活性状态，
+            # 避免因过时的 local_process_alive 误判 stop 失败。
+            if local_process_alive and not self._is_process_alive(self._process):
+                local_process_alive = False
+
             stopped = pid is None and not local_process_alive
             if pid is not None and not pid_verified:
-                logger.error(
-                    f"[{self.config_name}] worker PID {pid} 身份无法确认，拒绝终止未知进程"
-                )
-                stopped = False
+                # _registered_worker 可能已通过 join(0) 回收了僵尸句柄；
+                # 若句柄已被清理说明 worker 已确认退出，视为成功停止。
+                if self._is_process_alive(self._process):
+                    logger.error(
+                        f"[{self.config_name}] worker PID {pid} 身份无法确认，拒绝终止未知进程"
+                    )
+                    stopped = False
+                else:
+                    logger.info(
+                        f"[{self.config_name}] worker PID {pid} 本地句柄已回收，确认已退出"
+                    )
+                    stopped = True
             elif pid is not None:
-                stopped = self._kill_registered_process_tree(pid, record)
-                if local_process_alive and stopped:
-                    process.join(timeout=3)
-                    stopped = stopped and not self._is_process_alive(process)
+                if local_process_alive and process is not None:
+                    # 优先使用本地 Process 句柄的 terminate/kill，
+                    # 比 taskkill 更可靠。
+                    stopped = ProcessManager._stop_local_process(process)
+                    if not stopped:
+                        # 本地句柄失败时回退到 taskkill 终止进程树
+                        stopped = self._kill_registered_process_tree(pid, record)
+                        if stopped:
+                            process.join(timeout=3)
+                            stopped = not self._is_process_alive(process)
+                else:
+                    stopped = self._kill_registered_process_tree(pid, record)
+                    if stopped and process is not None:
+                        process.join(timeout=3)
+                        stopped = not self._is_process_alive(process)
             if stopped:
                 self._process = None
                 stopped = self._unregister_process()
@@ -202,11 +235,46 @@ class ProcessManager:
 
     @staticmethod
     def _is_process_alive(process: Process | None) -> bool:
-        """读取本地进程状态，并将失效句柄视为已退出。"""
+        """读取本地进程状态，回收僵尸句柄并将失效句柄视为已退出。
+
+        已退出但未 join 的 multiprocessing.Process 句柄在 join() 之前
+        仍报告 is_alive() == True（僵尸状态）。此方法调用 join(timeout=0)
+        回收僵尸句柄，避免活性检查在整个 stop 流程中误判。
+        join(timeout=0) 对仍在运行的进程完全不阻塞。
+        """
         try:
-            return process is not None and process.is_alive()
+            if process is None:
+                return False
+            if not process.is_alive():
+                return False
+            # 尝试 join(0) 回收已退出但未 join 的僵尸进程句柄
+            process.join(timeout=0)
+            return process.is_alive()
         except (OSError, ValueError, AssertionError):
             return False
+
+    @staticmethod
+    def _stop_local_process(process: Process) -> bool:
+        """使用本地 Process 句柄逐级终止 worker，优先于 taskkill。
+
+        先 terminate() 等待 5 秒，超时则 kill() 等待 3 秒。
+        taskkill 可能因权限或进程状态问题静默失败；
+        本地句柄的 terminate/kill 更可靠。
+        注意：此方法仅终止根进程，不处理子进程树。
+        调用方应在失败时回退到 _kill_process_tree。
+        """
+        try:
+            process.terminate()
+        except (OSError, ValueError, AssertionError):
+            pass
+        process.join(timeout=5)
+        if process.is_alive():
+            try:
+                process.kill()
+            except (OSError, ValueError, AssertionError):
+                pass
+            process.join(timeout=3)
+        return not process.is_alive()
 
     @classmethod
     def _terminate_unregistered_process(cls, process: Process) -> None:
@@ -375,7 +443,20 @@ class ProcessManager:
 
         unregistered = self._unregister_process()
         if expected_pid is not None:
-            # 本地句柄仍报告存活时，登记不匹配不能视作已安全结束。
+            # process_matches 已确认进程死亡（返回 None）或 PID 已复用
+            # （返回 False），本地句柄可能是未 join 的僵尸。
+            # 尝试 join 回收僵尸句柄，避免将已死进程误报为存活。
+            try:
+                process = self._process
+                if process is not None and process.pid == expected_pid:
+                    process.join(timeout=0)
+            except (OSError, ValueError, AssertionError):
+                pass
+            # join 后若句柄不再报告存活，说明已是僵尸，已回收。
+            if not self._is_process_alive(self._process):
+                self._process = None
+                if unregistered:
+                    return None, None, True
             return expected_pid, None, False
         if unregistered:
             return None, None, True
@@ -431,7 +512,10 @@ class ProcessManager:
                 return True
             pid, pid_verified = self._registered_pid()
             if not pid_verified:
-                return True
+                # 登记验证失败且本地句柄已死时，保守默认已退出，
+                # 避免 alert 属性持续阻塞日志线程和状态展示。
+                # start() 通过额外的 _registered_worker 检查防止重复启动。
+                return False
             return pid is not None
 
     @property
