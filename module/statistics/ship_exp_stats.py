@@ -1,3 +1,17 @@
+"""舰船经验效率统计模块。
+
+统计舰船经验检测数据和战斗时间，包含每日经验效率统计，
+用于预估升级时间。
+
+功能：
+- 记录每次战斗的经验获取量和战斗时间
+- 计算每日经验效率（经验/小时）
+- 预估达到目标等级所需时间
+- 持久化统计数据到 JSON 文件
+
+继承自 LIST_SHIP_EXP 数据，复用经验数据定义。
+"""
+
 # 此文件用于统计舰船经验检测数据和战斗时间
 # 包含每日经验效率统计，用于预估升级时间
 
@@ -57,7 +71,7 @@ class ShipExpStats:
                 return data
             return {}
         except Exception as e:
-            logger.warning(f'Failed to load ship exp data: {e}')
+            logger.warning(f'[统计-经验] 加载舰船经验数据失败: {e}')
             return {}
     
     def _save(self) -> None:
@@ -69,7 +83,7 @@ class ShipExpStats:
                 encoding='utf-8'
             )
         except Exception as e:
-            logger.warning(f'Failed to save ship exp data: {e}')
+            logger.warning(f'[统计-经验] 保存舰船经验数据失败: {e}')
     
     # ========== 战斗时间记录 ==========
     
@@ -275,7 +289,7 @@ class ShipExpStats:
         self.data['battle_count_at_check'] = battle_count_at_check
         self.data['ships'] = ships
         self._save()
-        logger.info(f'Ship exp data saved: {len(ships)} ships, target level {target_level}')
+        logger.info(f'[统计-经验] 舰船经验数据已保存: {len(ships)} 艘舰船，目标等级 {target_level}')
     
     def calculate_progress(
         self,

@@ -1,3 +1,9 @@
+"""大世界地图指令处理器。
+
+管理大世界地图中的指令操作（如进入海域、移动舰队等），
+继承地图操作、行动力处理器和地图事件处理器。提供指令
+面板的进入/退出检测、海域颜色分析以判断海域状态等。
+"""
 import numpy as np
 
 from module.base.timer import Timer
@@ -21,7 +27,7 @@ class MapOrderHandler(MapOperation, ActionPointHandler, MapEventHandler, ZoneMan
             in: is_in_map
             out: is_in_map_order
         """
-        logger.info('Order enter')
+        logger.info('进入指令')
         for _ in self.loop():
             # End
             if self.is_in_map_order():
@@ -43,7 +49,7 @@ class MapOrderHandler(MapOperation, ActionPointHandler, MapEventHandler, ZoneMan
             in: is_in_map_order
             out: is_in_map
         """
-        logger.info('Order quit')
+        logger.info('退出指令')
         self.ui_click(ORDER_CHECK, appear_button=self.is_in_map_order, check_button=self.is_in_map,
                       skip_first_screenshot=True)
 
@@ -76,7 +82,7 @@ class MapOrderHandler(MapOperation, ActionPointHandler, MapEventHandler, ZoneMan
 
             if self.is_in_map_order() and not self.appear(button):
                 if missing_timer.reached():
-                    logger.info(f'Map order not available: {button}')
+                    logger.info(f'[大世界处理-指令] 地图指令不可用: {button}')
                     self.order_quit()
                     return False
             else:
@@ -150,7 +156,7 @@ class MapOrderHandler(MapOperation, ActionPointHandler, MapEventHandler, ZoneMan
         if not self.map_cat_attack_timer.reached():
             return False
         if np.sum(color_similarity_2d(self.image_crop(MAP_CAT_ATTACK, copy=False), (255, 231, 123)) > 221) > 100:
-            logger.info('Skip map cat attack')
+            logger.info('跳过地图猫攻击')
             self.device.click(CLICK_SAFE_AREA)
             self.map_cat_attack_timer.reset()
             return True

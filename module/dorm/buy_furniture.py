@@ -1,3 +1,12 @@
+"""
+后宅家具购买模块。
+
+自动检测并购买宿舍家具商店中的限时家具。功能包括：
+- 进入宿舍家具商店并浏览家具详情
+- 通过 OCR 识别家具代币余额和价格，判断是否足够购买
+- 根据配置选择购买套装或全部购买
+- 支持按固定间隔（默认 6 天）自动检查并购买
+"""
 from datetime import timedelta
 
 from module.combat.assets import GET_SHIP
@@ -21,6 +30,17 @@ FURNITURE_BUY_BUTTON = {
 
 
 class BuyFurniture(UI):
+    """
+    家具购买处理器，负责自动检测和购买限时家具。
+
+    继承自 UI，通过 OCR 识别家具代币余额和价格，
+    在检测到限时家具时自动购买。支持套装购买和全部购买两种模式。
+
+    Attributes:
+        CHECK_INTERVAL (int): 检查间隔天数，默认 6 天。
+        FURNITURE_BUY_BUTTON (dict): 购买按钮映射，包含 "all" 和 "set" 两种选项。
+    """
+
     def enter_first_furniture_details_page(self, skip_first_screenshot=False):
         """
         Pages:
@@ -167,10 +187,10 @@ class BuyFurniture(UI):
         # Successful or failed buy will have popup and back to furniture details page,
         # produce the result from furniture coin compare to furniture price.
         if coin >= price > 0:
-            logger.info(f"Enough furniture coin, buy {buy_option}")
+            logger.info(f"[宿舍-家具] 家具币充足，购买 {buy_option}")
             buy_successful = True
         else:
-            logger.info(f"Not enough furniture coin, purchase is over")
+            logger.info(f"[宿舍-家具] 家具币不足，购买结束")
             buy_successful = False
         self.buy_furniture_confirm(skip_first_screenshot=True)
         self.furniture_details_page_quit(skip_first_screenshot=True)
@@ -186,15 +206,15 @@ class BuyFurniture(UI):
         """
         self.enter_first_furniture_details_page()
         if self.match_template_color(DORM_FURNITURE_COUNTDOWN, offset=(20, 20)):
-            logger.info("There is a time-limited furniture available for buy")
+            logger.info("[宿舍-家具] 发现限时家具可购买")
 
             if self.buy_furniture_once(self.config.BuyFurniture_BuyOption):
-                logger.info("Find next time-limited furniture")
+                logger.info("[宿舍-家具] 查找下一个限时家具")
                 return True  # continue
             else:
                 return False  # break
         else:
-            logger.info("No time-limited furniture found")
+            logger.info("[宿舍-家具] 未找到限时家具")
             return False  # break
 
     def buy_furniture_run(self):
@@ -203,14 +223,14 @@ class BuyFurniture(UI):
             in: DORM_FURNITURE_DETAILS_ENTER (furniture shop page)
             out: page_dorm
         """
-        logger.info("Buy furniture run")
+        logger.info("[宿舍-家具] 开始购买家具")
         while 1:
             if self._buy_furniture_run():
                 continue
             else:
                 break
         # Quit to page_dorm
-        logger.info("Fallback to dorm_page")
+        logger.info("[宿舍-家具] 回退到宿舍页面")
         self.furniture_details_page_quit(skip_first_screenshot=True)
         self.furniture_shop_quit(skip_first_screenshot=True)
         self.config.BuyFurniture_LastRun = current_time().replace(microsecond=0)
@@ -219,14 +239,14 @@ class BuyFurniture(UI):
         """
         Run Buy Furniture
         """
-        logger.attr("BuyFurniture_LastRun", self.config.BuyFurniture_LastRun)
-        logger.attr("CHECK_INTERVAL", CHECK_INTERVAL)
+        logger.attr("上次运行时间", self.config.BuyFurniture_LastRun)
+        logger.attr("检查间隔", CHECK_INTERVAL)
 
         time_run = self.config.BuyFurniture_LastRun + timedelta(days=CHECK_INTERVAL)
-        logger.info(f"Task BuyFurniture run time is {time_run}")
+        logger.info(f"[宿舍-家具] 任务运行时间: {time_run}")
 
         if current_time().replace(microsecond=0) < time_run:
-            logger.info("Not running time, skip")
+            logger.info("[宿舍-家具] 未到运行时间，跳过")
             return
 
         self.buy_furniture_run()

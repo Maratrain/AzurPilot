@@ -1,3 +1,9 @@
+"""重试装饰器模块。
+
+从 retry 库复制并修改，提供带退避（backoff）、抖动（jitter）和可配置异常处理的
+重试装饰器，用于自动重试失败的操作。
+"""
+
 import functools
 import random
 import time
@@ -64,7 +70,7 @@ def __retry_internal(f, exceptions=Exception, tries=-1, delay=0, max_delay=None,
             if logger is not None:
                 # 与原版不同，显示异常详情
                 logger.exception(e)
-                logger.warning(f'{type(e).__name__}({e}), retrying in {_delay} seconds...')
+                logger.warning(f'{type(e).__name__}({e}), 重试，等待 {_delay} 秒...')
 
             time.sleep(_delay)
             _delay *= backoff

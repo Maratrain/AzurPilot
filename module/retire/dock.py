@@ -1,3 +1,12 @@
+"""
+船坞界面操作模块。
+
+提供船坞页面的 UI 交互功能，包括卡片网格布局、排序切换、
+收藏筛选、筛选器设置与确认、舰船选择、进入舰船详情等操作。
+定义了卡片各属性区域 (稀有度、等级、情绪、情绪状态) 的
+按钮网格和情绪颜色常量。
+"""
+
 import module.config.server as server
 
 from module.base.button import ButtonGrid, get_color, color_similar
@@ -40,6 +49,15 @@ OCR_DOCK_SELECTED = DigitCounter(DOCK_SELECTED, threshold=64, name='OCR_DOCK_SEL
 
 
 class Dock(Equipment):
+    """船坞界面操作处理器。
+
+    提供船坞页面的通用操作：卡片加载等待、排序切换、收藏筛选、
+    筛选器设置、舰船选择与确认、进入舰船详情等。
+    继承 Equipment 以复用装备侧边导航栏操作。
+
+    服务器差异：TW 服务器的筛选器按钮布局与其他服务器不同，
+    通过 @Config.when 装饰器分发。
+    """
     def handle_dock_cards_loading(self, skip_first_screenshot=True):
         """
         等待船坞卡片加载完成。
@@ -67,7 +85,7 @@ class Dock(Equipment):
                 new_result = scanner.scan(self.device.image)
 
             if self.appear(DOCK_EMPTY):
-                logger.info('Dock empty')
+                logger.info('船坞为空')
                 break
             if timeout.reached():
                 break
@@ -101,7 +119,7 @@ class Dock(Equipment):
                 self.handle_dock_cards_loading()
 
     def dock_filter_enter(self):
-        logger.info('Dock filter enter')
+        logger.info('船坞筛选进入')
         self.interval_clear(DOCK_CHECK)
         for _ in self.loop():
             if self.appear(DOCK_FILTER_CONFIRM, offset=(20, 60)):
@@ -338,7 +356,7 @@ class Dock(Equipment):
                 self.device.screenshot()
 
             if timeout.reached():
-                logger.warning('Get dock_selected timeout, assume not selected')
+                logger.warning('[退役-船坞] 获取已选数量超时，假设未选中')
                 break
 
             current, _, total = OCR_DOCK_SELECTED.ocr(self.device.image)
@@ -384,7 +402,7 @@ class Dock(Equipment):
             in: page_dock
             out: SHIP_DETAIL_CHECK
         """
-        logger.info('Dock enter first')
+        logger.info('进入船坞首选')
         self.interval_clear(DOCK_CHECK, interval=3)
 
         while 1:
@@ -397,7 +415,7 @@ class Dock(Equipment):
             if self.appear(SHIP_DETAIL_CHECK, offset=(20, 20)):
                 return True
             if self.appear(DOCK_EMPTY, offset=(20, 20)):
-                logger.info('Dock empty')
+                logger.info('船坞为空')
                 return False
 
             # Click
@@ -405,12 +423,12 @@ class Dock(Equipment):
                 if non_npc:
                     # Check NPC
                     if DOCK_FIRST_NPC.match_luma(self.device.image, offset=(20, 20)):
-                        logger.info('First ship is NPC, select second')
+                        logger.info('第一艘是NPC舰船，选择第二艘')
                         button = CARD_GRIDS[(1, 0)]
                         # Check if there's second ship
                         color = get_color(self.device.image, button.area)
                         if color_similar(color, (34, 34, 42)):
-                            logger.info('Second ship empty, dock empty')
+                            logger.info('第二艘为空，船坞为空')
                             return False
                     else:
                         button = CARD_GRIDS[(0, 0)]

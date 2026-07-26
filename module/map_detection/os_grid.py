@@ -1,3 +1,6 @@
+"""大世界网格模块。定义 OSGridInfo 和 OSGrid 类，扩展基础网格以支持大世界特有的
+网格属性（敌人、资源、问号、盟友等）和雷达扫描检测。"""
+
 from module.base.utils import *
 from module.map_detection.grid import Grid, GridInfo, GridPredictor
 from module.map_detection.utils_assets import ASSETS

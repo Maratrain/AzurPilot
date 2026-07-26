@@ -1,3 +1,20 @@
+"""演习血量实时监控模块。
+
+在演习（PvP）战斗中实时监控攻守双方的 HP 百分比。
+通过图像识别分析 HP 条的颜色分布，计算当前血量。
+
+HP 条颜色分析：
+- 绿色区域：血量充足
+- 红色区域：血量较低
+- 通过颜色占比计算 HP 百分比（0.0 到 1.0）
+
+使用场景：
+- 当己方血量过低时触发保护逻辑（如撤退）
+- 记录战斗过程中的血量变化
+
+继承自 ModuleBase，被 Exercise 组合使用。
+"""
+
 # 此文件实现了演习（Exercise）模式下的血量实时监控逻辑。
 # 它通过图像识别计算攻守双方的 HP 百分比，并在己方血量过低时触发相应逻辑以保护单局胜率或撤退。
 from module.base.base import ModuleBase
@@ -9,6 +26,15 @@ from module.logger import logger
 
 
 class HpDaemon(ModuleBase):
+    """演习血量监控守护器。
+
+    实时监控演习战斗中攻守双方的 HP 状态。
+
+    Attributes:
+        attacker_hp (float): 攻击方（己方）的 HP 百分比 (0.0-1.0)。
+        defender_hp (float): 防守方（敌方）的 HP 百分比 (0.0-1.0)。
+        low_hp_confirm_timer (Timer): 低血量确认计时器，防止误判。
+    """
     attacker_hp = 1.0
     defender_hp = 1.0
     # _last_secure_time = 0

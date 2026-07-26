@@ -1,3 +1,6 @@
+"""地图视图模块。定义 View 类继承 MapDetector，管理地图中所有网格的集合，
+提供网格查询、遍历、舰队位置计算和滑动偏移等功能。"""
+
 import collections
 import time
 
@@ -148,7 +151,7 @@ class View(MapDetector):
             tuple[int]: 偏移量 (x, y)。无法预测时返回 None。
 
         Log:
-            Map swipe predict: (2, 0) (0.023s, current fleet match)
+            Map swipe predict: (2, 0) (0.023s, 当前舰队匹配)
         """
         start_time = time.time()
         offset = np.subtract(self.center_loca, prev.center_loca)
@@ -168,8 +171,8 @@ class View(MapDetector):
                 diff = np.subtract(current_fleet[0].location, previous_fleet[0].location) - offset
                 # print(current_fleet[0].location, previous_fleet[0].location, offset, diff)
                 diff = tuple(diff.tolist())
-                logger.info(f'Map swipe predict: {diff} ({float2str(time.time() - start_time) + "s"}'
-                            f', current fleet match)')
+                logger.info(f'[地图检测-视图] 地图滑动预测: {diff} ({float2str(time.time() - start_time) + "s"}'
+                            f', 当前舰队匹配)')
                 return diff
 
         if with_sea_grids:
@@ -187,11 +190,11 @@ class View(MapDetector):
             # print(diff)
             if len(diff) == 1 \
                     or len(diff) >= 2 and diff[0][1] > diff[1][1]:
-                logger.info(f'Map swipe predict: {diff[0][0]} '
-                            f'({float2str(time.time() - start_time) + "s"}, {diff[0][1]} matches)')
+                logger.info(f'[地图检测-视图] 地图滑动预测: {diff[0][0]} '
+                            f'({float2str(time.time() - start_time) + "s"}, {diff[0][1]} 次匹配)')
                 return diff[0][0]
 
         # 无法预测
-        logger.info(f'Map swipe predict: None '
-                    f'({float2str(time.time() - start_time) + "s"}, no match)')
+        logger.info(f'[地图检测-视图] 地图滑动预测: 无 '
+                    f'({float2str(time.time() - start_time) + "s"}, 无匹配)')
         return None

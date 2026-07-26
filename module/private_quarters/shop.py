@@ -1,3 +1,12 @@
+"""
+私人休息室商店主逻辑。
+
+编排私人宿舍商店的完整购买流程，包括商品过滤、货架扫描、
+余额检测和逐项购买。通过 Filter 和 PQShopItemGrid 实现
+商品分类与筛选，支持按优先级排序购买。
+
+Pages: in: PRIVATE_QUARTERS_SHOP
+"""
 import re
 
 from module.base.button import ButtonGrid
@@ -129,7 +138,7 @@ class PQShop(PQShopClerk, PQStatus):
         """
         self._currency = self.status_get_gold_coins()
         self.gems = self.status_get_gems()
-        logger.info(f'Gold coins: {self._currency}, Gems: {self.gems}')
+        logger.info(f'[私人休息室-商店] 金币: {self._currency}, 钻石: {self.gems}')
 
     def shop_check_item(self, item):
         """
@@ -173,6 +182,6 @@ class PQShop(PQShopClerk, PQStatus):
 
         if not filtered:
             return None
-        logger.attr('Item_sort', ' > '.join([str(item) for item in filtered]))
+        logger.attr('商品排序', ' > '.join([str(item) for item in filtered]))
 
         return filtered[0]

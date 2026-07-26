@@ -1,3 +1,8 @@
+"""岛屿空投任务模块。
+
+处理岛屿每日空投领取逻辑，根据上次偷取时间判断是否执行空投流程。
+管理空投冷却时间（5小时）与每日重置边界，支持重复尝试与超时跳过。
+"""
 from module.island.island import *
 from time import sleep
 from module.ui.scroll import Scroll

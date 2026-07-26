@@ -1,3 +1,8 @@
+"""岛屿牧场模块。
+
+管理岛屿牧场的自动化运营，包括农场作物（小麦、玉米、牧场）、磨坊加工与畜牧养殖。
+通过仓库 OCR 检测库存数量，根据阈值配置自动补充鸡肉和猪肉等畜牧产品。
+"""
 from module.island_farm.assets import *
 from module.island_rancher.assets import *
 from module.island.island import *

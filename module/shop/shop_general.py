@@ -1,3 +1,7 @@
+"""通用商店处理器，支持金币和钻石两种货币购买商品。
+支持 2025-08-14 新 UI 布局，可配置是否允许使用钻石。
+"""
+
 from module.base.decorator import cached_property
 from module.logger import logger
 from module.shop.base import ShopItemGrid, ShopItemGrid_250814
@@ -73,10 +77,10 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         while 1:
             self._currency = self.status_get_gold_coins()
             self.gems = self.status_get_gems()
-            logger.info(f'Gold coins: {self._currency}, Gems: {self.gems}')
+            logger.info(f'[商店-货币] 金币: {self._currency}, 钻石: {self.gems}')
 
             if self.currency_rechecked >= 3:
-                logger.warning('Failed to handle fix currency bug in general shop, skip')
+                logger.warning('[商店-货币] 无法修复通用商店货币bug，跳过')
                 break
 
             break
@@ -128,7 +132,7 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         if self.config.GeneralShop_BuySkinBox:
             if (not item.is_known_item()) and item.amount == 1 and item.cost == 'Coins' and item.price == 7000:
                 # 装备外观箱无法通过模板匹配识别（颜色和外观持续变化）
-                logger.info(f'Item {item} is considered to be an equip skin box')
+                logger.info(f'[商店-商品] 物品 {item} 被认为是装备外观箱')
                 if self._currency >= item.price:
                     return True
 
@@ -150,8 +154,8 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         """
         if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 600000:
             return value
-        logger.warning(f'{name}={value}, invalid value (expected int in 0-600000), '
-                       f'set to 0 to disable feature')
+        logger.warning(f'[商店-配置] {name}={value}，无效值（期望0-600000的整数），'
+                       f'设置为0以禁用功能')
         return 0
 
     def _meowfficer_overflow_buy(self):
@@ -173,11 +177,11 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         # 重新OCR识别金币（购买消耗物资后金币可能已变化）
         self.shop_currency()
         if self._currency <= overflow_coins:
-            logger.info(f'Gold coins {self._currency} <= OverflowCoins {overflow_coins}, skip meowfficer overflow buy')
+            logger.info(f'[商店-溢出] 金币 {self._currency} <= 溢出阈值 {overflow_coins}，跳过指挥喵溢出购买')
             return
 
-        logger.hr('Meowfficer overflow buy', level=1)
-        logger.info(f'Gold coins {self._currency} > OverflowCoins {overflow_coins}, trigger meowfficer overflow buy')
+        logger.hr('指挥喵溢出购买', level=1)
+        logger.info(f'[商店-溢出] 金币 {self._currency} > 溢出阈值 {overflow_coins}，触发指挥喵溢出购买')
 
         # 导航到指挥喵界面
         self.ui_goto(page_meowfficer)
@@ -222,7 +226,7 @@ class GeneralShop_250814(ShopClerk, ShopUI, ShopStatus):
         if not self.shop_filter:
             return
 
-        logger.hr('General Shop', level=1)
+        logger.hr('通用商店', level=1)
 
         # 执行购买操作，启用刷新时最多尝试 2 次
         refresh = self.config.GeneralShop_Refresh

@@ -1,3 +1,5 @@
+"""平台模拟器管理包。"""
+
 from module.device.env import IS_WINDOWS, IS_MACINTOSH
 
 if IS_WINDOWS:

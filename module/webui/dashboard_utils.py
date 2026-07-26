@@ -1,3 +1,10 @@
+"""
+仪表盘 Scope ID 管理工具。
+
+集中管理仪表盘相关的 PyWebIO scope 命名，避免重复创建和命名冲突。
+对 group_name 进行清洗，确保生成的 scope_id 是有效的标识符。
+"""
+
 # Dashboard scope ID 管理工具
 # 用于集中管理 dashboard 相关的 scope 命名，避免重复创建和命名冲突
 

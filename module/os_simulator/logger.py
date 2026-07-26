@@ -1,3 +1,9 @@
+"""大世界模拟器日志模块。
+
+为大世界模拟器提供独立的日志系统，包括 tqdm 输出重定向器
+（用于非控制台环境）和模拟器专用日志器（基于文件轮转），
+确保模拟运行过程可追溯且不影响主程序日志。
+"""
 import logging
 import os
 from datetime import datetime

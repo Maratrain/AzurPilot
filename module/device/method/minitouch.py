@@ -1,3 +1,12 @@
+"""
+minitouch 触控输入方法。
+
+基于 minitouch 工具实现低延迟的设备触控操作。
+minitouch 通过 Unix Socket 直接向 Android 设备的输入子系统发送触控事件，
+比 `adb shell input` 命令更快、更精确。支持点击、长按、滑动和多点触控。
+使用正态分布随机化触控坐标和速度，模拟自然的用户操作行为。
+需要先通过 ADB 将 minitouch 推送至设备并建立 Socket 连接。
+"""
 import asyncio
 import json
 import socket
@@ -351,7 +360,7 @@ class CommandBuilder:
                 empty = False
                 break
         if empty:
-            logger.warning(f'Command list empty, sending it may cause unexpected behaviour: {text}')
+            logger.warning(f'命令列表为空，发送可能导致异常行为: {text}')
         return empty
 
 
@@ -456,10 +465,10 @@ def retry(func):
                     pass
 
         if func.__name__ in ['_minitouch_builder']:
-            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+            logger.critical(f'[设备-MiniTouch] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
 
-        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+        logger.critical(f'[设备-MiniTouch] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -507,7 +516,7 @@ class Minitouch(Connection):
 
     @Config.when(DEVICE_OVER_HTTP=False)
     def minitouch_init(self):
-        logger.hr('MiniTouch init')
+        logger.hr('[设备-MiniTouch] MiniTouch初始化')
         max_x, max_y = 1280, 720
         max_contacts = 2
         max_pressure = 50
@@ -579,10 +588,10 @@ class Minitouch(Connection):
         self._minitouch_pid = pid
 
         logger.info(
-            "minitouch running on port: {}, pid: {}".format(self._minitouch_port, self._minitouch_pid)
+            "[设备-MiniTouch] minitouch 运行端口: {}, pid: {}".format(self._minitouch_port, self._minitouch_pid)
         )
         logger.info(
-            "max_contact: {}; max_x: {}; max_y: {}; max_pressure: {}".format(
+            "[设备-MiniTouch] max_contact: {}; max_x: {}; max_y: {}; max_pressure: {}".format(
                 max_contacts, max_x, max_y, max_pressure
             )
         )
@@ -624,11 +633,11 @@ class Minitouch(Connection):
 
     @Config.when(DEVICE_OVER_HTTP=True)
     def minitouch_init(self):
-        logger.hr('MiniTouch init')
+        logger.hr('[设备-MiniTouch] MiniTouch初始化')
         self.max_x, self.max_y = 1280, 720
         self.get_orientation()
 
-        logger.info('Stop minitouch service')
+        logger.info('[设备-MiniTouch] 停止minitouch服务')
         s = U2Service('minitouch', self.u2)
         s.stop()
         while 1:
@@ -636,7 +645,7 @@ class Minitouch(Connection):
                 break
             self.sleep(0.05)
 
-        logger.info('Start minitouch service')
+        logger.info('[设备-MiniTouch] 启动minitouch服务')
         s.start()
         while 1:
             if s.running():
@@ -645,7 +654,7 @@ class Minitouch(Connection):
 
         # 'ws://127.0.0.1:7912/minitouch'
         url = re.sub(r"^https?://", 'ws://', self.serial) + '/minitouch'
-        logger.attr('Minitouch', url)
+        logger.attr('MiniTouch地址', url)
 
         async def connect():
             ws = await websockets.connect(url)

@@ -1,3 +1,8 @@
+"""岛屿仓库 OCR 模块。
+
+提供岛屿仓库物品数量的 OCR 识别功能，基于网格布局遍历仓库槽位。
+通过模板匹配定位目标物品，再对数量区域进行数字 OCR 读取，返回库存数量。
+"""
 from module.ocr.ocr import *
 from module.base.button import *
 from module.ui.ui import *

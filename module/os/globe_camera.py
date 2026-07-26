@@ -1,3 +1,23 @@
+"""
+大世界全球地图摄像机控制模块。
+
+负责全球地图（Globe Map）上的摄像机操作，包括视角平移、海域定位、
+坐标转换以及塞壬要塞搜索等功能。
+
+主要类:
+    GlobeCamera: 全球地图摄像机控制类，整合全球地图操作和海域管理。
+
+坐标系说明:
+    globe 坐标系: 全球地图的二维坐标系，原点为地图左上角。
+    screen 坐标系: 屏幕像素坐标系。
+    zone.location: 海域在全球地图坐标系中的位置。
+
+术语:
+    全球地图 (Globe Map): 大世界的整体地图视图，包含所有海域。
+    海域 (Zone): 全球地图上的一个可进入区域。
+    塞壬要塞 (Siren Stronghold): 全球地图上的特殊海域类型，
+        以红色漩涡标记，完成可获得特殊奖励。
+"""
 from module.base.timer import Timer
 from module.base.utils import *
 from module.exception import GameStuckError
@@ -11,19 +31,40 @@ from module.os_handler.assets import ACTION_POINT_CANCEL, ACTION_POINT_USE, AUTO
 
 
 class GlobeCamera(GlobeOperation, ZoneManager):
+    """全球地图摄像机控制类。
+
+    提供全球地图上的摄像机操控能力，包括视角平移 (swipe)、
+    海域聚焦 (focus)、坐标系转换以及塞壬要塞搜索。
+
+    通过组合 GlobeOperation（全球地图操作）和 ZoneManager（海域管理），
+    实现从全球地图层面的完整海域导航。
+
+    Attributes:
+        globe (GlobeDetection): 全球地图检测器实例。
+        globe_camera (tuple[float, float]): 当前摄像机在全球地图坐标系中的位置。
+    """
     globe: GlobeDetection
     globe_camera: tuple
 
     def _globe_init(self):
-        """
-        Call this method before doing anything.
+        """初始化全球地图检测器。
+
+        在进行任何全球地图操作前必须调用此方法。
+        仅在首次调用时加载全球地图资源。
         """
         if not hasattr(self, 'globe'):
             self.globe = GlobeDetection(self.config)
             self.globe.load_globe_map()
 
     def globe_update(self):
-        # Handle random black screenshots
+        """更新全球地图状态。
+
+        确保当前处于全球地图视图，然后加载全球地图数据并更新
+        摄像机位置。自动处理各种弹窗和意外页面跳转。
+
+        Raises:
+            GameStuckError: 5 秒内无法进入全球地图视图时抛出。
+        """
         timeout = Timer(5, count=10).start()
         while 1:
             if timeout.reached():
@@ -72,14 +113,14 @@ class GlobeCamera(GlobeOperation, ZoneManager):
                 timeout.reset()
                 continue
 
-            logger.warning('Trying to do globe_update(), but not in os globe map')
+            logger.warning('[大世界-地球仪] 尝试执行globe_update()，但不在大世界地球仪地图中')
             continue
 
         self._globe_init()
         self.globe.load(self.device.image)
         self.globe_camera = self.globe.center_loca
         center = self.camera_to_zone(self.globe.center_loca)
-        logger.attr('Globe_center', center.zone_id)
+        logger.attr('地球仪中心', center.zone_id)
 
     def globe_swipe(self, vector, box=(20, 220, 980, 620)):
         """
@@ -92,7 +133,7 @@ class GlobeCamera(GlobeOperation, ZoneManager):
         """
         name = 'GLOBE_SWIPE_' + '_'.join([str(int(round(x))) for x in vector])
         if np.linalg.norm(vector) <= 25:
-            logger.warning(f'Globe swipe to short: {vector}')
+            logger.warning(f'地球仪滑动过短: {vector}')
             vector = np.sign(vector) * 25
 
         if self.config.DEVICE_CONTROL_METHOD == 'minitouch':
@@ -110,6 +151,11 @@ class GlobeCamera(GlobeOperation, ZoneManager):
         self.globe_update()
 
     def globe_wait_until_stable(self):
+        """等待全球地图摄像机稳定。
+
+        持续更新全球地图状态，直到摄像机位置不再发生变化。
+        期间会处理海域固定弹窗。
+        """
         prev = self.globe_camera
         interval = Timer(1)
         confirm = Timer(0.5, count=1).start()
@@ -123,7 +169,7 @@ class GlobeCamera(GlobeOperation, ZoneManager):
             # End
             if np.linalg.norm(np.subtract(self.globe_camera, prev)) < 10:
                 if confirm.reached():
-                    logger.info('Globe map stabled')
+                    logger.info('[大世界-地球仪] 地球仪地图已稳定')
                     break
             else:
                 confirm.reset()
@@ -134,10 +180,26 @@ class GlobeCamera(GlobeOperation, ZoneManager):
             prev = self.globe_camera
 
     def globe2screen(self, points):
+        """将全球地图坐标转换为屏幕坐标。
+
+        Args:
+            points (np.ndarray): 全球地图坐标点数组。
+
+        Returns:
+            np.ndarray: 对应的屏幕坐标点数组。
+        """
         points = np.array(points) - self.globe_camera + self.globe.homo_center
         return self.globe.globe2screen(points).round()
 
     def screen2globe(self, points):
+        """将屏幕坐标转换为全球地图坐标。
+
+        Args:
+            points (np.ndarray): 屏幕坐标点数组。
+
+        Returns:
+            np.ndarray: 对应的全球地图坐标点数组。
+        """
         points = self.globe.screen2globe(points).round()
         return points - self.globe.homo_center + self.globe_camera
 
@@ -156,11 +218,14 @@ class GlobeCamera(GlobeOperation, ZoneManager):
         return button
 
     def globe_in_sight(self, zone, swipe_limit=(620, 340), sight=(20, 220, 980, 620)):
-        """
+        """将目标海域平移到屏幕视野范围内。
+
+        如果目标海域不在指定视野区域内，通过反复平移摄像机直到其可见。
+
         Args:
-            zone (str, int, Zone): Name in CN/EN/JP/TW, zone id, or Zone instance.
-            swipe_limit (tuple):
-            sight (tuple):
+            zone (str, int, Zone): 海域名称（CN/EN/JP/TW）、海域 ID 或 Zone 实例。
+            swipe_limit (tuple[int, int]): 单次平移的最大像素距离限制。
+            sight (tuple[int, int, int, int]): 屏幕上的有效视野区域 (x1, y1, x2, y2)。
         """
         zone = self.name_to_zone(zone)
         # logger.info(f'Globe in_sight: {zone}')
@@ -204,10 +269,10 @@ class GlobeCamera(GlobeOperation, ZoneManager):
 
             if self.is_zone_pinned():
                 if self.get_globe_pinned_zone() == zone:
-                    logger.attr('Globe_pinned', zone)
+                    logger.attr('固定海域', zone)
                     return True
             if timeout.reached():
-                logger.warning('Wait until zone pinned timeout')
+                logger.warning('[大世界-地球仪] 等待区域固定超时')
                 return False
 
     def globe_focus_to(self, zone):
@@ -223,7 +288,7 @@ class GlobeCamera(GlobeOperation, ZoneManager):
             out: IN_GLOBE, zone selected, ZONE_ENTRANCE
         """
         zone = self.name_to_zone(zone)
-        logger.info(f'Globe focus_to: {zone.zone_id}')
+        logger.info(f'[大世界-地球仪] 聚焦到: {zone.zone_id}')
 
         while 1:
             if self.handle_zone_pinned():
@@ -286,26 +351,26 @@ class GlobeCamera(GlobeOperation, ZoneManager):
         while zones:
             prev = self.camera_to_zone(self.globe_camera)
             zone = zones.sort_by_camera_distance(prev.location)[0]
-            logger.info(f'Find siren stronghold around {zone}')
+            logger.info(f'[大世界-地球仪] 查找塞壬要塞 around {zone}')
             self.globe_in_sight(zone, sight=sight)
 
             to_check = zones.filter(lambda z: point_in_area(self.globe2screen([z.location])[0], area=sight))
             for zone in to_check:
                 if self._globe_predict_stronghold(zone):
-                    logger.info(f'Zone {zone.zone_id} is a siren stronghold')
+                    logger.info(f'[大世界-地球仪] 区域 {zone.zone_id} 是塞壬要塞')
                     self.globe_focus_to(zone)
                     if self.get_zone_pinned_name() == 'STRONGHOLD':
-                        logger.info('Confirm it is a siren stronghold')
+                        logger.info('[大世界-地球仪] 确认为塞壬要塞')
                         return zone
                     else:
-                        logger.warning('Not a siren stronghold, continue searching')
+                        logger.warning('[大世界-地球仪] 不是塞壬要塞，继续搜索')
                         self.ensure_no_zone_pinned()
                 else:
-                    logger.info(f'Zone {zone.zone_id} is not a siren stronghold')
+                    logger.info(f'[大世界-地球仪] 区域 {zone.zone_id} 不是塞壬要塞')
 
             zones = zones.delete(to_check)
 
-        logger.info('Find siren stronghold finished')
+        logger.info('[大世界-地球仪] 查找塞壬要塞完成')
         return None
 
     def find_siren_stronghold(self):
@@ -317,7 +382,7 @@ class GlobeCamera(GlobeOperation, ZoneManager):
             in: in_globe
             out: in_globe, is_zone_pinned() if found.
         """
-        logger.hr(f'Find siren stronghold', level=1)
+        logger.hr(f'[大世界-地球仪] 查找塞壬要塞', level=1)
         region = self.camera_to_zone(self.globe_camera).region
         order = [1, 2, 4, 3]
         if region not in order:
@@ -331,11 +396,11 @@ class GlobeCamera(GlobeOperation, ZoneManager):
         order = order * 2
         order = order[index:index + 4]
         for region in order:
-            logger.hr(f'Find siren stronghold in region {region}', level=2)
+            logger.hr(f'[大世界-地球仪] 查找塞壬要塞 in region {region}', level=2)
             zones = self.zones.select(region=region, is_port=False)
             result = self._find_siren_stronghold(zones)
             if result is not None:
                 return result
 
-        logger.info('No more siren stronghold')
+        logger.info('[大世界-地球仪] 没有更多塞壬要塞')
         return None

@@ -1,3 +1,10 @@
+"""
+内存性能分析器。
+
+后台轻量级内存采样工具，通过独立的滚动日志记录内存诊断信息。
+使用 tracemalloc 追踪 Python 内存分配，RSS/USS 捕获原生库内存占用。
+"""
+
 import atexit
 import gc
 import logging

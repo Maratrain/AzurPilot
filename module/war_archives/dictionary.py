@@ -1,3 +1,7 @@
+"""作战档案模板映射字典，将作战档案活动名称映射到对应的模板图像。
+用于在作战档案页面中通过模板匹配识别并选择
+特定的历史活动关卡。"""
+
 from module.war_archives.assets import *
 
 dic_archives_template = {

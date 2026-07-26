@@ -1,3 +1,10 @@
+"""
+Discord Rich Presence 集成。
+
+通过 pypresence 库连接 Discord RPC，展示 AzurPilot 的运行状态。
+提供初始化和关闭接口，异步更新 Discord 状态信息。
+"""
+
 import asyncio
 import time
 

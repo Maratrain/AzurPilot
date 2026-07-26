@@ -1,3 +1,16 @@
+"""战役任务运行器模块。
+
+提供战役任务的完整运行框架，包括：
+- 战役地图模块的动态加载与实例化
+- 多种停止条件检测（运行次数、等级、石油、金币、活动 PT 等）
+- 关卡名称的标准化处理（活动名称映射、特殊 SP 名称转换、关卡循环）
+- 自动搜索续战逻辑
+- 委托通知处理
+
+本模块是战役任务的顶层编排器，被 alas.py 中的任务方法调用。
+负责从加载地图文件到循环执行战役的完整生命周期管理。
+"""
+
 import copy
 import importlib
 import os
@@ -16,6 +29,26 @@ from module.ui.page import page_campaign
 
 
 class CampaignRun(CampaignEvent, ShopStatus):
+    """战役任务运行器。
+
+    管理战役任务的完整生命周期：从动态加载战役地图模块，到循环执行战役并
+    检测各种停止条件。是所有战役类任务（Main、Event、GemsFarming 等）的
+    基础运行框架。
+
+    通过 load_campaign() 动态导入 campaign/ 目录下的地图定义文件，
+    实例化对应的 Campaign 对象，然后通过 run() 方法循环执行战役。
+
+    Attributes:
+        folder (str): campaign/ 下的地图文件夹名称，如 'campaign_main'。
+        name (str): 地图文件名，如 '7-2'、'a1'、'sp3'。
+        stage (str): 关卡标识，由 name 计算得出，用于 UI 导航。
+        module: 动态加载的地图模块对象。
+        config (AzurLaneConfig): 配置对象。
+        campaign (CampaignBase): 当前战役的执行实例。
+        run_count (int): 已完成的运行次数。
+        run_limit (int): 运行次数限制。
+        is_stage_loop (bool): 是否处于关卡循环模式。
+    """
     folder: str
     name: str
     stage: str
@@ -54,10 +87,10 @@ class CampaignRun(CampaignEvent, ShopStatus):
             logger.warning(f'Map file not found: campaign.{folder}.{name}')
             logger.warning('[战役] 未找到地图文件。通常是用户出击未适配的地图，或者运行目录有误。')
             if not os.path.exists(f'./campaign/{folder}'):
-                logger.warning(f'Folder not exists: ./campaign/{folder}')
+                logger.warning(f'[战役-运行] 文件夹不存在: ./campaign/{folder}')
             else:
                 files = map_files(folder)
-                logger.warning(f'Existing files: {files}')
+                logger.warning(f'[战役-运行] 现有文件: {files}')
 
             logger.critical(f'[战役] 可能的原因1: 这个活动 ({folder}) 没有 {name}')
             logger.critical(f'[战役] 可能的原因2: 你使用的Alas版本太旧，请检查更新，或者使用dev_tools/map_extractor.py自行制作地图文件')
@@ -78,7 +111,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
         """
         # 运行次数限制
         if self.run_limit and self.config.StopCondition_RunCount <= 0:
-            logger.hr('Triggered stop condition: Run count')
+            logger.hr('触发停止条件: 运行次数')
             self.config.StopCondition_RunCount = 0
             self.config.Scheduler_Enable = False
             handle_notify(
@@ -89,7 +122,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
             return True
         # 等级限制
         if self.config.StopCondition_ReachLevel and self.campaign.config.LV_TRIGGERED:
-            logger.hr(f'Triggered stop condition: Reach level {self.config.StopCondition_ReachLevel}')
+            logger.hr(f'触发停止条件: 达到等级 {self.config.StopCondition_ReachLevel}')
             self.config.Scheduler_Enable = False
             handle_notify(
                 self.config.Error_OnePushConfig,
@@ -104,21 +137,21 @@ class CampaignRun(CampaignEvent, ShopStatus):
             # 金币限制
             self.get_coin()
             if self.get_oil() < max(500, self.config.StopCondition_OilLimit):
-                logger.hr('Triggered stop condition: Oil limit')
+                logger.hr('触发停止条件: 石油上限')
                 self.config.task_delay(minute=(120, 240))
                 return True
         # 金币限制
         if oil_check and self.coin_limit_triggered():
-            logger.hr('Triggered stop condition: Coin limit')
+            logger.hr('触发停止条件: 物资上限')
             return True
         # 自动搜索石油限制
         if self.campaign.auto_search_oil_limit_triggered:
-            logger.hr('Triggered stop condition: Auto search oil limit')
+            logger.hr('触发停止条件: 自动搜索石油上限')
             self.config.task_delay(minute=(120, 240))
             return True
         # 获得新舰船
         if self.config.StopCondition_GetNewShip and self.campaign.config.GET_SHIP_TRIGGERED:
-            logger.hr('Triggered stop condition: Get new ship')
+            logger.hr('触发停止条件：获得新舰船')
             self.config.Scheduler_Enable = False
             handle_notify(
                 self.config.Error_OnePushConfig,
@@ -128,17 +161,17 @@ class CampaignRun(CampaignEvent, ShopStatus):
             return True
         # 活动限制
         if oil_check and self.campaign.event_pt_limit_triggered():
-            logger.hr('Triggered stop condition: Event PT limit')
+            logger.hr('触发停止条件: 活动PT上限')
             return True
         # 自动搜索任务均衡器
         if self.config.TaskBalancer_Enable and self.campaign.auto_search_coin_limit_triggered:
-            logger.hr('Triggered stop condition: Auto search coin limit')
+            logger.hr('触发停止条件: 自动搜索物资上限')
             self.handle_task_balancer()
             return True
         # 任务均衡器
         if oil_check and self.run_count >= 1:
             if self.config.TaskBalancer_Enable and self.triggered_task_balancer():
-                logger.hr('Triggered stop condition: Coin limit')
+                logger.hr('触发停止条件: 物资上限')
                 self.handle_task_balancer()
                 return True
 
@@ -153,7 +186,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
         """
         if not self.campaign.emotion.is_ignore:
             if self.campaign.emotion.triggered_bug():
-                logger.info('Triggered restart avoid emotion bug')
+                logger.info('[战役-运行] 触发重启避免情绪bug')
                 return True
 
         return False
@@ -184,10 +217,10 @@ class CampaignRun(CampaignEvent, ShopStatus):
             # 将 d3-3 转换为 d3_3 以使用三战撤退逻辑
             if name == 'd3-3':
                 name = 'd3_3'
-                logger.info('Stage name d3-3 converted to d3_3 (three-battle retreat logic)')
+                logger.info('[战役-运行] 关卡名d3-3转换为d3_3 (三战撤退逻辑)')
             # d3 保持不变，使用标准逻辑
             elif name == 'd3':
-                logger.info('Stage name d3 using standard logic')
+                logger.info('[战役-运行] 关卡名d3使用标准逻辑')
         # GemsFarming 和 ThreeOilLowCost 自动选择活动或主线章节
         if self.config.task.command in ['GemsFarming', 'ThreeOilLowCost']:
             if self.stage_is_main(name):
@@ -299,13 +332,13 @@ class CampaignRun(CampaignEvent, ShopStatus):
         # TH 章节没有 map_percentage 和 3_stars
         if folder == 'event_20221124_cn' and name.startswith('th'):
             if self.config.StopCondition_MapAchievement not in ['non_stop', 'non_stop_clear_all']:
-                logger.info(f'When running chapter TH of event_20221124_cn, '
-                            f'StopCondition.MapAchievement is forced set to threat_safe')
+                logger.info(f'[战役-运行] 运行 event_20221124_cn 的 TH 章节时，'
+                            f'StopCondition.MapAchievement 强制设置为 threat_safe')
                 self.config.override(StopCondition_MapAchievement='threat_safe')
         if folder == 'event_20250724_cn' and name.startswith('ts'):
             if self.config.StopCondition_MapAchievement not in ['non_stop', 'non_stop_clear_all']:
-                logger.info(f'When running chapter TS of event_20250724_cn, '
-                            f'StopCondition.MapAchievement is forced set to threat_safe')
+                logger.info(f'[战役-运行] 运行 event_20250724_cn 的 TS 章节时，'
+                            f'StopCondition.MapAchievement 强制设置为 threat_safe')
                 self.config.override(StopCondition_MapAchievement='threat_safe')
         # event_20211125_cn 的 TSS 地图为限时地图
         if folder == 'event_20211125_cn' and 'tss' in name:
@@ -344,7 +377,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
                 name = stage.lower()
                 self.is_stage_loop = True
                 # 禁用连续通关
-                logger.info('disable continuous clear')
+                logger.info('[战役-运行] 禁用连续清除')
                 self.config.override(StopCondition_MapAchievement='non_stop')
                 self.config.override(StopCondition_StageIncrease=False)
         # 如果模式为 hard 且文件存在，将 campaign_main 转换为 campaign_hard
@@ -366,6 +399,14 @@ class CampaignRun(CampaignEvent, ShopStatus):
         return name, folder
 
     def can_use_auto_search_continue(self):
+        """检查是否可以继续使用自动搜索。
+
+        当已在自动搜索菜单中、已完成至少一次运行、且未设置地图成就条件时，
+        可以跳过 ensure_campaign_ui 直接继续自动搜索。
+
+        Returns:
+            bool: 是否可以继续自动搜索。
+        """
         # 自动搜索菜单中无法更新地图信息
         # 如果设置了地图成就则关闭
         if self.config.StopCondition_MapAchievement != 'non_stop':
@@ -388,7 +429,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
             in: page_campaign
         """
         if self.config.is_task_enabled('Commission') and self.campaign.commission_notice_show_at_campaign():
-            logger.info('Commission notice found')
+            logger.info('[战役-运行] 发现委托通知')
             self.config.task_call('Commission')
             self.config.task_stop('Commission notice found')
 
@@ -417,9 +458,9 @@ class CampaignRun(CampaignEvent, ShopStatus):
             # 日志
             logger.hr(name, level=1)
             if self.config.StopCondition_RunCount > 0:
-                logger.info(f'Count remain: {self.config.StopCondition_RunCount}')
+                logger.info(f'[战役-运行] 剩余次数: {self.config.StopCondition_RunCount}')
             else:
-                logger.info(f'Count: {self.run_count}')
+                logger.info(f'[战役-运行] 次数: {self.run_count}')
 
             # 确保 UI 状态
             self.device.stuck_record_clear()
@@ -452,7 +493,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
                 from module.hard.hard import OCR_HARD_REMAIN
                 remain = OCR_HARD_REMAIN.ocr(self.device.image)
                 if not remain:
-                    logger.info('Remaining number of times of hard mode campaign_main is 0, delay task to next day')
+                    logger.info('[战役-运行] 困难模式剩余次数为0，延迟任务到明天')
                     self.config.task_delay(server_update=True)
                     break
 
@@ -462,7 +503,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
 
             # 更新配置
             if len(self.config.modified):
-                logger.info('Updating config for dashboard')
+                logger.info('[战役-运行] 更新仪表盘配置')
                 self.config.update()
 
             # 运行
@@ -471,7 +512,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
             try:
                 self.campaign.run()
             except ScriptEnd as e:
-                logger.hr('Script end')
+                logger.hr('脚本结束')
                 logger.info(str(e))
                 # 撤退后关闭任务：禁用当前任务，调度器将运行后续任务
                 if str(e) == 'DefeatWithdraw=withdraw_stop':
@@ -480,7 +521,7 @@ class CampaignRun(CampaignEvent, ShopStatus):
 
             # 更新配置
             if len(self.campaign.config.modified):
-                logger.info('Updating config for dashboard')
+                logger.info('[战役-运行] 更新仪表盘配置')
                 self.campaign.config.update()
             # 运行后处理
             self.run_count += 1
@@ -493,13 +534,13 @@ class CampaignRun(CampaignEvent, ShopStatus):
             # 一次性关卡限制
             if self.campaign.config.MAP_IS_ONE_TIME_STAGE:
                 if self.run_count >= 1:
-                    logger.hr('Triggered one-time stage limit')
+                    logger.hr('触发一次性关卡限制')
                     self.campaign.handle_map_stop()
                     break
             # 关卡循环
             if self.is_stage_loop:
                 if self.run_count >= 1:
-                    logger.hr('Triggered loop stage switch')
+                    logger.hr('触发循环关卡切换')
                     break
             # 调度器
             if self.config.task_switched():

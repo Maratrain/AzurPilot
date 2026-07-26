@@ -1,3 +1,18 @@
+"""
+演习对手分析与选择模块。
+
+通过 OCR 识别对手的等级和战力信息，并根据配置的策略对对手进行排序。
+
+支持的对手选择策略：
+- max_exp: 按等级总和排序，优先攻击经验最高的对手
+- easiest: 按综合难度排序，优先攻击最容易击败的对手
+    （等级越低、战力越低的对手优先级越高）
+- leftmost: 按默认顺序（最左优先）
+
+常量说明：
+    MAX_LVL_SUM: 最大等级总和（6 艘船 * 125 级 = 750）
+    PWR_FACTOR: 战力归一化因子，用于将战力缩放到可比较范围
+"""
 import numpy as np
 
 from module.base.button import ButtonGrid
@@ -18,6 +33,13 @@ PWR_FACTOR = 100
 
 
 class Level(Digit):
+    """
+    演习对手等级 OCR 识别器。
+
+    对数字 OCR 进行预处理，去除左侧多余空白并添加白色边距，
+    以提高演习准备界面中等级数字的识别准确率。
+    """
+
     def pre_process(self, image):
         image = super().pre_process(image)
         image = image_left_strip(image, threshold=85, length=22)
@@ -27,6 +49,18 @@ class Level(Digit):
 
 
 class Opponent:
+    """
+    演习对手数据类，包含对手的等级和战力信息。
+
+    从演习页面截图中 OCR 识别对手的两支舰队的等级和战力，
+    并根据指定策略计算对手的优先级分数。
+
+    Attributes:
+        index (int): 对手索引（0-3，从左到右）。
+        power (list[int]): 两支舰队的战力，如 [14848, 13477]。
+        level (list[int]): 六艘舰船的等级，如 [120, 120, 120, 120, 120, 120]。
+    """
+
     def __init__(self, main_image, fleet_image, index):
         self.index = index
         self.power = self.get_power(image=main_image)
@@ -36,7 +70,7 @@ class Opponent:
         level = [str(x).rjust(3, ' ') for x in self.level]
         power = ['(' + str(x).rjust(5, ' ') + ')' for x in self.power]
         logger.attr(
-            'OPPONENT_%s' % index,
+            '对手_%s' % index,
             ' '.join([power[0]] + level[:3] + ['|'] + [power[1]] + level[3:])
         )
 
@@ -92,10 +126,26 @@ class Opponent:
 
 
 class OpponentChoose(UI):
+    """
+    对手选择器，负责检查和排序演习对手。
+
+    依次进入每个对手的准备界面，OCR 识别其舰队等级和战力，
+    然后根据策略对手进行排序，返回攻击优先级列表。
+
+    Attributes:
+        main_image (numpy.ndarray): 演习主页面截图，用于识别战力。
+        opponents (list[Opponent]): 4 个对手的 Opponent 数据对象列表。
+    """
+
     main_image = None
     opponents = []
 
     def _opponent_fleet_check_all(self):
+        """
+        依次检查所有 4 个对手的舰队信息。
+
+        通过点击每个对手进入演习准备界面，OCR 识别等级和战力后返回。
+        """
         self.opponents = []
         self.main_image = self.device.image
 
@@ -118,5 +168,5 @@ class OpponentChoose(UI):
                        Attack one by one.
         """
         order = np.argsort([- x.get_priority(method) for x in self.opponents])
-        logger.attr('Order', str(order))
+        logger.attr('出战顺序', str(order))
         return order

@@ -1,3 +1,15 @@
+"""大世界跨月重置模块。
+
+处理大世界每月重置前后的过渡逻辑，包括：
+- 重置时间检测和倒计时管理
+- 重置前 10 分钟内的紧急操作
+- 指定海域的快速清理
+- 跨月期间其他任务的延迟协调
+
+继承自 MeowfficerTargetZoneMixin 和 OSMap，
+确保在月度重置前完成关键任务，避免资源损失。
+"""
+
 from datetime import timedelta
 
 from module.config.time_source import now as current_time
@@ -17,7 +29,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
     def os_cross_month(self):
         next_reset = get_os_next_reset()
         now = current_time()
-        logger.attr('OpsiNextReset', next_reset)
+        logger.attr('大世界下次重置', next_reset)
 
         # 检查开始时间
         if next_reset < now:
@@ -33,7 +45,7 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
         logger.hr('跨月每日等待大世界重置', level=1)
         logger.warning('AzurPilot 正在等待下次大世界重置，等待期间请不要操作游戏')
         while True:
-            logger.info(f'Wait until {next_reset}')
+            logger.info(f'等待到 {next_reset}')
             now = current_time()
             remain = (next_reset - now).total_seconds()
             if remain <= 0:

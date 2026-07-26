@@ -1,3 +1,9 @@
+"""CL1 数据库模块。
+
+使用 SQLite 本地存储战斗统计和掉落数据，支持 AES 加密传输。
+提供设备识别、数据序列化和与 AzurStats 云端同步的功能。
+"""
+
 # -*- coding: utf-8 -*-
 import sqlite3
 import json
@@ -928,10 +934,10 @@ class Cl1Database:
             try:
                 shutil.move(str(old_db_path), str(self.db_path))
                 logger.info(
-                    f"Moved old CL1 database from {old_db_path} to {self.db_path}"
+                    f"Moved old CL1数据库 from {old_db_path} to {self.db_path}"
                 )
             except Exception as e:
-                logger.error(f"Failed to move old CL1 database: {e}")
+                logger.error(f"[统计-数据库] 移动旧CL1数据库失败: {e}")
 
         if not old_db_dir.exists():
             return
@@ -945,7 +951,7 @@ class Cl1Database:
                         # logger.info(f"Found legacy data for instance: {instance_dir.name}")
                         self.migrate_from_json(json_file, instance_dir.name)
         except Exception as e:
-            logger.error(f"Error during auto migration scan: {e}")
+            logger.error(f"[统计-数据库] 自动迁移扫描错误: {e}")
 
     # ========== 耄耋相接数据记录方法 ==========
 

@@ -1,12 +1,30 @@
-# 此文件专门负责大世界（Operation Siren）模式下的舰队基础控制。
-# 涵盖了大世界特有的移动逻辑、血量检测、港口定位以及根据战斗状态切换编队的底层指令。
+"""
+大世界舰队控制模块。
+
+负责大世界（Operation Siren）模式下的舰队基础控制，涵盖大世界特有的
+移动逻辑、血量检测、港口定位以及根据战斗状态切换编队的底层指令。
+
+主要类:
+    OSFleet: 大世界舰队主控类，整合摄像机、战斗、地图舰队和余烬系统。
+    BossFleet: Boss 舰队数据类，记录舰队索引和待命位置。
+    PercentageOcr: 百分比 OCR 识别器，用于塞壬要塞清理进度。
+
+术语:
+    大世界 (Operation Siren / OS): 碧蓝航线的高难度 PVE 模式。
+    塞壬 (Siren): 大世界中的敌对势力。
+    余烬 (Ash/Ember): 大世界中的特殊系统，可通过信标触发战斗。
+    行动力 (Action Point / AP): 进入海域需要消耗的资源。
+    港口 (Port): 碧蓝航线的补给/修理据点。
+    适应性 (Adaptability): 大世界中的特殊属性加成。
+    净化装置 (Purification Device): 大世界中的特殊装置。
+    安全区 (Safe Zone): 已完全清理的海域。
+    危险区 (Danger Zone): 未完全清理的海域。
+"""
 import re
 
 import inflection
 import numpy as np
 
-# 此文件专门负责大世界（Operation Siren）模式下的舰队基础控制。
-# 涵盖了大世界特有的移动逻辑、血量检测、港口定位以及根据战斗状态切换编队的底层指令。
 from module.base.button import Button, ButtonGrid
 from module.base.filter import Filter
 from module.base.timer import Timer
@@ -35,6 +53,18 @@ FLEET_FILTER = Filter(regex=re.compile(r'fleet-?(\d)'), attr=('fleet',), preset=
 
 
 def limit_walk(location, step=3):
+    """限制舰队单次移动步数，防止越界。
+
+    将移动向量限制在曼哈顿距离不超过 step 的范围内，
+    优先保留 y 方向的移动量。
+
+    Args:
+        location (tuple[int, int]): 目标移动向量 (x, y)。
+        step (int): 最大步数。默认为 3。
+
+    Returns:
+        tuple[int, int]: 限制后的移动向量。
+    """
     x, y = location
     if abs(x) > 0:
         x = min(abs(x), step - abs(y)) * x // abs(x)
@@ -42,7 +72,23 @@ def limit_walk(location, step=3):
 
 
 class BossFleet:
+    """Boss 战斗用舰队数据类。
+
+    用于舰队筛选器中代表一支可参与 Boss 战的编队。
+    每支 BossFleet 会分配一个待命位置 (standby_loca)，
+    在 Boss 战间歇时舰队会移动到该位置等待。
+
+    Attributes:
+        fleet_index (int): 舰队编号（1~4）。
+        fleet (str): 舰队编号的字符串形式。
+        standby_loca (tuple[int, int]): 待命位置坐标，
+            用于 Boss 战间的站位安排。
+    """
     def __init__(self, fleet_index):
+        """
+        Args:
+            fleet_index (int): 舰队编号（1~4）。
+        """
         self.fleet_index = fleet_index
         self.fleet = str(fleet_index)
         self.standby_loca = (0, 0)
@@ -57,11 +103,31 @@ class BossFleet:
 
 
 class PercentageOcr(Ocr):
+    """百分比 OCR 识别器。
+
+    用于识别塞壬要塞清理进度等百分比数值。
+    对输入图像进行上下白色填充以提高识别准确率。
+
+    Attributes:
+        继承自 Ocr 的所有属性。
+    """
     def __init__(self, *args, **kwargs):
+        """初始化百分比 OCR，强制使用 azur_lane 语言模型。"""
         kwargs['lang'] = 'azur_lane'
         super().__init__(*args, **kwargs)
 
     def pre_process(self, image):
+        """对 OCR 输入图像进行预处理。
+
+        调用父类预处理后，在图像上下各填充 2 像素的白色边框，
+        以提高百分比数字的识别率。
+
+        Args:
+            image (np.ndarray): 原始裁剪图像。
+
+        Returns:
+            np.ndarray: 预处理后的图像。
+        """
         image = super().pre_process(image)
         image = np.pad(image, ((2, 2), (0, 0)), mode='constant', constant_values=255)
         return image
@@ -73,7 +139,30 @@ FLEET_LOW_RESOLVE = Button(
 
 
 class OSFleet(OSCamera, Combat, Fleet, OSAsh):
+    """大世界舰队主控类。
+
+    整合摄像机控制 (OSCamera)、战斗系统 (Combat)、地图舰队 (Fleet)
+    和余烬系统 (OSAsh)，提供大世界模式下完整的舰队操控能力。
+
+    负责：
+    - 舰队在地图上的移动和导航
+    - 血量检测和修理判断
+    - 港口定位和前往
+    - Boss 战斗编队切换
+    - 深渊海域 (Abyssal) 处理
+    - 塞壬要塞进度检测
+
+    Attributes:
+        need_repair (list[bool]): 每个舰位是否需要修理（显示扳手图标）。
+        _os_map_event_handled (bool): 地图事件处理标志，用于伏击/神秘格子判断。
+    """
     def _goto(self, location, expected=''):
+        """移动舰队到指定位置，同时更新雷达和处理余烬信标攻击。
+
+        Args:
+            location (tuple[int, int]): 目标格子坐标。
+            expected (str): 预期到达后的状态，如 'combat'、'mystery'。
+        """
         super()._goto(location, expected)
         self.predict_radar()
         self.map.show()
@@ -116,12 +205,18 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
 
     @property
     def _walk_sight(self):
+        """获取大世界行走视野范围。
+
+        Returns:
+            tuple[int, int, int, int]: 视野边界 (x1, y1, x2, y2)。
+        """
         sight = (-4, -1, 3, 2)
         return sight
 
     _os_map_event_handled = False
 
     def ambush_color_initial(self):
+        """重置大世界地图事件处理标志。"""
         self._os_map_event_handled = False
 
     def handle_ambush(self):
@@ -162,6 +257,13 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             return ''
 
     def _hp_grid(self):
+        """获取舰队血条位置网格。
+
+        根据不同服务器的 OS 布局调整血条位置。
+
+        Returns:
+            ButtonGrid: 血条按钮网格。
+        """
         hp_grid = super()._hp_grid()
 
         # 六个血条的位置，根据各服务器的 OS 布局
@@ -175,6 +277,11 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         return hp_grid
 
     def _storage_hp_grid(self):
+        """获取仓库界面中的血条位置网格。
+
+        Returns:
+            ButtonGrid: 仓库界面的血条按钮网格。
+        """
         return ButtonGrid(origin=(185, 553), delta=(166, 0), button_shape=(99, 4), grid_shape=(6, 1))
 
     def hp_retreat_triggered(self):
@@ -194,7 +301,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         ship_icon = self._hp_grid().crop((0, -67, 67, 0))
         need_repair = [TEMPLATE_EMPTY_HP.match(self.image_crop(button, copy=False)) for button in ship_icon.buttons]
         self.need_repair = need_repair
-        logger.attr('Repair icon', need_repair)
+        logger.attr('维修图标', need_repair)
 
         if any(need_repair):
             for index, repair in enumerate(need_repair):
@@ -202,7 +309,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                     self._hp_has_ship[self.fleet_current_index][index] = True
                     self._hp[self.fleet_current_index][index] = 0
 
-            logger.attr('HP', ' '.join(
+            logger.attr('血量', ' '.join(
                 [str(int(data * 100)).rjust(3) + '%' if use else '____'
                  for data, use in zip(self.hp, self.hp_has_ship, strict=False)]))
 
@@ -220,8 +327,8 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         for index, ship in enumerate(has_ship):
             self._hp_has_ship[self.fleet_current_index][index] = ship
         self.need_repair = [all(repair) for repair in zip(need_repair, has_ship, strict=False)]
-        logger.attr('Repair icon', self.need_repair)
-        logger.attr('HP', ' '.join(
+        logger.attr('维修图标', self.need_repair)
+        logger.attr('血量', ' '.join(
             [str(int(data * 100)).rjust(3) + '%' if use else '____'
             for data, use in zip(self.hp, self.hp_has_ship, strict=False)]))
 
@@ -240,6 +347,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         return self.hp
 
     def lv_get(self, after_battle=False):
+        """获取舰队等级（大世界中为空实现）。"""
         pass
 
     def fleet_low_resolve_appear(self):
@@ -277,13 +385,13 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         """
         等待 homo_loca 稳定。DETECTION_BACKEND 必须为 'homography'。
         """
-        logger.hr('Wait until camera stable')
+        logger.hr('等待摄像机稳定')
         record = None
         confirm_timer = Timer(0.6, count=2).start()
         for _ in self.loop(skip_first=skip_first_screenshot):
             self.update_os()
             current = self.view.backend.homo_loca
-            logger.attr('homo_loca', current)
+            logger.attr('单应位置', current)
             if record is None or (current is not None and np.linalg.norm(np.subtract(current, record)) < 3):
                 if confirm_timer.reached():
                     break
@@ -292,7 +400,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
 
             record = current
 
-        logger.info('Camera stabled')
+        logger.info('[大世界-摄像机] 摄像机已稳定')
 
     def wait_until_walk_stable(self, confirm_timer=None, skip_first_screenshot=False, walk_out_of_step=True, drop=None):
         """
@@ -312,7 +420,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         Raises:
             MapWalkError: 无法到达目标格子时抛出。
         """
-        logger.hr('Wait until walk stable')
+        logger.hr('等待移动稳定')
         record = None
         enemy_searching_appear = False
         self.device.screenshot_interval_set(0.35)
@@ -346,13 +454,13 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                     # 两个操作都返回 'story_skip' 事件
                     # 连续 2 次 story_skip 表示提交了塞壬扫描装置
                     if clicked_story_count >= 11:
-                        logger.info('Continuous options in story')
+                        logger.info('[大世界-剧情] 剧情中连续选项')
                         self.device.click_record_clear()
                         clicked_story_count = 0
                 elif event == 'map_get_items':
                     # story_skip -> map_get_items 表示收到了深渊进度奖励
                     if clicked_story:
-                        logger.info('Got items from story')
+                        logger.info('[大世界-剧情] 从剧情获得物品')
                         self.device.click_record_clear()
                         clicked_story = False
                     clicked_story_count = 0
@@ -428,7 +536,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                 if enemy_searching_appear:
                     self.handle_enemy_flashing()
                     self.device.sleep(0.3)
-                    logger.info('Enemy searching appeared.')
+                    logger.info('[大世界-战斗] 敌舰搜索出现')
                     enemy_searching_appear = False
                     confirm_timer.reset()
                     result.add('search')
@@ -441,7 +549,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             if self.match_template_color(IN_MAP, offset=(200, 5), threshold=50):
                 self.update_os()
                 current = self.view.backend.homo_loca
-                logger.attr('homo_loca', current)
+                logger.attr('单应位置', current)
                 # 已知最大距离为 4.48px，homo_loca 在 (56, 60) 和 (52, 58) 之间
                 if record is None or (current is not None and np.linalg.norm(np.subtract(current, record)) < 5.5):
                     if confirm_timer.reached():
@@ -453,7 +561,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                 confirm_timer.reset()
 
         result = '_'.join(result)
-        logger.info(f'Walk stabled, result: {result}')
+        logger.info(f'[大世界-移动] 移动已稳定, 结果: {result}')
         self.device.screenshot_interval_set()
         return result
 
@@ -473,7 +581,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         while 1:
             # 计算目的地
             grid = self.radar.port_predict(self.device.image)
-            logger.info(f'Port route at {grid}')
+            logger.info(f'[大世界-港口] 港口路径在 {grid}')
             if grid is None:
                 self.device.screenshot()
                 continue
@@ -481,18 +589,18 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             radar_arrive = np.linalg.norm(grid) == 0
             port_arrive = self.appear(PORT_ENTER, offset=(20, 20))
             if allow_port_arrive and port_arrive:
-                logger.info('Arrive port (port_arrive)')
+                logger.info('[大世界-港口] 到达港口 (port_arrive)')
                 break
             elif allow_port_arrive and (not port_arrive and radar_arrive):
                 if confirm_timer.reached():
-                    logger.warning('Arrive port on radar but port entrance not appear')
+                    logger.warning('[大世界-港口] 雷达上到达港口但港口入口未出现')
                     raise MapWalkError
                 else:
-                    logger.info('Arrive port on radar but port entrance not appear, confirming')
+                    logger.info('[大世界-港口] 雷达上到达港口但港口入口未出现，确认中')
                     self.device.screenshot()
                     continue
             elif not allow_port_arrive and radar_arrive:
-                logger.info('Arrive port (radar_arrive)')
+                logger.info('[大世界-港口] 到达港口 (radar_arrive)')
                 break
             else:
                 confirm_timer.reset()
@@ -518,7 +626,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         Returns:
             bool: If switched.
         """
-        logger.hr(f'Fleet set to {index}')
+        logger.hr(f'舰队设置为 {index}')
         if self.fleet_selector.ensure_to_be(index):
             self.wait_until_camera_stable()
             return True
@@ -534,7 +642,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         Returns:
             bool: If switched.
         """
-        logger.hr(f'Fleet set to {index}')
+        logger.hr(f'舰队设置为 {index}')
         return self.storage_fleet_selector.ensure_to_be(index)
 
     def parse_fleet_filter(self):
@@ -556,8 +664,19 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         return fleets
 
     def relative_goto(self, has_fleet_step=False, near_by=False, relative_position=(0, 0), index=0, **kwargs):
-        logger.hr('Relative goto')
-        logger.info(f'Relative goto, {dict_to_kv(kwargs)}')
+        """根据雷达选择的相对位置导航舰队。
+
+        更新本地视野后，通过雷达选择目标格子并点击移动。
+
+        Args:
+            has_fleet_step (bool): 是否限制舰队移动步数。
+            near_by (bool): 是否按距离排序选择最近的格子。
+            relative_position (tuple[int, int]): 相对偏移量。
+            index (int): 选择第几个匹配的格子。
+            **kwargs: 传递给 radar.select() 的筛选条件。
+        """
+        logger.hr('相对移动')
+        logger.info(f'[大世界-移动] 相对移动, {dict_to_kv(kwargs)}')
 
         # 更新本地视野
         # 不截图，复用旧截图
@@ -579,15 +698,23 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             grid = self.convert_radar_to_local(grid)
             self.device.click(grid)
         else:
-            logger.info('No position to goto, stop')
+            logger.info('[大世界-移动] 无目标位置，停止')
 
         # 等待到达
         # 使用新截图
         self.wait_until_walk_stable(confirm_timer=Timer(1.5, count=4), walk_out_of_step=False)
 
     def go_month_boss_room(self, is_normal=True):
-        logger.hr('Goto room entrance')
-        logger.info(f'Goto room entrance, is_normal={is_normal}')
+        """导航到月度 Boss 房间入口并进入。
+
+        先移动到入口下方 2 格处，再进入 Boss 房间。
+        普通模式和困难模式使用不同的交互方式。
+
+        Args:
+            is_normal (bool): 是否为普通模式。困难模式使用问号导航。
+        """
+        logger.hr('前往房间入口')
+        logger.info(f'[大世界-移动] 前往房间入口, 是否普通={is_normal}')
         while 1:
             if self.appear(MAP_EXIT, offset=(20, 20)):
                 break
@@ -600,26 +727,34 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             self.predict_radar()
             grid = self.radar.select(is_port=True).first_or_none()
             if grid is not None and grid.location == (-3, 2):
-                logger.info('At room entrance')
+                logger.info('[大世界-移动] 在房间入口')
                 break
 
-        logger.hr('Enter room entrance')
+        logger.hr('进入房间入口')
         while 1:
             if self.appear(MAP_EXIT, offset=(20, 20)):
-                logger.info('Entered boss room')
+                logger.info('[大世界-移动] 已进入Boss房间')
                 break
 
             if is_normal:
                 self.relative_goto(has_fleet_step=True, near_by=True, is_exclamation=True)
             else:
                 if self.radar.select(is_exclamation=True).count:
-                    logger.warning('Trying to enter month boss hard mode but is_exclamation exists')
+                    logger.warning('[大世界-移动] 尝试进入月度Boss困难模式但存在感叹号')
                     self.relative_goto(has_fleet_step=True, near_by=True, is_exclamation=True)
                 else:
                     self.relative_goto(has_fleet_step=True, near_by=True, is_question=True)
 
     def question_goto(self, has_fleet_step=False):
-        logger.hr('Question goto')
+        """导航到最近的问号标记。
+
+        通过雷达查找问号位置并移动舰队前往。
+        适用于深渊海域中寻找 Boss 入口等场景。
+
+        Args:
+            has_fleet_step (bool): 是否限制舰队移动步数。
+        """
+        logger.hr('前往问号')
         while 1:
             # 游戏 bug：上一个已清理海域的 AUTO_SEARCH_REWARD 弹窗
             if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
@@ -643,7 +778,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                 grid = self.convert_radar_to_local(grid)
                 self.device.click(grid)
             else:
-                logger.info('No question mark to goto, stop')
+                logger.info('[大世界-移动] 无问号可前往，停止')
                 break
 
             # 等待到达
@@ -651,6 +786,15 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             self.wait_until_walk_stable(confirm_timer=Timer(1.5, count=4), walk_out_of_step=False)
 
     def month_boss_goto_additional(self, location=(0, 0), has_fleet_step=False, drop=None):
+        """导航到月度 Boss 区域入口。
+
+        通过问号的相对位置定位 Boss 区域入口并前往。
+
+        Args:
+            location (tuple[int, int]): 位置偏移量。
+            has_fleet_step (bool): 是否限制舰队移动步数。
+            drop: 掉落记录对象。
+        """
         self.update_os()
         self.predict()
         self.predict_radar()
@@ -666,15 +810,23 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             if has_fleet_step:
                 grid = limit_walk(grid)
             if grid == (0, 0):
-                logger.info(f'Arrive destination: boss {location}')
+                logger.info(f'[大世界-移动] 到达目的地: Boss {location}')
             grid = self.convert_radar_to_local(grid)
             self.device.click(grid)
         else:
-            logger.info('No boss to goto, stop')
+            logger.info('[大世界-移动] 无Boss可前往，停止')
         self.wait_until_walk_stable(confirm_timer=Timer(1.5, count=4), walk_out_of_step=False, drop=drop)
 
     def boss_goto(self, location=(0, 0), has_fleet_step=False, drop=None, is_month=False):
-        logger.hr('BOSS goto')
+        """导航到 Boss 位置并准备战斗。
+
+        Args:
+            location (tuple[int, int]): 位置偏移量。
+            has_fleet_step (bool): 是否限制舰队移动步数。
+            drop: 掉落记录对象。
+            is_month (bool): 是否为月度 Boss。
+        """
+        logger.hr('前往Boss')
 
         if is_month:
             self.month_boss_goto_additional(location=location, has_fleet_step=has_fleet_step, drop=drop)
@@ -695,12 +847,12 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                 if has_fleet_step:
                     grid = limit_walk(grid)
                 if grid == (0, 0):
-                    logger.info(f'Arrive destination: boss {location}')
+                    logger.info(f'[大世界-移动] 到达目的地: Boss {location}')
                     break
                 grid = self.convert_radar_to_local(grid)
                 self.device.click(grid)
             else:
-                logger.info('No boss to goto, stop')
+                logger.info('[大世界-移动] 无Boss可前往，停止')
                 break
 
             # 等待到达
@@ -708,6 +860,14 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             self.wait_until_walk_stable(confirm_timer=Timer(1.5, count=4), walk_out_of_step=False, drop=drop)
 
     def get_boss_leave_button(self):
+        """获取 Boss 区域的离开按钮位置。
+
+        通过检测当前舰队或被塞壬捕获的舰队位置，
+        计算离开按钮的点击区域。
+
+        Returns:
+            Button: 离开按钮，如果当前舰队可见则返回 None。
+        """
         for grid in self.view:
             if grid.predict_current_fleet():
                 return None
@@ -716,13 +876,13 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         if len(grids) == 1:
             center = grids[0]
         elif len(grids) > 1:
-            logger.warning(f'Found multiple fleets in boss ({grids}), use the center one')
+            logger.warning(f'[大世界-舰队] 在Boss处发现多个舰队 ({grids})，使用中心的一个')
             center = SelectedGrids(grids).sort_by_camera_distance(self.view.center_loca)[0]
         else:
-            logger.warning('No fleet in boss, use camera center instead')
+            logger.warning('[大世界-舰队] Boss处无舰队，使用摄像机中心代替')
             center = self.view[self.view.center_loca]
 
-        logger.info(f'Fleet in boss: {center}')
+        logger.info(f'[大世界-舰队] Boss处的舰队: {center}')
         # 中心格子左侧半个格子。
         area = corner2inner(center.grid2screen(area2corner((1, 0.25, 1.5, 0.75))))
         button = Button(area=area, color=(), button=area, name='BOSS_LEAVE')
@@ -736,7 +896,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             in: is_in_map() 或 combat_appear()
             out: is_in_map(), 舰队不在 Boss 区域中。
         """
-        logger.hr('BOSS leave')
+        logger.hr('离开Boss')
         # 更新本地视野
         self.update_os()
         self.predict()
@@ -748,7 +908,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             if self.is_in_map():
                 self.predict_radar()
                 if self.radar.select(is_enemy=True):
-                    logger.info('Fleet left boss, boss found')
+                    logger.info('[大世界-舰队] 舰队离开Boss，找到Boss')
                     break
 
             # 意外重新进入 Boss
@@ -786,7 +946,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                     click_timer.reset()
                     continue
                 else:
-                    logger.info('Fleet left boss, current fleet found')
+                    logger.info('[大世界-舰队] 舰队离开Boss，找到当前舰队')
                     break
 
     def boss_clear(self, has_fleet_step=True, is_month=False, allow_submarine_call=True):
@@ -805,7 +965,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             in: 塞壬日志（深渊），Boss 已出现。
             out: 成功时为危险或安全海域；失败时仍在深渊中。
         """
-        logger.hr(f'BOSS clear', level=1)
+        logger.hr(f'清除Boss', level=1)
 
         fleets = self.parse_fleet_filter()
         with self.stat.new(
@@ -813,12 +973,12 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                 method=self.config.DropRecord_OpsiRecord
         ) as drop:
             for fleet in fleets:
-                logger.hr(f'Turn: {fleet}', level=2)
+                logger.hr(f'回合: {fleet}', level=2)
                 if not isinstance(fleet, BossFleet):
                     if allow_submarine_call:
                         self.os_order_execute(recon_scan=False, submarine_call=True)
                     else:
-                        logger.info(f'Skip fleet-filter order `{fleet}` in abyssal')
+                        logger.info(f'[大世界-舰队] 在深渊中跳过舰队筛选顺序 `{fleet}`')
                     continue
 
                 # 切换舰队
@@ -832,13 +992,13 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                         self.fleet_set(other.fleet_index)
                         self.fleet_set(fleet.fleet_index)
                     else:
-                        logger.warning(f'No other fleets from {fleets}, skip refocus')
+                        logger.warning(f'[大世界-舰队] 从 {fleets} 无其他舰队，跳过重新聚焦')
                         pass
 
                 # 检查舰队
                 self.handle_os_map_fleet_lock(enable=False)
                 if self.fleet_low_resolve_appear():
-                    logger.warning('Skip using current fleet because of the low resolve debuff')
+                    logger.warning('[大世界-舰队] 因低决心debuff跳过使用当前舰队')
                     self.boss_goto(location=fleet.standby_loca, has_fleet_step=has_fleet_step, drop=drop,
                                    is_month=is_month)
                     continue
@@ -859,7 +1019,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                 # 结束条件
                 self.predict_radar()
                 if self.radar.select(is_question=True):
-                    logger.info('BOSS clear')
+                    logger.info('[大世界-战斗] Boss已清除')
                     if drop.count:
                         drop.add(self.device.image)
                     self.map_exit()
@@ -901,10 +1061,10 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             self.question_goto(has_fleet_step=True)
 
             if self.radar.select(is_enemy=True).filter(is_at_front):
-                logger.info('Found boss at front')
+                logger.info('[大世界-搜索] 在前方找到Boss')
                 break
             else:
-                logger.info('No boss at front, retry question_goto')
+                logger.info('[大世界-搜索] 前方无Boss，重试问号前往')
                 continue
 
         result = self.boss_clear(has_fleet_step=True, allow_submarine_call=False)
@@ -923,10 +1083,10 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         for starter in ['100', '80', '60', '40', '20', '0']:
             if result.startswith(starter):
                 result = starter
-                logger.attr('STRONGHOLD_PERCENTAGE', result)
+                logger.attr('要塞百分比', result)
                 return result
 
-        logger.warning(f'Unexpected STRONGHOLD_PERCENTAGE: {result}')
+        logger.warning(f'[大世界-要塞] 异常的要塞百分比: {result}')
         return result
 
     def get_second_fleet(self):
@@ -941,7 +1101,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             second = 2
         else:
             second = 1
-        logger.attr('Second_fleet', second)
+        logger.attr('第二舰队', second)
         return second
 
     @staticmethod
@@ -984,7 +1144,7 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
         try:
             nearest = self.convert_radar_to_local(nearest)
         except KeyError:
-            logger.info('Radar grid not on local map')
+            logger.info('[大世界-雷达] 雷达格子不在本地地图上')
             self._nearest_object_click_timer.reset()
             return False
         self.device.click(nearest)

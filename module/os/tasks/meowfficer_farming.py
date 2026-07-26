@@ -1,3 +1,15 @@
+"""大世界指挥喵 farming 模块。
+
+在大世界中执行指挥喵（Meowfficer）资源 farming，包括：
+- 支持指定目标海域的精确 farming
+- 智能海域选择和路径规划
+- 代币资源保护和行动力管理
+- 失败重试和异常恢复机制
+
+继承自 CoinTaskMixin 和 OSMap，提供代币保护和地图导航能力，
+通过指定海域列表实现高效的指挥喵资源收集。
+"""
+
 from module.config.config import TaskEnd
 from module.config.utils import get_os_reset_remain
 from module.exception import (
@@ -102,14 +114,14 @@ class MeowfficerTargetZoneMixin:
         if errors:
             self._meow_target_zone_error(f'耄耋相接指定海域输入错误 ({raw_value}): {"; ".join(errors)}')
 
-        logger.attr('MeowTargetZones', [zone.zone_id for zone in zones])
+        logger.attr('目标海域列表', [zone.zone_id for zone in zones])
         return zones
 
     def _meow_target_zone_at(self, zones, index):
         """按顺序循环获取本轮目标海域。"""
         zone_index = index % len(zones)
         zone = zones[zone_index]
-        logger.attr('MeowTargetZoneIndex', f'{zone_index + 1}/{len(zones)}')
+        logger.attr('目标海域索引', f'{zone_index + 1}/{len(zones)}')
         return zone, zone_index + 1
 
 
@@ -132,7 +144,7 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
                 and self.config.OpsiAshBeacon_EnsureFullyCollected:
             logger.info('[大世界-耄耋相接] 余烬信标未收集满，暂时忽略行动力限制')
             self.config.OS_ACTION_POINT_PRESERVE = 0
-        logger.attr('OS_ACTION_POINT_PRESERVE', self.config.OS_ACTION_POINT_PRESERVE)
+        logger.attr('大世界行动力保留', self.config.OS_ACTION_POINT_PRESERVE)
 
         if not ap_checked:
             # 行动力前置检查，确保明日每日任务有足够行动力

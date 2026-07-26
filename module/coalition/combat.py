@@ -1,3 +1,10 @@
+"""联动活动战斗处理模块。
+
+处理联动活动中的战斗流程，包括战斗重新进入、
+战斗状态检测、战役结束判定等。继承 CoalitionUI 和
+CampaignBase，组合 UI 导航与战役战斗能力。
+"""
+
 from module.base.timer import Timer
 from module.campaign.campaign_base import CampaignBase
 from module.coalition.assets import *
@@ -16,7 +23,7 @@ class CoalitionCombat(CoalitionUI, CampaignBase):
             in: battle_status
             out: is_combat_executing
         """
-        logger.info('Coalition combat re-enter')
+        logger.info('[联动-战斗] 联动战斗重新进入')
         status_clicked = False
         click_timer = Timer(0.3)
         click_last = Timer(2)
@@ -80,4 +87,4 @@ class CoalitionCombat(CoalitionUI, CampaignBase):
                 self.coalition_combat_re_enter()
                 self.battle_count += 1
         except CampaignEnd:
-            logger.info('Coalition combat end.')
+            logger.info('[联动-战斗] 联动战斗结束')

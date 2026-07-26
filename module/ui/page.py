@@ -1,3 +1,23 @@
+"""UI 页面定义和导航图。
+
+定义碧蓝航线游戏中的所有 UI 页面及其导航关系。
+每个页面由一个检查按钮（check_button）标识，页面之间通过按钮点击建立链接。
+
+导航系统使用 A* 寻路算法找到从当前页面到目标页面的最短路径。
+导航图在运行时通过 `init_connection()` 动态构建。
+
+页面层次：
+- 主页面（page_main）：游戏主界面，所有功能的入口
+- 功能页面：战役、活动、商店、宿舍等
+- 子页面：关卡选择、舰队准备等
+
+使用示例:
+    >>> page_main.link(button=MAIN_GOTO_CAMPAIGN, destination=page_campaign)
+    >>> # 从任意页面导航到 page_campaign
+    >>> Page.init_connection(page_main)
+    >>> # 之后可通过 page.parent 沿路径回溯
+"""
+
 import traceback
 
 from module.coalition.assets import *
@@ -12,6 +32,19 @@ import module.config.server as server
 
 
 class Page:
+    """UI 页面定义类。
+
+    每个 Page 实例代表游戏中的一个可导航页面。
+    通过 `link()` 方法建立页面间的导航关系，形成有向图。
+    `init_connection()` 使用 BFS 算法预计算从目标页面到所有源页面的最短路径。
+
+    Attributes:
+        all_pages (dict[str, Page]): 全局页面注册表，键为页面变量名。
+        check_button (Button): 页面标识按钮，用于检测当前是否在此页面。
+        links (dict[Page, Button]): 到达其他页面的链接，键为目标页面，值为点击按钮。
+        name (str): 页面变量名，如 'page_main'、'page_campaign'。
+        parent (Page | None): 在 A* 寻路中指向目标方向的父页面。
+    """
     # 键: str, 页面名称如 "page_main"
     # 值: Page, 页面实例
     all_pages = {}

@@ -1,3 +1,10 @@
+"""大世界守护模式。
+
+在大世界（Operation Siren）中持续运行，按优先级自动处理：
+战斗状态、战斗准备、经验结算、地图事件、港口维修和敌人选择。
+需手动停止，无自动终止条件。
+"""
+
 from module.combat.assets import EXP_INFO_C, EXP_INFO_D
 from module.daemon.daemon_base import DaemonBase
 from module.exception import CampaignEnd
@@ -60,8 +67,7 @@ class AzurLaneDaemon(DaemonBase, OSFleet, PortHandler):
                     self.port_dock_repair()
                     self.port_quit()
                     self.interval_reset(PORT_ENTER)
-                    logger.info('Port repair finished, '
-                                'please move your fleet out of the port in 30s to avoid repairing again')
+                    logger.info('[守护-大世界] 港口维修完成，请在 30 秒内将舰队移出港口以避免重复维修')
 
             # 自动选择最近敌人
             if self.config.OpsiDaemon_SelectEnemy:

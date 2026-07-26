@@ -1,3 +1,15 @@
+"""活动日常关卡（ABCD 等非 SP 关卡）执行模块。
+
+按配置过滤器排序依次执行活动关卡，支持从上次中断的关卡继续执行。
+每个关卡每日执行 1 次，全部完成后延迟到次日服务器刷新。
+
+关卡扫描自 campaign/{event_name}/ 目录，通过 EventDaily_StageFilter 配置
+筛选和排序要执行的关卡。执行进度通过 EventDaily_LastStage 持久化，
+支持跨任务会话的断点续刷。
+
+配置路径: EventDaily.StageFilter (关卡过滤器)
+"""
+
 import os
 
 from module.config.config import TaskEnd
@@ -26,23 +38,23 @@ class CampaignABCD(EventBase):
         # 扫描活动目录下的所有地图文件
         stages = [EventStage(file) for file in os.listdir(f'./campaign/{self.config.Campaign_Event}')]
         stages = self.convert_stages(stages)
-        logger.attr('Stage', [str(stage) for stage in stages])
-        logger.attr('StageFilter', self.config.EventDaily_StageFilter)
+        logger.attr('关卡', [str(stage) for stage in stages])
+        logger.attr('关卡过滤器', self.config.EventDaily_StageFilter)
         STAGE_FILTER.load(self.config.EventDaily_StageFilter)
         self.convert_stages(STAGE_FILTER)
         stages = [str(stage) for stage in STAGE_FILTER.apply(stages)]
-        logger.attr('Filter sort', ' > '.join(stages))
+        logger.attr('过滤排序', ' > '.join(stages))
 
         # 过滤后无可用关卡，禁用调度器并停止任务
         if not stages:
-            logger.warning('No stage satisfy current filter')
+            logger.warning('无关卡满足当前筛选')
             self.config.Scheduler_Enable = False
             self.config.task_stop()
 
         # 从上次执行到的关卡继续，避免重复刷已完成的关卡
-        logger.info(f'LastStage {self.config.EventDaily_LastStage}, recorded at {self.config.Scheduler_NextRun}')
+        logger.info(f'[活动-关卡] 上次关卡 {self.config.EventDaily_LastStage}，记录于 {self.config.Scheduler_NextRun}')
         if get_server_last_update(self.config.Scheduler_ServerUpdate) >= self.config.Scheduler_NextRun:
-            logger.info('LastStage outdated, reset')
+            logger.info('[活动-关卡] 上次关卡记录过期，重置')
             self.config.EventDaily_LastStage = 0
         else:
             last = str(self.config.EventDaily_LastStage).lower()
@@ -50,9 +62,9 @@ class CampaignABCD(EventBase):
             if last in stages:
                 # 跳到上次关卡之后的下一个关卡
                 stages = stages[stages.index(last) + 1:]
-                logger.attr('Filter sort', ' > '.join(stages))
+                logger.attr('过滤排序', ' > '.join(stages))
             else:
-                logger.info('Start from the beginning')
+                logger.info('从头开始')
 
         # 依次执行每个关卡
         for stage in stages:

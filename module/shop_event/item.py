@@ -69,13 +69,13 @@ class CounterOcr(Ocr):
             parsed = []
             for i in result_list:
                 if not i or '/' not in i:
-                    logger.warning(f'Invalid OCR result format: {i}')
+                    logger.warning(f'[活动商店-物品] 无效的OCR结果格式: {i}')
                     parsed.append([0, 0])
                     continue
 
                 parts = i.split('/')
                 if len(parts) != 2:
-                    logger.warning(f'Invalid counter format: {i}')
+                    logger.warning(f'[活动商店-物品] 无效的计数器格式: {i}')
                     parsed.append([0, 0])
                     continue
                 parsed.append([int(j) for j in parts])
@@ -83,12 +83,12 @@ class CounterOcr(Ocr):
             return parsed
         else:
             if not result_list or '/' not in result_list:
-                logger.warning(f'Invalid OCR result: {result_list}')
+                logger.warning(f'[活动商店-物品] 无效的OCR结果: {result_list}')
                 return [0, 0]
 
             parts = result_list.split('/')
             if len(parts) != 2:
-                logger.warning(f'Invalid counter format: {result_list}')
+                logger.warning(f'[活动商店-物品] 无效的计数器格式: {result_list}')
                 return [0, 0]
 
             return [int(i) for i in parts]
@@ -174,7 +174,7 @@ class EventShopItem(Item):
             elif self.price == URPT_PRICE_IN_PT and self.total_count == 500:
                 self.name = 'URpt'
             elif self.name.isdigit():
-                logger.warning(f'Unrecognized item with price {self.price} and total count {self.total_count}, '
+                logger.warning(f'[活动商店-物品] 未识别的物品，价格 {self.price}，总数 {self.total_count}，'
                                # f'defaulting to EquipSSR')
                                f'saving image for analysis.')
                 import os

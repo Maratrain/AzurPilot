@@ -1,3 +1,9 @@
+"""嵌套字典高性能访问模块。
+
+提供 deep_get、deep_set、deep_pop、deep_iter 等函数，
+用于高性能地访问和操作嵌套字典/列表结构的配置数据。
+"""
+
 from collections import deque
 
 # deep_* 系列函数用于访问嵌套字典。

@@ -1,3 +1,14 @@
+"""
+岛屿（Island）UI 导航模块。
+
+提供岛屿系统中各子页面的导航和检测功能，包括：
+- 岛屿管理页面的进入与检测
+- 岛屿运输页面的进入与检测
+- 季节活动底部导航栏的切换
+- 从岛屿子页面返回手机页面
+- 确保当前在指定页面的导航逻辑
+- 处理岛屿相关的弹窗（维护公告、信息弹窗等）
+"""
 from module.base.timer import Timer
 from module.handler.assets import MAINTENANCE_ANNOUNCE, USE_DATA_KEY_NOTIFIED
 from module.island.assets import *
@@ -8,7 +19,28 @@ from module.ui.ui import UI
 
 
 class IslandUI(UI):
+    """
+    岛屿 UI 导航处理器。
+
+    继承 UI 基类，提供岛屿系统特有的页面导航和弹窗处理功能。
+    作为岛屿各功能模块（农场、牧场、渔场等）的 UI 基础设施层。
+
+    主要功能：
+    - 页面检测：island_in_management()、island_in_transport()
+    - 页面导航：island_management_enter()、island_transport_enter()、island_ui_back()
+    - 页面确保：ui_ensure_management_page()（带自动返回逻辑）
+    - 弹窗处理：handle_get_items()、ui_additional()（维护公告、信息弹窗）
+
+    Attributes:
+        继承自 UI 的所有属性（config、device、image 等）。
+    """
     def ui_additional(self, get_ship=True):
+        """
+        处理岛屿页面的额外弹窗，覆盖父类方法禁用舰船获取处理。
+
+        Args:
+            get_ship (bool): 是否处理舰船获取弹窗（在岛屿中固定为 False）。
+        """
         return super().ui_additional(get_ship=False)
 
     def island_in_management(self, interval=0):
@@ -26,8 +58,13 @@ class IslandUI(UI):
     #@cached_property
     def _island_season_bottom_navbar(self):
         """
-        季节活动底部导航栏，包含 6 个选项：
-        主页、PT奖励、赛季任务、赛季商店、赛季排名、赛季历史
+        创建季节活动底部导航栏实例。
+
+        导航栏包含 6 个选项卡：主页、PT奖励、赛季任务、赛季商店、赛季排名、赛季历史。
+        通过活跃颜色 (237, 237, 237) 和非活跃颜色 (65, 78, 96) 区分选中状态。
+
+        Returns:
+            Navbar: 季节活动底部导航栏实例。
         """
         island_season_bottom_navbar = ButtonGrid(
             origin=(14, 677), delta=(213, 0),
@@ -75,7 +112,7 @@ class IslandUI(UI):
             in: page_island_phone
             out: ISLAND_MANAGEMENT_CHECK
         """
-        logger.info('Island management enter')
+        logger.info('进入岛屿管理')
         self.interval_clear(ISLAND_MANAGEMENT_CHECK)
         if self.appear(ISLAND_MANAGEMENT_LOCKED, offset=(20, 20)):
             return False
@@ -99,7 +136,7 @@ class IslandUI(UI):
             in: page_island_phone
             out: ISLAND_TRANSPORT_CHECK
         """
-        logger.info('Island transport enter')
+        logger.info('进入岛屿运输')
         self.ui_click(
             click_button=ISLAND_TRANSPORT,
             check_button=self.island_in_transport,
@@ -117,7 +154,7 @@ class IslandUI(UI):
             in: 任意带有 SHOP_BACK_ARROW 的页面
             out: page_island_phone
         """
-        logger.info('Island UI back')
+        logger.info('岛屿UI返回')
         self.ui_click(
             click_button=SHOP_BACK_ARROW,
             check_button=page_island_phone.check_button,
@@ -134,7 +171,7 @@ class IslandUI(UI):
             in: page_island_phone 或产品页面
             out: ISLAND_MANAGEMENT_CHECK
         """
-        logger.info('UI ensure management page')
+        logger.info('UI确保管理页面')
         self.interval_clear(ISLAND_MANAGEMENT_CHECK)
         confirm_timer = Timer(1, count=2).start()
         for _ in self.loop():
@@ -152,6 +189,14 @@ class IslandUI(UI):
                 continue
 
     def handle_get_items(self):
+        """
+        处理岛屿中的物品获取弹窗。
+
+        检测 GET_ITEMS_ISLAND 弹窗并点击关闭。
+
+        Returns:
+            bool: 是否检测到并处理了物品获取弹窗。
+        """
         if self.appear_then_click(GET_ITEMS_ISLAND, offset=(20, 20), interval=2):
             return True
         return False

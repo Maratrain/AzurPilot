@@ -1,3 +1,16 @@
+"""
+船坞舰船扫描系统。
+
+提供船坞页面中舰船属性的多维度扫描能力，包括等级、情绪、稀有度、
+舰队归属和状态识别。通过组合多个子扫描器 (LevelScanner、
+EmotionScanner、RarityScanner、FleetScanner、StatusScanner)
+实现舰船信息的批量采集。
+
+支持单页扫描 (ShipScanner) 和跨页滚动扫描 (DockScanner)，
+后者通过灰度图标准差定位卡片间隙，自动滚动并去重，完成全船坞扫描。
+DHash 感知哈希用于跨页去重判断。
+"""
+
 import os
 import time
 from abc import ABCMeta, abstractmethod
@@ -30,6 +43,11 @@ from module.retire.ship_name import ShipNameMatcher
 
 
 class EmotionDigit(Digit):
+    """情绪值 OCR 识别器，针对船坞卡片的情绪数字区域优化。
+
+    针对 JP 服务器特殊处理白色文字提取，
+    并修正唐斯头发区域的随机误识别 (044 -> 0)。
+    """
     def pre_process(self, image):
         if server.server == 'jp':
             image_gray = extract_letters(image, letter=(255, 255, 255), threshold=self.threshold)
@@ -98,6 +116,15 @@ class Ship:
 
 
 class DHash:
+    """感知哈希 (Difference Hash) 实现，用于图像去重。
+
+    通过比较相邻像素生成哈希值，以汉明距离判断两张图像是否相似。
+    用于 DockScanner 跨页扫描时的去重判断。
+
+    Attributes:
+        EQ_THRES (int): 哈希相等的距离阈值，默认 30。
+        code (str): 生成的十六进制哈希字符串。
+    """
     EQ_THRES: int = 30
 
     def __init__(self, image, size=8) -> None:
@@ -132,6 +159,17 @@ class DHash:
 
 
 class Scanner(metaclass=ABCMeta):
+    """扫描器抽象基类。
+
+    定义船坞卡片属性扫描的通用接口，子扫描器 (LevelScanner、
+    RarityScanner 等) 继承此类并实现 _scan() 方法。
+
+    Attributes:
+        _results (List): 缓存的扫描结果。
+        _enabled (bool): 扫描器是否启用，禁用时返回全 None 列表。
+        _disabled_value (List[None]): 禁用时的默认返回值。
+        grids (ButtonGrid): 卡片属性区域的按钮网格。
+    """
     _results: List = None
     _enabled: bool = True
     _disabled_value: List[None] = [None] * 14
@@ -231,6 +269,11 @@ class LevelScanner(Scanner):
 
 
 class EmotionScanner(Scanner):
+    """情绪扫描器，通过 OCR 识别舰船情绪值。
+
+    结合 EmotionStatusScanner 的颜色状态进行交叉校正，
+    修正 OCR 在低情绪场景下的误识别。
+    """
     def __init__(self) -> None:
         super().__init__()
         self._results = []
@@ -258,7 +301,7 @@ class EmotionScanner(Scanner):
                 if emotion > 40:
                     emotion //= 10
             results.append(emotion)
-        logger.attr('DOCK_EMOTION_OCR', results)
+        logger.attr('船坞情绪OCR', results)
         return results
 
     def limit_value(self, value) -> int:
@@ -270,6 +313,11 @@ class EmotionScanner(Scanner):
 
 
 class EmotionStatusScanner(Scanner):
+    """情绪状态扫描器，通过颜色识别情绪指示灯。
+
+    检测船坞卡片右上角指示灯的颜色：红、黄、绿，分别对应
+    不同的情绪区间。结果用于 EmotionScanner 的交叉校正。
+    """
     def __init__(self) -> None:
         super().__init__()
         self._results = []
@@ -303,7 +351,7 @@ class EmotionStatusScanner(Scanner):
     def _scan(self, image) -> List:
         results = [self.get_emotion_status(crop(image, button.area, copy=False))
                    for button in self.grids.buttons]
-        logger.attr('DOCK_EMOTION_STATUS', results)
+        logger.attr('船坞情绪状态', results)
         return results
 
     def limit_value(self, value) -> str:
@@ -311,6 +359,11 @@ class EmotionStatusScanner(Scanner):
 
 
 class RarityScanner(Scanner):
+    """稀有度扫描器，通过卡片顶部颜色条判断舰船稀有度。
+
+    稀有度映射：common(灰)、rare(蓝)、elite(紫)、super_rare(金)。
+    彩虹稀有度因颜色差异过大标记为 unknown。
+    """
     def __init__(self) -> None:
         super().__init__()
         self._results = []
@@ -537,6 +590,11 @@ class FleetManagementScanner:
 
 
 class StatusScanner(Scanner):
+    """状态扫描器，通过模板匹配识别舰船的使用状态。
+
+    状态类型：free(空闲)、battle(出击中)、commission(委托中)、
+    in_hard_fleet(困难舰队)、in_event_fleet(活动舰队)。
+    """
     def __init__(self) -> None:
         super().__init__()
         self._results = []
@@ -572,6 +630,10 @@ class StatusScanner(Scanner):
 
 
 class HashGenerator(Scanner):
+    """哈希生成器，为每张船坞卡片生成 DHash 感知哈希。
+
+    用于 DockScanner 跨页扫描时的去重判断和加载完成检测。
+    """
     def __init__(self, length=8) -> None:
         super().__init__()
         self._results = []
@@ -734,7 +796,7 @@ class ShipScanner(Scanner):
             if value is False:
                 self.sub_scanners[attr].disable()
 
-        logger.info(f'Limitations set to {self.limitation}')
+        logger.info(f'筛选条件已设置为 {self.limitation}')
 
 
 class DockScanner(ShipScanner):
@@ -898,7 +960,7 @@ class DockScanner(ShipScanner):
         if not results:
             self.retry += 1
             self.debug_info['reposition_retry'] += 1
-            logger.info(f'No ship was detected, reset the position. Retry {self.retry} time(s)')
+            logger.info(f'[退役-扫描] 未检测到舰船，重置位置。重试第 {self.retry} 次')
             self.reset_position()
             self.reposition(image, bound)
             results = self.scanner.scan(image, cached=False, output=False)
@@ -1001,7 +1063,7 @@ class DockScanner(ShipScanner):
                 for k,v in self.debug_info.items():
                     f.write(f'{k} = {v}\n')
 
-            logger.info(f'debug info has been saved in {self.debug_folder}')
+            logger.info(f'[退役-扫描] 调试信息已保存到 {self.debug_folder}')
 
     def scan(self, image, cached=False, output=True) -> Union[List, None]:
         """请使用 multi_scan() 代替。"""

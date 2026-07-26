@@ -1,3 +1,9 @@
+"""游戏去和谐处理。
+
+通过 ADB 推送 localization.txt 文件到模拟器，启用游戏内置的
+本地化皮肤显示。从 Git 仓库拉取最新补丁资源并部署到设备。
+"""
+
 import shutil
 
 from deploy.git import GitManager
@@ -13,7 +19,7 @@ Localization_skin = true
 
 class AzurLaneUncensored(LoginHandler):
     def create_level1_uncensored(self):
-        logger.info('Create level 1 uncensored')
+        logger.info('创建1级未审查')
         folder = './files'
         try:
             shutil.rmtree(folder)
@@ -36,15 +42,15 @@ class AzurLaneUncensored(LoginHandler):
         repo = self.config.AzurLaneUncensored_Repository
         folder = './.venv/AzurLaneUncensored'
 
-        logger.hr('Update AzurLaneUncensored', level=1)
-        logger.info('This will take a while at first use')
+        logger.hr('更新 AzurLane未审查', level=1)
+        logger.info('[守护-无删减] 首次使用需要较长时间')
         manager = GitManager()
         manager.config['GitExecutable'] = os.path.abspath(manager.config['GitExecutable'])
         manager.config['AdbExecutable'] = os.path.abspath(manager.config['AdbExecutable'])
         os.makedirs(folder, exist_ok=True)
         prev = os.getcwd()
 
-        # Running in ./.venv/AzurLaneUncensored
+        # Running in ./.venv/AzurLane未审查
         os.chdir(folder)
         # Monkey patch `print()` build-in to show logs.
         self.create_level1_uncensored()
@@ -56,22 +62,22 @@ class AzurLaneUncensored(LoginHandler):
         #     keep_changes=False
         # )
 
-        logger.hr('Push Uncensored Files', level=1)
-        logger.info('This will take a few seconds')
+        logger.hr('推送未审查文件', level=1)
+        logger.info('[守护-无删减] 推送需要几秒钟')
         command = ['push', 'files', f'/sdcard/Android/data/{self.device.package}']
-        logger.info(f'Command: {command}')
+        logger.info(f'[守护-无删减] 命令: {command}')
         self.device.adb_command(command, timeout=30)
-        logger.info('Push success')
+        logger.info('[守护-无删减] 推送成功')
 
         # Back to root folder
         os.chdir(prev)
-        logger.hr('Restart AzurLane', level=1)
+        logger.hr('重启碧蓝航线', level=1)
         self.config.override(Error_HandleError=True)
         self.device.app_stop()
         self.device.app_start()
         self.handle_app_login()
 
-        logger.info('Uncensored Finished')
+        logger.info('[守护-无删减] 完成')
 
 
 if __name__ == '__main__':

@@ -1,3 +1,9 @@
+"""任务优先级解析模块。
+
+提供 parse_task_priority 函数，解析用户配置中的任务优先级文本，
+支持 Unicode 全角分隔符规范化、注释去除和去重处理。
+"""
+
 import re
 from typing import Any, Iterable
 

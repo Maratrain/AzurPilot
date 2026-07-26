@@ -1,3 +1,10 @@
+"""
+Web界面部署设置定义。
+
+定义部署设置的数据结构、主题选项、远程访问模式等配置字段。
+提供设置的序列化、反序列化及启动运行项管理功能。
+"""
+
 import json
 from dataclasses import dataclass
 from typing import Any

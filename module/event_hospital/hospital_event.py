@@ -1,3 +1,10 @@
+"""医院活动事件主控模块。
+
+医院活动的顶层任务处理器，管理活动入口导航、难度选择、
+关卡进入和战斗编排。继承 Hospital 和 RaidRun，复用
+突袭任务的运行框架来驱动医院活动的完整执行流程。
+"""
+
 from module.campaign.campaign_ui import ModeSwitch
 from module.combat.assets import BATTLE_PREPARATION
 from module.event_hospital.assets import *
@@ -30,7 +37,7 @@ class HospitalEvent(Hospital, RaidRun):
         if chapter in ['easy', 'normal', 'hard']:
             ASIDE_SWITCH_HOSPITAL.set(chapter, main=self)
         else:
-            logger.warning(f'Unknown campaign aside: {chapter}')
+            logger.warning(f'未知的战役旁白: {chapter}')
 
     def hospital_expected_end(self):
         """判断医院活动战斗是否结束（突袭模式）。
@@ -106,7 +113,7 @@ class HospitalEvent(Hospital, RaidRun):
             in: page_raid
             out: page_raid
         """
-        logger.hr('Raid Execute')
+        logger.hr('突袭执行')
         self.config.override(
             Campaign_Event=raid,
             Campaign_Name=f'{raid}_{mode}_{stage}',
@@ -120,7 +127,7 @@ class HospitalEvent(Hospital, RaidRun):
         self.raid_enter(stage=stage, raid=raid)
         self.hospital_combat()
 
-        logger.hr('Raid End')
+        logger.hr('突袭结束')
 
     def run(self, name='', mode='', stage='', total=0):
         """医院活动突袭主入口。
@@ -149,9 +156,9 @@ class HospitalEvent(Hospital, RaidRun):
             # 日志
             logger.hr(f'{name}_{mode}_{stage}', level=2)
             if self.config.StopCondition_RunCount > 0:
-                logger.info(f'Count remain: {self.config.StopCondition_RunCount}')
+                logger.info(f'剩余次数: {self.config.StopCondition_RunCount}')
             else:
-                logger.info(f'Count: {self.run_count}')
+                logger.info(f'次数: {self.run_count}')
 
             # 停止条件检查
             if self.triggered_stop_condition():
@@ -169,11 +176,11 @@ class HospitalEvent(Hospital, RaidRun):
                 self.campaign_ensure_aside_hospital(chapter=mode)
                 self.raid_execute_once(mode=mode, raid=name, stage=stage)
             except OilExhausted:
-                logger.hr('Triggered stop condition: Oil limit')
+                logger.hr('触发停止条件: 石油上限')
                 self.config.task_delay(minute=(120, 240))
                 break
             except ScriptEnd as e:
-                logger.hr('Script end')
+                logger.hr('脚本结束')
                 logger.info(str(e))
                 break
 

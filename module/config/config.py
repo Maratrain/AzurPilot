@@ -1,3 +1,10 @@
+"""配置管理核心模块。
+
+定义 AzurLaneConfig 类，从 JSON 配置文件加载用户设置并与模板合并。
+整合 ConfigUpdater、ManualConfig、GeneratedConfig、ConfigWatcher，
+支持配置热重载、版本迁移和任务级配置绑定。
+"""
+
 import copy
 import operator
 import os
@@ -22,10 +29,26 @@ from module.map.map_grids import SelectedGrids
 
 
 class TaskEnd(Exception):
+    """任务提前结束异常。
+
+    当检测到需要延迟任务（如情绪不足）时抛出，
+    由调度循环捕获并安排延迟重试。
+    """
     pass
 
 
 class Function:
+    """任务调度函数描述对象。
+
+    描述一个可调度任务的基本属性：是否启用、命令名称和下次执行时间。
+    用于任务调度器的优先级排序和执行选择。
+
+    Attributes:
+        enable (bool): 任务是否启用。
+        command (str): 任务命令名称，如 'Research'、'Commission'。
+        next_run (datetime): 下次计划执行时间。
+    """
+
     def __init__(self, data):
         self.enable = deep_get(data, keys="Scheduler.Enable", default=False)
         self.command = deep_get(data, keys="Scheduler.Command", default="Unknown")
@@ -64,6 +87,33 @@ def name_to_function(name):
 
 
 class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher):
+    """碧蓝航线自动化配置管理器。
+
+    项目的核心配置类，通过多重继承组合了：
+    - ConfigUpdater: 配置版本升级和默认值合并
+    - ManualConfig: 手动配置的属性访问
+    - GeneratedConfig: 自动生成的配置属性（从 template.json 生成）
+    - ConfigWatcher: 配置文件变更检测
+
+    配置加载流程:
+        1. 从 `config/{config_name}.json` 读取用户配置
+        2. 与 args.json 默认值合并（ConfigUpdater.config_update）
+        3. 执行版本迁移重定向（ConfigUpdater.config_redirect）
+        4. 应用云手机覆盖值（_override）
+        5. 绑定到当前任务（bind(task)）
+
+    属性访问:
+        配置路径格式为 `Task.Group.Argument`，通过 `__getattr__` 映射为
+        `self.Group_Argument`（下划线分隔），如 `self.Research_PresetFilter`。
+
+    属性修改:
+        通过 `__setattr__` 拦截已绑定的属性，自动将修改写入配置文件。
+
+    Attributes:
+        stop_event (threading.Event | None): 停止事件，用于跨线程通知停止。
+        bound (dict): 当前任务绑定的属性名到配置路径的映射。
+        is_hoarding_task (bool): 是否为囤积任务（影响空闲行为）。
+    """
     stop_event: threading.Event = None
     bound = {}
 
@@ -80,7 +130,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             super().__setattr__(key, value)
 
     def __init__(self, config_name, task=None):
-        logger.attr("Server", self.SERVER)
+        logger.attr("服务器", self.SERVER)
         # 读取 ./config/<config_name>.json
         self.config_name = config_name
         # YAML 文件中的原始 JSON 数据
@@ -108,15 +158,15 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
 
         if self.is_template_config:
             # 供开发工具使用
-            logger.info("Using template config, which is read only")
+            logger.info("[配置] 使用模板配置，只读模式")
             self.auto_update = False
             self.task = name_to_function("template")
         elif not os.path.exists(filepath_config(config_name)):
             from module.config.utils import is_oobe_needed
             if is_oobe_needed():
                 logger.warning(
-                    "No configuration files found. "
-                    "Run 'python gui.py' to complete initial setup."
+                    "[配置] 未找到配置文件。"
+                    "请运行 'python gui.py' 完成初始设置。"
                 )
         self._disable_task_switch = False
         self.init_task(task)
@@ -174,7 +224,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             func_list.insert(0, "Alas")
         if "General" not in func_list:
             func_list.insert(0, "General")
-        logger.info(f"Bind task {func_list}")
+        logger.info(f"[配置] 绑定任务 {func_list}")
 
         # 绑定参数
         visited = set()
@@ -304,18 +354,18 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
 
         if self.pending_task:
             AzurLaneConfig.is_hoarding_task = False
-            logger.info(f"Pending tasks: {[f.command for f in self.pending_task]}")
+            logger.info(f"[配置] 待处理任务: {[f.command for f in self.pending_task]}")
             task = self.pending_task[0]
-            logger.attr("Task", task)
+            logger.attr("任务", task)
             return task
         else:
             AzurLaneConfig.is_hoarding_task = True
 
         if self.waiting_task:
-            logger.info("No task pending")
+            logger.info("[配置] 没有待处理任务")
             task = copy.deepcopy(self.waiting_task[0])
             task.next_run = (task.next_run + self.hoarding).replace(microsecond=0)
-            logger.attr("Task", task)
+            logger.attr("任务", task)
             return task
         else:
             logger.critical("[Config] 没有等待或待处理的任务")
@@ -330,7 +380,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             deep_set(self.data, keys=path, value=value)
 
         logger.info(
-            f"Save config {filepath_config(self.config_name, mod_name)}, {dict_to_kv(self.modified)}"
+            f"[配置] 保存配置 {filepath_config(self.config_name, mod_name)}, {dict_to_kv(self.modified)}"
         )
         # 不要使用 self.modified = {}，那会创建新对象。
         self.modified.clear()
@@ -490,12 +540,12 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             )
             if task is None:
                 task = self.task.command
-            logger.info(f"Delay task `{task}` to {run} ({kv})")
+            logger.info(f"[配置] 延迟任务 `{task}` 到 {run} ({kv})")
             self.modified[f'{task}.Scheduler.NextRun'] = run
             self.update()
         else:
             raise ScriptError(
-                "Missing argument in delay_next_run, should set at least one"
+                "[配置] delay_next_run 缺少参数，应至少设置一个"
             )
 
     def opsi_task_delay(
@@ -536,7 +586,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
                 keys = f"{task}.Scheduler.NextRun"
                 current = deep_get(self.data, keys=keys, default=DEFAULT_TIME)
                 if current < next_run:
-                    logger.info(f"Delay task `{task}` to {next_run} ({kv})")
+                    logger.info(f"[配置-大世界] 延迟任务 `{task}` 到 {next_run} ({kv})")
                     self.modified[keys] = next_run
 
         def is_submarine_call(task):
@@ -607,7 +657,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             elif get_os_reset_remain() > 0:
                 delay_tasks(tasks, minutes=360)
             else:
-                logger.info("Just less than 1 day to OpSi reset, delay 2.5 hours")
+                logger.info("[配置-大世界] 距离大世界重置不足1天，延迟2.5小时")
                 delay_tasks(tasks, minutes=150)
         if cl1_preserve:
             tasks = SelectedGrids(
@@ -637,10 +687,10 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             bool: 是否成功调用。
         """
         if deep_get(self.data, keys=f"{task}.Scheduler.NextRun", default=None) is None:
-            raise ScriptError(f"Task to call: `{task}` does not exist in user config")
+            raise ScriptError(f"[配置] 要调用的任务: `{task}` 在用户配置中不存在")
 
         if force_call or self.is_task_enabled(task):
-            logger.info(f"Task call: {task}")
+            logger.info(f"[配置] 任务调用: {task}")
             self.modified[f"{task}.Scheduler.NextRun"] = current_time().replace(
                 microsecond=0
             )
@@ -649,7 +699,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
                 self.update()
             return True
         else:
-            logger.info(f"Task call: {task} (skipped because disabled by user)")
+            logger.info(f"[配置] 任务调用: {task} (因用户禁用而跳过)")
             return False
 
     @staticmethod
@@ -684,10 +734,10 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         self.load()
         new = self.get_next()
         if prev == new:
-            logger.info(f"Continue task `{new}`")
+            logger.info(f"[配置] 继续任务 `{new}`")
             return False
         else:
-            logger.info(f"Switch task `{prev}` to `{new}`")
+            logger.info(f"[配置] 切换任务 `{prev}` 到 `{new}`")
             return True
 
     def check_task_switch(self, message=""):
@@ -698,7 +748,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         """
         # 如果设置了禁用任务切换标志，则跳过检查
         if getattr(self, '_disable_task_switch', False):
-            logger.info('Task switch check disabled temporarily')
+            logger.info('[配置] 任务切换检查已临时禁用')
             return
         
         if self.task_switched():

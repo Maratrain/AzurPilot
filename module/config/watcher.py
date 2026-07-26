@@ -1,3 +1,9 @@
+"""配置文件监控模块。
+
+定义 ConfigWatcher 类，通过跟踪配置文件的修改时间来检测文件变更，
+支持在任务间自动热重载配置，避免重启应用。
+"""
+
 import os
 from datetime import datetime
 
@@ -26,7 +32,7 @@ class ConfigWatcher:
         """
         mtime = self.get_mtime()
         if mtime > self.start_mtime:
-            logger.info(f'Config "{self.config_name}" changed at {mtime}')
+            logger.info(f'[配置-监视] 配置 "{self.config_name}" 在 {mtime} 发生变更')
             return True
         else:
             return False

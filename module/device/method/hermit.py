@@ -1,3 +1,6 @@
+"""Hermit 截图和控制后端。通过 HTTP 与 ADB 端口转发通信，
+提供基于 JSON 协议的截图捕获和触摸注入功能。"""
+
 import json
 import time
 from functools import wraps
@@ -83,7 +86,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+        logger.critical(f'[设备-Hermit] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -109,18 +112,18 @@ class Hermit(Adb):
         return f'http://127.0.0.1:{self._hermit_port}'
 
     def hermit_init(self):
-        logger.hr('Hermit init')
+        logger.hr('[设备-Hermit] Hermit初始化')
 
         self.app_stop_adb(self._hermit_package_name)
         # self.uninstall_hermit()
 
-        logger.info('Try to start hermit')
+        logger.info('[设备-Hermit] 尝试启动Hermit')
         if self.app_start_adb(self._hermit_package_name, allow_failure=True):
             # 成功启动 hermit
-            logger.info('Success to start hermit')
+            logger.info('[设备-Hermit] 启动Hermit成功')
         else:
             # Hermit 未安装
-            logger.warning(f'{self._hermit_package_name} not found, installing hermit')
+            logger.warning(f'[设备-Hermit] {self._hermit_package_name} 未找到，正在安装 hermit')
             self.adb_command(['install', '-t', self.config.HERMIT_FILEPATH_LOCAL])
             self.app_start_adb(self._hermit_package_name)
 
@@ -150,7 +153,7 @@ class Hermit(Adb):
         Raises:
             RequestHumanTakeover: 失败时抛出，需要用户手动操作。
         """
-        logger.hr('Enable accessibility service')
+        logger.hr('启用无障碍服务')
         interval = Timer(0.3)
         timeout = Timer(10, count=10).start()
         while 1:
@@ -165,7 +168,7 @@ class Hermit(Adb):
                 b = HierarchyButton(h, xpath)
                 if b:
                     point = random_rectangle_point(b.button)
-                    logger.info(f'Click {point2str(*point)} @ {b}')
+                    logger.info(f'[设备-Hermit] 点击 {point2str(*point)} @ {b}')
                     self.click_adb(*point)
                     return True
                 else:
@@ -185,10 +188,10 @@ class Hermit(Adb):
 
             # 超时
             if timeout.reached():
-                logger.critical('[Device] 无法为 Hermit 打开辅助功能服务')
+                logger.critical('[设备-Hermit] 无法为 Hermit 打开辅助功能服务')
                 logger.critical(
                     '\n\n'
-                    '[Device] 请手动执行以下操作：\n'
+                    '[设备-Hermit] 请手动执行以下操作：\n'
                     '1. 在辅助功能设置中找到 "Hermit" 并点击\n'
                     '2. 将其打开并点击 "确定"\n'
                     '3. 切换回碧蓝航线\n'
@@ -223,7 +226,7 @@ class Hermit(Adb):
             e = HermitError(result)
             if 'GestureDescription$Builder' in result:
                 logger.error(e)
-                logger.critical('[Device] Hermit 无法在当前设备上运行，Hermit 需要 Android>=7.0')
+                logger.critical('[设备-Hermit] Hermit 无法在当前设备上运行，Hermit 需要 Android>=7.0')
                 raise RequestHumanTakeover
             if 'accessibilityservice' in result:
                 # 尝试调用虚拟方法
@@ -232,7 +235,7 @@ class Hermit(Adb):
                 #     android.accessibilityservice.AccessibilityService$GestureResultCallback,
                 #     android.os.Handler
                 # )' on a null object reference
-                logger.error('Unable to access accessibility service')
+                logger.error('[设备-Hermit] 无法访问无障碍服务')
             raise e
 
         # Hermit 请求仅需 2-4ms

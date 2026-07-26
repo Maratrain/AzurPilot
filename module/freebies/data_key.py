@@ -1,3 +1,7 @@
+"""数据密钥收集器，自动收取作战档案中的数据密钥。
+通过 OCR 检测密钥数量，判断是否需要收集。
+"""
+
 from module.combat.assets import GET_ITEMS_1
 from module.freebies.assets import *
 from module.logger import logger
@@ -17,7 +21,7 @@ class DataKey(UI):
             in: page_archives
             out: page_archives, DATA_KEY_COLLECTED
         """
-        logger.hr('Data Key Collect')
+        logger.hr('数据钥匙收集')
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -39,27 +43,27 @@ class DataKey(UI):
 
             # End
             if self.appear(WAR_ARCHIVES_CHECK, offset=(20, 20)) and self.appear(DATA_KEY_COLLECTED, offset=(20, 20)):
-                logger.info('Data key collect finished')
+                logger.info('[免费福利-钥匙] 数据钥匙收集完成')
                 break
 
     def data_key_collect(self):
         """
-        Execute data key collection
+        执行数据钥匙收集。
 
         Returns:
-            bool: If execute a collection.
+            bool: 是否执行了收集。
 
         Pages:
             in: page_archives
         """
         if self.appear(DATA_KEY_COLLECTED, offset=(20, 20)):
-            logger.info('Data key has been collected')
+            logger.info('[免费福利-钥匙] 数据钥匙已收集')
             return False
 
         current, remain, total = DATA_KEY.ocr(self.device.image)
-        logger.info(f'Inventory: {current} / {total}, Remain: {remain}')
+        logger.info(f'[免费福利-钥匙] 背包: {current} / {total}, 剩余: {remain}')
         if not self.config.DataKey_ForceCollect and remain <= 0:
-            logger.info('No more room for additional data key')
+            logger.info('[免费福利-钥匙] 没有更多空间存放数据钥匙')
             return False
 
         self._data_key_collect()

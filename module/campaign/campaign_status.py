@@ -1,3 +1,19 @@
+"""战役状态检测模块。
+
+通过 OCR 读取战役页面上的数值信息，包括：
+- 物资（金币）数量
+- 石油数量
+- 活动 PT（点数）
+- 石油和物资限制检测
+
+这些信息用于判断是否满足停止条件（如石油耗尽、物资溢出等）。
+
+PtOcr 类专门处理活动 PT 数字的 OCR 识别，
+需要特殊的图像预处理（反色、背景去除等）。
+
+继承自 UI，利用页面导航能力。
+"""
+
 import datetime
 import re
 
@@ -59,19 +75,19 @@ class CampaignStatus(UI):
         res = re.search(r'X(\d+)', pt)
         if res:
             pt = int(res.group(1))
-            logger.attr('Event_PT', pt)
+            logger.attr('活动PT', pt)
             LogRes(self.config).Pt = pt
         else:
             # 回退：若 OCR 返回纯数字也接受（保留警告以便回溯）
             res2 = re.search(r'(\d+)', pt)
             if res2:
                 num = int(res2.group(1))
-                logger.warning(f"Invalid pt result format (missing 'X'): {pt}; fallback to digits: {num}")
-                logger.attr('Event_PT_fallback', num)
+                logger.warning(f"无效的PT结果格式 (missing 'X'): {pt}; fallback to digits: {num}")
+                logger.attr('活动PT_回退', num)
                 LogRes(self.config).Pt = num
                 pt = num
             else:
-                logger.warning(f'Invalid pt result: {pt}')
+                logger.warning(f'无效的PT结果: {pt}')
                 pt = 0
         if update:
             self.config.update()
@@ -93,7 +109,7 @@ class CampaignStatus(UI):
                 self.device.screenshot()
 
             if timeout.reached():
-                logger.warning('Get coin timeout')
+                logger.warning('获取物资超时')
                 break
 
             _coin = {
@@ -126,7 +142,7 @@ class CampaignStatus(UI):
             # 带黑色遮罩
             ocr = Digit(_button, name=name, letter=(165, 165, 165), threshold=128)
         else:
-            logger.warning(f'Unexpected OCR_OIL_CHECK color')
+            logger.warning('[战役-状态] 意外的OCR_OIL_CHECK颜色')
             ocr = Digit(_button, name=name, letter=(247, 247, 247), threshold=128)
 
         return ocr.ocr(self.device.image)
@@ -147,11 +163,11 @@ class CampaignStatus(UI):
                 self.device.screenshot()
 
             if not self.appear(OCR_OIL_CHECK, offset=(10, 2)):
-                logger.info('No oil icon')
+                logger.info('无石油图标')
                 self.device.sleep(1)
 
             if timeout.reached():
-                logger.warning('Get oil timeout')
+                logger.warning('获取石油超时')
                 break
 
             _oil = {

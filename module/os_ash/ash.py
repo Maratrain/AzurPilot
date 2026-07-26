@@ -1,3 +1,15 @@
+"""大世界余烬信标模块。
+
+提供碧蓝航线大世界（Operation Siren）中余烬（Ash/Ember）信标系统的自动化功能，包括：
+- 信标数据收集进度的 OCR 读取与状态判断
+- 每日信标收集上限的检测
+- 信标战斗的特殊处理（战斗状态、战斗准备、经验信息跳过）
+- 信标战斗完成的异常信号处理（AshBeaconFinished）
+- 信标攻击任务的自动调度（收集进度 >= 100 时触发 OpsiAshBeacon 任务）
+
+余烬信标系统允许玩家收集信标数据来挑战 META 级别的敌人，
+战斗结束后可获得 META 角色碎片等奖励。
+"""
 from datetime import timedelta
 
 from module.base.utils import image_left_strip
@@ -27,7 +39,16 @@ class AshBeaconFinished(Exception):
 
 
 class AshCombat(Combat):
-    """余烬信标战斗处理器，处理战斗状态和战斗准备。"""
+    """余烬信标战斗处理器。
+
+    继承 Combat，覆盖部分战斗处理逻辑以适配 META 战斗的特殊行为：
+    - 战斗状态页面的自定义点击处理（含掉落图像处理）
+    - 经验信息的跳过（META 战斗不掉落经验）
+    - 战斗准备页面的信标状态检测（完成 / 空信标 / 已在对决页面）
+    - 战斗执行中捕获 AshBeaconFinished 异常以正常退出
+
+    当信标已完成或为空时，抛出 AshBeaconFinished 异常通知上层停止战斗循环。
+    """
 
     def handle_battle_status(self, drop=None):
         """
@@ -106,7 +127,19 @@ class AshCombat(Combat):
 
 
 class OSAsh(UI, MapEventHandler):
-    """大世界余烬信标模块，负责信标收集状态检测和任务调度。"""
+    """大世界余烬信标模块。
+
+    负责信标收集状态检测和信标攻击任务的自动调度。
+
+    工作流程：
+    1. 通过 OCR 读取信标收集进度（DigitCounter）
+    2. 判断收集状态：可收集 / 未收集满 / 已达上限 / 被遮挡
+    3. 当收集进度 >= 100 且信标任务可调度时，触发 OpsiAshBeacon 任务
+    4. 检查信标任务的下次执行时间，距今超过 30 分钟才允许调用
+
+    Attributes:
+        _ash_fully_collected (bool): 信标数据是否已收集满（达到每日上限或持有上限）。
+    """
     _ash_fully_collected = False
 
     def ash_collect_status(self):

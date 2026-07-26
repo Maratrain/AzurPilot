@@ -1,3 +1,7 @@
+"""WebUI 启动器工具模块，提供实例管理的进程间通信和本地请求检测。
+包括异步命令执行、WebSocket 连接管理、
+本地请求判断等底层支持功能。"""
+
 import asyncio
 import json
 import sys

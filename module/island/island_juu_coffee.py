@@ -1,3 +1,8 @@
+"""岛屿 JUU 咖啡店模块。
+
+继承 IslandShopBase，配置咖啡店的商品列表与岗位参数。
+包含冰咖啡、蛋卷、拿铁、柑橘咖啡等饮品的模板、选择与制作流程定义。
+"""
 from module.island_juu_coffee.assets import *
 from module.island.island_shop_base import IslandShopBase
 from module.island.assets import *

@@ -1,3 +1,19 @@
+"""指挥喵收集模块。
+
+处理指挥喵训练完成后的收集操作，包括：
+- 检测并收集已训练完成的指挥喵（单个或全部）
+- 处理指挥喵获取界面的各种弹窗和过渡动画
+- 检测指挥喵是否拥有特殊天赋（金色/紫色品质专属）
+- 金色指挥喵的锁定/解锁处理（防止被误用作强化材料）
+
+特殊天赋检测机制：
+- 检查天赋网格中的图标，通过颜色分析区分普通天赋和特殊天赋
+- 屏幕可能发生随机左移，通过 `MEOWFFICER_SHIFT_DETECT` 检测并适配
+- 支持天赋截图记录（通过 `DropRecord_MeowfficerTalent` 配置）
+
+配置项前缀：`MeowfficerTrain_*`、`DropRecord_*`
+"""
+
 from module.base.button import ButtonGrid
 from module.base.timer import Timer
 from module.logger import logger
@@ -28,6 +44,15 @@ SWITCH_LOCK.add_state(
 
 
 class MeowfficerCollect(MeowfficerBase):
+    """指挥喵收集处理器。
+
+    负责从训练完成界面收集已训练的指挥喵，并根据品质和天赋决定是否保留。
+
+    Attributes:
+        config.MeowfficerTrain_RetainTalentedGold (bool): 是否保留有特殊天赋的金色指挥喵。
+        config.MeowfficerTrain_RetainTalentedPurple (bool): 是否保留有特殊天赋的紫色指挥喵。
+        config.DropRecord_MeowfficerTalent (str): 指挥喵天赋截图记录模式。
+    """
     def _meow_detect_shift(self, skip_first_screenshot=True):
         """
         Serves as innate wait mechanism for loading
@@ -112,7 +137,7 @@ class MeowfficerCollect(MeowfficerBase):
             bool
         """
         # Wait for complete load before examining talents
-        logger.info('Wait complete load and examine base talents')
+        logger.info('[指挥喵-收集] 等待加载完成并检查基础天赋')
 
         special_talent = False
         grid = MEOWFFICER_TALENT_GRID_2 if self._meow_detect_shift() else MEOWFFICER_TALENT_GRID_1
@@ -137,8 +162,8 @@ class MeowfficerCollect(MeowfficerBase):
                 self._meow_talent_cap_handle(btn, drop)
             special_talent = True
 
-        log_insert = 'Found' if special_talent else 'No'
-        logger.info(f'{log_insert} special talent abilities in meowfficer')
+        log_insert = '发现' if special_talent else '未发现'
+        logger.info(f'[指挥喵-收集] {log_insert}指挥喵拥有特殊天赋')
         return special_talent
 
     def _meow_skip_lock(self):
@@ -199,7 +224,7 @@ class MeowfficerCollect(MeowfficerBase):
                     break
             # accidentally exited get queue
             if self.appear(MEOWFFICER_TRAIN_START, offset=(20, 20)):
-                logger.info('_meow_skip_popup_after_locking exits at MEOWFFICER_TRAIN_START')
+                logger.info('[指挥喵-收集] 锁定后弹窗处理意外退出至 MEOWFFICER_TRAIN_START')
                 break
 
             if self.appear(MEOWFFICER_APPLY_UNLOCK, offset=(40, 40), interval=3):
@@ -264,7 +289,7 @@ class MeowfficerCollect(MeowfficerBase):
                         continue
 
                 count += 1
-                logger.attr('Meow_get', count)
+                logger.attr('[指挥喵-收集] 获取次数', count)
                 with self.stat.new(
                         genre="meowfficer_talent",
                         method=self.config.DropRecord_MeowfficerTalent
@@ -312,15 +337,15 @@ class MeowfficerCollect(MeowfficerBase):
         Returns:
             bool: whether collected or not
         """
-        logger.hr('Meowfficer collect', level=2)
+        logger.hr('指挥喵收集', level=2)
 
         if self.appear(MEOWFFICER_TRAIN_COMPLETE, offset=(20, 20)):
             # Today is Sunday, finish all else get just one
             if collect_all:
-                logger.info('Collect all trained meowfficers')
+                logger.info('收集所有训练完成的指挥喵')
                 button = MEOWFFICER_TRAIN_FINISH_ALL
             else:
-                logger.info('Collect single trained meowfficer')
+                logger.info('收集单个训练完成的指挥喵')
                 button = MEOWFFICER_TRAIN_COMPLETE
             self.ui_click(button, check_button=MEOWFFICER_GET_CHECK,
                           additional=self.handle_meow_popup_dismiss,

@@ -1,3 +1,7 @@
+"""大舰队战斗处理器，继承战斗基类并适配大舰队特有的战斗结算画面。
+处理大世界风格的战斗状态和获取物品界面。
+"""
+
 from module.combat.combat import Combat
 from module.guild.assets import BATTLE_STATUS_CF, EXP_INFO_CF
 

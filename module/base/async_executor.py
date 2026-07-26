@@ -1,3 +1,9 @@
+"""异步执行器模块。
+
+提供单例模式的 AsyncExecutor，内部维护后台线程运行 asyncio 事件循环。
+用于将存储、推送等阻塞操作投递到后台队列，确保主流程不被阻塞。
+"""
+
 # -*- coding: utf-8 -*-
 import asyncio
 import threading
@@ -56,9 +62,9 @@ class AsyncExecutor:
             future = self.submit(lambda: None)
             future.result(timeout=timeout)
         except asyncio.TimeoutError:
-            logger.warning("AsyncExecutor flush timeout")
+            logger.warning("[异步执行器] 刷新超时")
         except Exception as e:
-            logger.warning(f"AsyncExecutor flush error: {e}")
+            logger.warning(f"[异步执行器] 刷新错误: {e}")
 
 
 # 全局唯一实例

@@ -1,3 +1,8 @@
+"""岛屿餐厅模块。
+
+继承 IslandShopBase，实现餐厅的菜品配置、季节性菜品管理与岗位运营。
+包含凉拌双笋、芦笋炒虾仁等时令菜品定义，支持固定位置按钮与菜品种类统计。
+"""
 from module.island_restaurant.assets import *
 from module.island.island_shop_base import IslandShopBase
 from module.island.assets import *

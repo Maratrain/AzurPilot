@@ -1,3 +1,7 @@
+"""弃船突袭处理器，处理弃船突袭特有的战斗结算和退役逻辑。
+在突袭中自动退役低级舰船以腾出船位。
+"""
+
 from module.combat.assets import OPTS_INFO_D, BATTLE_STATUS_D, EXP_INFO_D, BATTLE_STATUS_C, EXP_INFO_C
 from module.exception import ScriptError, CampaignEnd
 from module.logger import logger
@@ -41,7 +45,7 @@ class RaidScuttleCombat(RaidCombat):
             self.device.click(OPTS_INFO_D)
             return True
         if super().handle_battle_status(drop=drop):
-            logger.warning("Triggered normal end")
+            logger.warning("触发正常结束")
             self.triggered_normal_end = True
             return True
 
@@ -134,7 +138,7 @@ class RaidScuttleRun(RaidRun, RaidScuttleCombat, Dock):
             index=index, rarity='common', extra='enhanceable', sort='total'
         )
 
-        logger.hr('FINDING SHIP')
+        logger.hr('搜索舰船')
 
         scanner = ShipScanner(level=(1, 31), fleet=0, status='free')
         scanner.disable('rarity')
@@ -142,7 +146,7 @@ class RaidScuttleRun(RaidRun, RaidScuttleCombat, Dock):
         return scanner.scan(self.device.image)
 
     def vanguard_change(self):
-        logger.hr('Change vanguard', level=2)
+        logger.hr('更换前排', level=2)
         for _ in self.loop():
             if self.appear(DOCK_CHECK, offset=(20, 20)):
                 break
@@ -153,16 +157,16 @@ class RaidScuttleRun(RaidRun, RaidScuttleCombat, Dock):
         ship = self.get_common_rarity_ship(index='vanguard')
         if ship:
             self._ship_change_confirm(min(ship, key=lambda s: (s.level, -s.emotion)).button)
-            logger.info('Change vanguard success')
+            logger.info('[突袭-扫荡] 更换前排成功')
             return True
         else:
-            logger.info('Change vanguard failed, no vanguard in common rarity.')
+            logger.info('[突袭-扫荡] 更换前排失败，无普通稀有度前排舰船')
             self._dock_reset()
             self.ui_back(check_button=RAID_FLEET_PREPARATION)
             return False
 
     def flagship_change(self):
-        logger.hr('Change flagship', level=2)
+        logger.hr('更换旗舰', level=2)
         for _ in self.loop():
             if self.appear(DOCK_CHECK, offset=(20, 20)):
                 break
@@ -173,10 +177,10 @@ class RaidScuttleRun(RaidRun, RaidScuttleCombat, Dock):
         ship = self.get_common_rarity_ship(index='main')
         if ship:
             self._ship_change_confirm(min(ship, key=lambda s: (s.level, -s.emotion)).button)
-            logger.info('Change flagship success')
+            logger.info('[突袭-扫荡] 更换旗舰成功')
             return True
         else:
-            logger.info('Change flagship failed, no flagship in common rarity.')
+            logger.info('[突袭-扫荡] 更换旗舰失败，无普通稀有度旗舰舰船')
             self._dock_reset()
             self.ui_back(check_button=RAID_FLEET_PREPARATION)
             return False

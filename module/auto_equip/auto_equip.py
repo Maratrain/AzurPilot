@@ -1,3 +1,7 @@
+"""自动装备模块，提供舰船装备的快速更换功能。
+通过 OCR 识别和模板匹配，在船坞界面自动完成装备筛选、选择和装备操作，
+支持批量更换和按方案配装。"""
+
 from functools import lru_cache
 from pathlib import Path
 
@@ -142,7 +146,7 @@ class AutoEquip(Dock):
         return self.appear(AUTO_EQUIP_QUICK_CHANGE_CHECK)
 
     def _open_quick_change(self):
-        logger.info('Open quick equipment change')
+        logger.info('打开快速换装')
         for _ in self.loop(timeout=10):
             if self._quick_change_appear():
                 return
@@ -160,11 +164,11 @@ class AutoEquip(Dock):
     def _quick_equipping_set(self, enable=True):
         target = 'on' if enable else 'off'
         current = auto_equip_equipping_filter.get(main=self)
-        logger.attr('Auto_equip_equipping_filter', current)
+        logger.attr('自动装备筛选', current)
         if current == target:
             return
         if current == 'unknown':
-            logger.warning('Unable to determine quick equipping filter state')
+            logger.warning('无法确定快速换装筛选状态')
             return
 
         self.device.click(AUTO_EQUIP_EQUIPPING_CLICK)
@@ -175,7 +179,7 @@ class AutoEquip(Dock):
             self.device.click_record_remove(name)
 
     def _quick_change_next(self):
-        logger.info('Swipe to next ship')
+        logger.info('滑动到下一艘舰船')
         self._auto_equip_click_record_clear()
         self.device.swipe_vector(
             vector=(-SWIPE_DISTANCE, 0),
@@ -209,7 +213,7 @@ class AutoEquip(Dock):
             if getattr(self.config, f'AutoEquip_EnableSlot{index}', True):
                 slots.append(slot)
 
-        logger.attr('Enabled equipment slots', [slot.name for slot in slots])
+        logger.attr('启用的装备槽', [slot.name for slot in slots])
         return slots
 
     def _quick_empty_equipment_slots(self):
@@ -221,7 +225,7 @@ class AutoEquip(Dock):
             if score >= AUTO_EQUIP_EMPTY_SLOT_PLUS_SIMILARITY:
                 empty_slots.append(slot)
 
-        logger.attr('Empty slot plus scores', scores)
+        logger.attr('空槽加号得分', scores)
         return empty_slots
 
     @staticmethod
@@ -234,7 +238,7 @@ class AutoEquip(Dock):
 
     def _warehouse_no_equipment(self):
         score = self._warehouse_no_equipment_score(self.device.image)
-        logger.attr('No equipment score', f'{score:.3f}')
+        logger.attr('无装备得分', f'{score:.3f}')
         return score >= AUTO_EQUIP_NO_EQUIPMENT_SIMILARITY
 
     def _quick_fill_slot_from_warehouse(self, slot):
@@ -242,21 +246,21 @@ class AutoEquip(Dock):
         self.wait_until_stable(AUTO_EQUIP_WAREHOUSE_FIRST)
         self.device.screenshot()
         if self._warehouse_no_equipment():
-            logger.info(f'No equipment available for {slot.name}')
+            logger.info(f'[自动装备] {slot.name} 无可用装备')
             return False
 
         if self._warehouse_first_unavailable(self.device.image):
-            logger.info(f'Fill {slot.name} from warehouse second equipment')
+            logger.info(f'[自动装备] 从仓库第二件装备填充 {slot.name}')
             self.device.click(AUTO_EQUIP_WAREHOUSE_SECOND)
         else:
-            logger.info(f'Fill {slot.name} from warehouse first equipment')
+            logger.info(f'[自动装备] 从仓库第一件装备填充 {slot.name}')
             self.device.click(AUTO_EQUIP_WAREHOUSE_FIRST)
         self.device.sleep(AUTO_EQUIP_AFTER_EQUIP_WAIT)
         self.wait_until_stable(AUTO_EQUIP_EQUIPMENT_SLOT_ROW)
         return True
 
     def _fill_current_ship_equipment(self):
-        logger.hr('Auto equip current ship', level=2)
+        logger.hr('自动换装当前舰船', level=2)
         self._auto_equip_click_record_clear()
         try:
             self._open_quick_change()
@@ -266,12 +270,12 @@ class AutoEquip(Dock):
             self._auto_equip_click_record_clear()
 
     def equipment_change_logic(self):
-        logger.info('Fill empty equipment slots')
+        logger.info('填充空装备槽')
         filled = 0
         skipped = 0
         self.device.screenshot()
         empty_slots = self._quick_empty_equipment_slots()
-        logger.attr('Empty equipment slots', [slot.name for slot in empty_slots])
+        logger.attr('空装备槽', [slot.name for slot in empty_slots])
 
         for slot in empty_slots:
             if self._should_stop():
@@ -282,8 +286,8 @@ class AutoEquip(Dock):
             else:
                 skipped += 1
 
-        logger.attr('Filled equipment slots', filled)
-        logger.attr('Skipped empty slots', skipped)
+        logger.attr('已填充装备槽', filled)
+        logger.attr('跳过的空槽', skipped)
 
     def _ship_limit(self):
         value = getattr(self.config, 'AutoEquip_ShipLimit', 0)
@@ -294,15 +298,15 @@ class AutoEquip(Dock):
         return max(value, 0)
 
     def run(self):
-        logger.hr('Auto Equip', level=1)
+        logger.hr('自动换装', level=1)
         limit = self._ship_limit()
-        logger.attr('Ship limit', 'manual stop' if limit == 0 else limit)
+        logger.attr('舰船上限', '手动停止' if limit == 0 else limit)
         if limit == 0:
-            logger.warning('Ship limit is 0, AutoEquip will continue until manually stopped')
+            logger.warning('舰船上限为0，自动换装将持续到手动停止')
 
         self.ui_ensure(page_dock)
         if not self.dock_enter_first(non_npc=True):
-            logger.info('No ship to equip')
+            logger.info('无舰船可换装')
             return
 
         count = 0
@@ -311,11 +315,11 @@ class AutoEquip(Dock):
                 raise TaskEnd('AutoEquip stopped')
 
             count += 1
-            logger.attr('Ship', count)
+            logger.attr('舰船', count)
             self._fill_current_ship_equipment()
 
             if limit and count >= limit:
-                logger.info('Reached ship limit')
+                logger.info('达到舰船上限')
                 break
 
             self._quick_change_next()

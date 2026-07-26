@@ -1,3 +1,7 @@
+"""游戏设置提取器，从碧蓝航线 Lua 源代码中解析 PlayerPrefs 配置项。
+通过正则表达式匹配 GetInt/GetFloat/GetString 等调用，
+自动提取键名、类型和默认值。"""
+
 import os
 import re
 from dataclasses import dataclass

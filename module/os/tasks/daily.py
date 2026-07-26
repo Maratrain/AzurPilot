@@ -1,3 +1,14 @@
+"""
+大世界每日任务模块。
+
+遍历所有碧蓝港口执行每日港口任务，包括接取/完成任务委托、
+修理舰队、补给物资等。支持随机化港口遍历顺序以降低检测风险。
+任务完成后自动延迟至次日服务器更新时间。
+
+Classes:
+    OpsiDaily: 大世界每日任务处理器，继承 OSMap。
+"""
+
 import numpy as np
 
 from module.config.config import TaskEnd
@@ -192,10 +203,10 @@ class OpsiDaily(OSMap):
             self.logger_use()
 
         if self.config.OpsiDaily_SkipSirenResearchMission and self.config.SERVER not in ['cn']:
-            logger.warning(f'OpsiDaily.SkipSirenResearchMission is not supported in {self.config.SERVER}')
+            logger.warning(f'[大世界-日常] 跳过塞壬研究任务不支持 {self.config.SERVER} 服务器')
             self.config.OpsiDaily_SkipSirenResearchMission = False
         if self.config.OpsiDaily_KeepMissionZone and self.config.SERVER not in ['cn']:
-            logger.warning(f'OpsiDaily.KeepMissionZone is not supported in {self.config.SERVER}')
+            logger.warning(f'[大世界-日常] 保留任务区域不支持 {self.config.SERVER} 服务器')
             self.config.OpsiDaily_KeepMissionZone = False
 
         skip_siren_mission = self.config.OpsiDaily_SkipSirenResearchMission
@@ -217,7 +228,7 @@ class OpsiDaily(OSMap):
 
         if self.config.OpsiDaily_KeepMissionZone:
             if self.zone.is_azur_port:
-                logger.info('Already in azur port')
+                logger.info('[大世界-日常] 已在碧蓝港口')
             else:
                 self.globe_goto(self.zone_nearest_azur_port(self.zone))
             self.os_daily_clear_all_mission_zones()

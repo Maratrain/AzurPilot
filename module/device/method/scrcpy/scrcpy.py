@@ -1,3 +1,6 @@
+"""Scrcpy 截图和控制后端。整合 ScrcpyCore 和 ControlSender，
+提供带重试的截图捕获、触摸点击和滑动操作。"""
+
 import socket
 import time
 from functools import wraps
@@ -79,9 +82,9 @@ def retry(func):
                     pass
 
         if func.__name__ in ['screenshot_scrcpy']:
-            logger.critical(f'Retry {func.__name__}() failed')
+            logger.critical(f'[设备-Scrcpy] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'[设备-Scrcpy] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper

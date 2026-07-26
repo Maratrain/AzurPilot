@@ -1,3 +1,6 @@
+"""ADB Shell 警告信息过滤。移除 VMOS 等模拟器 Shell 输出中的
+链接器警告信息，避免干扰后续数据解析（如 PNG 截图数据）。"""
+
 from typing import overload
 
 

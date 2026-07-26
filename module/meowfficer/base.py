@@ -1,3 +1,7 @@
+"""指挥喵模块基类，提供指挥喵界面的等待和基础交互方法。
+处理界面加载等待、信息弹窗关闭和每日重置时间计算。
+"""
+
 from module.base.timer import Timer
 from module.combat.assets import GET_ITEMS_1
 from module.config.utils import get_server_next_update
@@ -83,7 +87,7 @@ class MeowfficerBase(UI):
             in: MEOWFFICER_FORT_CHECK, MEOWFFICER_BUY, MEOWFFICER_TRAIN_START, etc
             out: page_meowfficer
         """
-        logger.hr('Meowfficer menu close')
+        logger.hr('指挥喵-菜单关闭')
         click_timer = Timer(3)
         while 1:
             if skip_first_screenshot:

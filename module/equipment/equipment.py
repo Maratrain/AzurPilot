@@ -1,3 +1,24 @@
+"""装备管理系统。
+
+管理舰船装备的查看、更换和装备码操作。
+
+功能：
+- 装备界面的导航和检测
+- 舰船视图的左右滑动切换
+- 装备编辑按钮的状态管理
+- 装备过滤器（正在装备中）的切换
+- 装备码（Equipment Code）的导入导出
+
+装备类型：
+- 主炮（Main Gun）
+- 副炮（Secondary Gun）
+- 鱼雷（Torpedo）
+- 防空炮（Anti-Air Gun）
+- 设备（Auxiliary Device）
+
+继承自 EquipmentCodeHandler，提供装备码处理能力。
+"""
+
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.base.timer import Timer
@@ -9,8 +30,10 @@ from module.ui.assets import BACK_ARROW
 from module.ui.navbar import Navbar
 from module.ui.switch import Switch
 
+# 滑动参数
 SWIPE_DISTANCE = 250
 SWIPE_RANDOM_RANGE = (-40, -20, 40, 20)
+# 装备中过滤器开关
 equipping_filter = Switch('Equiping_filter')
 equipping_filter.add_state('on', check_button=EQUIPPING_ON)
 equipping_filter.add_state('off', check_button=EQUIPPING_OFF)
@@ -19,6 +42,13 @@ EQUIPMENT_OPEN.match = EQUIPMENT_OPEN.match_luma
 
 
 class Equipment(EquipmentCodeHandler):
+    """装备管理器。
+
+    管理舰船装备的查看和更换操作。
+
+    Attributes:
+        equipment_has_take_on (bool): 是否已执行装备更换操作。
+    """
     equipment_has_take_on = False
 
     def equipping_set(self, enable=False):
@@ -47,7 +77,7 @@ class Equipment(EquipmentCodeHandler):
                     if self.appear(check_button, offset=(30, 30)):
                         break
                     if self.appear(RETIRE_EQUIP_CONFIRM, offset=(30, 30)):
-                        logger.info('RETIRE_EQUIP_CONFIRM popup in _ship_view_swipe()')
+                        logger.info('[装备-穿戴] 退役装备确认弹窗')
                         return False
                     # Popup when enhancing a NPC ship
                     if self.handle_popup_confirm('SHIP_VIEW_SWIPE'):
@@ -57,16 +87,16 @@ class Equipment(EquipmentCodeHandler):
             self.device.screenshot()
 
             if self.appear(RETIRE_EQUIP_CONFIRM, offset=(30, 30)):
-                logger.info('RETIRE_EQUIP_CONFIRM popup in _ship_view_swipe()')
+                logger.info('[装备-穿戴] 退役装备确认弹窗')
                 return False
             if SWIPE_CHECK.match(self.device.image):
                 if swipe_count > 1:
-                    logger.info('Same ship on multiple swipes')
+                    logger.info('[装备-穿戴] 多次滑动同一舰船')
                     return False
                 continue
 
             if self.appear(check_button, offset=(30, 30)) and not SWIPE_CHECK.match(self.device.image):
-                logger.info('New ship detected on swipe')
+                logger.info('[装备-穿戴] 滑动检测到新舰船')
                 return True
 
     def ship_view_next(self, check_button=EQUIPMENT_OPEN):
@@ -91,7 +121,7 @@ class Equipment(EquipmentCodeHandler):
             # Long click accidentally became normal click, exit from dock
             if long_click:
                 if self.appear(DOCK_CHECK, offset=(20, 20), interval=3):
-                    logger.info(f'ship_info_enter {DOCK_CHECK} -> {BACK_ARROW}')
+                    logger.info(f'[装备-穿戴] 舰船信息进入 {DOCK_CHECK} -> {BACK_ARROW}')
                     self.device.click(BACK_ARROW)
                     continue
             if enter_timer.reached():
@@ -160,7 +190,7 @@ class Equipment(EquipmentCodeHandler):
         """
         if self._ship_side_navbar.get_total(main=self) == 3:
             if upper == 1 or bottom == 3:
-                logger.warning('Transitions to "research" is not supported')
+                logger.warning('[装备-穿戴] 不支持跳转到 "research"')
                 return False
 
         if self._ship_side_navbar.set(self, upper=upper, bottom=bottom):
@@ -191,7 +221,7 @@ class Equipment(EquipmentCodeHandler):
         self.code_apply(name=name)
 
     def _equip_take_off_one(self, skip_first_screenshot=True):
-        logger.info('Equipment take off')
+        logger.info('[装备-穿戴] 装备卸下')
         bar_timer = Timer(5)
         off_timer = Timer(5)
         confirm_timer = Timer(5)
@@ -226,7 +256,7 @@ class Equipment(EquipmentCodeHandler):
                     bar_timer.reset()
                     continue
 
-        logger.info('Equipment take off ended')
+        logger.info('[装备-穿戴] 装备卸下完成')
 
     def equipment_take_off(self, enter, out, fleet):
         """
@@ -235,7 +265,7 @@ class Equipment(EquipmentCodeHandler):
             out (Button): Button to confirm exit success.
             fleet (list[int]): list of equipment record. [3, 1, 1, 1, 1, 1]
         """
-        logger.hr('Equipment take off')
+        logger.hr('[装备-穿戴] 装备卸下')
         self.equip_enter(enter)
 
         for index in '9'.join([str(x) for x in fleet if x > 0]):
@@ -250,7 +280,7 @@ class Equipment(EquipmentCodeHandler):
         self.equipment_has_take_on = False
 
     def _equip_take_on_one(self, index, skip_first_screenshot=True):
-        logger.info('Equipment take on preset')
+        logger.info('[装备-穿戴] 装备预设装上')
         bar_timer = Timer(5)
         on_timer = Timer(5)
 
@@ -280,7 +310,7 @@ class Equipment(EquipmentCodeHandler):
                 bar_timer.reset()
                 continue
 
-        logger.info('Equipment take on ended')
+        logger.info('[装备-穿戴] 装备装上完成')
 
     def equipment_take_on(self, enter, out, fleet):
         """
@@ -289,7 +319,7 @@ class Equipment(EquipmentCodeHandler):
             out (Button): Button to confirm exit success.
             fleet (list[int]): list of equipment record. [3, 1, 1, 1, 1, 1]
         """
-        logger.hr('Equipment take on')
+        logger.hr('[装备-穿戴] 装备装上')
         self.equip_enter(enter)
 
         for index in '9'.join([str(x) for x in fleet if x > 0]):

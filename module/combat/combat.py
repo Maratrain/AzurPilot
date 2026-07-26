@@ -1,3 +1,25 @@
+"""战斗系统核心处理器。
+
+整合所有战斗相关的功能模块，提供完整的战斗流程管理。
+
+继承自多个战斗子模块：
+- Level: 等级检测
+- HPBalancer: 血量平衡管理
+- Retirement: 退役处理（船坞满时自动退役）
+- SubmarineCall: 潜艇呼叫
+- CombatAuto: 自动战斗模式
+- CombatManual: 手动战斗模式
+- AutoSearchHandler: 自动搜索处理
+
+战斗流程：
+1. combat_appear() 检测战斗画面
+2. handle_combat_automation() 设置自动/手动模式
+3. handle_combat_low_emotion() 处理低情绪警告
+4. handle_retirement() 处理退役提示
+5. 等待战斗结束（combat_status）
+6. 处理战斗结果（经验、掉落等）
+"""
+
 import numpy as np
 
 from module.base.timer import Timer
@@ -20,6 +42,17 @@ from module.ui.assets import BACK_ARROW, EXERCISE_CHECK, MUNITIONS_CHECK
 
 
 class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatManual, AutoSearchHandler):
+    """战斗系统核心处理器。
+
+    整合等级检测、血量平衡、退役、潜艇、自动/手动战斗和自动搜索等功能，
+    提供从战斗开始到结束的完整流程管理。
+
+    通过多重继承组合各子模块的能力，子模块各自处理战斗的特定方面。
+
+    Attributes:
+        _automation_set_timer (Timer): 自动化模式设置的防抖计时器。
+        battle_status_click_interval (int): 战斗状态点击间隔。
+    """
     _automation_set_timer = Timer(1)
     battle_status_click_interval = 0
 
@@ -78,10 +111,10 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
         similarity, button = TEMPLATE_COMBAT_LOADING.match_luma_result(image)
         if similarity > lower_template_match_similarity(0.85):
             loading = (button.area[0] + 38 - LOADING_BAR.area[0]) / (LOADING_BAR.area[2] - LOADING_BAR.area[0])
-            logger.attr('Loading', f'{int(loading * 100)}%')
+            logger.attr('加载进度', f'{int(loading * 100)}%')
             return True
         if self.is_combat_executing():
-            logger.warning('[战斗] 检测到战斗状态但未检测到加载条')
+            logger.warning('[战斗-加载] 检测到战斗状态但未检测到加载条')
             return True
         return False
 
@@ -264,7 +297,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             auto: 自动战斗模式，'combat_auto' 或其他模式。
             fleet_index: 舰队索引，1 或 2。
         """
-        logger.info('Combat preparation.')
+        logger.info('[战斗-准备] 战斗准备')
         self.device.stuck_record_clear()
         self.device.click_record_clear()
         skip_first_screenshot = True
@@ -301,7 +334,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             # 检测到战斗执行中，退出准备阶段
             pause = self.is_combat_executing()
             if pause:
-                logger.attr('BattleUI', pause)
+                logger.attr('战斗UI', pause)
                 if emotion_reduce:
                     self.emotion.reduce(fleet_index)
                 # 如果未检测到加载画面，兜底降低截图频率
@@ -337,7 +370,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             return False
 
         if self.appear(AUTOMATION_ON):
-            logger.info('[Automation] ON')
+            logger.info('[战斗-自动化] 自动战斗开启')
             if not auto:
                 self.device.click(AUTOMATION_SWITCH)
                 self.device.sleep(1)
@@ -345,7 +378,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
                 return True
 
         if self.appear(AUTOMATION_OFF):
-            logger.info('[Automation] OFF')
+            logger.info('[战斗-自动化] 自动战斗关闭')
             if auto:
                 self.device.click(AUTOMATION_SWITCH)
                 self.device.sleep(1)
@@ -375,11 +408,11 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             if not self.appear(EMERGENCY_REPAIR_AVAILABLE):
                 return False
 
-            logger.info('EMERGENCY_REPAIR_AVAILABLE')
+            logger.info('[战斗-维修] 紧急维修可用')
             if not len(self.hp):
                 return False
             if max(self.hp[:3]) <= 0.001 or max(self.hp[3:]) <= 0.001:
-                logger.warning(f'Invalid HP to use emergency repair: {self.hp}')
+                logger.warning(f'[战斗-维修] 使用紧急维修时血量无效: {self.hp}')
                 return False
 
             hp = np.array(self.hp)
@@ -387,7 +420,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             if (len(hp) and np.min(hp) < self.config.HpControl_RepairUseSingleThreshold) \
                     or max(self.hp[:3]) < self.config.HpControl_RepairUseMultiThreshold \
                     or max(self.hp[3:]) < self.config.HpControl_RepairUseMultiThreshold:
-                logger.info('Use emergency repair')
+                logger.info('[战斗-维修] 使用紧急维修')
                 self.device.click(EMERGENCY_REPAIR_AVAILABLE)
                 self.interval_clear(EMERGENCY_REPAIR_CONFIRM)
                 return True
@@ -407,7 +440,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             submarine: 潜艇模式，可选 'do_not_use'、'hunt_only'、'every_combat'。
             drop: 掉落记录对象，用于统计。
         """
-        logger.info('Combat execute')
+        logger.info('[战斗-执行] 战斗执行')
         self.submarine_call_reset()
         self.combat_auto_reset()
         self.combat_manual_reset()
@@ -472,7 +505,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             self.device.click(BATTLE_STATUS_S)
             return True
         if self.appear(BATTLE_STATUS_A, interval=self.battle_status_click_interval):
-            logger.warning('Battle status A')
+            logger.warning('[战斗-结算] 战斗评价 A')
             if drop:
                 drop.handle_add(self)
             else:
@@ -480,7 +513,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             self.device.click(BATTLE_STATUS_A)
             return True
         if self.appear(BATTLE_STATUS_B, interval=self.battle_status_click_interval):
-            logger.warning('Battle Status B')
+            logger.warning('[战斗-结算] 战斗评价 B')
             if drop:
                 drop.handle_add(self)
             else:
@@ -488,7 +521,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             self.device.click(BATTLE_STATUS_B)
             return True
         if self.appear(BATTLE_STATUS_C, interval=self.battle_status_click_interval):
-            logger.warning('Battle Status C')
+            logger.warning('[战斗-结算] 战斗评价 C')
             if drop:
                 drop.handle_add(self)
             else:
@@ -496,7 +529,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             self.device.click(BATTLE_STATUS_C)
             return True
         if self.appear(BATTLE_STATUS_D, interval=self.battle_status_click_interval):
-            logger.warning('Battle Status D')
+            logger.warning('[战斗-结算] 战斗评价 D')
             if drop:
                 drop.handle_add(self)
             else:
@@ -586,7 +619,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
         """
         if self.appear_then_click(GET_SHIP, interval=1):
             if self.appear(NEW_SHIP):
-                logger.info('Get a new SHIP')
+                logger.info('[战斗-舰船] 获得新舰船')
                 if drop:
                     drop.handle_add(self)
                 self.config.GET_SHIP_TRIGGERED = True
@@ -606,11 +639,11 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             是否处理了误点击。
         """
         if self.appear(MUNITIONS_CHECK, offset=(20, 20), interval=5):
-            logger.info(f'{MUNITIONS_CHECK} -> {BACK_ARROW}')
+            logger.info(f'[战斗-误点击] 误入军需页面 {MUNITIONS_CHECK} -> {BACK_ARROW}')
             self.device.click(BACK_ARROW)
             return True
         if self.appear(EXERCISE_CHECK, offset=(20, 20), interval=5):
-            logger.info(f'{EXERCISE_CHECK} -> {BACK_ARROW}')
+            logger.info(f'[战斗-误点击] 误入演习页面 {EXERCISE_CHECK} -> {BACK_ARROW}')
             self.device.click(BACK_ARROW)
             return True
 
@@ -629,8 +662,8 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             expected_end: 预期结束状态，可选 'with_searching'、'no_searching'、'in_stage'、'in_ui'，
                 也可传入回调函数。
         """
-        logger.info('Combat status')
-        logger.attr('expected_end', expected_end.__name__ if callable(expected_end) else expected_end)
+        logger.info('[战斗-结算] 战斗结算')
+        logger.attr('预期结束状态', expected_end.__name__ if callable(expected_end) else expected_end)
         self.device.screenshot_interval_set()
         self.device.stuck_record_clear()
         self.device.click_record_clear()
@@ -661,7 +694,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
                 continue
             if self.handle_popup_confirm('COMBAT_STATUS'):
                 if battle_status and not exp_info:
-                    logger.info('Locking a new ship')
+                    logger.info('[战斗-舰船] 锁定新舰船')
                     self.config.GET_SHIP_TRIGGERED = True
                 continue
             if not battle_status:
@@ -744,4 +777,4 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             self.combat_status(
                 drop=drop, expected_end=expected_end)
 
-        logger.info('Combat end.')
+        logger.info('[战斗-结束] 战斗结束')

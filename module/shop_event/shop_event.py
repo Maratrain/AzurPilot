@@ -1,3 +1,14 @@
+"""活动商店模块。
+
+提供碧蓝航线活动商店的自动化购买功能，包括：
+- 活动点数（pt/URpt）的获取与余额管理
+- UR 舰船购买逻辑（含 URpt 不足时的自动兑换）
+- 未获取物品（unobtained）的优先购买
+- 基于预设或自定义过滤器的批量购买策略
+- 自定义过滤器的消耗量追踪与自动禁用
+
+支持多个活动商店标签页的自动切换与遍历。
+"""
 from typing import List, Tuple
 
 from module.base.decorator import del_cached_property
@@ -20,8 +31,21 @@ from module.ui.page import page_shop, page_munitions
 
 
 class EventShop(EventShopClerk):
-    """
-    Class for Event Shop operations with backend operations.
+    """活动商店自动化购买控制器。
+
+    继承 EventShopClerk，实现完整的活动商店购买流程：
+    1. 获取当前活动点数（pt / URpt）
+    2. 优先处理 URpt 相关物品（UR 舰船、URpt 兑换、金币）
+    3. 处理未获取物品（unobtained tag）的购买
+    4. 根据过滤器配置批量购买剩余物品
+    5. 活动结束后自动消耗自定义过滤器中的购买数量
+
+    支持多个活动商店标签页的自动遍历，每个标签页独立执行购买逻辑。
+
+    Attributes:
+        pt (int): 当前活动点数余额。
+        urpt (int): 当前 UR 活动点数余额。
+        pt_preserved (int): 为后续购买预留的活动点数。
     """
     pt = 0
     urpt = 0
@@ -37,7 +61,7 @@ class EventShop(EventShopClerk):
         Preserve pt for future use.
         """
         self.pt_preserved += amount
-        logger.info(f"Preserved {amount} pt for future use. Total preserved pt: {self.pt_preserved}")
+        logger.info(f"[活动商店] 保留 {amount} PT点数供后续使用。总保留PT: {self.pt_preserved}")
 
     def handle_items_related_with_urpt(self, items: List[EventShopItem], num_of_ships_to_buy: int = 2) \
             -> Tuple[List[EventShopItem], List[EventShopItem]]:
@@ -54,7 +78,7 @@ class EventShop(EventShopClerk):
             that should be dealt with at last.
         """
         if not self.event_shop_has_urpt:
-            logger.info("Event shop does not have URpt, skip handling URpt-related items.")
+            logger.info("[活动商店] 活动商店没有UR点数，跳过UR点数相关物品处理")
             return items, []
 
         ship_items = []
@@ -77,17 +101,17 @@ class EventShop(EventShopClerk):
         ship_items.sort(key=lambda item: item.price)
         if ship_items and num_of_ships_to_buy > 0:
             if len(ship_items) == 1 and num_of_ships_to_buy == 1:
-                logger.info("Only one ship item available and num_of_ships_to_buy is 1, skipping buying ships.")
+                logger.info("[活动商店] 只有一个舰船物品且购买数量为1，跳过购买舰船")
             else:
                 ships_to_buy = ship_items[:num_of_ships_to_buy]
-                logger.info(f"Attempting to buy ship items: {[str(item) for item in ships_to_buy]}")
+                logger.info(f"[活动商店] 尝试购买舰船物品: {[str(item) for item in ships_to_buy]}")
                 current_urpt = self.event_shop_get_urpt()
                 while ships_to_buy:
                     urpt_needed = sum([item.price for item in ships_to_buy])
                     if current_urpt >= urpt_needed:
                         for item in ships_to_buy:
                             self.event_shop_buy_item(item)
-                        logger.info(f"Successfully bought ship items: {[str(item) for item in ships_to_buy]}")
+                        logger.info(f"[活动商店] 成功购买舰船物品: {[str(item) for item in ships_to_buy]}")
                         break
                     else:
                         if self.is_event_ended:
@@ -98,19 +122,19 @@ class EventShop(EventShopClerk):
                                     urpt_items[0].count -= (urpt_needed - current_urpt)
                                 for item in ships_to_buy:
                                     self.event_shop_buy_item(item)
-                                logger.info(f"Successfully bought ship items: {[str(item) for item in ships_to_buy]}")
+                                logger.info(f"[活动商店] 成功购买舰船物品: {[str(item) for item in ships_to_buy]}")
                                 break
                             else:
                                 logger.warning(
-                                    f"Insufficient URpt to buy ships: {[str(item) for item in ships_to_buy]}. "
-                                    f"Skipping the most expensive one and retrying.")
+                                    f"[活动商店] UR点数不足以购买舰船: {[str(item) for item in ships_to_buy]}，"
+                                    f"跳过最贵的并重试")
                                 ships_to_buy.pop()
                         else:
                             urpt_in_stock = urpt_items[0].count if urpt_items else 0
                             if current_urpt + urpt_in_stock >= urpt_needed:
                                 pt_needed = (urpt_needed - current_urpt) * URPT_PRICE_IN_PT
                                 self.preserve_pt(pt_needed)
-                                logger.info(f"Preserved {pt_needed} pt to buy URpt for ships.")
+                                logger.info(f"[活动商店] 保留 {pt_needed} PT点数用于购买舰船的UR点数")
                                 urpt_preserve = True
                                 while ships_to_buy and sum([item.price for item in ships_to_buy]) > current_urpt:
                                     ships_to_buy.pop()
@@ -118,21 +142,20 @@ class EventShop(EventShopClerk):
                                     for item in ships_to_buy:
                                         self.event_shop_buy_item(item)
                                     logger.info(
-                                        f"Successfully bought ship items: {[str(item) for item in ships_to_buy]}")
+                                        f"[活动商店] 成功购买舰船物品: {[str(item) for item in ships_to_buy]}")
                                     break
                                 else:
-                                    logger.warning("No ships can be bought with current URpt. Skipping buying ships.")
+                                    logger.warning("[活动商店] 当前UR点数无法购买舰船，跳过购买舰船")
                                     break
                             else:
-                                logger.warning("Insufficient URpt to buy ships even after buying all URpt in stock. "
-                                               "Skipping buying the most expensive ship.")
+                                logger.warning("[活动商店] 购买所有UR点数后仍不足，跳过购买最贵的舰船")
                                 ships_to_buy.pop()
 
         if urpt_preserve:
-            logger.info("Skipping buying URpt and coins due to URpt preservation for ships.")
+            logger.info("[活动商店] 因保留UR点数购买舰船，跳过购买UR点数和物资")
             return other_items, []
         else:
-            logger.info("Buy URpt and URpt-priced coins last.")
+            logger.info("[活动商店] 最后购买UR点数和UR点数定价的物资")
             return other_items, urpt_items + coin_items
 
     def handle_unobtained_items(self, items: List[EventShopItem], buy_unobtained_items=False) \
@@ -161,15 +184,15 @@ class EventShop(EventShopClerk):
         if not unobtained_items:
             return other_items, []
         if not self.is_event_ended:
-            logger.info("Event is not ended, preserve pt for unobtained items. May also wait for event map drop.")
+            logger.info("[活动商店] 活动未结束，为未获取物品保留PT点数。也可等待活动地图掉落")
             self.preserve_pt(sum(item.price for item in unobtained_items))
             return other_items, []
 
         multiple_items = []
-        logger.info(f"Attempting to buy unobtained items: {[str(item) for item in unobtained_items]}")
+        logger.info(f"[活动商店] 尝试购买未获取物品: {[str(item) for item in unobtained_items]}")
         for item in unobtained_items:
             self.event_shop_buy_item(item)
-            logger.info(f"Successfully bought unobtained item: {str(item)}")
+            logger.info(f"[活动商店] 成功购买未获取物品: {str(item)}")
             if item.count > 1:
                 item.count -= 1
                 multiple_items.append(item)
@@ -188,7 +211,7 @@ class EventShop(EventShopClerk):
         elif item.cost == 'pt':
             return min(item.count, (self.pt - self.pt_preserved) // item.price)
         else:
-            logger.error(f"Unknown cost type: {item.cost} for item: {str(item)}")
+            logger.error(f"[活动商店] 未知的消耗类型: {item.cost}，物品: {str(item)}")
             return 0
 
     @staticmethod
@@ -215,9 +238,9 @@ class EventShop(EventShopClerk):
         self.event_shop_load_ensure()
         items = self.scan_all()
         if not len(items):
-            logger.warning("No items found in event shop.")
+            logger.warning("[活动商店] 活动商店中未找到物品")
             return True
-        logger.hr("Event Shop buy", level=2)
+        logger.hr("活动商店购买", level=2)
         self.get_current_pts()
         items, urpt_related_items = self.handle_items_related_with_urpt(items, self.config.EventShop_BuyURShip)
         self.get_current_pts()
@@ -234,14 +257,14 @@ class EventShop(EventShopClerk):
         items = FILTER.apply(items)
         items += urpt_related_items
         if not len(items):
-            logger.info("No items to buy after filtering.")
+            logger.info("[活动商店] 筛选后无可购买物品")
             return True
-        logger.attr('Item_sort', ' > '.join([str(item) for item in items]))
+        logger.attr('物品排序', ' > '.join([str(item) for item in items]))
         self.get_current_pts()
-        logger.attr("Pt_preserved", self.pt_preserved)
+        logger.attr("保留PT点数", self.pt_preserved)
         bought_amount = {}
         for item in items:
-            logger.hr(f"Attempting to buy item: {str(item)}", level=3)
+            logger.hr(f"尝试购买物品: {str(item)}", level=3)
             filter_amount_key = self.item_filter_amount_key(item, filter_amount)
             amount_limit = filter_amount.get(filter_amount_key)
             already_bought = bought_amount.get(filter_amount_key, 0) if filter_amount_key else 0
@@ -251,31 +274,31 @@ class EventShop(EventShopClerk):
                 else max(amount_limit - already_bought, 0)
             )
             if remaining_limit is not None and remaining_limit <= 0:
-                logger.info(f"Reach filter amount limit for item: {str(item)}")
+                logger.info(f"[活动商店] 达到物品筛选数量上限: {str(item)}")
                 continue
 
             affordable_amount = self.calculate_affordable_amount(item)
             target_amount = item.count if remaining_limit is None else min(item.count, remaining_limit)
             buy_amount = min(affordable_amount, target_amount)
             if buy_amount <= 0:
-                logger.warning(f"Cannot afford to buy any of item: {str(item)}.")
+                logger.warning(f"[活动商店] 无法购买物品: {str(item)}")
                 if self.is_event_ended:
-                    logger.info("Event is ended, skip this item and continue to try buying other items.")
+                    logger.info("[活动商店] 活动已结束，跳过此物品继续尝试购买其他物品")
                     continue
                 else:
-                    logger.info("Event is not ended, stopping further purchases to avoid overspending.")
+                    logger.info("[活动商店] 活动未结束，停止进一步购买以避免超支")
                     break
             elif buy_amount < target_amount:
-                logger.warning(f"Can only afford to buy {buy_amount} of item: {str(item)}.")
+                logger.warning(f"[活动商店] 只能购买 {buy_amount} 个物品: {str(item)}")
                 self.event_shop_buy_item(item, amount=buy_amount)
                 if filter_amount_key:
                     bought_amount[filter_amount_key] = already_bought + buy_amount
                 if self.is_event_ended:
-                    logger.info("Event is ended, continue to try buying other items.")
+                    logger.info("[活动商店] 活动已结束，继续尝试购买其他物品")
                     self.get_current_pts()
                     continue
                 else:
-                    logger.info("Event is not ended, stopping further purchases to avoid overspending.")
+                    logger.info("[活动商店] 活动未结束，停止进一步购买以避免超支")
                     break
             else:
                 if buy_amount < item.count:
@@ -284,7 +307,7 @@ class EventShop(EventShopClerk):
                     self.event_shop_buy_item(item)
                 if filter_amount_key:
                     bought_amount[filter_amount_key] = already_bought + buy_amount
-                logger.info(f"Successfully bought item: {str(item)}")
+                logger.info(f"[活动商店] 成功购买物品: {str(item)}")
                 self.get_current_pts()
 
         # Consume custom filter amounts based on actual purchased quantities.
@@ -302,10 +325,10 @@ class EventShop(EventShopClerk):
                 changed = True
             if changed:
                 new_filter = rebuild_filter_tokens(filter_tokens)
-                logger.attr('EventShop_Filter_Consumed', new_filter if new_filter else '(empty)')
+                logger.attr('活动商店过滤器已消耗', new_filter if new_filter else '(空)')
                 self.config.EventShop_CustomFilter = new_filter
                 if not new_filter.strip():
-                    logger.info('Event shop custom filter fully consumed, disabling EventShop task.')
+                    logger.info('[活动商店] 自定义过滤器已完全消耗，禁用活动商店任务')
                     self.config.Scheduler_Enable = False
                     self.config.task_stop()
         return True
@@ -327,14 +350,14 @@ class EventShop(EventShopClerk):
 
         if self.appear(NAV_GENERAL, offset=(5, 5)):
             if self.appear(NO_NAV_EVENT_CHECK, offset=(5, 5)):
-                logger.info("There is no event shop currently. End the task.")
+                logger.info("[活动商店] 当前没有活动商店，结束任务")
                 self.config.task_delay(server_update=True)
                 return False
             else:
                 self.ui_click(NAV_EVENT, check_button=NAV_EVENT, appear_button=NAV_GENERAL)
 
         count, navbar = self.event_shop_tab_count_and_navbar
-        logger.info(f"Detected {count} event shop(s). Start processing.")
+        logger.info(f"[活动商店] 检测到 {count} 个活动商店，开始处理")
         for i in range(count):
             navbar.set(main=self, left=i + 1)
             for _ in range(7):  # Refresh up to 7 times to deal with buying failures

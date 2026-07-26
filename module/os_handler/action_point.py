@@ -1,3 +1,9 @@
+"""大世界行动力管理模块。
+
+处理大世界（Operation Siren）模式下的行动力（Action Point）管理。
+包含行动力数值的 OCR 识别、适应性属性读取、药剂（AP Box）库存解析，
+以及自动购买或使用补给品的交互逻辑。
+"""
 # 此文件处理大世界（Operation Siren）模式下的行动力（Action Point, AP）管理。
 # 包含行动力数值 OCR 识别、药剂（AP Box）库存解析以及自动购买或使用补给的交互逻辑。
 from datetime import timedelta
@@ -203,7 +209,7 @@ class ActionPointHandler(UI, MapEventHandler):
         oil = box[0]
 
         LogRes(self.config).Oil = oil
-        logger.info(f'Action points: {current}({total}), oil: {oil}')
+        logger.info(f'[大世界-行动点] 行动点: {current}({total}), 石油: {oil}')
         LogRes(self.config).ActionPoint = {'Value': current, 'Total': total}
         self.config.update()
         self._action_point_current = current
@@ -225,7 +231,7 @@ class ActionPointHandler(UI, MapEventHandler):
             if self.is_current_ap_visible():
                 break
             if timeout.reached():
-                logger.warning('Get action points timeout, wait is_current_ap_visible timeout')
+                logger.warning('[大世界-行动点] 获取行动点超时')
                 break
             # 处理行动力弹窗上方的强制地图事件
             if self.handle_map_event():
@@ -241,7 +247,7 @@ class ActionPointHandler(UI, MapEventHandler):
                 self.device.screenshot()
 
             if timeout.reached():
-                logger.warning('Get action points timeout')
+                logger.warning('[大世界-行动点] 获取行动点超时')
                 break
             # 处理行动力弹窗上方的强制地图事件
             if self.handle_map_event():
@@ -291,7 +297,7 @@ class ActionPointHandler(UI, MapEventHandler):
         elif pinned == 'STRONGHOLD':
             cost = 200
         else:
-            logger.warning(f'Unable to get AP cost from zone={zone}, pinned={pinned}, assume it costs 40.')
+            logger.warning(f'[大世界-行动点] 无法获取行动点消耗, 区域={zone}, 固定={pinned}，假设消耗40')
             cost = 40
 
         if zone.is_port:
@@ -314,7 +320,7 @@ class ActionPointHandler(UI, MapEventHandler):
             if color[2] > 160:
                 return index
 
-        logger.warning('Unable to find an active action point box button')
+        logger.warning('[大世界-行动点] 无法找到活动的行动点箱子按钮')
         return 1
 
     def action_point_set_button(self, index):
@@ -334,7 +340,7 @@ class ActionPointHandler(UI, MapEventHandler):
                 self.device.click(ACTION_POINT_GRID[index, 0])
                 self.device.sleep(0.3)
         else:
-            logger.warning('FSet action point button timeout')
+            logger.warning('[大世界-行动点] 设置行动点按钮超时')
             return False
 
     def action_point_get_buy_remain(self):
@@ -358,7 +364,7 @@ class ActionPointHandler(UI, MapEventHandler):
 
             break
         else:
-            logger.warning('Get action points buy remain timeout')
+            logger.warning('[大世界-行动点] 获取行动点购买剩余超时')
 
         return current
 
@@ -381,19 +387,19 @@ class ActionPointHandler(UI, MapEventHandler):
         buy_count = buy_max - current
         buy_limit = self.config.OpsiGeneral_BuyActionPointLimit
         if self._is_in_month_end_purchase_block_week():
-            logger.info('Skip buying action points this week because it is the month-end block week')
+            logger.info('[大世界-行动点] 跳过本周购买行动点，因为是月末封锁周')
             return False
         if buy_count >= buy_limit:
-            logger.info('Reach the limit to buy action points this week')
+            logger.info('[大世界-行动点] 达到本周购买行动点上限')
             return False
         cost = ACTION_POINTS_BUY[current]
         oil = self._action_point_box[0]
-        logger.info(f'Buy action points will cost {cost}, current oil: {oil}, preserve: {preserve}')
+        logger.info(f'[大世界-行动点] 购买行动点将消耗 {cost}, 当前石油: {oil}, 保留: {preserve}')
         if oil >= cost + preserve:
             self.action_point_use()
             return True
         else:
-            logger.info('Not enough oil to buy')
+            logger.info('[大世界-行动点] 石油不足无法购买')
             return False
 
     def action_point_quit(self):
@@ -452,15 +458,14 @@ class ActionPointHandler(UI, MapEventHandler):
             diff = get_server_next_update('00:00') - current_time()
             today_rest = int(diff.total_seconds() // 600)
             if self._action_point_current + today_rest >= 200:
-                logger.info('The sum of the current action points and the rest action points'
-                            ' that can be obtained today exceeds 200, skip AP check')
-                logger.info(f'Current={self._action_point_current}  Rest={today_rest}')
+                logger.info('[大世界处理-行动力] 当前行动力与今日可获得的剩余行动力之和超过 200，跳过行动力检查')
+                logger.info(f'[大世界-行动点] 当前={self._action_point_current}  今日剩余={today_rest}')
                 keep_current_ap = False
 
         # 先检查行动力
         if keep_current_ap:
             if self._action_point_total <= self.config.OS_ACTION_POINT_PRESERVE:
-                logger.info(f'Reach the limit of action points, preserve={self.config.OS_ACTION_POINT_PRESERVE}')
+                logger.info(f'[大世界-行动点] 达到行动点上限, 保留={self.config.OS_ACTION_POINT_PRESERVE}')
                 self.action_point_quit()
                 raise ActionPointLimit(
                     current=self._action_point_current,
@@ -471,7 +476,7 @@ class ActionPointHandler(UI, MapEventHandler):
         for _ in range(12):
             # 拥有足够的行动力
             if self._action_point_current >= cost:
-                logger.info('Having enough action points')
+                logger.info('[大世界-行动点] 行动点充足')
                 self.action_point_quit()
                 return True
 
@@ -486,7 +491,7 @@ class ActionPointHandler(UI, MapEventHandler):
             # 重新检查总行动力是否小于消耗
             # 如果是，则跳过使用药剂
             if self._action_point_total < cost:
-                logger.info('Not having enough action points')
+                logger.info('[大世界-行动点] 行动点不足')
                 self.action_point_quit()
                 raise ActionPointLimit(
                     current=self._action_point_current,
@@ -510,7 +515,7 @@ class ActionPointHandler(UI, MapEventHandler):
                     self.action_point_use()
                     continue
                 else:
-                    logger.info(f'Reach the limit of action points, preserve={self.config.OS_ACTION_POINT_PRESERVE}')
+                    logger.info(f'[大世界-行动点] 达到行动点上限, 保留={self.config.OS_ACTION_POINT_PRESERVE}')
                     self.action_point_quit()
                     raise ActionPointLimit(
                         current=self._action_point_current,
@@ -518,7 +523,7 @@ class ActionPointHandler(UI, MapEventHandler):
                         preserve=self.config.OS_ACTION_POINT_PRESERVE,
                     )
             else:
-                logger.info('No more action point boxes')
+                logger.info('[大世界-行动点] 没有更多行动点箱子')
                 self.action_point_quit()
                 raise ActionPointLimit(
                     current=self._action_point_current,
@@ -526,7 +531,7 @@ class ActionPointHandler(UI, MapEventHandler):
                     cost=cost,
                 )
 
-        logger.warning('Failed to get action points after 12 trial')
+        logger.warning('[大世界-行动点] 尝试12次后仍无法获取行动点')
         return False
 
     def action_point_enter(self):
@@ -594,9 +599,9 @@ class ActionPointHandler(UI, MapEventHandler):
 
         enough = self._action_point_total > amount
         if enough:
-            logger.info(f'Having {amount} action points')
+            logger.info(f'[大世界-行动点] 拥有 {amount} 行动点')
         else:
-            logger.info(f'Not having {amount} action points')
+            logger.info(f'[大世界-行动点] 没有 {amount} 行动点')
 
         self.action_point_quit()
         for _ in self.loop():

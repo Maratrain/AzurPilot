@@ -1,3 +1,8 @@
+"""岛屿制造工坊模块。
+
+继承 IslandShopBase，实现制造工坊的产品配置与岗位管理。
+支持固定位置按钮（如荠菜）、滑动配置及制造时间前缀设置，管理工坊自动化生产流程。
+"""
 from module.island.island import *
 from module.island_manufacture.assets import *
 from module.island.island_shop_base import IslandShopBase

@@ -1,3 +1,7 @@
+"""OCR 基准测试工具，用于评估不同 OCR 模型的识别精度和性能。
+支持 azur_lane、azur_lane_jp、cn 等模型的批量测试，
+通过 Rich 表格输出详细的准确率统计结果。"""
+
 import os
 import platform
 import shutil
@@ -68,7 +72,7 @@ class OcrBenchmark:
         return 'Ultra Slow', 'bold red'
 
     def _run_single(self, model_name, dataset_prefix, subfolder, use_gpu=None, ocr_device=None):
-        logger.hr(f'Benchmark: {model_name.upper()} model  |  dataset: {dataset_prefix}', level=2)
+        logger.hr(f'基准测试: {model_name.upper()} 模型  |  数据集: {dataset_prefix}', level=2)
 
         # --- Dynamic OCR device config ---
         if ocr_device is None and use_gpu is not None:
@@ -88,17 +92,17 @@ class OcrBenchmark:
 
         try:
             if archive_path:
-                logger.info(f'Extracting {archive_path} ...')
+                logger.info(f'[基准测试] 解压 {archive_path} ...')
                 if os.path.exists(extract_dir):
                     shutil.rmtree(extract_dir)
                 shutil.unpack_archive(archive_path, extract_dir)
 
             test_cases = self._load_test_cases(extract_dir, subfolder)
             if not test_cases:
-                logger.error(f'[{model_name}] UNABLE to load test cases. Skipped.')
+                logger.error(f'[{model_name}] 无法加载测试用例，已跳过')
                 return None
 
-            logger.info(f'[{model_name}] Loaded {len(test_cases)} test cases.')
+            logger.info(f'[{model_name}] 已加载 {len(test_cases)} 个测试用例')
 
             # --- Accuracy ---
             correct = 0
@@ -112,13 +116,13 @@ class OcrBenchmark:
                         correct += 1
                     else:
                         name = os.path.basename(img_input)
-                        logger.warning(f'Fail [{name}]: expected "{expected}", got "{result}"')
+                        logger.warning(f'失败 [{name}]: 预期 "{expected}", 实际 "{result}"')
                 except Exception as e:
-                    logger.error(f'OCR error on {img_input}: {e}')
+                    logger.error(f'[{model_name}] OCR错误 {img_input}: {e}')
 
                 if idx % log_step == 0 or idx == total:
                     pct = idx / total * 100
-                    logger.info(f'[{model_name}] Accuracy progress: {idx}/{total} ({pct:.0f}%)')
+                    logger.info(f'[{model_name}] 精度进度: {idx}/{total} ({pct:.0f}%)')
 
             accuracy = (correct / total) * 100 if total > 0 else 0
 
@@ -138,20 +142,20 @@ class OcrBenchmark:
             benchmark_img = cv2.imread(test_cases[0][0])
             count = 100
 
-            logger.info(f'[{model_name}] Warming up...')
+            logger.info(f'[{model_name}] 预热中...')
             for _ in range(3):
                 ocr.ocr(benchmark_img)
 
-            logger.info(f'[{model_name}] Running {count} inferences...')
+            logger.info(f'[{model_name}] 运行 {count} 次推理...')
             start = time.time()
             for i in range(1, count + 1):
                 try:
                     ocr.ocr(benchmark_img)
                 except Exception as e:
-                    logger.error(f'[{model_name}] Error on iteration {i}: {e}')
+                    logger.error(f'[{model_name}] 第 {i} 次迭代错误: {e}')
                     break
                 if i % 5 == 0 or i == count:
-                    logger.info(f'[{model_name}] Speed progress: {i}/{count}')
+                    logger.info(f'[{model_name}] 速度进度: {i}/{count}')
 
             cost = time.time() - start
             avg_ms = cost * 1000 / count if cost > 0 else 0
@@ -180,10 +184,10 @@ class OcrBenchmark:
                 try:
                     shutil.rmtree(extract_dir)
                 except Exception as e:
-                    logger.error(f'Cleanup {extract_dir} failed: {e}')
+                    logger.error(f'[基准测试] 清理 {extract_dir} 失败: {e}')
 
     def run(self):
-        logger.hr('OCR Benchmark', level=1)
+        logger.hr('OCR基准测试', level=1)
 
         results = []
         for model_name, dataset_prefix, subfolder in self.BENCHMARKS:
@@ -193,8 +197,8 @@ class OcrBenchmark:
 
         # --- Summary ---
         if not results:
-            logger.hr('OCR Benchmark Summary', level=1)
-            logger.error('No benchmark results collected.')
+            logger.hr('OCR基准测试摘要', level=1)
+            logger.error('[基准测试] 未收集到基准测试结果')
             return
 
         table = Table(show_lines=True)
@@ -223,7 +227,7 @@ class OcrBenchmark:
                 status
             )
 
-        logger.hr('OCR Benchmark Summary', level=1)
+        logger.hr('OCR基准测试摘要', level=1)
         logger.print(table, justify='center')
         logger.info('[Daemon] 如果您的 Status 显示 Error 或 Warning，请使用 CPU 运行 OCR')
 
@@ -232,33 +236,33 @@ class OcrBenchmark:
         Returns:
             str: Best OCR device for this machine.
         """
-        logger.hr('Simple OCR Benchmark', level=1)
+        logger.hr('简单OCR基准测试', level=1)
         backend = self.config.ocr_backend
-        logger.info(f'Backend: {backend}')
+        logger.info(f'[基准测试] 后端: {backend}')
 
         if backend == 'ncnn':
             from module.ocr.ncnn_ocr import has_ncnn_vulkan_gpu
             if not has_ncnn_vulkan_gpu():
-                logger.info('No ncnn Vulkan GPU detected, use CPU.')
+                logger.info('[基准测试] 未检测到ncnn Vulkan GPU，使用CPU')
                 return 'cpu'
-            logger.info('Testing OCR with ncnn Vulkan GPU...')
+            logger.info('[基准测试] 使用ncnn Vulkan GPU测试OCR...')
             device = 'gpu'
         else:
             # ONNX backend
             if sys.platform == 'darwin' and platform.machine() == 'arm64':
-                logger.info('Testing OCR with ANE...')
+                logger.info('[基准测试] 使用ANE测试OCR...')
                 device = 'ane'
             else:
-                logger.info('Testing OCR with GPU (DirectML)...')
+                logger.info('[基准测试] 使用GPU (DirectML) 测试OCR...')
                 device = 'gpu'
 
         res = self._run_single('azur_lane', 'sets_num', 'sets_num', ocr_device=device)
 
         if res and res['accuracy'] >= 100.0:
-            logger.info(f'OCR accuracy is 100% with {device.upper()}, use {device.upper()}.')
+            logger.info(f'[基准测试] 使用 {device.upper()} OCR精度为100%，使用 {device.upper()}')
             return device
         else:
-            logger.info(f'OCR accuracy is not 100% with {device.upper()} or test failed, fallback to CPU.')
+            logger.info(f'[基准测试] 使用 {device.upper()} OCR精度不为100%或测试失败，回退到CPU')
             return 'cpu'
 
 

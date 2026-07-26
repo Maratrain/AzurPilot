@@ -1,3 +1,12 @@
+"""
+ADB 截图和输入方法。
+
+通过 Android Debug Bridge (ADB) 执行设备截图和触控操作。
+主要提供截图捕获（`screenshot_adb`）、XML 层级获取（`dump_hierarchy`）等方法。
+基于 `adb exec-out screencap -p` 命令捕获屏幕图像，
+通过 `adb shell input` 命令执行点击、滑动等触控操作。
+包含自动重试机制，处理 ADB 连接中断和图像截断等异常情况。
+"""
 import re
 import time
 from functools import wraps
@@ -78,9 +87,9 @@ def retry(func):
             'screenshot_adb', 'screenshot_adb_nc',
             '_app_start_adb_am', '_app_start_adb_monkey',
         ]:
-            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+            logger.critical(f'[设备-ADB] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
-        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+        logger.critical(f'[设备-ADB] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -169,7 +178,7 @@ class Adb(Connection):
 
         self.__screenshot_method_fixed = self.__screenshot_method
         if len(screenshot) < 500:
-            logger.warning(f'Unexpected screenshot: {screenshot}')
+            logger.warning(f'[设备-ADB] 异常截图: {screenshot}')
         raise OSError(f'cannot load screenshot')
 
     @retry
@@ -177,7 +186,7 @@ class Adb(Connection):
     def screenshot_adb(self):
         data = self.adb_shell(['screencap', '-p'], stream=True)
         if len(data) < 500:
-            logger.warning(f'Unexpected screenshot: {data}')
+            logger.warning(f'[设备-ADB] 异常截图: {data}')
 
         return self.__process_screenshot(data)
 
@@ -187,7 +196,7 @@ class Adb(Connection):
         data = self.adb_shell(['screencap'], stream=True)
         data = remove_screenshot_warning(data)
         if len(data) < 500:
-            logger.warning(f'Unexpected screenshot: {data}')
+            logger.warning(f'[设备-ADB] 异常截图: {data}')
 
         return load_screencap(data)
 
@@ -196,7 +205,7 @@ class Adb(Connection):
         data = self.adb_shell_nc(['screencap'])
         data = remove_screenshot_warning(data)
         if len(data) < 500:
-            logger.warning(f'Unexpected screenshot: {data}')
+            logger.warning(f'[设备-ADB] 异常截图: {data}')
 
         return load_screencap(data)
 
@@ -319,7 +328,7 @@ class Adb(Connection):
                 try:
                     activity_name = activity_name.split('/')[-1]
                 except IndexError:
-                    logger.error(f'No activity name from {activity_name}')
+                    logger.error(f'无Activity名称 {activity_name}')
                     return False
             else:
                 if allow_failure:
@@ -346,7 +355,7 @@ class Adb(Connection):
         # 已在运行
         # Warning: Activity not started, intent has been delivered to currently running top-most instance.
         if 'Warning: Activity not started' in ret:
-            logger.info('App activity is already started')
+            logger.info('应用Activity已启动')
             return True
         # 权限拒绝
         # Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.YoStarEN.AzurLane/com.manjuu.azurlane.MainActivity }
@@ -356,7 +365,7 @@ class Adb(Connection):
                 return False
             else:
                 logger.error(ret)
-                logger.error('Permission Denial while starting app, probably because activity invalid')
+                logger.error('[设备-ADB] Permission Denial while starting app, probably because activity invalid')
                 return False
         # 启动成功
         # Starting: Intent...
@@ -393,7 +402,7 @@ class Adb(Connection):
         if self._app_start_adb_am(package_name, activity_name, allow_failure):
             return True
 
-        logger.error('app_start_adb: All trials failed')
+        logger.error('所有尝试失败')
         return False
 
     @retry

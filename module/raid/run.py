@@ -1,3 +1,7 @@
+"""突袭任务运行器，管理突袭的进入、次数检测和停止条件。
+支持 OCR 检测剩余次数和运行次数限制。
+"""
+
 from module.base.timer import Timer
 from module.campaign.campaign_event import CampaignEvent
 from module.exception import ScriptEnd, ScriptError
@@ -20,7 +24,7 @@ class RaidRun(Raid, CampaignEvent):
         """
         # 运行次数限制
         if self.run_limit and self.config.StopCondition_RunCount <= 0:
-            logger.hr('Triggered stop condition: Run count')
+            logger.hr('触发停止条件: 运行次数')
             self.config.StopCondition_RunCount = 0
             self.config.Scheduler_Enable = False
             return True
@@ -52,7 +56,7 @@ class RaidRun(Raid, CampaignEvent):
                 remain = result
             else:
                 remain, _, _ = result
-            logger.attr(f'{mode.capitalize()} Remain', remain)
+            logger.attr(f'{mode.capitalize()} 剩余次数', remain)
 
             if self.appear_then_click(RAID_REWARDS, offset=(30, 30), interval=3):
                 confirm_timer.reset()
@@ -95,9 +99,9 @@ class RaidRun(Raid, CampaignEvent):
             # 日志输出
             logger.hr(f'{name}_{mode}', level=2)
             if self.config.StopCondition_RunCount > 0:
-                logger.info(f'Count remain: {self.config.StopCondition_RunCount}')
+                logger.info(f'剩余次数: {self.config.StopCondition_RunCount}')
             else:
-                logger.info(f'Count: {self.run_count}')
+                logger.info(f'计数: {self.run_count}')
 
             # UI 切换：没有油量图标时先进入战役菜单检查停止条件
             if not self._raid_has_oil_icon:
@@ -118,8 +122,7 @@ class RaidRun(Raid, CampaignEvent):
             # EX 模式：检查是否有足够的突袭门票
             if mode == 'ex' and not self.is_raid_rpg():
                 if not self.get_remain(mode):
-                    logger.info('Triggered stop condition: Zero '
-                                'raid tickets to do EX mode')
+                    logger.info('[突袭-运行] 触发停止条件: EX模式突袭门票为零')
                     if self.config.task.command == 'Raid':
                         with self.config.multi_set():
                             self.config.StopCondition_RunCount = 0
@@ -132,7 +135,7 @@ class RaidRun(Raid, CampaignEvent):
             try:
                 self.raid_execute_once(mode=mode, raid=name)
             except ScriptEnd as e:
-                logger.hr('Script end')
+                logger.hr('脚本结束')
                 logger.info(str(e))
                 break
 

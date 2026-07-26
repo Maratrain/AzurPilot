@@ -1,3 +1,14 @@
+"""
+大世界每月开荒模块。
+
+执行大世界海域的全面探索，自动遍历并清理未完成的海域区域。
+探索期间会延迟其他大世界任务（隐秘、深渊、要塞等）以避免冲突。
+记录探索失败的海域 ID，支持从上次中断的位置继续探索。
+
+Classes:
+    OpsiExplore: 每月开荒处理器，继承 OSMap。
+"""
+
 from module.config.utils import get_os_next_reset, DEFAULT_TIME
 from module.exception import GameStuckError, ScriptError
 from module.logger import logger
@@ -28,7 +39,7 @@ class OpsiExplore(OSMap):
                 keys = f'{task}.Scheduler.NextRun'
                 current = self.config.cross_get(keys=keys, default=DEFAULT_TIME)
                 if current < next_run:
-                    logger.info(f'Delay task `{task}` to {next_run}')
+                    logger.info(f'[大世界-探索] 延迟任务 `{task}` 到 {next_run}')
                     self.config.cross_set(keys=keys, value=next_run)
 
     def _os_explore(self):
@@ -46,8 +57,8 @@ class OpsiExplore(OSMap):
         def end():
             logger.info('每月开荒+已完成，延迟到下次重置')
             next_reset = get_os_next_reset()
-            logger.attr('OpsiNextReset', next_reset)
-            logger.info('To run again, clear OpsiExplore.Scheduler.NextRun and set OpsiExplore.OpsiExplore.LastZone=0')
+            logger.attr('大世界下次重置', next_reset)
+            logger.info('[大世界-探索] 如需重新运行，请清除 OpsiExplore.Scheduler.NextRun 并设置 OpsiExplore.OpsiExplore.LastZone=0')
             with self.config.multi_set():
                 self.config.OpsiExplore_LastZone = 0
                 self.config.OpsiExplore_ExploreProgress = '已完成百分之100.00'
@@ -64,7 +75,7 @@ class OpsiExplore(OSMap):
         try:
             last_zone = self.name_to_zone(self.config.OpsiExplore_LastZone).zone_id
         except ScriptError:
-            logger.warning(f'Invalid OpsiExplore_LastZone={self.config.OpsiExplore_LastZone}, re-explore')
+            logger.warning(f'[大世界-探索] 无效的 OpsiExplore_LastZone={self.config.OpsiExplore_LastZone}, 重新探索')
             last_zone = 0
 
         # 从上次探索的区域继续
@@ -75,12 +86,12 @@ class OpsiExplore(OSMap):
             if total_zones > 0:
                 percentage = completed_count / total_zones * 100
                 self.config.OpsiExplore_ExploreProgress = f'已完成百分之{percentage:.2f}'
-            logger.info(f'Last zone: {self.name_to_zone(last_zone)}, next zone: {order[:1]}')
+            logger.info(f'上次区域: {self.name_to_zone(last_zone)}, next zone: {order[:1]}')
         elif last_zone == 0:
             completed_count = 0
             order = full_order
             self.config.OpsiExplore_ExploreProgress = '已完成百分之0.00'
-            logger.info(f'First run, next zone: {order[:1]}')
+            logger.info(f'首次运行，下一个区域: {order[:1]}')
         else:
             raise ScriptError(f'Invalid last_zone: {last_zone}')
 
@@ -117,7 +128,7 @@ class OpsiExplore(OSMap):
                 percentage = completed_count / total_zones * 100
                 self.config.OpsiExplore_ExploreProgress = f'已完成百分之{percentage:.2f}'
             if finished_combat == 0:
-                logger.warning('Zone cleared but did not finish any combat')
+                logger.warning('区域已清除但未完成任何战斗')
                 self._os_explore_failed_zone.append(zone)
             self.handle_after_auto_search()
             self.config.check_task_switch()

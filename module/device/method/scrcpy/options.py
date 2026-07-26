@@ -1,3 +1,6 @@
+"""Scrcpy 配置选项。定义视频编码参数（帧率、比特率、H.264 Profile 等）
+和屏幕方向等运行时配置。"""
+
 import typing as t
 
 import module.device.method.scrcpy.const as const

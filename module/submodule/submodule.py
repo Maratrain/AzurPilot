@@ -1,3 +1,7 @@
+"""子模块加载器，通过 importlib 动态加载外部桥接模块。
+支持加载 MAA、FPY 等第三方战斗辅助模块，
+并提供模块配置的加载接口。"""
+
 import importlib
 
 from module.logger import logger

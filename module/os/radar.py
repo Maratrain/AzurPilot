@@ -1,3 +1,24 @@
+"""
+大世界雷达检测模块。
+
+负责大世界（Operation Siren）模式下的雷达系统，通过分析屏幕右上角的
+雷达小地图来识别附近的敌人、资源、港口、问号等对象。
+
+主要类:
+    RadarGrid: 雷达格子数据类，表示雷达上的一个可识别位置。
+    Radar: 雷达管理类，管理所有雷达格子并提供预测和查询接口。
+
+雷达布局:
+    雷达以当前舰队位置为中心，呈圆形分布格子。
+    默认参数: center=(1140, 226), delta=(11.7, 11.7), radius=5.15。
+    每个格子通过颜色检测来判断其类型（敌人/资源/港口等）。
+
+术语:
+    雷达 (Radar): 大世界地图右上角的小地图，显示附近的对象。
+    塞壬 (Siren): 大世界中的敌对势力，在雷达上显示为红色标记。
+    明石 (Akashi): 大世界中的隐藏商店，显示为白色问号。
+    指挥喵 (Meowfficer): 大世界中的辅助系统，显示为蓝色标记。
+"""
 from module.base.mask import Mask
 from module.base.utils import *
 from module.config.config import AzurLaneConfig
@@ -9,6 +30,27 @@ MASK_RADAR = Mask('./assets/mask/MASK_OS_RADAR.png')
 
 
 class RadarGrid:
+    """雷达格子数据类。
+
+    表示雷达小地图上的一个位置，通过颜色检测来判断其类型。
+    每个格子可以是敌人、资源、港口、问号等不同类型。
+
+    Attributes:
+        location (tuple[int, int]): 格子相对于雷达中心的坐标，如 (3, 2)。
+        center (tuple[int, int]): 格子中心在截图中的像素坐标。
+        is_enemy (bool): 是否为敌人（红色枪标记）。
+        is_resource (bool): 是否为资源（绿色箱子）。
+        is_exclamation (bool): 是否为感叹号（黄色 '!'）。
+        is_meowfficer (bool): 是否为指挥喵（蓝色标记）。
+        is_question (bool): 是否为问号（白色 '?'）。
+        is_ally (bool): 是否为友军（黄色 '!'，日常任务中的货运船）。
+        is_akashi (bool): 是否为明石（白色 '?'，隐藏商店）。
+        is_archive (bool): 是否为档案（紫色标记）。
+        is_port (bool): 是否为港口。
+        is_fleet (bool): 是否为当前舰队位置（坐标原点）。
+        enemy_scale (int): 敌人规模（0=未知，1=轻型，2=主力，3=航母）。
+        enemy_genre (str): 敌人类型描述，如 'Light'、'Main'、'Carrier'。
+    """
     is_enemy = False  # Red gun
     is_resource = False  # green box to get items
     is_exclamation = False  # Yellow exclamation mark '!'
@@ -146,6 +188,20 @@ class RadarGrid:
 
 
 class Radar:
+    """雷达管理类。
+
+    管理大世界地图右上角雷达小地图的所有格子，提供预测、查询和
+    港口定位等功能。格子以圆形分布，中心为当前舰队位置。
+
+    Attributes:
+        grids (dict[tuple, RadarGrid]): 雷达格子字典，键为 (x, y) 坐标。
+        center_loca (tuple[int, int]): 雷达中心位置（当前舰队）。
+        port_loca (tuple): 上次检测到的港口位置。
+        config (AzurLaneConfig): 配置对象。
+        center (tuple[int, int]): 雷达在截图中的像素中心点。
+        delta (tuple[float, float]): 格子间的像素间距。
+        shape (list[list[int]]): 雷达网格的形状范围。
+    """
     grids: dict
     center_loca = (0, 0)
     port_loca = (0, 0)
@@ -209,8 +265,8 @@ class Radar:
         for port in self.select(is_port=True):
             for grid in self.select(is_question=True):
                 if np.sum(np.abs(np.subtract(port.location, grid.location))) == 1:
-                    logger.warning(f'Wrong radar prediction is_question {grid.location} {grid.encode()} '
-                                   f'near {port.location} {port.encode()}')
+                    logger.warning(f'[大世界-雷达] 雷达预测错误 is_question {grid.location} {grid.encode()} '
+                                   f'靠近 {port.location} {port.encode()}')
                     grid.is_question = False
 
     def select(self, **kwargs):

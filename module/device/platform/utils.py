@@ -1,3 +1,6 @@
+"""平台层通用工具。提供 cached_property 装饰器（带泛型支持）
+和 iter_folder 目录遍历辅助函数。"""
+
 import os
 from typing import Callable, Generic, TypeVar
 

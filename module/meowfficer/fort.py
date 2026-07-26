@@ -1,3 +1,7 @@
+"""指挥喵猫窝处理器，执行猫窝中的日常互动获取经验值。
+包括完成日常任务和收起已放置的指挥喵。
+"""
+
 from module.base.timer import Timer
 from module.combat.assets import GET_ITEMS_1
 from module.logger import logger
@@ -75,7 +79,7 @@ class MeowfficerFort(MeowfficerBase):
         # Check for fort red notification
         if not self.appear(MEOWFFICER_FORT_RED_DOT):
             return False
-        logger.hr('Meowfficer fort', level=1)
+        logger.hr('指挥喵-小屋', level=1)
 
         # Enter MEOWFFICER_FORT window
         self.meow_enter(MEOWFFICER_FORT_ENTER, check_button=MEOWFFICER_FORT_CHECK)

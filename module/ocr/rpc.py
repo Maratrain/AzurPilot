@@ -31,23 +31,23 @@ class ModelProxy:
         """
         import zerorpc
 
-        logger.info(f"Connecting to OCR server {address}")
+        logger.info(f"连接OCR服务器 {address}")
         cls.client = zerorpc.Client(timeout=5)
         cls.client.connect(f"tcp://{address}")
         try:
             cls.client.hello()
-            logger.info("Successfully connected to OCR server")
+            logger.info("成功连接OCR服务器")
         except Exception:
             cls.online = False
-            logger.warning("Ocr server not running")
+            logger.warning("服务器未运行")
 
     @classmethod
     def close(cls):
         """关闭 RPC 客户端连接。"""
         if cls.client is not None:
-            logger.info('Disconnect to OCR server')
+            logger.info('断开OCR服务器')
             cls.client.close()
-            logger.info('Successfully disconnected to OCR server')
+            logger.info('成功断开')
             cls.client = None
 
     def __init__(self, lang) -> None:
@@ -372,9 +372,9 @@ def start_ocr_server(port=22268):
     try:
         server.bind(f"tcp://*:{port}")
     except zmq.error.ZMQError:
-        logger.error(f"Ocr server cannot bind on port {port}")
+        logger.error(f"[OCR-RPC] OCR 服务器无法绑定端口 {port}")
         return
-    logger.info(f"Ocr server listen on port {port}")
+    logger.info(f"[OCR-RPC] 服务器监听端口 {port}")
     server.run()
 
 

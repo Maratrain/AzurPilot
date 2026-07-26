@@ -1,3 +1,16 @@
+"""大世界相机控制模块。
+
+管理大世界（Operation Siren）地图的相机移动和视图更新。
+
+大世界的相机系统与主线战役不同：
+- 使用 Homography（单应性变换）而非 Perspective（透视检测）
+- 固定的存储参数用于网格检测
+- 滑动区域和边界与主线战役不同
+- 使用 OSGrid 而非 Grid 进行网格检测
+
+继承自 OSMapOperation 和 Camera，组合了大世界地图操作和相机控制能力。
+"""
+
 import cv2
 import numpy as np
 
@@ -14,6 +27,14 @@ from module.os.radar import Radar
 
 
 class OSCamera(OSMapOperation, Camera):
+    """大世界相机控制器。
+
+    管理大世界地图的相机位置、视图更新和坐标转换。
+
+    Attributes:
+        radar (Radner): 雷达对象，用于检测大世界中的目标。
+        fleet_current (tuple): 当前舰队位置。
+    """
     radar: Radar
     fleet_current: tuple
 
@@ -83,7 +104,7 @@ class OSCamera(OSMapOperation, Camera):
                 edge = self.view.backend.right_edge
                 area = (edge.get_x(360), 360, 1280, 560)
             else:
-                logger.info('No left edge or right edge')
+                logger.info('[大世界-相机] 没有左边缘或右边缘')
                 self.ensure_edge_insight()
                 continue
 
@@ -101,7 +122,7 @@ class OSCamera(OSMapOperation, Camera):
             self.view.load(self.device.image)
         except (MapDetectionError, AttributeError, cv2.error) as e:
             logger.warning(e)
-            logger.warning('Assuming camera is focused on grid center')
+            logger.warning('[大世界-相机] 假设摄像机聚焦在格子中心')
 
             def empty(*args, **kwargs):
                 pass
@@ -137,26 +158,26 @@ class OSCamera(OSMapOperation, Camera):
         if fleets.count == 1:
             center = fleets[0].location
         elif fleets.count > 1:
-            logger.warning(f'Convert radar to local, but found multiple current fleets: {fleets}')
+            logger.warning(f'[大世界-相机] 雷达转换到本地时发现多个当前舰队: {fleets}')
             fleets = fleets.sort_by_camera_distance(self.view.center_loca)
             center = fleets[0].location
             logger.warning(
-                f'Assuming the nearest fleet to camera canter is current fleet: {location2node(center)}')
+                f'假设距离摄像机中心最近的舰队为当前舰队: {location2node(center)}')
         else:
-            logger.warning(f'Convert radar to local, but current fleet not found. '
-                           f'Assuming camera center is current fleet: {location2node(self.view.center_loca)}')
+            logger.warning(f'[大世界-相机] 雷达转换到本地时未找到当前舰队, '
+                           f'假设摄像机中心为当前舰队: {location2node(self.view.center_loca)}')
             center = self.view.center_loca
 
         try:
             local = self.view[np.add(location, center)]
         except KeyError:
-            logger.warning(f'Convert radar to local, but target grid not in local view. '
-                           f'Assuming camera center is current fleet: {location2node(self.view.center_loca)}')
+            logger.warning(f'[大世界-相机] 雷达转换到本地时目标格子不在本地视野中, '
+                           f'假设摄像机中心为当前舰队: {location2node(self.view.center_loca)}')
             center = self.view.center_loca
             local = self.view[np.add(location, center)]
 
         logger.info(
-            f'Radar {location} -> Local {location2node(local.location)} '
-            f'(fleet={location2node(center)})'
+            f'[大世界-相机] 雷达 {location} -> 本地 {location2node(local.location)} '
+            f'(舰队={location2node(center)})'
         )
         return local

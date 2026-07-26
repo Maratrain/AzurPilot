@@ -1,3 +1,6 @@
+"""网格预测模块。定义 GridPredictor 类，通过截图图像和四角坐标进行网格内容识别，
+包括敌人检测、舰队检测、素材匹配等。"""
+
 from module.base.utils import *
 from module.config.config import AzurLaneConfig
 from module.exception import ScriptError

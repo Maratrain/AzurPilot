@@ -1,3 +1,9 @@
+"""大世界存储管理模块。
+
+管理大世界（Operation Siren）的仓库操作，包括舰船维修箱的
+使用与结果判断、仓库物品的滚动浏览以及存储界面的导航逻辑。
+提供维修结果枚举（成功/数量不足/超时）用于状态判断。
+"""
 from enum import Enum
 import time
 
@@ -75,7 +81,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
             in: STORAGE_CHECK
             out: is_in_map
         """
-        logger.info('Storage quit')
+        logger.info('[大世界-仓库] 退出仓库')
         self.ui_back(STORAGE_ENTER, offset=(200, 5), skip_first_screenshot=True)
 
     def _storage_item_use(self, button):
@@ -99,12 +105,12 @@ class StorageHandler(GlobeOperation, ZoneManager):
         for _ in self.loop():
             # Accidentally clicked on an item, having popups for its info
             if self.appear(GET_MISSION, offset=True, interval=2):
-                logger.info(f'_storage_item_use item info -> {GET_MISSION}')
+                logger.info(f'[大世界-仓库] 使用物品信息 -> {GET_MISSION}')
                 self.device.click(GET_MISSION)
                 self.interval_reset(STORAGE_CHECK)
                 get_mission_counter += 1
                 if get_mission_counter >= 3:
-                    logger.warning('Possibly stuck on energy storage device, redetecting logger items.')
+                    logger.warning('[大世界-仓库] 可能卡在能量存储设备上，重新检测记录仪物品')
                     break
                 continue
             # Item rewards
@@ -144,7 +150,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
             in: STORAGE_CHECK
             out: STORAGE_CHECK, scroll to bottom
         """
-        logger.hr('Storage logger use all')
+        logger.hr('使用所有记录仪')
         for _ in self.loop():
             if SCROLL_STORAGE.appear(main=self):
                 SCROLL_STORAGE.set_bottom(main=self, skip_first_screenshot=True)
@@ -152,17 +158,17 @@ class StorageHandler(GlobeOperation, ZoneManager):
             image = rgb2gray(self.device.image)
             items = TEMPLATE_STORAGE_LOGGER.match_multi(image, similarity=0.5)
             items.extend(TEMPLATE_STORAGE_LOGGER_UNLOCK.match_multi(image, similarity=0.75))
-            logger.attr('Storage_logger', len(items))
+            logger.attr('记录仪数量', len(items))
 
             if len(items):
                 self._storage_item_use(items[0])
                 continue
             else:
-                logger.info('All loggers in storage have been used')
+                logger.info('[大世界-仓库] 仓库中所有记录仪已使用')
                 break
 
     def logger_use(self):
-        logger.hr('Logger use')
+        logger.hr('使用记录仪')
         self.storage_enter()
         self.storage_logger_use_all()
         self.storage_quit()
@@ -181,16 +187,16 @@ class StorageHandler(GlobeOperation, ZoneManager):
             for _ in self.loop():
                 image = rgb2gray(self.device.image)
                 items = sample_type.match_multi(image, similarity=0.75)
-                logger.attr('Storage_sample', len(items))
+                logger.attr('样本数量', len(items))
 
                 if len(items):
                     self._storage_item_use(items[0])
                 else:
                     break
-        logger.info('All samples in storage have been used')
+        logger.info('[大世界-仓库] 仓库中所有样本已使用')
 
     def tuning_sample_use(self, quit=True):
-        logger.hr('Turning sample use')
+        logger.hr('使用转化样本')
         self.storage_enter()
         self.storage_sample_use_all()
         if quit:
@@ -223,11 +229,11 @@ class StorageHandler(GlobeOperation, ZoneManager):
             # End
             # blue background for area below hp bar means ship selected
             if self.image_color_count(image, color=(93, 148, 203), count=300):
-                logger.info('Storage Ship Selected')
+                logger.info('[大世界-仓库] 仓库舰船已选择')
                 self.interval_clear(STORAGE_FLEET_CHOOSE)
                 return True
             if timeout.reached():
-                logger.warning('Wait storage ship select timeout')
+                logger.warning('[大世界-仓库] 等待仓库舰船选择超时')
                 self.interval_clear(STORAGE_FLEET_CHOOSE)
                 return False
 
@@ -265,20 +271,20 @@ class StorageHandler(GlobeOperation, ZoneManager):
             # End - ship fixed (blue selection background disappeared)
             if self.appear(STORAGE_REPAIR_CONFIRM, offset=(20, 20)) and \
                     not self.image_color_count(image, color=(93, 148, 203), count=300):
-                logger.info('Ship Fixed')
+                logger.info('[大世界-仓库] 舰船已修复')
                 return RepairResult.SUCCESS
             # End - ship already at full HP
             if self.handle_popup_cancel('STORAGE_REPAIR_FULL_CANCEL'):
-                logger.info('No need to fix this ship')
+                logger.info('[大世界-仓库] 无需修复此舰船')
                 return RepairResult.SUCCESS
             # 处理"道具不足"弹窗：维修箱数量不足时游戏弹出此提示，需点击取消退出
             # 截图显示弹窗标题为"信息 INFORMATION"，内容为"道具不足"，底部有取消按钮
             if self.appear_then_click(POPUP_CANCEL, offset=(20, 20), interval=2):
-                logger.warning('[大世界] Repair pack insufficient (道具不足), skip this ship')
+                logger.warning('[大世界处理-存储] 维修包不足（道具不足），跳过此舰船')
                 return RepairResult.PACK_INSUFFICIENT
             # 超时保护：防止未知弹窗导致死循环
             if timeout.reached():
-                logger.warning('repair_pack_use_confirm timeout, unknown popup or stuck state')
+                logger.warning('[大世界-仓库] 维修包使用确认超时，未知弹窗或卡住状态')
                 return RepairResult.TIMEOUT
 
             if self.appear_then_click(STORAGE_REPAIR_CONFIRM, offset=(20, 20)):
@@ -383,7 +389,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
                  is_in_map, in previous zone if no more obscure/abyssal coordinates.
                  STORAGE_FLEET_CHOOSE, for using repair packs.
         """
-        logger.hr(f'Storage checkout item {item}')
+        logger.hr('仓库物品取出')
         if SCROLL_STORAGE.appear(main=self):
             if item == 'REPAIR_PACK':
             # repair packs always at the bottom page
@@ -399,7 +405,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
         for _ in self.loop():
             image = rgb2gray(self.device.image)
             items = self._storage_item_to_template(item).match_multi(image, similarity=0.75)
-            logger.attr(f'Storage_{item}', len(items))
+            logger.attr(f'仓库_{item}', len(items))
 
             if len(items):
                 for button in items:
@@ -410,7 +416,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
                     self._storage_coordinate_checkout(button, types=(item,))
                     return True
             if confirm_timer.reached():
-                logger.info(f'No more {item} items in storage')
+                logger.info(f'[大世界-仓库] 仓库中没有更多 {item} 物品')
                 self.storage_quit()
                 return False
 
@@ -430,7 +436,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
                  is_in_map, in previous zone if no more obscure/abyssal coordinates.
                  STORAGE_FLEET_CHOOSE, for using repair packs.
         """
-        logger.hr('OS get next obscure')
+        logger.hr('[大世界处理-存储] 获取下一个隐秘海域')
         self.storage_enter()
         if use_logger:
             self.storage_logger_use_all()

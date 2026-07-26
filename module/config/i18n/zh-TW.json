@@ -115,7 +115,7 @@
       "help": "Task.CoalitionScuttle.help"
     },
     "MaritimeEscort": {
-      "name": "商船護航",
+      "name": "商路護航Plus",
       "help": ""
     },
     "EventShop": {
@@ -417,6 +417,18 @@
     "EmulatorManager": {
       "name": "模擬器管理器",
       "help": "提供手動重啟模擬器的入口"
+    },
+    "BattlePass": {
+      "name": "大月卡Plus",
+      "help": ""
+    },
+    "CoreShop": {
+      "name": "核心兌換Plus",
+      "help": ""
+    },
+    "MeowfficerTrain": {
+      "name": "指揮喵訓練Plus",
+      "help": ""
     }
   },
   "Scheduler": {
@@ -1866,11 +1878,11 @@
   },
   "MaritimeEscort": {
     "_info": {
-      "name": "商船護航",
+      "name": "商路護航",
       "help": "進一下就撤退，能拿約70%的獎勵"
     },
     "Enable": {
-      "name": "啟用商船護航",
+      "name": "啟用商路護航",
       "help": ""
     }
   },
@@ -2798,7 +2810,7 @@
       "help": "每日關卡S勝後，解鎖掃蕩，未解鎖時，自動回退至傳統出擊"
     },
     "EscortMission": {
-      "name": "商船護送（部件本，魚雷本）",
+      "name": "商路護航（部件本，魚雷本）",
       "help": "",
       "skip": "不打",
       "first": "第一個",
@@ -2806,7 +2818,7 @@
       "third": "第三個"
     },
     "EscortMissionFleet": {
-      "name": "商船護送出擊艦隊",
+      "name": "商路護航出擊艦隊",
       "help": "",
       "1": "1",
       "2": "2",

@@ -1,3 +1,10 @@
+"""
+Web界面 REST API 路由。
+
+提供 Starlette 路由处理函数，包括大世界统计、AP 时间线、通知推送、
+截图获取、配置导入、远程设备控制等 HTTP/WebSocket 接口。
+"""
+
 import asyncio
 import json
 import os
@@ -46,7 +53,7 @@ def api_cl1_stats(request):
         stats = get_opsi_stats(instance_name=instance_name).get_detailed_summary()
         return JSONResponse({"success": True, "data": stats})
     except Exception as e:
-        logger.error(f"api_cl1_stats error: {e}")
+        logger.error(f"api_cl1_stats错误: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 def api_ap_timeline(request):
@@ -56,7 +63,7 @@ def api_ap_timeline(request):
         timeline = get_ap_timeline(instance_name=instance_name)
         return JSONResponse({"success": True, "data": timeline})
     except Exception as e:
-        logger.error(f"api_ap_timeline error: {e}")
+        logger.error(f"api_ap_timeline错误: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 def serve_obs_overlay(request):
@@ -828,12 +835,12 @@ class LiveScrcpySession:
             self.control_socket = self._connect_scrcpy_socket()
             device_name = self.video_socket.recv(64).decode("utf-8", errors="replace").rstrip("\x00")
             if device_name:
-                logger.attr("LiveScrcpyDevice", device_name)
+                logger.attr("Scrcpy直播设备", device_name)
             resolution = self.video_socket.recv(4)
             if len(resolution) != 4:
                 raise RuntimeError("scrcpy 未返回视频分辨率")
             self.resolution = struct.unpack(">HH", resolution)
-            logger.attr("LiveScrcpyResolution", self.resolution)
+            logger.attr("Scrcpy直播分辨率", self.resolution)
             self.video_socket.settimeout(1)
             self.alive = True
         except Exception:
@@ -1100,13 +1107,13 @@ async def _ws_live_ws_scrcpy(websocket, instance, fps, target_width, bitrate_sca
         session.resolution = (max(1, width), max(1, height))
         session.device_name = info.get("device_name") or ""
         if session.device_name:
-            logger.attr("LiveWsScrcpyDevice", session.device_name)
-        logger.attr("LiveWsScrcpyResolution", session.resolution)
+            logger.attr("WsScrcpy直播设备", session.device_name)
+        logger.attr("WsScrcpy直播分辨率", session.resolution)
 
         await session.send_binary(_build_ws_scrcpy_video_settings(target_width, fps, session.bitrate))
         preroll = await _collect_ws_scrcpy_preroll(session)
         codec_string = _h264_avc1_codec_from_chunks(preroll)
-        logger.attr("LiveWsScrcpyPreroll", f"{sum(len(item) for item in preroll)} bytes, {codec_string}")
+        logger.attr("WsScrcpy预缓冲", f"{sum(len(item) for item in preroll)} bytes, {codec_string}")
         await websocket.send_text(json.dumps({
             "type": "ready",
             "mode": "ws-scrcpy",
@@ -1165,7 +1172,7 @@ async def _ws_live_raw_scrcpy(websocket, instance, fps, target_width, bitrate_sc
             raise RuntimeError("scrcpy 未输出 H264 视频数据")
         codec_string = _h264_avc1_codec(preroll)
         description = _h264_avcc_description(preroll)
-        logger.attr("LiveScrcpyPreroll", f"{len(preroll)} bytes, {codec_string}")
+        logger.attr("Scrcpy预缓冲", f"{len(preroll)} bytes, {codec_string}")
         await websocket.send_text(json.dumps({
             "type": "ready",
             "mode": "scrcpy",

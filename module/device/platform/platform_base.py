@@ -1,3 +1,6 @@
+"""平台控制基类。定义模拟器启动、停止、重启的抽象接口，
+管理 EmulatorInfo 配置和实例生命周期。"""
+
 import os
 import sys
 import typing as t
@@ -76,13 +79,13 @@ class PlatformBase(Connection, EmulatorManagerBase):
         - 需要支持重试。
         - 禁止使用无聊的 sleep 来等待启动。
         """
-        logger.info(f'Current platform {sys.platform} does not support emulator_start, skip')
+        logger.info(f'[设备-平台] 当前平台 {sys.platform} 不支持启动模拟器，跳过')
 
     def emulator_stop(self):
         """
         停止模拟器。
         """
-        logger.info(f'Current platform {sys.platform} does not support emulator_stop, skip')
+        logger.info(f'[设备-平台] 当前平台 {sys.platform} 不支持停止模拟器，跳过')
 
     def run_remote_ssh_command(self, command=None):
         """
@@ -92,7 +95,7 @@ class PlatformBase(Connection, EmulatorManagerBase):
             command: 要执行的远程命令
         """
         if not getattr(self.config, 'EmulatorInfo_EnableRemoteSSH', False):
-            logger.info('Remote SSH is not enabled (EnableRemoteSSH=False), skip')
+            logger.info('[设备-SSH] 远程SSH未启用 (EnableRemoteSSH=False)，跳过')
             return
 
         host = self.config.EmulatorInfo_RemoteSSHHost
@@ -101,14 +104,14 @@ class PlatformBase(Connection, EmulatorManagerBase):
         key = getattr(self.config, 'EmulatorInfo_RemoteSSHPublicKey', '')
 
         if not command:
-            logger.warning('No SSH command provided, skip')
+            logger.warning('[设备-SSH] 未提供SSH命令，跳过')
             return
 
         if not host:
-            logger.warning(f'RemoteSSHHost is empty, skip remote SSH command: {command}')
+            logger.warning(f'[设备-SSH] RemoteSSHHost为空，跳过远程SSH命令: {command}')
             return
 
-        logger.hr('Remote SSH Command', level=1)
+        logger.hr('远程SSH命令', level=1)
         target = f'{user}@{host}' if user else host
         clear_ssh_host_key(host, port)
         # -n: 将 stdin 重定向到 /dev/null
@@ -139,12 +142,12 @@ class PlatformBase(Connection, EmulatorManagerBase):
                     os.chmod(key_file, 0o600)
 
                 cmd += ['-i', key_file]
-                logger.info(f'Using provided private key for authentication')
+                logger.info(f'[设备-SSH] 使用提供的私钥进行认证')
             except Exception as e:
-                logger.error(f'Failed to create or secure temporary key file: {e}')
+                logger.error(f'[设备-SSH] 创建或保护临时密钥文件失败: {e}')
 
         cmd += [target, command]
-        logger.info(f'Executing remote command: {" ".join(cmd)}')
+        logger.info(f'[设备-SSH] 执行远程命令: {" ".join(cmd)}')
 
         try:
             process = subprocess.Popen(
@@ -167,7 +170,7 @@ class PlatformBase(Connection, EmulatorManagerBase):
 
             def collect_stdout():
                 for line in process.stdout:
-                    logger.info(f'Remote: {line.strip()}')
+                    logger.info(f'[设备-SSH] 远程输出: {line.strip()}')
 
             stderr_thread = threading.Thread(target=collect_stderr)
             stdout_thread = threading.Thread(target=collect_stdout)
@@ -179,25 +182,25 @@ class PlatformBase(Connection, EmulatorManagerBase):
                 process.wait(timeout=30)
             except subprocess.TimeoutExpired:
                 process.kill()
-                logger.error('Remote SSH command timed out after 30 seconds')
+                logger.error('[设备-SSH] 远程SSH命令30秒超时')
             finally:
                 stderr_thread.join(timeout=5)
                 stdout_thread.join(timeout=5)
 
             if process.returncode == 0:
-                logger.info('Remote command executed successfully')
+                logger.info('[设备-SSH] 远程命令执行成功')
             else:
-                logger.error(f'Remote command failed with return code {process.returncode}')
+                logger.error(f'[设备-SSH] 远程命令失败，返回码 {process.returncode}')
                 for line in stderr_content:
-                    logger.error(f'Remote Error: {line}')
+                    logger.error(f'[设备-SSH] 远程错误: {line}')
         except Exception as e:
-            logger.error(f'Failed to execute remote SSH command: {e}')
+            logger.error(f'[设备-SSH] 执行远程SSH命令失败: {e}')
         finally:
             if key_file and os.path.exists(key_file):
                 try:
                     os.remove(key_file)
                 except Exception as e:
-                    logger.error(f'Failed to remove temporary key file: {e}')
+                    logger.error(f'[设备-SSH] 移除临时密钥文件失败: {e}')
 
     @cached_property
     def emulator_info(self) -> EmulatorInfo:
@@ -291,7 +294,7 @@ class PlatformBase(Connection, EmulatorManagerBase):
         Returns:
             EmulatorInstanceBase: 模拟器实例，未找到则返回 None
         """
-        logger.hr('Find emulator instance', level=2)
+        logger.hr('查找模拟器实例', level=2)
         if emulator == 'SSH':
             instance = EmulatorInstanceBase(
                 serial=serial,
@@ -300,8 +303,8 @@ class PlatformBase(Connection, EmulatorManagerBase):
             )
             # 为 SSH 实例临时修改 type 属性
             instance.__dict__['type'] = 'SSH'
-            logger.hr('Emulator instance', level=2)
-            logger.info(f'Found emulator instance (SSH): {instance}')
+            logger.hr('模拟器实例', level=2)
+            logger.info(f'[设备-平台] 找到模拟器实例 (SSH): {instance}')
             return instance
 
         instances = SelectedGrids(self.all_emulator_instances)
@@ -312,7 +315,7 @@ class PlatformBase(Connection, EmulatorManagerBase):
         # 按序列号搜索
         select = instances.select(**search_args)
         if select.count == 0:
-            logger.warning(f'No emulator instance with {search_args}, serial invalid')
+            logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，序列号无效')
 
             # MuMu12 serial 漂移修复（从原位置的死代码移到此处）
             # MuMu12 运行时 serial 为 127.0.0.1:16384，停止后 .nemu 配置中可能为 127.0.0.1:7555
@@ -322,9 +325,9 @@ class PlatformBase(Connection, EmulatorManagerBase):
                 select_by_id = instances.select(MuMuPlayer12_id=instance_id)
                 if select_by_id.count >= 1:
                     instance = select_by_id[0]
-                    logger.hr('Emulator instance', level=2)
-                    logger.info(f'Found emulator instance (MuMu12 id match, '
-                                f'config serial {serial} → instance {instance}): {instance}')
+                    logger.hr('模拟器实例', level=2)
+                    logger.info(f'[设备-模拟器] 找到模拟器实例 (MuMu12 ID匹配，'
+                                f'配置序列号 {serial} → 实例 {instance}): {instance}')
                     # 更新实例的 serial 为配置中的值，确保后续启停命令使用正确的端口
                     instance.serial = serial
                     return instance
@@ -335,7 +338,7 @@ class PlatformBase(Connection, EmulatorManagerBase):
             # 但配置中已保存了 EmulatorInfo_Emulator/name/path（来自上次成功运行），
             # 利用这些信息可以直接构造实例并启动模拟器。
             if emulator and path and name and serial:
-                logger.info(f'Attempting fallback instance construction from config: '
+                logger.info(f'[设备-模拟器] 尝试从配置构造回退实例: '
                             f'emulator={emulator}, name={name}, path={path}, serial={serial}')
                 if os.path.exists(path):
                     fallback = EmulatorInstanceBase(
@@ -350,20 +353,20 @@ class PlatformBase(Connection, EmulatorManagerBase):
                     if fallback_type == emulator or not fallback_type:
                         # 类型匹配或基类无法识别类型时，信任配置中的类型
                         fallback.__dict__['type'] = emulator
-                        logger.hr('Emulator instance', level=2)
-                        logger.info(f'Found emulator instance (fallback from config): {fallback}')
+                        logger.hr('模拟器实例', level=2)
+                        logger.info(f'[设备-平台] 找到模拟器实例 (配置回退): {fallback}')
                         return fallback
                     else:
-                        logger.warning(f'Fallback instance type mismatch: '
-                                      f'expected {emulator}, got {fallback_type}')
+                        logger.warning(f'[设备-模拟器] 回退实例类型不匹配: '
+                                      f'预期 {emulator}, 实际 {fallback_type}')
                 else:
-                    logger.warning(f'Fallback path does not exist: {path}')
+                    logger.warning(f'[设备-平台] 回退路径不存在: {path}')
 
             return None
         if select.count == 1:
             instance = select[0]
-            logger.hr('Emulator instance', level=2)
-            logger.info(f'Found emulator instance: {instance}')
+            logger.hr('模拟器实例', level=2)
+            logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
             return instance
 
         # 在多个同序列号实例中，优先按模拟器类型搜索（用户最容易配置的选项，更可靠）
@@ -371,12 +374,12 @@ class PlatformBase(Connection, EmulatorManagerBase):
             search_args['type'] = emulator
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, type invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，类型无效')
                 search_args.pop('type')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # 多个同序列号实例，按名称搜索
@@ -384,12 +387,12 @@ class PlatformBase(Connection, EmulatorManagerBase):
             search_args['name'] = name
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, name invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，名称无效')
                 search_args.pop('name')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # 多个同序列号和名称的实例，按路径搜索
@@ -397,33 +400,33 @@ class PlatformBase(Connection, EmulatorManagerBase):
             search_args['path'] = path
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, path invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，路径无效')
                 search_args.pop('path')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # 仍然有多个实例，从正在运行的模拟器中查找
         running = remove_duplicated_path(list(self.iter_running_emulator()))
-        logger.info('Running emulators')
+        logger.info('[设备-平台] 运行中的模拟器')
         for exe in running:
             logger.info(exe)
         if len(running) == 1:
-            logger.info('Only one running emulator')
+            logger.info('[设备-平台] 只有一个运行中的模拟器')
             # 等同于按路径搜索
             search_args['path'] = running[0]
             select = instances.select(**search_args)
             if select.count == 0:
-                logger.warning(f'No emulator instances with {search_args}, path invalid')
+                logger.warning(f'[设备-平台] 未找到模拟器实例 {search_args}，路径无效')
                 search_args.pop('path')
             elif select.count == 1:
                 instance = select[0]
-                logger.hr('Emulator instance', level=2)
-                logger.info(f'Found emulator instance: {instance}')
+                logger.hr('模拟器实例', level=2)
+                logger.info(f'[设备-平台] 找到模拟器实例: {instance}')
                 return instance
 
         # 仍然有多个实例
-        logger.warning(f'Found multiple emulator instances with {search_args}')
+        logger.warning(f'[设备-平台] 找到多个模拟器实例 {search_args}')
         return None

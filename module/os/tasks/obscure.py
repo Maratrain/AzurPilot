@@ -1,4 +1,16 @@
-﻿from module.logger import logger
+"""大世界隐秘海域任务模块。
+
+执行大世界隐秘海域（Obscure Zone）的清理任务，包括：
+- 从仓库获取隐秘海域坐标信息
+- 前往目标区域执行自动搜索战斗
+- 行动力不足时的保护和延迟处理
+- 支持强制运行模式
+
+继承自 CoinTaskMixin 和 OSMap，提供代币保护和地图导航能力，
+隐秘海域是大世界主要的代币获取途径之一。
+"""
+
+from module.logger import logger
 from module.os.map import OSMap
 from module.os.tasks.scheduling import CoinTaskMixin
 

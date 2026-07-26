@@ -1,3 +1,9 @@
+"""计时器与时间工具模块。
+
+提供双重计时器 Timer 类（用于时间计数和访问计数）、调试用 timer 装饰器，
+以及 future_time 等时间字符串解析工具函数。
+"""
+
 from time import monotonic as time, sleep
 from datetime import timedelta
 from functools import wraps

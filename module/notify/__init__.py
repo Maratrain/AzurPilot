@@ -1,3 +1,5 @@
+"""通知模块。"""
+
 def handle_notify(*args, **kwargs):
     """处理推送通知请求。
 

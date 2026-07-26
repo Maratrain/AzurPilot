@@ -1,7 +1,16 @@
-"""大世界商店+购买执行类。
+"""大世界商店模块。
 
-整合港口商店与海域内明石商店的交互、购买确认逻辑，
-并记录行动力购买等大世界关键资源的变动明细。
+提供碧蓝航线大世界（Operation Siren）商店的自动化购买功能，包括：
+- 港口商店（Port Shop）的扫描、过滤与批量购买
+- 海域内明石商店（Akashi Shop）的交互与购买
+- 购买数量的智能计算（基于货币余额和库存上限）
+- 黄币 / 紫币的余额管理与保留量控制
+- 购买确认弹窗和数量选择器的处理
+- 大世界重置周期下的货币策略调整
+- 侵蚀 1 练级模式下的明石行动力购买记录
+
+本模块整合了 PortShop 和 AkashiShop 两个子模块的功能，
+通过统一的购买执行接口处理大世界中的所有商店交互。
 """
 from module.base.decorator import cached_property
 from module.base.timer import Timer
@@ -18,9 +27,22 @@ from module.shop.clerk import OCR_SHOP_AMOUNT
 
 
 class OSShop(PortShop, AkashiShop):
-    """大世界商店+购买执行器。
+    """大世界商店购买执行器。
 
-    继承港口商店和明石商店的功能，提供统一的购买执行接口。
+    继承港口商店（PortShop）和明石商店（AkashiShop）的功能，
+    提供统一的购买执行接口和货币管理策略。
+
+    主要功能：
+    - 单个物品购买执行（含确认弹窗、数量选择、重试机制）
+    - 批量物品购买循环
+    - 购买数量的智能计算（基于货币余额、库存、保留量）
+    - 黄币 / 紫币的可用余额计算（考虑大世界重置周期）
+    - 港口商店的完整购买流程（扫描 -> 过滤 -> 购买）
+    - 明石商店的购买交互（进入海域商店 -> 购买 -> 返回地图）
+
+    Attributes:
+        _shop_yellow_coins (int): 当前黄币余额（由 os_shop_get_coins 设置）。
+        _shop_purple_coins (int): 当前紫币余额（由 os_shop_get_coins 设置）。
     """
 
     def os_shop_buy_execute(self, button, skip_first_screenshot=True) -> bool:
@@ -73,7 +95,7 @@ class OSShop(PortShop, AkashiShop):
                 amount_finish = self.shop_buy_amount_handler(button)
                 set_amount_retry += 1
                 if not amount_finish and set_amount_retry > 3:
-                    logger.warning(f'物品 {button.name} 无法识别购买数量')
+                    logger.warning(f'[大世界商店] 物品 {button.name} 无法识别购买数量')
                     self.close_shop_buy_confirm_amount(skip_first_screenshot)
                     break
                 continue
@@ -88,7 +110,7 @@ class OSShop(PortShop, AkashiShop):
             if not success and self.appear(PORT_SUPPLY_CHECK, offset=(20, 20), interval=5):
                 buy_retry += 1
                 if buy_retry > buy_retry_limit:
-                    logger.warning(f'物品 {button.name} 达到购买重试上限，可能货币不足')
+                    logger.warning(f'[大世界商店] 物品 {button.name} 达到购买重试上限，可能货币不足')
                     break
                 amount_finish = False
                 self.device.click(button)
@@ -118,13 +140,13 @@ class OSShop(PortShop, AkashiShop):
         for _ in range(12):
             button = select_func()
             if button is None:
-                logger.info('大世界商店+购买完成')
+                logger.info('[大世界商店] 大世界商店+购买完成')
                 return count
             else:
                 self.os_shop_buy_execute(button)
                 try:
                     if not getattr(self, 'is_running_cl1_leveling', False):
-                        logger.debug('侵蚀1练级未运行，跳过明石行动力购买记录')
+                        logger.debug('[大世界商店] 侵蚀1练级未运行，跳过明石行动力购买记录')
                     else:
                         name = str(getattr(button, 'name', '') or '')
                         name_l = name.lower()
@@ -146,16 +168,16 @@ class OSShop(PortShop, AkashiShop):
                                     count=int(amount),
                                     source='akashi'
                                 )
-                                logger.info('已记录明石行动力购买数据到数据库')
+                                logger.info('[大世界商店] 已记录明石行动力购买数据到数据库')
                             except Exception:
-                                logger.exception('保存明石行动力购买数据失败')
+                                logger.exception('[大世界商店] 保存明石行动力购买数据失败')
                 except Exception:
-                    logger.exception('记录明石购买数据时发生异常')
+                    logger.exception('[大世界商店] 记录明石购买数据时发生异常')
 
                 count += 1
                 continue
 
-        logger.warning('待购买物品过多，停止购买')
+        logger.warning('[大世界商店] 待购买物品过多，停止购买')
         return count
 
     def close_shop_buy_confirm_amount(self, skip_first_screenshot=True):
@@ -210,7 +232,7 @@ class OSShop(PortShop, AkashiShop):
             limit = OCR_SHOP_AMOUNT.ocr(self.device.image)
 
             if limit == 0:
-                logger.warning('OCR_SHOP_AMOUNT 识别为 0，正在重试')
+                logger.warning('[大世界商店] OCR_SHOP_AMOUNT 识别为 0，正在重试')
                 self.close_shop_buy_confirm_amount()
                 return False
 
@@ -267,7 +289,7 @@ class OSShop(PortShop, AkashiShop):
             # AMOUNT_MAX点击后数量仍为1，说明按钮可能被游戏禁用（如商品只能逐个购买）
             amount_max_stall += 1
             if amount_max_stall >= amount_max_stall_limit:
-                logger.info(f'AMOUNT_MAX 点击 {amount_max_stall} 次后数量仍为 {current_amount}，改用 AMOUNT_PLUS')
+                logger.info(f'[大世界商店] AMOUNT_MAX 点击 {amount_max_stall} 次后数量仍为 {current_amount}，改用 AMOUNT_PLUS')
                 break
 
         # 仅在已点击AMOUNT_MAX且数量成功增加时，才能读取游戏端实际允许的最大数量

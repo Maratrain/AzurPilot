@@ -1,3 +1,18 @@
+"""配置管理工具函数集。
+
+提供配置系统所需的底层工具函数，包括：
+- 文件读写：JSON/YAML 文件的安全读写（原子写入）
+- 数据解析：配置值的类型转换和解析
+- 服务器时间：各服务器时区计算和重置时间
+- 路径管理：配置文件、资源文件、i18n 文件的路径解析
+- 随机 ID：配置实例的唯一标识生成
+
+常量定义：
+- LANGUAGES: 支持的语言列表（zh-CN、zh-MIAO、en-US、ja-JP、zh-TW）
+- SERVER_TO_LANG: 服务器到语言的映射
+- SERVER_TO_TIMEZONE: 服务器到时区的映射
+"""
+
 # 此文件提供了配置管理相关的通用工具函数。
 # 包含 JSON/YAML 读写、数据类型解析转换、服务器特定时间计算以及随机 ID 生成等底层功能。
 import json
@@ -426,10 +441,10 @@ def get_os_reset_remain():
     """
     next_reset = get_os_next_reset()
     now = current_time()
-    logger.attr('OpsiNextReset', next_reset)
+    logger.attr('大世界下次重置', next_reset)
 
     remain = int((next_reset - now).total_seconds() // 86400)
-    logger.attr('ResetRemain', remain)
+    logger.attr('重置剩余天数', remain)
     return remain
 
 

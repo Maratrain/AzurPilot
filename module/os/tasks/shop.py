@@ -1,3 +1,15 @@
+"""大世界港口商店模块。
+
+执行大世界港口商店的补给物资购买，包括：
+- 遍历所有友方港口购买补给
+- 黄币和紫币余额检查
+- 月度购买限制日期配置
+- 港口间的自动导航和购买执行
+
+继承自 OSMap，提供港口导航和商店购买的完整操作链路，
+是大世界代币消耗的重要途径之一。
+"""
+
 from datetime import datetime, timedelta
 
 from module.config.time_source import now as current_time

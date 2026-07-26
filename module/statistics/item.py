@@ -1,3 +1,10 @@
+"""掉落物品定义与识别。
+
+定义 Item 类用于表示单个掉落物品及其数量，
+通过模板匹配和 OCR 从截图中识别物品图标和数量。
+包含物品数量上限校验逻辑。
+"""
+
 import numpy as np
 
 import module.config.server as server
@@ -58,7 +65,7 @@ class AmountOcr(Digit):
             return amount
 
         for retry in range(self.MAX_RETRY):
-            logger.warning(f'{item_name} amount {amount} exceeds max {max_val}, retry {retry + 1}/{self.MAX_RETRY}')
+            logger.warning(f'{item_name} amount {amount} 超过最大值 {max_val}, retry {retry + 1}/{self.MAX_RETRY}')
             result_str = self.cnocr.atomic_ocr_for_single_lines(images, self.alphabet)[0]
             amount = self.after_process(result_str)
             if amount <= max_val:
@@ -67,7 +74,7 @@ class AmountOcr(Digit):
 
         if amount > max_val and amount >= 10:
             truncated = int(str(amount)[:-1])
-            logger.warning(f'{item_name} amount {amount} still exceeds max after {self.MAX_RETRY} retries, '
+            logger.warning(f'{item_name} amount {amount} still 超过最大值 after {self.MAX_RETRY} retries, '
                           f'truncating to {truncated}')
             return truncated
 
@@ -260,7 +267,7 @@ class ItemGrid:
         Args:
             folder (str): 模板文件夹路径。
         """
-        logger.info(f'Loading template folder: {folder}')
+        logger.info(f'加载模板文件夹: {folder}')
         max_digit = 0
         data = load_folder(folder)
         for name, image in data.items():
@@ -332,7 +339,7 @@ class ItemGrid:
 
         self.next_template_index += 1
         name = str(self.next_template_index)
-        logger.info(f'New template: {name}')
+        logger.info(f'新模板: {name}')
         image = crop(image, self.template_area)
         self.colors[name] = cv2.mean(image)[:3]
         self.templates[name] = image
@@ -460,7 +467,7 @@ class ItemGrid:
         items = [item for item in self.items if not (price and item.price <= 0)]
         diff = len(self.items) - len(items)
         if diff > 0:
-            logger.warning(f'Ignore {diff} items, because price <= 0')
+            logger.warning(f'[统计-物品] 忽略 {diff} 个物品，因为价格<=0')
             self.items = items
 
         return self.items

@@ -1,3 +1,15 @@
+"""
+邮件白色主题 UI 处理模块。
+
+处理碧蓝航线邮件页面的完整交互流程，包括：
+- 邮件页面的进入与退出
+- 按类型筛选并批量领取邮件奖励（功勋、维护补偿、贸易许可证）
+- 批量删除已领取的邮件
+- 处理白色主题 UI 下的邮件相关弹窗和确认框
+
+该模块专为白色主题 UI 设计，通过 MailSelectSetting 配置
+邮件内容筛选条件（魔方、金币、石油、功勋、钻石等）。
+"""
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.combat.assets import GET_ITEMS_1, GET_ITEMS_2
@@ -9,11 +21,34 @@ from module.ui.ui import UI
 
 
 class MailSelectSetting(Setting):
+    """
+    邮件筛选设置管理器。
+
+    继承自 Setting，用于管理邮件内容类型的筛选选项。
+    通过检测选项按钮的颜色（深灰色 (57, 56, 57)）判断选项是否激活。
+    """
+
     def is_option_active(self, option: Button) -> bool:
         return self.main.image_color_count(option, color=(57, 56, 57), threshold=221, count=50)
 
 
 class MailWhite(UI):
+    """
+    白色主题邮件处理器。
+
+    负责白色主题 UI 下邮件的领取和清理操作。支持以下功能：
+    - 按内容类型筛选邮件（功勋、维护补偿、贸易许可证）
+    - 批量领取符合条件的邮件奖励
+    - 批量删除已领取的邮件
+
+    使用 MailSelectSetting 管理筛选条件，包含两个设置实例：
+    - mail_select_setting: 按类型筛选（魔方、金币、石油、功勋、钻石）
+    - mail_select_all_setting: 全选模式，用于批量删除
+
+    Attributes:
+        mail_select_setting: 按内容类型筛选的设置实例（cached_property）。
+        mail_select_all_setting: 全选模式的设置实例（cached_property）。
+    """
     @cached_property
     def mail_select_setting(self):
         setting = MailSelectSetting('Mail', main=self)
@@ -50,7 +85,7 @@ class MailWhite(UI):
             in: page_main_white 或 MAIL_MANAGE
             out: MAIL_BATCH_CLAIM
         """
-        logger.info('Mail enter')
+        logger.info('进入邮件')
         self.interval_clear([
             MAIL_MANAGE
         ])
@@ -64,15 +99,15 @@ class MailWhite(UI):
 
             # End
             if self.appear(MAIL_BATCH_CLAIM, offset=(20, 20)):
-                logger.info('Mail entered')
+                logger.info('进入邮件ed')
                 return True
             if self.appear(MAIL_WHITE_EMPTY, offset=(20, 20)):
-                logger.info('Mail empty')
+                logger.info('邮件为空')
                 return False
             if not has_mail and self.appear(GOTO_MAIN_WHITE, offset=(20, 20)):
                 timeout.start()
                 if timeout.reached():
-                    logger.info('Mail empty, wait GOTO_MAIN_WHITE timeout')
+                    logger.info('邮件为空, wait GOTO_MAIN_WHITE timeout')
                     return False
 
             # Click
@@ -92,7 +127,7 @@ class MailWhite(UI):
             in: page_mail 中的任意页面
             out: page_main_white
         """
-        logger.info('Mail quit')
+        logger.info('退出邮件')
         self.interval_clear([
             MAIL_BATCH_CLAIM,
             GOTO_MAIN_WHITE,
@@ -108,7 +143,7 @@ class MailWhite(UI):
 
             # End
             if self.is_in_main():
-                logger.info('Mail quit to main')
+                logger.info('退出邮件 to main')
                 break
 
             # Click
@@ -124,6 +159,15 @@ class MailWhite(UI):
                 continue
 
     def _handle_mail_reward(self):
+        """
+        处理邮件奖励领取后的物品获取弹窗。
+
+        检测 GET_ITEMS_1 或 GET_ITEMS_2 弹窗出现时，自动点击确认
+        以完成奖励领取流程。
+
+        Returns:
+            bool: 是否检测到并处理了物品获取弹窗。
+        """
         if self.appear(GET_ITEMS_1, offset=(30, 30), interval=3):
             logger.info(f'{GET_ITEMS_1} -> {MAIL_BATCH_CLAIM}')
             self.device.click(MAIL_BATCH_CLAIM)
@@ -174,7 +218,7 @@ class MailWhite(UI):
                 continue
 
         success = self.info_bar_count() > 0
-        logger.info(f'Mail claim success: {success}')
+        logger.info(f'邮件领取成功: {success}')
         return success
 
     def _mail_delete(self, skip_first_screenshot=True):
@@ -237,12 +281,12 @@ class MailWhite(UI):
             return
 
         if merit:
-            logger.hr('Mail merit', level=2)
+            logger.hr('邮件功勋', level=2)
             self._mail_enter()
             self.mail_select_setting.set(contains=['merit'])
             self._mail_claim_execute()
         if maintenance:
-            logger.hr('Mail maintenance', level=2)
+            logger.hr('邮件维护', level=2)
             self._mail_enter()
             self.mail_select_setting.set(contains=['coins', 'oil'])
             self._mail_claim_execute()
@@ -250,12 +294,12 @@ class MailWhite(UI):
             self.mail_select_setting.set(contains=['coins', 'oil', 'gems'])
             self._mail_claim_execute()
         if trade_license:
-            logger.hr('Mail trade license', level=2)
+            logger.hr('邮件贸易许可', level=2)
             self._mail_enter()
             self.mail_select_setting.set(contains=['coins', 'oil', 'cube'])
             self._mail_claim_execute()
         if delete:
-            logger.hr('Mail delete', level=2)
+            logger.hr('邮件删除', level=2)
             self._mail_enter()
             self.mail_select_all_setting.set(contains=['all'])
             self._mail_delete()
@@ -267,22 +311,22 @@ class MailWhite(UI):
         maintenance = self.config.Mail_ClaimMaintenance
         trade_license = self.config.Mail_ClaimTradeLicense
         delete = self.config.Mail_DeleteCollected
-        logger.info(f'Mail reward: merit={merit}, maintenance={maintenance}, '
-                    f'trade_license={trade_license}, delete={delete}')
+        logger.info(f'[免费福利-邮件] 邮件奖励: 功勋={merit}, 维护补偿={maintenance}, '
+                    f'贸易许可={trade_license}, 删除={delete}')
         if not merit and not maintenance and not trade_license:
-            logger.warning('Nothing to claim')
+            logger.warning('无内容可领取')
             return False
 
         # 必须使用白色主题 UI
         self.ui_ensure(page_main)
         if self.appear(page_main_white.check_button, offset=(30, 30)):
-            logger.info('At page_main_white')
+            logger.info('在白色主页')
             pass
         elif self.appear(page_main.check_button, offset=(5, 5)):
-            logger.info('At page_main')
+            logger.info('在主页')
             pass
         else:
-            logger.warning('Unknown page_main, cannot enter mail page')
+            logger.warning('[免费福利-邮件] 未知的主页面，无法进入邮件页面')
             return False
 
         # 领取

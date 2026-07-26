@@ -1,3 +1,9 @@
+"""大世界明石商店模块。
+
+管理大世界（Operation Siren）明石（Akashi）商店的购买逻辑。
+提供各服务器（CN/EN/JP/TW）的物品网格配置差异、商品识别、
+购买决策以及购买流程的状态循环控制。
+"""
 from typing import List
 from module.base.button import Button, ButtonGrid
 from module.base.decorator import Config, cached_property

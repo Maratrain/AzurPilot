@@ -1,3 +1,9 @@
+"""大世界地图事件处理器。
+
+处理大世界地图探索过程中触发的各类事件，包括战斗奖励弹窗、
+故事跳过、舰队锁定开关、余烬信标弹窗、海域清除奖励以及
+自动搜索奖励等，是大世界战斗和探索流程的基础事件层。
+"""
 from typing import Optional
 
 from module.base.timer import Timer
@@ -150,7 +156,7 @@ class MapEventHandler(EnemySearchingHandler):
 
         if self.appear(STORY_SKIP_3, offset=(20, 20), interval=0):
             if self._story_timeout.reached():
-                logger.warning('Wait for story option timeout')
+                logger.warning('[大世界处理-事件] 等待剧情选项超时')
                 self._story_timeout.reset()
 
                 # 重启应用
@@ -315,7 +321,7 @@ class MapEventHandler(EnemySearchingHandler):
         # 舰队锁定取决于是否在地图上显示，而非地图状态
         # 因为如果已在地图中，则没有地图状态
         if not fleet_lock.appear(main=self):
-            logger.info('No fleet lock option.')
+            logger.info('[大世界处理-事件] 未找到舰队锁定选项')
             return False
 
         if enable is None:

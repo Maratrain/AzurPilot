@@ -1,3 +1,16 @@
+"""掉落截图批量解析与统计（Drop Statistics）模块。
+
+提供从批量战斗截图中提取掉落物品信息的功能。支持两步工作流：
+    1. 从截图中提取物品模板图像（template extraction）。
+    2. 利用模板匹配和 OCR 解析掉落数据，输出为 CSV 文件。
+
+典型用法：
+    1. 设置 DROP_FOLDER（截图文件夹）和 TEMPLATE_FOLDER（模板文件夹）。
+    2. 调用 extract_template() 提取模板，手动重命名后调用 extract_drop() 导出数据。
+
+用于离线分析大量战斗截图的掉落统计（Statistics），不依赖实时设备连接。
+"""
+
 import csv
 import shutil
 
@@ -15,6 +28,26 @@ from module.statistics.utils import *
 
 
 class DropStatistics:
+    """掉落截图批量解析与统计处理器。
+
+    从指定文件夹中加载战斗截图，通过模板匹配和 OCR 识别掉落物品，
+    并将结果输出为 CSV 文件。支持模板提取和数据导出两种工作模式。
+
+    类属性:
+        DROP_FOLDER (str): 截图根目录，默认 './screenshots'。
+        TEMPLATE_FOLDER (str): 模板文件夹名称，相对于 DROP_FOLDER。
+        TEMPLATE_BASIC (str): 基础模板资源目录。
+        CNOCR_CONTEXT (str): OCR 推理设备，'cpu' 或 'gpu'。
+        CSV_FILE (str): 输出 CSV 文件名。
+        CSV_OVERWRITE (bool): 是否在导出前覆盖已有 CSV。
+        CSV_ENCODING (str): CSV 文件编码，默认 'utf-8'。
+
+    Examples:
+        >>> stat = DropStatistics()
+        >>> stat.extract_template('campaign_13_1')   # 步骤 1：提取模板
+        >>> stat.extract_drop('campaign_13_1')        # 步骤 3：导出掉落数据
+    """
+
     DROP_FOLDER = './screenshots'
     TEMPLATE_FOLDER = 'item_templates'
     TEMPLATE_BASIC = './assets/stats_basic'
@@ -51,7 +84,7 @@ class DropStatistics:
         """移除已存在的 CSV 文件，此方法仅执行一次。"""
         if DropStatistics.CSV_OVERWRITE:
             if os.path.exists(self.csv_file):
-                logger.info(f'Remove existing csv file: {self.csv_file}')
+                logger.info(f'移除现有CSV文件: {self.csv_file}')
                 os.remove(self.csv_file)
         return True
 
@@ -94,7 +127,7 @@ class DropStatistics:
             campaign (str): 关卡名称。
         """
         print('')
-        logger.hr(f'Extract templates from {campaign}', level=1)
+        logger.hr(f'提取模板自 {campaign}', level=1)
         for ts, file in tqdm(load_folder(self.drop_folder(campaign)).items()):
             try:
                 self.parse_template(file)
@@ -103,7 +136,7 @@ class DropStatistics:
                 continue
             except Exception as e:
                 logger.exception(e)
-                logger.warning(f'Error on image {ts}')
+                logger.warning(f'图像错误 {ts}')
                 continue
 
     def extract_drop(self, campaign):
@@ -113,7 +146,7 @@ class DropStatistics:
             campaign (str): 关卡名称。
         """
         print('')
-        logger.hr(f'extract drops from {campaign}', level=1)
+        logger.hr(f'提取掉落自 {campaign}', level=1)
         _ = self.csv_overwrite_check
 
         with open(self.csv_file, 'a', newline='', encoding=DropStatistics.CSV_ENCODING) as csv_file:
@@ -127,7 +160,7 @@ class DropStatistics:
                     continue
                 except Exception as e:
                     logger.exception(e)
-                    logger.warning(f'Error on image {ts}')
+                    logger.warning(f'图像错误 {ts}')
                     continue
 
 

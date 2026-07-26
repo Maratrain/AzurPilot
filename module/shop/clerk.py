@@ -1,3 +1,7 @@
+"""商店购买执行器，提供商品选择、库存检测和购买确认的核心逻辑。
+用于所有商店类型的商品购买流程，支持库存计数 OCR 和退役回收。
+"""
+
 import re
 
 import cv2
@@ -45,12 +49,12 @@ class StockCounter(DigitCounter):
         if re.match(r'^\d\d$', result):
             # 55 -> 5/5
             new = f'{result[0]}/{result[1]}'
-            logger.info(f'StockCounter result {result} is revised to {new}')
+            logger.info(f'[商店-购买] 库存计数器结果 {result} 修正为 {new}')
             result = new
         if re.match(r'^\d{4,}$', result):
             # 1515 -> 15/15
             new = f'{result[0:2]}/{result[2:4]}'
-            logger.info(f'StockCounter result {result} is revised to {new}')
+            logger.info(f'[商店-购买] 库存计数器结果 {result} 修正为 {new}')
             result = new
 
         return result
@@ -99,8 +103,7 @@ class ShopClerk(ShopBase, Retirement):
 
                 if postfix is not None:
                     break
-                logger.warning('Failed to detect PR series, '
-                               'app may be lagging or frozen')
+                logger.warning('未能检测到PR系列，应用可能卡顿或冻结')
         else:
             postfix = f'_{item.tier.upper()}'
 
@@ -209,7 +212,7 @@ class ShopClerk(ShopBase, Retirement):
             current, remain, _ = OCR_SHOP_SELECT_STOCK.ocr(image)
             if not current:
                 group_case = item.group.title() if len(item.group) > 2 else item.group.upper()
-                logger.info(f'{group_case}(s) out of stock; exit to prevent overbuying')
+                logger.info(f'{group_case} 已售罄；退出以防止超买')
                 return limit
             return remain
 
@@ -344,21 +347,21 @@ class ShopClerk(ShopBase, Retirement):
             bool: 是否成功（True 表示购买完成或余额不足，False 表示余额为 0）
         """
         for _ in range(12):
-            logger.hr('Shop buy', level=2)
+            logger.hr('商店购买', level=2)
             # 先获取商品列表，利用固有延迟等待 OCR 货币识别更准确
             items = self.shop_get_items()
             self.shop_currency()
             if self._currency <= 0:
-                logger.warning(f'Current funds: {self._currency}, stopped')
+                logger.warning(f'[商店-购买] 当前资金: {self._currency}，停止')
                 return False
 
             item = self.shop_get_item_to_buy(items)
             if item is None:
-                logger.info('Shop buy finished')
+                logger.info('[商店-购买] 购买完成')
                 return True
             else:
                 self.shop_buy_execute(item)
                 continue
 
-        logger.warning('Too many items to buy, stopped')
+        logger.warning('购买物品过多，停止')
         return True

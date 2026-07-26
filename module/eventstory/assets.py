@@ -1,3 +1,5 @@
+"""活动剧情模块的 UI 资源定义。"""
+
 from module.base.button import Button
 from module.base.template import Template
 

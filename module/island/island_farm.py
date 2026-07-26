@@ -1,3 +1,19 @@
+"""
+岛屿农场（Island Farm）自动化管理模块。
+
+负责岛屿系统中农场、果园、苗圃三大生产区域的自动化管理，包括：
+- 仓库库存检查与低库存作物识别
+- 空闲岗位检测与自动播种
+- 作物选择策略：优先补种低于阈值的作物，其次种植默认作物
+- 工人派遣与角色筛选（含小天城橡胶树优先机制）
+- 季节限定作物的智能过滤
+- 种子不足时自动从商店购买
+
+管理的生产区域：
+- 农场（farm）：小麦、玉米、水稻、白菜、土豆、大豆、牧草、咖啡豆
+- 果园（orchard）：苹果、柑橘、香蕉、芒果、柠檬、牛油果、橡胶
+- 苗圃（nursery）：胡萝卜、洋葱、亚麻、草莓、棉花、茶叶、薰衣草、菠萝、芦笋
+"""
 from module.island_farm.assets import *
 from module.island.island import *
 from datetime import timedelta
@@ -8,6 +24,36 @@ from module.logger import logger
 
 
 class IslandFarm(Island, WarehouseOCR, LoginHandler):
+    """
+    岛屿农场自动化管理器。
+
+    继承 Island（岛屿基础操作）、WarehouseOCR（仓库 OCR 识别）和
+    LoginHandler（登录处理），实现农场、果园、苗圃的全自动管理。
+
+    执行流程：
+    1. 进入岛屿并检查仓库库存，识别低库存作物
+    2. 进入岗位管理页面，遍历所有岗位检测状态
+    3. 对空闲岗位执行播种（优先补种低库存作物，其次默认作物）
+    4. 计算下次运行时间（取所有岗位完成时间和 6 小时后的最小值）
+
+    Attributes:
+        season_config: 季节配置对象，用于季节限定作物过滤。
+        farm_positions (int): 农场岗位数量。
+        orchard_positions (int): 果园岗位数量。
+        nursery_positions (int): 苗圃岗位数量。
+        farm_threshold (int): 农场作物库存最低阈值。
+        orchard_threshold (int): 果园作物库存最低阈值。
+        nursery_threshold (int): 苗圃作物库存最低阈值。
+        worker_filters (dict): 各区域的工人派遣角色筛选器。
+        ignore_avocado (bool): 是否忽略牛油果。
+        ignore_pineapple (bool): 是否忽略菠萝。
+        plant_config (dict): 各区域的默认作物种植配置。
+        INVENTORY_CONFIG (dict): 各区域的仓库物品配置（模板、选择按钮、种子数量等）。
+        posts (dict): 岗位信息字典，包含按钮和当前种植作物。
+        to_plant_lists (dict): 各区域需要补种的作物列表。
+        name_to_config (dict): 作物名称到配置项的映射。
+        inventory_counts (dict): 各区域的仓库库存统计。
+    """
     def __init__(self, *args, **kwargs):
         Island.__init__(self, *args, **kwargs)
         WarehouseOCR.__init__(self)
@@ -237,7 +283,17 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         return True
 
     def warehouse_inventory(self, category):
-        """获取仓库库存信息"""
+        """
+        获取指定区域的仓库库存信息。
+
+        通过 OCR 识别仓库中各作物的数量，同时设置实例属性方便后续访问。
+
+        Args:
+            category (str): 区域类型，'farm'、'orchard' 或 'nursery'。
+
+        Returns:
+            dict: 作物名称到数量的映射，如 {'wheat': 50, 'corn': 30}。
+        """
         config = self.INVENTORY_CONFIG[category]
         self.warehouse_filter(config['filter'])
         image = self.device.screenshot()
@@ -250,6 +306,17 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         return results
 
     def post_plant_check(self, category):
+        """
+        检查当前岗位正在种植的作物类型。
+
+        通过模板匹配检测岗位详情页面中的作物图标，确定正在种植的作物。
+
+        Args:
+            category (str): 区域类型，'farm'、'orchard' 或 'nursery'。
+
+        Returns:
+            str 或 None: 正在种植的作物名称，未检测到则返回 None。
+        """
         config = self.INVENTORY_CONFIG[category]
         for item in config['items']:
             if self.appear(item['post_action']):
@@ -257,6 +324,20 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         return None
 
     def decided_lists(self, post_button, post_id, category, time_var_name):
+        """
+        检查指定岗位的状态并更新相关列表。
+
+        打开岗位详情，判断岗位是已完成、正在工作还是空闲：
+        - 已完成：清除作物信息和时间变量
+        - 正在工作：记录作物类型、读取剩余完成时间，从补种列表中移除
+        - 空闲：清除作物信息和时间变量
+
+        Args:
+            post_button (Button): 岗位按钮资源。
+            post_id (str): 岗位标识，如 'ISLAND_FARM_POST1'。
+            category (str): 区域类型，'farm'、'orchard' 或 'nursery'。
+            time_var_name (str): 对应的时间变量名，用于存储完成时间。
+        """
         self.post_close()
         self.post_open(post_button)
         self.device.screenshot()
@@ -297,6 +378,21 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         return characters
 
     def post_plant(self, post_button, product, category, time_var_name):
+        """
+        在指定岗位上执行播种操作。
+
+        完整流程：打开岗位 -> 选择产品 -> 选择角色派遣 -> 确认订单 -> 记录完成时间。
+        种子不足时自动从商店购买补充。
+
+        Args:
+            post_button (Button): 岗位按钮资源。
+            product (str): 要种植的作物名称，如 'wheat'、'apple'。
+            category (str): 区域类型，'farm'、'orchard' 或 'nursery'。
+            time_var_name (str): 对应的时间变量名，用于存储完成时间。
+
+        Returns:
+            bool: 播种是否成功。
+        """
         self.post_close()
         self.post_open(post_button)
         self.device.screenshot()

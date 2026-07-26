@@ -1,3 +1,15 @@
+"""
+商店系统基类。
+
+提供商店页面的通用框架，包括物品检测 (OCR + 模板匹配)、
+正则过滤器匹配与排序、购买决策、遮挡物处理等。
+子类 (ShopMedal、VoucherShop 等) 重写 shop_items()、
+shop_filter、shop_currency() 等方法以适配不同商店的布局和货币类型。
+
+物品过滤器支持 group/sub_genre/tier 三级匹配，
+涵盖装备箱、书籍、改造图纸、科研蓝图、限定舰船等商品类型。
+"""
+
 import re
 
 import numpy as np
@@ -46,9 +58,13 @@ FILTER = Filter(FILTER_REGEX, FILTER_ATTR)
 
 
 class ShopItem_250814(Item):
-    """
-    未售出的 ship_T2 的计算结果为 0.36，因此取 0.3 作为阈值，
-    已售出商品的结果 < 0.2。
+    """2025-08-14 新版商店物品，增加售罄状态检测。
+
+    通过像素亮度判断商品是否已售罄。阈值 0.3：
+    未售出商品的亮度均值 > 0.36，已售出商品 < 0.2。
+
+    Attributes:
+        无额外属性，继承自 Item。
     """
 
     def predict_valid(self):
@@ -57,6 +73,13 @@ class ShopItem_250814(Item):
 
 
 class ShopItemGrid(ItemGrid):
+    """商店物品网格，在基类基础上扩展正则过滤属性。
+
+    为每个 Item 追加 group、sub_genre、tier 三个属性，
+    供 FILTER 进行匹配和排序。书籍类物品会通过模板匹配
+    修正颜色和等级的误识别。
+    """
+
     def predict(self, image, name=True, amount=True, cost=False, price=False, tag=False):
         """
         预测商店物品并填充过滤所需的扩展属性。
@@ -110,6 +133,11 @@ class ShopItemGrid(ItemGrid):
 
 
 class ShopItemGrid_250814(ShopItemGrid):
+    """2025-08-14 新版商店物品网格，使用 ShopItem_250814 作为物品类。
+
+    增加售罄计数功能，通过像素亮度区分在售和已售罄商品。
+    """
+
     item_class = ShopItem_250814
 
     def get_soldout_count(self, image):
@@ -131,7 +159,7 @@ class ShopItemGrid_250814(ShopItemGrid):
             item = self.item_class(image, button)
             if not item.is_valid:
                 count += 1
-        logger.attr('Item soldout', count)
+        logger.attr('物品售罄数', count)
         return count
 
 
@@ -233,15 +261,15 @@ class ShopBase(UI):
         # 获取 ShopItemGrid
         shop_items = self.shop_items()
         if shop_items is None:
-            logger.warning('Expected type \'ShopItemGrid\' but was None')
+            logger.warning('期望 ShopItemGrid 类型但实际为 None')
             return []
 
         if self.config.SHOP_EXTRACT_TEMPLATE:
             if self.shop_template_folder:
-                logger.info(f'Extract item templates to {self.shop_template_folder}')
+                logger.info(f'提取物品模板到 {self.shop_template_folder}')
                 shop_items.extract_template(image, self.shop_template_folder)
             else:
-                logger.warning('SHOP_EXTRACT_TEMPLATE enabled but shop_template_folder is not set, skip extracting')
+                logger.warning('SHOP_EXTRACT_TEMPLATE 已启用但 shop_template_folder 未设置，跳过提取')
 
         shop_items.predict(
             image,
@@ -258,12 +286,12 @@ class ShopBase(UI):
         if len(items):
             min_row = grids[0, 0].area[1]
             row = [str(item) for item in items if item.button[1] == min_row]
-            logger.info(f'Shop row 1: {row}')
+            logger.info(f'[商店] 第1行: {row}')
             row = [str(item) for item in items if item.button[1] != min_row]
-            logger.info(f'Shop row 2: {row}')
+            logger.info(f'[商店] 第2行: {row}')
             return items
         else:
-            logger.info('No shop items found')
+            logger.info('未找到商店物品')
             return []
 
     def shop_obstruct_handle(self):
@@ -278,18 +306,18 @@ class ShopBase(UI):
         """
         # 处理商店遮挡物
         if self.appear(GET_SHIP, interval=1):
-            logger.info(f'Shop obstruct: {GET_SHIP} -> {SHOP_CLICK_SAFE_AREA}')
+            logger.info(f'商店遮挡: {GET_SHIP} -> {SHOP_CLICK_SAFE_AREA}')
             self.device.click(SHOP_CLICK_SAFE_AREA)
             return True
         # 锁定新获得的舰船
         if self.handle_popup_confirm('SHOP_OBSTRUCT'):
             return True
         if self.appear(GET_ITEMS_1, interval=1):
-            logger.info(f'Shop obstruct: {GET_ITEMS_1} -> {SHOP_CLICK_SAFE_AREA}')
+            logger.info(f'商店遮挡: {GET_ITEMS_1} -> {SHOP_CLICK_SAFE_AREA}')
             self.device.click(SHOP_CLICK_SAFE_AREA)
             return True
         if self.appear(GET_ITEMS_3, interval=1):
-            logger.info(f'Shop obstruct: {GET_ITEMS_3} -> {SHOP_CLICK_SAFE_AREA}')
+            logger.info(f'商店遮挡: {GET_ITEMS_3} -> {SHOP_CLICK_SAFE_AREA}')
             self.device.click(SHOP_CLICK_SAFE_AREA)
             return True
 
@@ -311,7 +339,7 @@ class ShopBase(UI):
         # 获取 ShopItemGrid
         shop_items = self.shop_items()
         if shop_items is None:
-            logger.warning('Expected type \'ShopItemGrid\' but was None')
+            logger.warning('期望 ShopItemGrid 类型但实际为 None')
             return []
 
         # 循环预测以确保物品已加载且可被准确读取
@@ -329,10 +357,10 @@ class ShopBase(UI):
 
             if self.config.SHOP_EXTRACT_TEMPLATE:
                 if self.shop_template_folder:
-                    logger.info(f'Extract item templates to {self.shop_template_folder}')
+                    logger.info(f'提取物品模板到 {self.shop_template_folder}')
                     shop_items.extract_template(self.device.image, self.shop_template_folder)
                 else:
-                    logger.warning('SHOP_EXTRACT_TEMPLATE enabled but shop_template_folder is not set, skip extracting')
+                    logger.warning('SHOP_EXTRACT_TEMPLATE 已启用但 shop_template_folder 未设置，跳过提取')
 
             shop_items.predict(
                 self.device.image,
@@ -344,13 +372,13 @@ class ShopBase(UI):
             )
 
             if timeout.reached():
-                logger.warning('Items loading timeout; continue and assumed has loaded')
+                logger.warning('物品加载超时，继续并假设已加载')
                 break
 
             # 检查未加载的物品，因为游戏加载物品速度较慢
             items = shop_items.items
             known = len([item for item in items if item.is_known_item])
-            logger.attr('Item detected', known)
+            logger.attr('已检测物品数', known)
             if known == 0 or known != record:
                 record = known
                 continue
@@ -367,12 +395,12 @@ class ShopBase(UI):
         if len(items):
             min_row = grids[0, 0].area[1]
             row = [str(item) for item in items if item.button[1] == min_row]
-            logger.info(f'Shop row 1: {row}')
+            logger.info(f'[商店] 第1行: {row}')
             row = [str(item) for item in items if item.button[1] != min_row]
-            logger.info(f'Shop row 2: {row}')
+            logger.info(f'[商店] 第2行: {row}')
             return items
         else:
-            logger.info('No shop items found')
+            logger.info('未找到商店物品')
             return []
 
     def shop_check_item(self, item):
@@ -431,6 +459,6 @@ class ShopBase(UI):
 
         if not filtered:
             return None
-        logger.attr('Item_sort', ' > '.join([str(item) for item in filtered]))
+        logger.attr('物品排序', ' > '.join([str(item) for item in filtered]))
 
         return filtered[0]

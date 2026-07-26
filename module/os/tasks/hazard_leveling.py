@@ -1,3 +1,15 @@
+"""大世界侵蚀 1 等级提升模块。
+
+在危险等级 1 的海域中反复战斗以提升舰船等级，包括：
+- 独立运行和智能调度两种模式
+- 作战补给凭证（代币）资源保护检查
+- 舰船经验检测和等级追踪
+- 海域里程 OCR 记录
+
+继承自 CoinTaskMixin 和 OSMap，提供代币保护和地图导航能力，
+是大世界中最常用的舰船经验 farming 方式。
+"""
+
 from datetime import timedelta
 
 from module.base.timer import Timer
@@ -205,7 +217,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
     def os_check_leveling(self):
         """检查大世界阵容练级进度。"""
         logger.hr("大世界-侵蚀1练级检查", level=1)
-        logger.attr("OpsiCheckLeveling_LastRun", self.config.OpsiCheckLeveling_LastRun)
+        logger.attr("大世界危险海域上次运行", self.config.OpsiCheckLeveling_LastRun)
         
         check_interval = self.config.OpsiCheckLeveling_CheckInterval
         if not isinstance(check_interval, int) or check_interval < 1:

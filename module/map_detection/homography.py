@@ -1,3 +1,6 @@
+"""单应性变换模块。通过特征点匹配计算截图与地图模板之间的单应性矩阵，
+用于确定截图在地图中的位置和视角变换。"""
+
 import time
 
 import numpy as np
@@ -130,7 +133,7 @@ class Homography:
             overflow (bool): True 获取完整变换图像，False 仅获取有效区域。
         """
         self.homo_storage = (size, [(x, y) for x, y in np.round(src_pts, 3)])
-        logger.attr('homo_storage', self.homo_storage)
+        logger.attr('单应存储', self.homo_storage)
 
         # 生成透视变换数据
         src_pts = np.array(src_pts) - self.config.DETECTING_AREA[:2]
@@ -208,11 +211,11 @@ class Homography:
 
         # 日志输出
         time_cost = round(time.time() - start_time, 3)
-        logger.info('%ss  %s   edge_lines: %s hori, %s vert' % (
+        logger.info('[地图-单应性] %ss  %s   边缘线: %s 水平, %s 垂直' % (
             float2str(time_cost), '_' if self.lower_edge else ' ',
             self._map_edge_count[1], self._map_edge_count[0])
                     )
-        logger.info('Edges: %s%s%s   homo_loca: %s' % (
+        logger.info('[地图-单应性] 边缘: %s%s%s   单应位置: %s' % (
             '/' if self.left_edge else ' ', '_' if self.upper_edge else ' ', '\\' if self.right_edge else ' ',
             point2str(*self.homo_loca, length=3))
                     )
@@ -249,7 +252,7 @@ class Homography:
             message = 'bad match'
 
         # print(self.homo_loca % self.config.HOMO_TILE)
-        logger.attr_align('tile_center', f'{float2str(similarity)} ({message})')
+        logger.attr_align('瓦片中心', f'{float2str(similarity)} ({message})')
         return message != 'bad match'
 
     def search_tile_corner(self, image, threshold=0.8, encourage=1.0):
@@ -284,7 +287,7 @@ class Homography:
             message = 'bad match'
 
         # print(self.homo_loca % self.config.HOMO_TILE)
-        logger.attr_align('tile_corner', f'{float2str(similarity)} ({message})')
+        logger.attr_align('瓦片角点', f'{float2str(similarity)} ({message})')
         return message != 'bad match'
 
     def search_tile_rectangle(self, image, threshold=10, encourage=5.1, close_kernel=(5, 10, 15, 20, 25)):
@@ -328,7 +331,7 @@ class Homography:
             message = 'bad match'
 
         # print(self.homo_loca % self.config.HOMO_TILE)
-        logger.attr_align('tile_rectangle', f'{len(location)} rectangles ({message})')
+        logger.attr_align('瓦片矩形', f'{len(location)} 个矩形 ({message})')
         return message != 'bad match'
 
     def detect_edges(self, image, hough_th=120, theta_th=0.005, edge_th=9):

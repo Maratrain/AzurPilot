@@ -1,3 +1,7 @@
+"""资源快照统计模块，实现游戏资源的本地记录与历史查询。
+通过 SQLite 数据库存储资源变动快照，
+支持按实例和时间范围查询，用于绘制资源趋势图。"""
+
 # 此文件实现了通用资源快照的记录与查询功能。
 # 当各项资源数值（如石油、物资、钻石等）发生变化时，记录快照以便后续绘制历史趋势图。
 import sqlite3
@@ -99,7 +103,7 @@ def record_resource_snapshot(instance: str, resources: Dict[str, Any]) -> bool:
                 conn.commit()
         return True
     except Exception as e:
-        logger.warning(f'Failed to record resource snapshot: {e}')
+        logger.warning(f'[统计-资源] 记录资源快照失败: {e}')
         return False
 
 
@@ -136,7 +140,7 @@ def get_resource_timeline(
             result.reverse()
             return result
     except Exception as e:
-        logger.warning(f'Failed to get resource timeline: {e}')
+        logger.warning(f'[统计-资源] 获取资源时间线失败: {e}')
         return []
 
 

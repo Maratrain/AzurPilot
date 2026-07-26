@@ -1,3 +1,10 @@
+"""
+Web界面基础框架。
+
+提供 Base 和 Frame 两个核心类。Base 管理页面生命周期和后台任务调度，
+Frame 实现侧边栏、菜单导航和内容区域的切换逻辑。
+"""
+
 import json
 import threading
 

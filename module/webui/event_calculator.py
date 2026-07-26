@@ -1,3 +1,7 @@
+"""WebUI 活动计算器，从碧蓝航线 Wiki 同步活动数据并在本地渲染计算器。
+支持活动商店物品的价格解析、资源需求计算，
+以及计算结果的 HTML 界面展示。"""
+
 # 从碧蓝航线 Wiki 活动计算器同步数据，并在 WebUI 中渲染本地计算器。
 import json
 import os
@@ -200,7 +204,7 @@ def _read_cache() -> Dict[str, Any]:
     except FileNotFoundError:
         return {}
     except Exception as e:
-        logger.warning(f"Read Wiki event calculator cache failed: {e}")
+        logger.warning(f"[WebUI-计算器] 读取Wiki活动计算器缓存失败: {e}")
         return {}
 
 
@@ -211,7 +215,7 @@ def _write_cache(data: Dict[str, Any]) -> None:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.warning(f"Write Wiki event calculator cache failed: {e}")
+        logger.warning(f"[WebUI-计算器] 写入Wiki活动计算器缓存失败: {e}")
 
 
 def load_event_calculator(force_refresh: bool = False) -> Dict[str, Any]:
@@ -230,7 +234,7 @@ def load_event_calculator(force_refresh: bool = False) -> Dict[str, Any]:
         _write_cache(data)
         return {**data, "from_cache": False}
     except Exception as e:
-        logger.warning(f"Fetch Wiki event calculator failed: {e}")
+        logger.warning(f"[WebUI-计算器] 获取Wiki活动计算器失败: {e}")
         if cache:
             return {**cache, "from_cache": True, "error": str(e)}
         return {"error": str(e), "from_cache": False}

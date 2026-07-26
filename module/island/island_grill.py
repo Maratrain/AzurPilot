@@ -1,3 +1,8 @@
+"""岛屿烧烤店铺模块。
+
+继承 IslandShopBase，实现烧烤店的商品配置与岗位管理。
+包含烤串、土豆鸡、蛋卷胡萝卜、炒鸡排、牛排碗等菜品的模板、选择与后续操作定义。
+"""
 from module.island_grill.assets import *
 from module.island.island_shop_base import IslandShopBase
 from module.logger import logger
@@ -77,7 +82,7 @@ class IslandGrill(IslandShopBase):
         self.island_error = False
         self.post_get_and_close()
         if self.island_error:
-            logger.info('error1')
+            logger.info('[岛屿-烧烤] 错误1')
 
 
 if __name__ == "__main__":

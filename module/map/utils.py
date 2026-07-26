@@ -1,3 +1,14 @@
+"""地图工具函数。
+
+本模块提供战役地图系统的辅助工具函数，包括：
+- 坐标转换：``location_ensure`` 统一坐标格式（节点名/元组/GridInfo 对象）
+- 相机位置计算：``camera_1d``、``camera_2d`` 计算覆盖地图所需的相机位置
+- 活动区域检测：``get_map_active_area`` 获取非空格子的边界范围
+- 出生点相机位置：``camera_spawn_point`` 计算出生点附近的最近相机位置
+- 方向随机化：``random_direction`` 从方向描述生成随机方向向量
+- 可移动敌人匹配：``match_movable`` 通过距离矩阵匹配移动前后的敌人
+"""
+
 import numpy as np
 
 from module.base.utils import node2location
@@ -5,12 +16,18 @@ from module.map_detection.grid_info import GridInfo
 
 
 def location_ensure(location):
-    """
+    """将各种格式的坐标统一转换为元组格式。
+
+    支持三种输入格式：
+    - 带有 ``location`` 属性的对象（如 GridInfo）
+    - 字符串节点名（如 'D5'）
+    - 元组坐标（如 (3, 4)）
+
     Args:
-        location: Grid.
+        location: 网格坐标，可以是 GridInfo 对象、字符串节点名或元组。
 
     Returns:
-        tuple(int): Location, such as (4, 3)
+        tuple[int]: 坐标元组，如 ``(4, 3)``。
     """
     if hasattr(location, 'location'):
         return location.location
@@ -21,6 +38,17 @@ def location_ensure(location):
 
 
 def camera_1d(shape, sight):
+    """计算一维方向上的相机位置序列。
+
+    根据地图长度和相机视野范围，生成能覆盖整行/列的相机位置列表。
+
+    Args:
+        shape (int): 地图在该维度上的长度。
+        sight (list[int]): 相机视野范围 ``[start, end]``，start 可为负数。
+
+    Returns:
+        list[int]: 相机位置列表。
+    """
     start, step = abs(sight[0]), sight[1] - sight[0] + 1
     if shape <= start:
         out = shape // 2
@@ -32,15 +60,18 @@ def camera_1d(shape, sight):
 
 
 def camera_2d(area, sight):
-    """
+    """计算二维地图上覆盖全部活动区域所需的相机位置网格。
+
+    通过在 X 和 Y 方向上分别计算相机位置，再组合成二维网格。
+
     Args:
-        area (tuple[int]): Active area on map. (upper_left_x, upper_left_y, bottom_right_x, bottom_right_y).
-                           For example: If map shape is I9, but row 1, row 9, line A and line I is empty,
-                           area is (1, 1, 8, 8)
-        sight (tuple[int]): Camera sight. (upper_left_x, upper_left_y, bottom_right_x, bottom_right_y).
+        area (tuple[int]): 地图活动区域 ``(左上X, 左上Y, 右下X, 右下Y)``。
+            例如：地图形状为 I9，但第 1 行、第 9 行、A 列和 I 列为空时，
+            area 为 ``(1, 1, 8, 8)``。
+        sight (tuple[int]): 相机视野 ``(左上X, 左上Y, 右下X, 右下Y)``。
 
     Returns:
-        list[tuple]: List of camera location.
+        list[tuple]: 相机位置列表，每个元素为 ``(x, y)`` 坐标。
     """
     x = camera_1d(shape=area[2] - area[0], sight=[sight[0], sight[2]])
     y = camera_1d(shape=area[3] - area[1], sight=[sight[1], sight[3]])
@@ -49,12 +80,17 @@ def camera_2d(area, sight):
 
 
 def get_map_active_area(grids):
-    """
+    """获取地图活动区域的边界。
+
+    遍历所有格子，排除海洋（``--``）和陆地（``++``）格子，
+    计算剩余活动格子的最小包围矩形。
+
     Args:
-        grids (dict): Key: tuple, location, Value: GridInfo or object with __str__ method.
+        grids (dict): 格子字典，键为坐标元组，值为 GridInfo 或具有
+            ``__str__`` 方法的对象。
 
     Returns:
-        area (tuple): (upper_left_x, upper_left_y, bottom_right_x, bottom_right_y).
+        tuple: 活动区域 ``(左上X, 左上Y, 右下X, 右下Y)``。
     """
 
     def is_active(g):
@@ -68,13 +104,17 @@ def get_map_active_area(grids):
 
 
 def camera_spawn_point(camera_list, sp_list):
-    """
+    """计算出生点附近的最近相机位置。
+
+    对于每个出生点，找到曼哈顿距离最近的相机位置，
+    用于在出生点位置生成摄像头扫描数据。
+
     Args:
-        camera_list (list[tuple]): CampaignMap.camera_data
-        sp_list (list[tuple]):
+        camera_list (list[tuple]): 已有的相机位置列表（CampaignMap.camera_data）。
+        sp_list (list[tuple]): 出生点坐标列表。
 
     Returns:
-        list[tuple]: CampaignMap.camera_data_spawn_point
+        list[tuple]: 出生点检测专用的相机位置列表（去重后）。
     """
     camera_sp = []
     camera_list = np.array(camera_list)
@@ -86,15 +126,17 @@ def camera_spawn_point(camera_list, sp_list):
 
 
 def random_direction(direction):
-    """
-    Choose a random direction from string. Missing axis will be random, and '' for all random.
+    """从方向描述生成随机方向向量。
+
+    根据方向字符串确定固定轴的方向，未指定的轴随机生成。
+    空字符串表示完全随机方向。
 
     Args:
-        direction (str): 'upper-left', 'upper-right', 'bottom-left',
-        'bottom-right', or 'upper', 'bottom', 'left', 'right', etc.
+        direction (str): 方向描述，如 'upper-left'、'upper-right'、'bottom-left'、
+            'bottom-right'、'upper'、'bottom'、'left'、'right' 等。
 
     Returns:
-        tuple(int): Such as (-1, 1) for bottom-left
+        tuple[int]: 方向向量，如 ``(-1, 1)`` 表示左下方。
     """
     direction = direction.lower()
     x = 1 if np.random.uniform() > 0.5 else -1
@@ -111,6 +153,18 @@ def random_direction(direction):
 
 
 def combine(before, after, limit):
+    """组合排列候选索引。
+
+    为匹配算法生成所有可能的索引组合，确保同一索引不会重复出现。
+
+    Args:
+        before (list[list[int]]): 已有的组合列表。
+        after (list[int]): 候选索引列表。
+        limit (int): 索引上限，等于候选数量。
+
+    Yields:
+        list[int]: 组合后的索引列表。
+    """
     after += [limit]
     for b in before:
         for a in after:
@@ -121,22 +175,26 @@ def combine(before, after, limit):
 
 
 def match_movable(before, spawn, after, fleets, fleet_step=2):
-    """
+    """匹配移动前后的可移动敌人（如塞壬）。
+
+    通过构建距离矩阵和排列搜索，将移动前的敌人位置与移动后的位置
+    进行最优匹配。用于追踪移动型敌人的位移。
+
     Args:
-        before (list(tuple)): List of location. Before and after are equivalent, you can reverse input.
-                              Will match the previous element in `before` first.
-        spawn (list(tuple)):
-        after (list(tuple)):
-        fleets (list(tuple)):
-        fleet_step (int):
+        before (list[tuple]): 移动前的敌人位置列表。
+        spawn (list[tuple]): 可能新增的敌人出生点列表。
+        after (list[tuple]): 移动后的敌人位置列表。
+        fleets (list[tuple]): 舰队位置列表。
+        fleet_step (int): 舰队/敌人的最大移动步数，默认为 2。
 
     Returns:
-        list(tuple), list(tuple): Matched before, and after.
+        tuple[list[tuple], list[tuple]]: 匹配成功的位置对
+            ``(matched_before, matched_after)``。
 
     Examples:
-        > before = [(0, 2), (0, 0), (1, 0), (2, 4), (7, 19)]
-        > after = [(7, 9), (0, 3), (0, 1), (1, 1), (2, 5)]
-        > match_movable(before, after)
+        >>> before = [(0, 2), (0, 0), (1, 0), (2, 4), (7, 19)]
+        >>> after = [(7, 9), (0, 3), (0, 1), (1, 1), (2, 5)]
+        >>> match_movable(before, [], after, [])
         ([(0, 2), (0, 0), (1, 0), (2, 4)], [(0, 3), (0, 1), (1, 1), (2, 5)])
     """
     base_weight = -10000

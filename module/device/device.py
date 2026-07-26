@@ -1,3 +1,6 @@
+"""设备交互的综合管理入口。整合截图、控制、输入和应用管理功能，
+内置防卡死检测（GameStuckError）和点击频率控制（GameTooManyClickError）。"""
+
 # 此文件定义了 Device 类，是脚本与设备交互的综合管理入口。
 # 负责整合截图、点击、输入功能，并由于内置了防卡死检测和点击频率控制，能有效提高脚本自动化运行的稳定性。
 import collections
@@ -64,7 +67,7 @@ def show_function_call():
         return f'{file} {line} {func}'
 
     func_list = [f'\n{format_(*row)}' for row in func_list]
-    logger.info('Function calls:' + ''.join(func_list))
+    logger.info('函数调用:' + ''.join(func_list))
 
 
 class Device(Screenshot, Control, AppControl, Input):
@@ -120,7 +123,7 @@ class Device(Screenshot, Control, AppControl, Input):
             try:
                 self.platform.boost_running_emulator_priority()
             except Exception as e:
-                logger.warning(f'Failed to boost emulator priority: {e}')
+                logger.warning(f'[设备-模拟器] 提升模拟器优先级失败: {e}')
 
         self.screenshot_interval_set()
         self.method_check()
@@ -184,7 +187,7 @@ class Device(Screenshot, Control, AppControl, Input):
         """
         运行截图方式基准测试，每种方式测试 3 次，选择最快的写入配置。
         """
-        logger.info('run_simple_screenshot_benchmark')
+        logger.info('[设备-基准测试] 运行截图方式基准测试')
         # 先检查分辨率
         self.resolution_check_uiautomator2()
         # 执行基准测试
@@ -203,7 +206,7 @@ class Device(Screenshot, Control, AppControl, Input):
 
         准确率 100% 则选择 'gpu'，否则回退到 'cpu'。
         """
-        logger.info('run_simple_ocr_benchmark')
+        logger.info('[设备-基准测试] 运行OCR设备基准测试')
         from module.daemon.ocr_benchmark import OcrBenchmark
         bench = OcrBenchmark(config=self.config, device=self)
         device = bench.run_simple_ocr_benchmark()
@@ -229,25 +232,25 @@ class Device(Screenshot, Control, AppControl, Input):
         #     self.config.Emulator_ControlMethod = 'minitouch'
         # Hermit 仅允许在 VMOS 上使用
         if self.config.Emulator_ControlMethod == 'Hermit' and not self.is_vmos:
-            logger.warning('ControlMethod Hermit is allowed on VMOS only')
+            logger.warning('[设备-方法] 控制方式Hermit仅允许在VMOS上使用')
             self.config.Emulator_ControlMethod = 'MaaTouch'
         if self.config.Emulator_ScreenshotMethod == 'ldopengl' \
                 and self.config.Emulator_ControlMethod == 'minitouch':
-            logger.warning('Use MaaTouch on ldplayer')
+            logger.warning('[设备-方法] 雷电模拟器请使用MaaTouch')
             self.config.Emulator_ControlMethod = 'MaaTouch'
 
         # nemu_ipc 和 ldopengl 在非对应模拟器上回退到 auto
         if self.config.Emulator_ScreenshotMethod == 'nemu_ipc':
             if not (self.is_emulator and self.is_mumu_family):
-                logger.warning('ScreenshotMethod nemu_ipc is available on MuMu Player 12 only, fallback to auto')
+                logger.warning('[设备-方法] 截图方式nemu_ipc仅支持MuMu模拟器12，回退到auto')
                 self.config.Emulator_ScreenshotMethod = 'auto'
         if self.config.Emulator_ScreenshotMethod == 'ldopengl':
             if not (self.is_emulator and self.is_ldplayer_bluestacks_family):
-                logger.warning('ScreenshotMethod ldopengl is available on LD Player only, fallback to auto')
+                logger.warning('[设备-方法] 截图方式ldopengl仅支持雷电模拟器，回退到auto')
                 self.config.Emulator_ScreenshotMethod = 'auto'
         if not IS_WINDOWS and self.config.Emulator_ScreenshotMethod in ['nemu_ipc', 'ldopengl']:
-            logger.warning(f'ScreenshotMethod {self.config.Emulator_ScreenshotMethod} is available on Windows only, '
-                           f'fallback to auto')
+            logger.warning(f'[设备-方法] 截图方式{self.config.Emulator_ScreenshotMethod}仅支持Windows，'
+                           f'回退到auto')
             self.config.Emulator_ScreenshotMethod = 'auto'
 
     def handle_night_commission(self, daily_trigger='21:00', threshold=30):
@@ -268,7 +271,7 @@ class Device(Screenshot, Control, AppControl, Input):
             return False
 
         if GET_MISSION.match(self.image, offset=True):
-            logger.info('Night commission appear.')
+            logger.info('[设备-委托] 夜间委托出现')
             self.click(GET_MISSION)
             return True
 
@@ -287,7 +290,7 @@ class Device(Screenshot, Control, AppControl, Input):
             super().screenshot()
         except RequestHumanTakeover:
             if not self.ascreencap_available:
-                logger.error('aScreenCap unavailable on current device, fallback to auto')
+                logger.error('[设备-截图] 当前设备aScreenCap不可用，回退到auto')
                 self.run_simple_screenshot_benchmark()
                 super().screenshot()
             else:
@@ -343,12 +346,12 @@ class Device(Screenshot, Control, AppControl, Input):
             self._stuck_image_timer.start()
             if self._stuck_image_timer.reached():
                 show_function_call()
-                logger.warning(f'Screenshot unchanged for over {self._stuck_image_timer.limit}s')
+                logger.warning(f'[设备-卡死] 截图超过 {self._stuck_image_timer.limit}s 未变化')
                 self.stuck_record_clear()
                 if self.app_is_running():
-                    raise GameStuckError('Screenshot not changing')
+                    raise GameStuckError('[设备-卡死] 截图未变化')
                 else:
-                    raise GameNotRunningError('Game died')
+                    raise GameNotRunningError('[设备-卡死] 游戏已退出')
         else:
             self._prev_fingerprint = fp
             self._stuck_image_timer.clear()
@@ -372,14 +375,14 @@ class Device(Screenshot, Control, AppControl, Input):
                     return False
 
         show_function_call()
-        logger.warning('Wait too long')
-        logger.warning(f'Waiting for {self.detect_record}')
+        logger.warning('[设备-卡死] 等待时间过长')
+        logger.warning(f'[设备-卡死] 等待中: {self.detect_record}')
         self.stuck_record_clear()
 
         if self.app_is_running():
-            raise GameStuckError(f'Wait too long')
+            raise GameStuckError('[设备-卡死] 等待时间过长')
         else:
-            raise GameNotRunningError('Game died')
+            raise GameNotRunningError('[设备-卡死] 游戏已退出')
 
     def handle_control_check(self, button):
         self.stuck_record_clear()
@@ -423,22 +426,22 @@ class Device(Screenshot, Control, AppControl, Input):
         count = collections.Counter(self.click_record).most_common(2)
         if count[0][1] >= 12:
             show_function_call()
-            logger.warning(f'Too many click for a button: {count[0][0]}')
-            logger.warning(f'History click: {[str(prev) for prev in self.click_record]}')
+            logger.warning(f'[设备-点击] 按钮点击次数过多: {count[0][0]}')
+            logger.warning(f'[设备-点击] 点击历史: {[str(prev) for prev in self.click_record]}')
             self.click_record_clear()
-            raise GameTooManyClickError(f'Too many click for a button: {count[0][0]}')
+            raise GameTooManyClickError(f'[设备-点击] 按钮点击次数过多: {count[0][0]}')
         if len(count) >= 2 and count[0][1] >= 6 and count[1][1] >= 6:
             show_function_call()
-            logger.warning(f'Too many click between 2 buttons: {count[0][0]}, {count[1][0]}')
-            logger.warning(f'History click: {[str(prev) for prev in self.click_record]}')
+            logger.warning(f'[设备-点击] 两个按钮交替点击次数过多: {count[0][0]}, {count[1][0]}')
+            logger.warning(f'[设备-点击] 点击历史: {[str(prev) for prev in self.click_record]}')
             self.click_record_clear()
-            raise GameTooManyClickError(f'Too many click between 2 buttons: {count[0][0]}, {count[1][0]}')
+            raise GameTooManyClickError(f'[设备-点击] 两个按钮交替点击次数过多: {count[0][0]}, {count[1][0]}')
 
     def disable_stuck_detection(self):
         """
         禁用卡死检测，用于半自动模式和调试场景。
         """
-        logger.info('Disable stuck detection')
+        logger.info('[设备-检测] 禁用卡死检测')
 
         def empty_function(*arg, **kwargs):
             return False

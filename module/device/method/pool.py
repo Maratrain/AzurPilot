@@ -1,3 +1,6 @@
+"""工作线程池。基于生产者-消费者模型的通用任务池，
+用于并发执行截图、控制等设备操作，支持优雅关闭和异常传播。"""
+
 import abc
 import ctypes
 import subprocess
@@ -403,7 +406,7 @@ class WorkerPool:
         Returns:
             bytes:
         """
-        logger.info(f'Execute: {cmd}')
+        logger.info(f'[设备-进程池] 执行: {cmd}')
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=False)
 
@@ -412,7 +415,7 @@ class WorkerPool:
         except subprocess.TimeoutExpired:
             process.kill()
             stdout, stderr = process.communicate()
-            logger.warning(f'TimeoutExpired when calling {cmd}, stdout={stdout}, stderr={stderr}')
+            logger.warning(f'[设备-进程池] 调用超时: {cmd}，标准输出={stdout}，标准错误={stderr}')
         return stdout
 
     def start_cmd_soon(self, cmd, timeout=10):

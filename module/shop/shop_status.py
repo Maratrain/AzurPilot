@@ -1,3 +1,11 @@
+"""
+商店资源余额监测模块。
+
+通过 OCR 提取各类商店的货币余额（钻石、金币、勋章、功勋、
+大舰队币、核心数据、代币等），并将数据同步至 Dashboard。
+各商店子类通过继承 ShopStatus 获取当前货币数量。
+"""
+
 # 此文件专门用于监测普通商店（包含勋章、功勋、核心商店等）中的资源余额状态。
 # 通过 OCR 提取钻石、金币、各类奖章的数值，并利用 LogRes 类将数据同步至 Dashboard。
 import module.config.server as server
@@ -27,6 +35,15 @@ else:
 OCR_SHOP_VOUCHER = Digit(SHOP_VOUCHER, letter=(255, 255, 255), name='OCR_SHOP_VOUCHER')
 
 class ShopStatus(UI):
+    """商店货币余额读取器。
+
+    提供各商店货币类型的 OCR 读取接口，同时将余额数据
+    同步至 LogRes Dashboard。子类商店通过继承此类获取
+    shop_currency() 的默认实现。
+
+    Attributes:
+        _currency (int): 当前货币余额缓存。
+    """
     def status_get_gold_coins(self):
         """
         Returns:

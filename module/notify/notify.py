@@ -1,3 +1,13 @@
+"""推送通知（Push Notification）模块。
+
+通过 onepush 库将任务执行结果推送到外部渠道（QQ、微信、Telegram 等）。
+支持 YAML 格式的通知配置和 WebUI 本地推送。
+
+主要函数：
+    - handle_notify(): 解析 YAML 配置并通过指定渠道发送推送通知。
+    - notify_webui(): 向本地 WebUI 服务发送 HTTP POST 通知。
+"""
+
 import onepush.core
 import yaml
 from onepush import get_notifier
@@ -29,12 +39,12 @@ def handle_notify(_config: str, **kwargs) -> bool:
         for item in yaml.safe_load_all(_config):
             config.update(item)
     except Exception:
-        logger.error("Fail to load onepush config, skip sending")
+        logger.error("加载onepush配置失败，跳过发送")
         return False
     try:
         provider_name: str = config.pop("provider", None)
         if provider_name is None:
-            logger.info("No provider specified, skip sending")
+            logger.info("未指定推送提供者，跳过发送")
             return False
         notifier: Provider = get_notifier(provider_name)
         required: list[str] = notifier.params["required"]
@@ -44,7 +54,7 @@ def handle_notify(_config: str, **kwargs) -> bool:
         for key in required:
             if key not in config:
                 logger.warning(
-                    f"Notifier {notifier.name} require param '{key}' but not provided"
+                    f"[通知] 推送渠道 {notifier.name} 缺少必需参数 '{key}'"
                 )
 
         if isinstance(notifier, Custom):
@@ -67,26 +77,26 @@ def handle_notify(_config: str, **kwargs) -> bool:
         resp = notifier.notify(**config)
         if isinstance(resp, Response):
             if resp.status_code != 200:
-                logger.warning("Push notify failed!")
-                logger.warning(f"HTTP Code:{resp.status_code}")
+                logger.warning("推送通知失败!")
+                logger.warning(f"[通知] HTTP状态码:{resp.status_code}")
                 return False
             else:
                 if provider_name.lower() == "gocqhttp":
                     return_data: dict = resp.json()
                     if return_data["status"] == "failed":
-                        logger.warning("Push notify failed!")
+                        logger.warning("推送通知失败!")
                         logger.warning(
                             f"Return message:{return_data['wording']}")
                         return False
     except OnePushException:
-        logger.error("Push notify failed")
+        logger.error("推送通知失败")
         return False
     except Exception as e:
         # 不打印完整异常栈，避免暴露变量信息
         logger.error(e)
         return False
 
-    logger.info("Push notify success")
+    logger.info("推送通知成功")
     return True
 
 

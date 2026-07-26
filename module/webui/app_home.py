@@ -204,7 +204,7 @@ class HomeMixin(WebUIMixinBase):
             url_json = json.dumps(data.get("url", ""))
             force_json = "true" if force else "false"
 
-            logger.info(f"Pushing announcement: {data.get('title')}")
+            logger.info(f"[WebUI-主页] 推送公告: {data.get('title')}")
             run_js(
                 f"window.alasShowAnnouncement({title_json}, {content_json}, {announcement_id_json}, {url_json}, {force_json});"
             )

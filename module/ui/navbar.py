@@ -1,3 +1,6 @@
+"""页面内标签导航栏模块。定义 Navbar 类，通过颜色检测判断标签的激活/非激活状态，
+支持自动切换到指定标签页。"""
+
 from module.base.base import ModuleBase
 from module.base.button import ButtonGrid
 from module.base.timer import Timer
@@ -82,11 +85,11 @@ class Navbar:
         elif len(active) == 1:
             active = active[0]
         else:
-            logger.warning(f'Too many active nav items found in {self.name}, items: {active}')
+            logger.warning(f'发现过多激活的导航项: {self.name}, items: {active}')
             active = active[0]
 
         if len(total) < 2:
-            logger.warning(f'Too few nav items found in {self.name}, items: {total}')
+            logger.warning(f'发现过少的导航项: {self.name}, items: {total}')
         if len(total) == 0:
             left, right = None, None
         else:
@@ -164,7 +167,7 @@ class Navbar:
             bool: 是否设置成功。
         """
         if left is None and right is None and upper is None and bottom is None:
-            logger.warning('Invalid index to set, must set an index from 1 direction')
+            logger.warning('[UI-导航栏] 设置索引无效，必须指定一个方向的索引')
             return False
         text = ''
         if left is None and upper is not None:
@@ -174,7 +177,7 @@ class Navbar:
         for k in ['left', 'right', 'upper', 'bottom']:
             if locals().get(k, None) is not None:
                 text += f'{k}={locals().get(k, None)} '
-        logger.info(f'{self.name} set to {text.strip()}')
+        logger.info(f'[UI-导航栏] {self.name} 设置为 {text.strip()}')
 
         interval = Timer(2, count=4)
         timeout = Timer(10, count=20).start()
@@ -185,7 +188,7 @@ class Navbar:
                 main.device.screenshot()
 
             if timeout.reached():
-                logger.warning(f'{self.name} failed to set {text.strip()}')
+                logger.warning(f'[UI-导航栏] {self.name} 设置 {text.strip()} 超时')
                 return False
 
             if self._shop_obstruct_handle(main=main):
@@ -194,7 +197,7 @@ class Navbar:
                 continue
 
             active, minimum, maximum = self.get_info(main=main)
-            logger.info(f'Nav item active: {active} from range ({minimum}, {maximum})')
+            logger.info(f'[UI-导航栏] 激活项: {active}，范围 ({minimum}, {maximum})')
             # 收到纯黑截图时会返回 None
             # Active 为 None 可能是因为动画尚未加载完成
             if active is None or minimum is None or maximum is None:
@@ -203,7 +206,7 @@ class Navbar:
             index = minimum + left - 1 if left is not None else maximum - right + 1
             if not minimum <= index <= maximum:
                 logger.warning(
-                    f'Index to set ({index}) is not within the nav items that appears ({minimum}, {maximum})')
+                    f'[UI-导航栏] 设置索引 ({index}) 不在导航项范围内 ({minimum}, {maximum})')
                 continue
 
             # End

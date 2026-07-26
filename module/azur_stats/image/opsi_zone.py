@@ -1,3 +1,10 @@
+"""
+大世界区域截图识别。
+
+从大世界地图截图中识别当前区域名称和类型，使用 OCR 读取地图名称，
+并通过 ZoneManager 将显示名称映射为标准化的英文区域标识。
+"""
+
 from dataclasses import dataclass
 
 from module.azur_stats.image.base import ImageBase

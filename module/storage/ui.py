@@ -1,3 +1,7 @@
+"""仓库 UI 导航模块，处理仓库页面的页面切换和筛选设置。
+包括装备栏和材料栏的切换导航，
+以及稀有度等筛选条件的配置。"""
+
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.combat.assets import GET_ITEMS_1, GET_ITEMS_2
@@ -49,7 +53,7 @@ class StorageUI(UI):
             in: page_storage, any
             out: page_storage, material, MATERIAL_CHECK
         """
-        logger.info('storage enter material')
+        logger.info('仓库进入材料')
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -65,13 +69,13 @@ class StorageUI(UI):
                 continue
             # equipment -> material
             if self.appear(DISASSEMBLE, offset=(20, 20), interval=3):
-                logger.info('DISASSEMBLE -> MATERIAL_ENTER')
+                logger.info('[存储-UI] 拆解 -> 材料进入')
                 self.device.click(MATERIAL_ENTER)
                 self.interval_reset(STORAGE_CHECK)
                 continue
             # design -> material
             if self.appear(STORAGE_CHECK, offset=(20, 20), interval=3):
-                logger.info('DISASSEMBLE -> MATERIAL_ENTER')
+                logger.info('[存储-UI] 拆解 -> 材料进入')
                 self.device.click(MATERIAL_ENTER)
                 continue
 
@@ -83,7 +87,7 @@ class StorageUI(UI):
             in: page_storage, any
             out: page_storage, equipment, DISASSEMBLE
         """
-        logger.info('storage enter equipment')
+        logger.info('仓库进入装备')
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -105,7 +109,7 @@ class StorageUI(UI):
                 continue
             # design -> equipment
             if self.appear(STORAGE_CHECK, offset=(20, 20), interval=3):
-                logger.info('STORAGE_CHECK -> EQUIPMENT_ENTER')
+                logger.info('[存储-UI] 存储检查 -> 装备进入')
                 self.device.click(EQUIPMENT_ENTER)
                 continue
 
@@ -117,7 +121,7 @@ class StorageUI(UI):
             in: page_storage, any
             out: page_storage, disassemble, DISASSEMBLE_CANCEL
         """
-        logger.info('storage enter disassemble')
+        logger.info('仓库进入拆解')
         self.appear(STORAGE_CHECK, interval=3)
         while 1:
             if skip_first_screenshot:
@@ -141,14 +145,14 @@ class StorageUI(UI):
                 continue
             # design -> equipment
             if self.appear(STORAGE_CHECK, offset=(20, 20), interval=3):
-                logger.info('STORAGE_CHECK -> EQUIPMENT_ENTER')
+                logger.info('[存储-UI] 存储检查 -> 装备进入')
                 self.device.click(EQUIPMENT_ENTER)
                 continue
 
         self.interval_clear(STORAGE_CHECK)
 
     def _equipment_filter_enter(self):
-        logger.info('Equipment filter enter')
+        logger.info('装备筛选进入')
         self.interval_clear(STORAGE_CHECK)
         for _ in self.loop():
             if self.appear(EQUIPMENT_FILTER_CONFIRM, offset=(20, 20)):
@@ -166,7 +170,7 @@ class StorageUI(UI):
                 continue
 
     def _equipment_filter_confirm(self):
-        logger.info('Equipment filter confirm')
+        logger.info('装备筛选确认')
         self.interval_clear(EQUIPMENT_FILTER_CONFIRM)
         self.ui_click(EQUIPMENT_FILTER_CONFIRM, check_button=STORAGE_CHECK, skip_first_screenshot=True)
         self._wait_until_storage_stable()

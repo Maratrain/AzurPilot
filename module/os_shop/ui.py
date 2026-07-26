@@ -1,3 +1,9 @@
+"""大世界商店 UI 操作模块。
+
+提供大世界商店界面的通用 UI 操作，包括商店页面加载检测、
+侧边栏导航（明石商店/港口商店）、自适应滚动条控制、
+安全区域点击防护以及死循环检测等基础交互功能。
+"""
 from typing import Tuple
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property

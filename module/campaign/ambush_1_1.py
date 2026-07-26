@@ -1,3 +1,7 @@
+"""1-1 伏击刷关模块，用于低耗练级和钻石 farming。
+继承 GemsFarming 的刷关逻辑，重写旗舰更换策略以支持
+编队中主舰队三个槽位的自动填充与更换。"""
+
 from module.campaign.gems_farming import GemsFarming
 from module.logger import logger
 from module.exception import CampaignEnd
@@ -30,10 +34,10 @@ class Ambush11(GemsFarming):
             ship = self.get_common_rarity_cv()
             if ship:
                 self.flagship_change_with_emotion(ship)
-                logger.info(f'Change flagship {button.name} success')
+                logger.info(f'[战役-伏击] 更换旗舰 {button.name} 成功')
                 success = True
             else:
-                logger.info(f'Change flagship {button.name} failed, no CV in common rarity.')
+                logger.info(f'[战役-伏击] 更换旗舰 {button.name} 失败，无通用稀有度航母')
                 if self.config.SERVER in ['cn']:
                     max_level = 100
                 else:
@@ -68,10 +72,10 @@ class Ambush11(GemsFarming):
         ship = self.get_common_rarity_dd()
         if ship:
             self.vanguard_change_with_emotion(ship)
-            logger.info('Change vanguard ship success')
+            logger.info('更换前排舰船成功')
             return True
         else:
-            logger.info('Change vanguard ship failed, no DD in common rarity.')
+            logger.info('更换前排舰船失败，无通用稀有度驱逐舰。')
             ship = self.get_common_rarity_dd(emotion=0)
             if ship and self.hard_mode:
                 self.vanguard_change_with_emotion(ship)
@@ -95,10 +99,10 @@ class Ambush11(GemsFarming):
         # User explicitly requested 28 as default for 1-1
         # If it's still at absolute defaults (1, 125), we force it to 1-28
         if min_level <= 1 and max_level >= 125:
-            logger.info('Vanguard level limit is at default (1-125), forcing to 1-28 for 1-1 Ambush')
+            logger.info('[战役-伏击] 前排等级限制为默认值(1-125)，强制改为1-28')
             max_level = 28
             
-        logger.info(f'Finding vanguard with level: {min_level} ~ {max_level}')
+        logger.info(f'查找等级前排: {min_level} ~ {max_level}')
         
         # Implementation similar to GemsFarming but without the 100-level fallback
         from module.retire.scanner import ShipScanner
@@ -151,7 +155,7 @@ class Ambush11(GemsFarming):
                 if candidates:
                     return candidates
 
-                logger.info('No specific DD was found, try reversed order.')
+                logger.info('未找到指定驱逐舰，尝试反向顺序。')
                 self.dock_sort_method_dsc_set(False)
                 candidates = self.find_all_vanguard_candidates(scanner, common_ship)
                 if not candidates and self.config.GemsFarming_CommonDD == 'custom':
@@ -180,7 +184,7 @@ class Ambush11(GemsFarming):
         Forces auto-search and clear mode off, then uses GemsFarming's 
         ship switching logic before executing the map script.
         """
-        logger.hr('Ambush 1-1 Runner', level=1)
+        logger.hr('1-1伏击运行器', level=1)
         
         # Enforce manual play and disable clear mode options
         self.config.override(Campaign_UseClearMode=False, Campaign_UseAutoSearch=False)
@@ -212,9 +216,9 @@ class Ambush11(GemsFarming):
                 # So we simply ensure UI, do configs, handle ships, then call campaign.run() and handle End exceptions.
                 logger.hr(name, level=1)
                 if self.config.StopCondition_RunCount > 0:
-                    logger.info(f'Count remain: {self.config.StopCondition_RunCount}')
+                    logger.info(f'[战役-伏击] 剩余次数: {self.config.StopCondition_RunCount}')
                 else:
-                    logger.info(f'Count: {self.run_count}')
+                    logger.info(f'[战役-伏击] 计数: {self.run_count}')
 
                 self.device.stuck_record_clear()
                 self.device.click_record_clear()
@@ -223,7 +227,7 @@ class Ambush11(GemsFarming):
                 self.campaign.device.image = self.device.image
                 
                 if self.campaign.is_in_map():
-                    logger.info('Already in map, retreating.')
+                    logger.info('[战役-伏击] 已在地图中，撤退中')
                     try:
                         self.campaign.withdraw()
                     except CampaignEnd:
@@ -270,7 +274,7 @@ class Ambush11(GemsFarming):
                         self.set_emotion(emotion)
                 
                 if is_limit and self.config.StopCondition_RunCount <= 0:
-                    logger.hr('Triggered stop condition: Run count')
+                    logger.hr('[战役-伏击] 触发停止条件: 运行次数')
                     self.config.StopCondition_RunCount = 0
                     self.config.Scheduler_Enable = False
                     break

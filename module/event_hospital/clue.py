@@ -1,3 +1,10 @@
+"""医院活动线索识别模块。
+
+通过图像处理和 OCR 识别医院活动中的线索信息。包含矩形
+合并、文本行聚类等图像预处理逻辑，用于从线索界面截图中
+提取并解析线索文本内容。
+"""
+
 from functools import reduce
 from typing import List, Optional, Tuple
 
@@ -153,7 +160,7 @@ class HospitalClue(HospitalUI):
             in: 医院活动任意子页面
             out: is_in_clue
         """
-        logger.info('Hospital clue enter')
+        logger.info('进入医院线索')
         self.interval_clear(page_hospital.check_button)
         while 1:
             if skip_first_screenshot:
@@ -172,7 +179,7 @@ class HospitalClue(HospitalUI):
             in: 医院活动任意子页面
             out: page_hospital
         """
-        logger.info('Hospital clue exit')
+        logger.info('退出医院线索')
         self.interval_clear(HOSIPITAL_CLUE_CHECK)
         while 1:
             if skip_first_screenshot:
@@ -201,7 +208,7 @@ class HospitalClue(HospitalUI):
             in: is_in_clue
             out: FLEET_PREPARATION
         """
-        logger.info('Clue invest')
+        logger.info('线索投资')
         self.interval_clear(HOSIPITAL_CLUE_CHECK)
         while 1:
             if skip_first_screenshot:
@@ -214,9 +221,9 @@ class HospitalClue(HospitalUI):
             if self.is_in_clue(interval=2):
                 invest = next(self.iter_invest(), None)
                 if invest is None:
-                    logger.info('No more invest')
+                    logger.info('无更多投资')
                     return False
-                logger.info(f'is_in_clue -> {invest}')
+                logger.info(f'线索中 -> {invest}')
                 self.device.click(invest)
                 self.interval_reset(HOSIPITAL_CLUE_CHECK, interval=2)
                 continue
@@ -233,11 +240,11 @@ class HospitalClue(HospitalUI):
         Yields:
             Button: 未完成的调查按钮。
         """
-        logger.hr('Iter invest')
+        logger.hr('迭代投资')
         scroll = Scroll(INVEST_SCROLL, color=(107, 97, 107), name='INVEST_SCROLL')
         # 无滚动条时只检查当前页
         if not scroll.appear(main=self):
-            logger.info('No scroll')
+            logger.info('无滚动条')
             button = self.get_invest_button()
             if button:
                 yield button
@@ -257,7 +264,7 @@ class HospitalClue(HospitalUI):
         # 逐页遍历
         while 1:
             if scroll.at_bottom(main=self):
-                logger.info(f'{scroll.name} reached end')
+                logger.info(f'{scroll.name} 到达终点')
                 return
             scroll.next_page(main=self, page=0.5)
             button = self.get_invest_button()
@@ -308,7 +315,7 @@ class HospitalClue(HospitalUI):
         Pages:
             in: is_in_clue
         """
-        logger.info(f'Select aside')
+        logger.info(f'选择旁白')
         aside = None
         self.interval_clear(HOSIPITAL_CLUE_CHECK)
         while 1:
@@ -322,9 +329,9 @@ class HospitalClue(HospitalUI):
             if self.is_in_clue(interval=2):
                 aside = next(self.iter_aside(), None)
                 if aside is None:
-                    logger.info('No more aside')
+                    logger.info('无更多旁白')
                     return False
-                logger.info(f'is_in_clue -> {aside}')
+                logger.info(f'线索中 -> {aside}')
                 self.device.click(aside)
                 self.interval_reset(HOSIPITAL_CLUE_CHECK, interval=2)
                 continue

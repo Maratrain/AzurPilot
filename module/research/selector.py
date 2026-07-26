@@ -1,3 +1,25 @@
+"""
+科研项目筛选器。
+
+本模块负责从截图中检测科研项目列表，并根据用户配置的筛选规则
+对项目进行排序和过滤，输出符合优先级的候选项目列表。
+
+支持两种服务器检测策略：
+- JP 服务器：逐个点击项目进入详情页，通过模板匹配识别系列、
+  类型、消耗和舰船信息（因 JP 服务器无 OCR 项目名称）
+- 其他服务器：通过 OCR 识别项目名称 + 模板匹配识别系列编号
+
+筛选规则基于正则表达式解析用户配置的过滤器字符串，
+支持按系列(S1-S9)、舰船、稀有度(DR/PRY)、类型(B/C/D/E/G/H/Q/T)、
+编号和时长进行多维度筛选，并支持 preset（预设）和 custom（自定义）两种模式。
+
+术语对照：
+    系列(Series): 科研系列编号 S1-S9
+    类型(Genre): 科研项目类型 B/C/D/E/G/H/Q/T
+    蓝图(Blueprint): 科研产出的舰船设计图
+    DR: 决战方案(Dreamship Rarity)，金色稀有度科研舰船
+    PRY: 近代方案(Priority Rarity)，紫色稀有度科研舰船
+"""
 import re
 from functools import partial
 
@@ -34,13 +56,33 @@ FILTER = Filter(FILTER_REGEX, FILTER_ATTR, FILTER_PRESET)
 
 
 class ResearchSelector(ResearchUI):
+    """
+    科研项目筛选器，负责检测和筛选科研项目。
+
+    从截图中识别 5 个科研项目的名称、系列和状态，然后根据用户
+    配置的筛选规则（preset 或 custom）对项目进行优先级排序。
+
+    JP 服务器使用逐个点击详情页的检测策略，其他服务器使用 OCR + 模板匹配。
+
+    Attributes:
+        projects (list[ResearchProject]): 当前屏幕上的 5 个科研项目列表。
+        storage_has_boxes (bool): 仓库中是否有可拆解的科技箱/装备，
+            影响 E 系列科研的筛选。由 StorageHandler 设置。
+    """
     # 当前科研项目列表
     projects: list
     # 来自 StorageHandler
     storage_has_boxes = True
 
     def research_goto_detail(self, index, skip_first_screenshot=True):
-        logger.info(f'Research goto detail (project {index})')
+        """
+        点击进入指定索引的科研项目详情页。
+
+        Args:
+            index (int): 科研项目索引，0 到 4。
+            skip_first_screenshot (bool): 是否跳过首次截图，复用上一状态的截图。
+        """
+        logger.info(f'[科研-详情] 进入科研详情 (项目 {index})')
         click_timer = Timer(10)
         while 1:
             if skip_first_screenshot:
@@ -76,13 +118,13 @@ class ResearchSelector(ResearchUI):
                 self.device.screenshot()
 
             if self.info_bar_count():
-                logger.info('Handle info_bar')
+                logger.info('[科研-检测] 处理信息栏')
                 timeout.reset()
                 continue
 
             project = research_jp_detect(self.device.image)
             if project.duration == '0':
-                logger.warning(f'Invalid research duration: {project}')
+                logger.warning(f'[科研-检测] 无效的科研时长: {project}')
                 continue
             else:
                 return project
@@ -108,7 +150,7 @@ class ResearchSelector(ResearchUI):
             我们需要的是当前屏幕 'self.device.image'。
             """
             project = self._research_jp_detect()
-            logger.attr('Project', project)
+            logger.attr('科研项目', project)
             projects.append(project)
             self.research_detail_quit()
         """
@@ -128,13 +170,13 @@ class ResearchSelector(ResearchUI):
             projects = research_detect(self.device.image)
 
             if timeout.reached():
-                logger.warning('Failed to OCR research name after 3 trial, assume correct')
+                logger.warning('[科研-检测] 尝试3次后仍无法OCR科研名称，假设正确')
                 break
 
             if sum([p.valid for p in projects]) < 5:
                 # 最左侧的科研系列被战令信息遮挡，参见 #1037
-                logger.info('Invalid project detected')
-                logger.info('Probably because of battle pass info or too fast screenshot')
+                logger.info('[科研-检测] 检测到无效项目')
+                logger.info('[科研-检测] 可能是因为战令信息或截图过快')
                 # 罕见情况，少量 sleep 可以接受
                 self.device.sleep(1)
                 self.device.screenshot()
@@ -146,6 +188,15 @@ class ResearchSelector(ResearchUI):
 
     def research_sort_filter(self, enforce=False):
         """
+        根据用户配置的筛选规则对科研项目进行优先级排序。
+
+        加载预设或自定义过滤器字符串，解析后应用到当前项目列表，
+        输出按优先级排序的候选项目列表。
+
+        Args:
+            enforce (bool): 是否为强制模式，强制模式下会追加默认
+                预设作为兜底筛选条件。
+
         Returns:
             list: ResearchProject 对象和预设字符串的列表，
                 如 [object, object, object, 'reset']
@@ -161,16 +212,16 @@ class ResearchSelector(ResearchUI):
                     and f'{preset}_cube' in DICT_FILTER_PRESET:
                 preset = f'{preset}_cube'
             if preset not in DICT_FILTER_PRESET:
-                logger.warning(f'Preset not found: {preset}, use default preset')
+                logger.warning(f'[科研-筛选] 预设未找到: {preset}，使用默认预设')
                 preset = GeneratedConfig.Research_PresetFilter
             string = DICT_FILTER_PRESET[preset]
 
-        logger.attr('Research preset', preset)
-        logger.info('Use cube: {} Use coin: {} Use part: {}'.format(
+        logger.attr('科研预设', preset)
+        logger.info('[科研-资源] 使用魔方: {} 使用金币: {} 使用部件: {}'.format(
             self.config.Research_UseCube,
             self.config.Research_UseCoin,
             self.config.Research_UsePart))
-        logger.attr('Allow delay', self.config.Research_AllowDelay)
+        logger.attr('允许延迟', self.config.Research_AllowDelay)
 
         # 不区分大小写
         string = string.lower()
@@ -185,16 +236,22 @@ class ResearchSelector(ResearchUI):
         priority = FILTER.apply(self.projects, func=partial(self._research_check, enforce=enforce))
 
         # 日志
-        logger.attr('Filter_sort', ' > '.join([str(project) for project in priority]))
+        logger.attr('过滤排序', ' > '.join([str(project) for project in priority]))
         return priority
 
     def _research_check(self, project, enforce=False):
         """
+        检查单个科研项目是否符合用户的资源消耗和类型约束。
+
+        根据用户配置检查魔方(coin)、金币(cube)、部件(part)的消耗限制，
+        以及 B 系列、T 系列、E 系列的特殊过滤规则。
+
         Args:
-            project (ResearchProject):
-            enforce (Bool):
+            project (ResearchProject): 待检查的科研项目。
+            enforce (bool): 是否为强制模式，强制模式下忽略部分资源限制。
+
         Returns:
-            bool:
+            bool: 项目是否通过所有检查条件。
         """
         if not project.valid:
             return False
@@ -252,6 +309,13 @@ class ResearchSelector(ResearchUI):
 
     def research_sort_shortest(self, enforce):
         """
+        按最短时长优先排序科研项目。
+
+        当筛选结果为空时，优先选择时长最短的项目以快速获取科研收益。
+
+        Args:
+            enforce (bool): 是否为强制模式。
+
         Returns:
             list: ResearchProject 对象和预设字符串的列表，
                 如 [object, object, object, 'reset']
@@ -259,11 +323,18 @@ class ResearchSelector(ResearchUI):
         FILTER.load(FILTER_STRING_SHORTEST)
         priority = FILTER.apply(self.projects, func=partial(self._research_check, enforce=enforce))
 
-        logger.attr('Filter_sort', ' > '.join([str(project) for project in priority]))
+        logger.attr('过滤排序', ' > '.join([str(project) for project in priority]))
         return priority
 
     def research_sort_cheapest(self, enforce):
         """
+        按最低消耗优先排序科研项目。
+
+        当筛选结果为空时，优先选择消耗最少资源的项目以节省资源。
+
+        Args:
+            enforce (bool): 是否为强制模式。
+
         Returns:
             list: ResearchProject 对象和预设字符串的列表，
                 如 [object, object, object, 'reset']
@@ -271,5 +342,5 @@ class ResearchSelector(ResearchUI):
         FILTER.load(FILTER_STRING_CHEAPEST)
         priority = FILTER.apply(self.projects, func=partial(self._research_check, enforce=enforce))
 
-        logger.attr('Filter_sort', ' > '.join([str(project) for project in priority]))
+        logger.attr('过滤排序', ' > '.join([str(project) for project in priority]))
         return priority

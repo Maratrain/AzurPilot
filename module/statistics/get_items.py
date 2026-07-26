@@ -1,3 +1,9 @@
+"""掉落物品统计。
+
+从战斗结算的获得物品截图中识别和统计各类掉落物，
+支持 1~3 行物品网格的自动检测和数量 OCR 识别。
+"""
+
 from module.combat.assets import *
 from module.handler.assets import *
 from module.statistics.assets import GET_ITEMS_ODD

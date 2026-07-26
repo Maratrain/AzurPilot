@@ -1,3 +1,9 @@
+"""装饰器工具模块。
+
+提供基于配置的方法分发装饰器 Config.when()，以及 cached_property、
+timer、function_drop、run_once 等常用装饰器，用于控制方法的执行行为。
+"""
+
 import random
 import re
 from functools import wraps
@@ -68,7 +74,7 @@ class Config:
 
                     return record['func'](self, *args, **kwargs)
 
-                logger.warning(f'No option fits for {name}, using the last define func.')
+                logger.warning(f'[装饰器] 没有选项适合 {name}，使用最后定义的函数')
                 return func(self, *args, **kwargs)
 
             return wrapper
@@ -168,7 +174,7 @@ def function_drop(rate=0.5, default=None):
                         arguments.pop(0)
                 arguments += [f'{k}={v}' for k, v in kwargs.items()]
                 arguments = ', '.join(arguments)
-                logger.info(f'Dropped: {cls}{func.__name__}({arguments})')
+                logger.info(f'[装饰器] 已丢弃: {cls}{func.__name__}({arguments})')
                 return default
 
         return wrapper

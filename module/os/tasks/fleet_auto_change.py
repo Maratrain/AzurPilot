@@ -1,3 +1,15 @@
+"""大世界舰队自动更换模块。
+
+在大世界战斗过程中自动更换旗舰满级的舰队，包括：
+- 检测旗舰等级和经验值判断是否需要更换
+- 舰队部署界面的进入、选择和确认操作
+- 支持收藏夹筛选和多舰队槽位管理
+- 舰队装备和编队的完整配置流程
+
+通过舰船经验 OCR 检测旗舰升级状态，
+当旗舰满级时自动切换到下一组备用舰队继续 farming。
+"""
+
 from datetime import timedelta
 
 from module.config.time_source import now as current_time

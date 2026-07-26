@@ -1,3 +1,25 @@
+"""委托任务执行模块。
+
+负责碧蓝航线委托系统的自动化处理，包括委托奖励领取、委托检测、
+委托选择过滤、委托启动以及奖励收入统计。支持每日委托和紧急委托
+两大类别，通过 OCR 和图像匹配识别委托信息，并根据用户配置的
+过滤规则自动选择最优委托组合。
+
+主要流程：
+    1. 从奖励页面进入委托页面
+    2. 领取已完成的委托奖励（commission_receive）
+    3. 扫描当前所有委托列表（_commission_scan_all）
+    4. 根据过滤规则选择待启动的委托（_commission_choose）
+    5. 逐一查找并启动选中的委托（commission_start）
+    6. 根据运行中委托的完成时间计算下次调度
+
+依赖：
+    - module.commission.project: 委托信息解析（Commission 类）
+    - module.commission.preset: 预设过滤规则
+    - module.ui.ui: 页面导航
+    - module.handler.info_handler: 弹窗/信息栏处理
+"""
+
 import copy
 from datetime import timedelta
 
@@ -37,12 +59,16 @@ COMMISSION_SCROLL = Scroll(COMMISSION_SCROLL_AREA, color=(247, 211, 66), name='C
 
 
 def lines_detect(image):
-    """
+    """检测委托列表中各委托条目底部的白色分割线位置。
+
+    通过分析截图中分割线区域（x: 597-619）的灰度均值，
+    使用 scipy.signal.find_peaks 定位白色线条的 Y 坐标。
+
     Args:
-        image:
+        image (np.ndarray): 游戏截图。
 
     Returns:
-        np.ndarray: 每个委托下方白色分割线的 Y 坐标。
+        np.ndarray: 每个委托下方白色分割线的 Y 坐标数组。
     """
     # 通过查找每个委托下方的白色分割线来定位委托位置。
     # (597, 0, 619, 720) 是只有白色分割线的区域。
@@ -56,6 +82,22 @@ def lines_detect(image):
 
 
 class RewardCommission(UI, InfoHandler):
+    """委托任务处理器。
+
+    继承 UI 和 InfoHandler，负责委托系统的完整自动化流程，
+    包括委托检测、过滤选择、启动执行和奖励领取。
+
+    Attributes:
+        daily (SelectedGrids): 当前扫描到的每日委托列表。
+        urgent (SelectedGrids): 当前扫描到的紧急委托列表。
+        daily_choose (SelectedGrids): 经过滤器选中的待启动每日委托。
+        urgent_choose (SelectedGrids): 经过滤器选中的待启动紧急委托。
+        comm_choose (SelectedGrids): 所有选中的委托（含每日和紧急），
+            用于调度判断和延迟任务计算。
+        max_commission (int): 最大可同时运行的委托数量，默认 4。
+            当存在活动委托（daily_event）时提升为 5。
+    """
+
     daily: SelectedGrids
     urgent: SelectedGrids
     daily_choose: SelectedGrids
@@ -73,11 +115,11 @@ class RewardCommission(UI, InfoHandler):
         Returns:
             SelectedGrids:
         """
-        logger.hr('Commission detect')
+        logger.hr('委托检测')
         commission = []
         for y in lines_detect(image):
             comm = Commission(image, y=y, config=self.config)
-            logger.attr('Commission', comm)
+            logger.attr('委托', comm)
             repeat = len([c for c in commission if c == comm])
             comm.repeat_count += repeat
             commission.append(comm)
@@ -108,12 +150,12 @@ class RewardCommission(UI, InfoHandler):
             commissions = self._commission_detect(image)
 
             if commissions.count >= 2 and commissions.select(valid=False).count == 1:
-                logger.warning('Found 1 invalid commission, retry commission detect')
+                logger.warning('[委托-检测] 发现1个无效委托，重试委托检测')
                 continue
             else:
                 return commissions
 
-        logger.info('trials of commission detect exhausted, stop')
+        logger.info('[委托-检测] 委托检测重试次数已耗用，停止')
         return commissions
 
     def _commission_choose(self, daily, urgent):
@@ -137,7 +179,7 @@ class RewardCommission(UI, InfoHandler):
                 self.max_commission = 5
         running_list = [c for c in total if c.status == 'running']
         running_count = len(running_list)
-        logger.attr('Running', f'{running_count}/{self.max_commission}')
+        logger.attr('运行中', f'{running_count}/{self.max_commission}')
 
         # 加载过滤器字符串
         preset = self.config.Commission_PresetFilter
@@ -150,32 +192,32 @@ class RewardCommission(UI, InfoHandler):
                 if start_time < end_time:
                     preset = f'{preset}_night'
             if preset not in DICT_FILTER_PRESET:
-                logger.warning(f'Preset not found: {preset}, use default preset')
+                logger.warning(f'[委托-过滤] 预设未找到: {preset}，使用默认预设')
                 preset = GeneratedConfig.Commission_PresetFilter
             string = DICT_FILTER_PRESET[preset]
-        logger.attr('Commission Filter', preset)
+        logger.attr('委托过滤器', preset)
 
         # 过滤
         COMMISSION_FILTER.load(string)
         run = COMMISSION_FILTER.apply(total.grids, func=self._commission_check)
-        logger.attr('Filter_sort', ' > '.join([str(c) for c in run]))
+        logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
         run = SelectedGrids(run)
 
         # 添加最短时间委托
         if self.config.Commission_AddShortest == False and preset == 'custom':
-            logger.info('Not enough commissions to run')
+            logger.info('[委托-选择] 没有足够的委托可运行')
         else:
             no_shortest = run.delete(SelectedGrids(['shortest']))
             if no_shortest.count + running_count < self.max_commission:
                 if daily.count:
-                    logger.info('Not enough commissions to run, add shortest daily commissions')
+                    logger.info('[委托-选择] 没有足够的委托可运行，添加最短时间的每日委托')
                     COMMISSION_FILTER.load(SHORTEST_FILTER)
                     shortest = COMMISSION_FILTER.apply(daily[::-1], func=self._commission_check)
                     # 反转每日委托列表以选择更好的委托
                     run = no_shortest.add_by_eq(SelectedGrids(shortest))
-                    logger.attr('Filter_sort', ' > '.join([str(c) for c in run]))
+                    logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
                 else:
-                    logger.info('Not enough commissions to run')
+                    logger.info('[委托-选择] 没有足够的委托可运行')
 
         # 优先处理快过期重要委托
         if 'expire' in run:
@@ -191,14 +233,14 @@ class RewardCommission(UI, InfoHandler):
                         min_duration_time = c.duration
             else:
                 min_duration_time = timedelta(seconds=0)
-            logger.attr('Min Duration Time', min_duration_time)
+            logger.attr('最短时长', min_duration_time)
 
             expire_index = run.grids.index('expire')
             important = run[:expire_index].filter(lambda c: isinstance(c, Commission) and c.expire)
             priority = [c for c in important if c.expire < min_duration_time]
             run = run.delete(SelectedGrids(['expire']))
             run = SelectedGrids(priority).add_by_eq(run)
-            logger.attr('Filter_sort', ' > '.join([str(c) for c in run]))
+            logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
 
         self.comm_choose = run
         if running_count >= self.max_commission:
@@ -209,23 +251,27 @@ class RewardCommission(UI, InfoHandler):
         daily_choose = run.intersect_by_eq(daily)
         urgent_choose = run.intersect_by_eq(urgent)
         if daily_choose:
-            logger.info('Choose daily commission')
+            logger.info('[委托-选择] 选择每日委托')
             for comm in daily_choose:
                 logger.info(comm)
         if urgent_choose:
-            logger.info('Choose urgent commission')
+            logger.info('[委托-选择] 选择紧急委托')
             for comm in urgent_choose:
                 logger.info(comm)
 
         return daily_choose, urgent_choose
 
     def _commission_check(self, commission):
-        """
+        """检查委托是否符合执行条件。
+
+        过滤掉无效委托、非待启动状态的委托，以及用户配置中
+        明确禁用的主线委托（major commission）。
+
         Args:
-            commission (Commission):
+            commission (Commission): 待检查的委托对象。
 
         Returns:
-            bool:
+            bool: 委托是否可以被选择执行。
         """
         if not commission.valid or commission.status != 'pending':
             return False
@@ -235,6 +281,17 @@ class RewardCommission(UI, InfoHandler):
         return True
 
     def _commission_ensure_mode(self, mode):
+        """切换委托列表的显示模式（每日/紧急）。
+
+        切换到指定模式后，等待列表滚动动画结束再返回，
+        以避免委托条目在动画过程中被误检或漏检。
+
+        Args:
+            mode (str): 目标模式，'daily' 或 'urgent'。
+
+        Returns:
+            bool: 切换是否成功。
+        """
         if COMMISSION_SWITCH.set(mode, main=self):
             # 当每日委托列表超过 4 个（通常为 5 个），且紧急委托在 1 到 4 个之间时，
             # 委托列表会出现滚动动画，
@@ -254,13 +311,21 @@ class RewardCommission(UI, InfoHandler):
             return False
 
     def _commission_mode_reset(self):
-        logger.hr('Commission mode reset')
+        """重置委托列表显示模式。
+
+        先切换到另一个模式再切回当前模式，强制刷新列表内容，
+        用于委托启动失败后恢复列表状态。
+
+        Returns:
+            bool: 重置是否成功。无法识别当前模式时返回 False。
+        """
+        logger.hr('委托模式重置')
         if self.appear(COMMISSION_DAILY):
             current, another = 'daily', 'urgent'
         elif self.appear(COMMISSION_URGENT):
             current, another = 'urgent', 'daily'
         else:
-            logger.warning('Unknown Commission mode')
+            logger.warning('[委托-模式] 未知的委托模式')
             return False
 
         self._commission_ensure_mode(another)
@@ -269,6 +334,13 @@ class RewardCommission(UI, InfoHandler):
         return True
 
     def _commission_swipe(self):
+        """向下翻页委托列表。
+
+        如果滚动条可见且未到底部，则向下翻一页；否则返回 False。
+
+        Returns:
+            bool: 是否成功翻页。滚动条不可见或已到底部时返回 False。
+        """
         if COMMISSION_SCROLL.appear(main=self):
             if COMMISSION_SCROLL.at_bottom(main=self):
                 return False
@@ -279,6 +351,11 @@ class RewardCommission(UI, InfoHandler):
             return False
 
     def _commission_swipe_to_top(self):
+        """将委托列表滚动到顶部。
+
+        Returns:
+            bool: 是否执行了滚动操作。滚动条不可见时返回 False。
+        """
         if not COMMISSION_SCROLL.appear(main=self):
             return False
         COMMISSION_SCROLL.set_top(main=self, skip_first_screenshot=True)
@@ -308,18 +385,18 @@ class RewardCommission(UI, InfoHandler):
             in: page_commission
             out: page_commission
         """
-        logger.hr('Commission scan', level=1)
+        logger.hr('委托扫描', level=1)
         # 紧急委托列表是懒加载的，先切换以强制刷新。
         self._commission_ensure_mode('urgent')
 
-        logger.hr('Scan daily', level=2)
+        logger.hr('扫描每日委托', level=2)
         self._commission_ensure_mode('daily')
         self._commission_swipe_to_top()
         daily = self._commission_scan_list()
 
         urgent = SelectedGrids([])
         for _ in range(2):
-            logger.hr('Scan urgent', level=2)
+            logger.hr('扫描紧急委托', level=2)
             self._commission_ensure_mode('urgent')
             self._commission_swipe_to_top()
             urgent = self._commission_scan_list()
@@ -331,10 +408,10 @@ class RewardCommission(UI, InfoHandler):
             if current_time() - get_server_next_update('21:00') > timedelta(hours=6):
                 night = urgent.select(category_str='night')
                 if night:
-                    logger.warning('Not in 21:00~03:00, but scanned night commissions')
+                    logger.warning('[委托-扫描] 不在21:00~03:00时间段，但扫描到夜间委托')
                     for comm in night:
-                        logger.attr('Commission', comm)
-                    logger.info('Re-scan urgent commission list')
+                        logger.attr('委托', comm)
+                    logger.info('[委托-扫描] 重新扫描紧急委托列表')
                     # 虽然不是最佳方式，但在罕见情况下可以接受
                     self.device.sleep(2)
                     self._commission_ensure_mode('daily')
@@ -342,14 +419,14 @@ class RewardCommission(UI, InfoHandler):
 
             break
 
-        logger.hr('Showing commission', level=2)
-        logger.info('Daily commission')
+        logger.hr('显示委托', level=2)
+        logger.info('[委托-显示] 每日委托')
         for comm in daily.sort('status', 'genre'):
-            logger.attr('Commission', comm)
+            logger.attr('委托', comm)
         if urgent.count:
-            logger.info('Urgent commission')
+            logger.info('[委托-显示] 紧急委托')
             for comm in urgent.sort('status', 'genre'):
-                logger.attr('Commission', comm)
+                logger.attr('委托', comm)
 
         self.daily = daily
         self.urgent = urgent
@@ -372,7 +449,7 @@ class RewardCommission(UI, InfoHandler):
             in: page_commission
             out: page_commission, info_bar, commission details unfold
         """
-        logger.hr('Commission start')
+        logger.hr('启动委托')
         self.interval_clear(COMMISSION_ADVICE)
         self.interval_clear(COMMISSION_START)
         comm_timer = Timer(7)
@@ -390,8 +467,8 @@ class RewardCommission(UI, InfoHandler):
                 # 重启游戏以处理委托推荐 bug。
                 # 点击"推荐"后，舰船出现后突然消失。
                 # 同时委托图标闪烁。
-                logger.warning('Triggered commission list flashing bug')
-                raise GameStuckError('Triggered commission list flashing bug')
+                logger.warning('[委托-启动] 触发了委托列表闪烁bug')
+                raise GameStuckError('[委托-启动] 触发了委托列表闪烁bug')
 
             # 点击
             if self.match_template_color(COMMISSION_START, offset=(5, 20), interval=7):
@@ -405,7 +482,7 @@ class RewardCommission(UI, InfoHandler):
                 continue
             # 误入船坞
             if self.appear(DOCK_CHECK, offset=(20, 20), interval=3):
-                logger.info(f'equip_enter {DOCK_CHECK} -> {BACK_ARROW}')
+                logger.info(f'[委托-启动] 误入船坞 {DOCK_CHECK} -> {BACK_ARROW}')
                 self.device.click(BACK_ARROW)
                 comm_timer.reset()
                 continue
@@ -418,12 +495,12 @@ class RewardCommission(UI, InfoHandler):
                 if current.count >= 1:
                     current = current[0]
                     if current == comm:
-                        logger.info('Selected to the correct commission')
+                        logger.info('[委托-启动] 已选择正确的委托')
                     else:
-                        logger.warning('Selected to the wrong commission')
+                        logger.warning('[委托-启动] 选择了错误的委托')
                         return False
                 else:
-                    logger.warning('No selected commission detected, assuming correct')
+                    logger.warning('[委托-启动] 未检测到选择的委托，假设正确')
                 self.device.click(COMMISSION_ADVICE)
                 count += 1
                 self.interval_reset(COMMISSION_ADVICE)
@@ -448,8 +525,8 @@ class RewardCommission(UI, InfoHandler):
         comm = copy.deepcopy(comm)
         comm.repeat_count = 1
         for _ in range(3):
-            logger.hr('Commission find and start', level=2)
-            logger.info(f'Finding commission {comm}')
+            logger.hr('查找并启动委托', level=2)
+            logger.info(f'[委托-查找] 正在查找委托 {comm}')
 
             failed = True
 
@@ -479,17 +556,17 @@ class RewardCommission(UI, InfoHandler):
                     break
 
             if failed:
-                logger.warning(f'Failed to select commission: {comm}')
+                logger.warning(f'[委托-查找] 选择委托失败: {comm}')
                 self._commission_mode_reset()
                 self._commission_swipe_to_top()
                 self.device.click_record_clear()
                 continue
             else:
-                logger.warning(f'Commission not found: {comm}')
+                logger.warning(f'[委托-查找] 未找到委托: {comm}')
                 self.device.click_record_clear()
                 return False
 
-        logger.warning(f'Failed to select commission after 3 trial')
+        logger.warning('[委托-查找] 尝试3次后仍无法选择委托')
         self.device.click_record_clear()
         return False
 
@@ -539,7 +616,7 @@ class RewardCommission(UI, InfoHandler):
                     f'Gem commission notification failed: {e}'
                 )
         if not self.daily_choose and not self.urgent_choose:
-            logger.info('No commission chose')
+            logger.info('[委托-执行] 没有选择任何委托')
 
     def _record_commission_income(self):
         """
@@ -562,7 +639,7 @@ class RewardCommission(UI, InfoHandler):
 
             template_folder = os.path.join('.', 'assets', 'stats_commission_items')
             if not os.path.exists(template_folder):
-                logger.info('Commission income: template folder not found, skip')
+                logger.info('[委托-收入] 模板文件夹不存在，跳过')
                 return
 
             grid = ItemGrid(None, {}, template_area=(40, 21, 89, 70), amount_area=(50, 71, 91, 92))
@@ -571,7 +648,7 @@ class RewardCommission(UI, InfoHandler):
             grid.load_template_folder(template_folder)
 
             if not grid.templates:
-                logger.info('Commission income: no templates loaded, skip')
+                logger.info('[委托-收入] 没有加载模板，跳过')
                 return
 
             get_items = GetItemsStatistics()
@@ -581,7 +658,7 @@ class RewardCommission(UI, InfoHandler):
 
             images = getattr(self, '_commission_reward_images', None)
             if not images:
-                logger.info('Commission income: no reward images collected')
+                logger.info('[委托-收入] 没有收集到奖励截图')
                 return
 
             COMMISSION_TRACKED_ITEMS = ['Gem', 'Cube', 'Chip', 'Oil', 'Coin']
@@ -593,11 +670,11 @@ class RewardCommission(UI, InfoHandler):
                 'Coins': 'Coin',
             }
 
-            logger.info(f'Commission income: processing {len(images)} reward screenshot(s)')
+            logger.info(f'[委托-收入] 处理 {len(images)} 张奖励截图')
             for idx, image in enumerate(images):
                 try:
                     if INFO_BAR_1.appear_on(image):
-                        logger.info(f'Commission income: screenshot[{idx}] has info_bar, skip')
+                        logger.info(f'[委托-收入] 截图[{idx}] 有信息栏，跳过')
                         continue
                     grid.grids = None
                     if GET_ITEMS_1.match_template_color(image, offset=(5, 0)):
@@ -608,7 +685,7 @@ class RewardCommission(UI, InfoHandler):
                     elif GET_ITEMS_3.match_template_color(image, offset=(5, 0)):
                         grid.grids = ITEM_GRIDS_3
                     else:
-                        logger.info(f'Commission income: screenshot[{idx}] not a get_items page, skip')
+                        logger.info(f'[委托-收入] 截图[{idx}] 不是获取物品页面，跳过')
                         continue
                     grid.predict(image)
                     recognized = []
@@ -616,17 +693,17 @@ class RewardCommission(UI, InfoHandler):
                         if item.is_known_item() and item.name not in ('DefaultItem',):
                             mapped_name = COMMISSION_ITEM_NAME_MAP.get(item.name, item.name)
                             if mapped_name not in COMMISSION_TRACKED_ITEMS:
-                                logger.info(f'Commission income: screenshot[{idx}] ignored {item.name} (not tracked)')
+                                logger.info(f'[委托-收入] 截图[{idx}] 忽略 {item.name} (未跟踪)')
                                 continue
                             merged_items[mapped_name] = merged_items.get(mapped_name, 0) + item.amount
                             item_count += 1
                             recognized.append(f'{mapped_name}x{item.amount}')
                     if recognized:
-                        logger.info(f'Commission income: screenshot[{idx}] recognized {len(recognized)} item(s): {", ".join(recognized)}')
+                        logger.info(f'[委托-收入] 截图[{idx}] 识别到 {len(recognized)} 个物品: {", ".join(recognized)}')
                     else:
-                        logger.info(f'Commission income: screenshot[{idx}] no known items recognized')
+                        logger.info(f'[委托-收入] 截图[{idx}] 没有识别到已知物品')
                 except Exception as e:
-                    logger.info(f'Commission income: screenshot[{idx}] recognition failed: {e}')
+                    logger.info(f'[委托-收入] 截图[{idx}] 识别失败: {e}')
                     continue
 
             if merged_items:
@@ -718,12 +795,20 @@ class RewardCommission(UI, InfoHandler):
                         )
 
             else:
-                logger.info('Commission income: no known items recognized from all screenshots')
+                logger.info('[委托-收入] 所有截图都没有识别到已知物品')
 
         except Exception as e:
-            logger.warning(f'Commission income recording failed: {e}')
+            logger.warning(f'[委托-收入] 委托收入记录失败: {e}')
 
     def _handle_research_genre_t_update(self, completed_commission_count):
+        """更新 T 类科研任务的剩余委托计数。
+
+        当存在 T 类科研（要求完成指定次数委托）时，将已完成的委托次数
+        从剩余计数中扣除。计数归零时触发科研任务调度。
+
+        Args:
+            completed_commission_count (int): 本次领取奖励时完成的委托数量。
+        """
         if completed_commission_count <= 0:
             return
         required_commissions = self.config.cross_get('Research.Research.RemainingCommissions', -1)
@@ -738,7 +823,22 @@ class RewardCommission(UI, InfoHandler):
             self.config.task_call('Research')
 
     def _commission_receive(self, skip_first_screenshot=True):
-        logger.hr('Reward receive')
+        """领取已完成的委托奖励。
+
+        在委托页面和奖励页面之间循环，点击所有可领取的奖励弹窗
+        （经验、物品、舰船），同时收集奖励截图用于收入统计。
+        处理石油溢出的情况（触发宿舍喂食消耗石油）。
+
+        Args:
+            skip_first_screenshot (bool): 是否跳过首次截图，复用上一状态的截图。
+
+        Returns:
+            bool: 是否领取了任何奖励。
+
+        Raises:
+            OilMaxed: 石油溢出且喂食 3 次仍无法解决时抛出。
+        """
+        logger.hr('领取奖励')
 
         reward = False
         click_timer = Timer(1)
@@ -772,7 +872,7 @@ class RewardCommission(UI, InfoHandler):
                                     self._commission_reward_images = []
                             else:
                                 self._commission_reward_images.append(self.device.image.copy())
-                                logger.info(f'Commission income: collected reward screenshot (trigger={button.name})')
+                                logger.info(f'[委托-收入] 收集奖励截图 (触发按钮={button.name})')
 
                             REWARD_SAVE_CLICK.name = button.name
                             self.device.click(REWARD_SAVE_CLICK)
@@ -841,11 +941,11 @@ class RewardCommission(UI, InfoHandler):
             try:
                 return self._commission_receive()
             except OilMaxed:
-                logger.info("Oil maxed, buy food to consume oil")
+                logger.info("[委托-石油] 石油溢出，购买食物消耗石油")
                 RewardDorm(self.config, self.device).dorm_food_run(amount=10)
                 self.ui_ensure(page_reward)
 
-        logger.critical(f'Failed to handle oil maxed after 3 trial')
+        logger.critical('[委托-石油] 尝试3次后仍无法处理石油溢出')
         raise RequestHumanTakeover
 
     def _get_gem_reward(self, comm):
@@ -925,7 +1025,7 @@ class RewardCommission(UI, InfoHandler):
         # 选择 BACK_ARROW，但从该页面无法导航到 page_reward
         self.device.screenshot()
         if self.appear(TACTICAL_CLASS_START, offset=(30, 30)):
-            logger.info('Detected TACTICAL_CLASS_START, clicking cancel to exit')
+            logger.info('[委托-战术] 检测到战术课堂开始按钮，点击取消退出')
             self.device.click(TACTICAL_CLASS_CANCEL)
             self.device.sleep((0.5, 1.0))
         self.ui_ensure(page_reward)
@@ -939,11 +1039,11 @@ class RewardCommission(UI, InfoHandler):
         # 调度
         total = self.daily.add_by_eq(self.urgent)
         future_finish = sorted([f for f in total.get('finish_time') if f is not None])
-        logger.info(f'Commission finish: {[str(f) for f in future_finish]}')
+        logger.info(f'[委托-完成] 委托完成时间: {[str(f) for f in future_finish]}')
         if len(future_finish):
             self.config.task_delay(target=future_finish)
         else:
-            logger.info('No commission running')
+            logger.info('[委托-完成] 没有正在运行的委托')
             self.config.task_delay(success=False)
 
         # 延迟钻石 farming / 三油低耗任务
@@ -958,13 +1058,13 @@ class RewardCommission(UI, InfoHandler):
             daily = self.daily.select(category_str='daily', status='pending').count
             filtered_urgent = self.comm_choose.intersect_by_eq(self.urgent.select(status='pending')).count
             filtered_extra = self.comm_choose.intersect_by_eq(self.daily.select(category_str='extra', status='pending')).count
-            logger.info(f'Daily commission: {daily}, filtered_urgent: {filtered_urgent}, filtered_extra: {filtered_extra}')
+            logger.info(f'[委托-调度] 每日委托: {daily}, 过滤紧急: {filtered_urgent}, 过滤额外: {filtered_extra}')
             future = nearest_future(future_finish) if len(future_finish) else None
             if daily > 0 and filtered_urgent >= 1:
                 for task in limit_tasks:
-                    logger.info(f"Having daily commissions to do, delay task '{task}'")
+                    logger.info(f"[委托-调度] 有待执行的每日委托，延迟任务 '{task}'")
                     self.config.task_delay(minute=None if future else 120, target=future, task=task)
             elif filtered_urgent >= 4:
                 for task in limit_tasks:
-                    logger.info(f"Having too many urgent commissions, delay task '{task}'")
+                    logger.info(f"[委托-调度] 紧急委托过多，延迟任务 '{task}'")
                     self.config.task_delay(minute=None if future else 120, target=future, task=task)

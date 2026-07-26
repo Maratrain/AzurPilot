@@ -1,3 +1,8 @@
+"""岛屿生意经营模块。
+
+管理岛屿商区的经营流程，包括经营剩余时间 OCR 读取、美食评审安全区域操作。
+结合季节性商品配置与定时刷新逻辑，自动化岛屿商区的日常运营。
+"""
 import os
 from module.island.island import Island
 from module.island.assets import *

@@ -1,3 +1,17 @@
+"""自动搜索处理器。
+
+管理游戏的自动搜索（Auto Search）功能，包括：
+- 舰队准备界面的侧边栏切换（编队/指挥喵/自动搜索设置）
+- 自动搜索设置选项的切换（如舰队1打道中/舰队2打Boss等）
+- 地图中自动搜索开关的检测和控制
+- 自动搜索菜单的继续/退出操作
+
+自动搜索是碧蓝航线的核心功能之一，允许玩家在通关模式下
+自动进行地图探索，无需手动操作。
+
+继承自 EnemySearchingHandler，在 FastForwardHandler 中被进一步扩展。
+"""
+
 import numpy as np
 
 from module.base.button import ButtonGrid
@@ -8,14 +22,16 @@ from module.handler.enemy_searching import EnemySearchingHandler
 from module.logger import logger
 from module.map.assets import FLEET_PREPARATION_CHECK
 
+# 自动搜索设置按钮列表，对应游戏界面中的 6 个选项
 AUTO_SEARCH_SETTINGS = [
-    AUTO_SEARCH_SET_MOB,
-    AUTO_SEARCH_SET_BOSS,
-    AUTO_SEARCH_SET_ALL,
-    AUTO_SEARCH_SET_STANDBY,
-    AUTO_SEARCH_SET_SUB_AUTO,
-    AUTO_SEARCH_SET_SUB_STANDBY
+    AUTO_SEARCH_SET_MOB,       # 舰队1打道中，舰队2打Boss
+    AUTO_SEARCH_SET_BOSS,      # 舰队1打Boss，舰队2打道中
+    AUTO_SEARCH_SET_ALL,       # 舰队1全出击，舰队2待命
+    AUTO_SEARCH_SET_STANDBY,   # 舰队1待命，舰队2全出击
+    AUTO_SEARCH_SET_SUB_AUTO,  # 潜艇自动呼叫
+    AUTO_SEARCH_SET_SUB_STANDBY  # 潜艇待命
 ]
+# 设置名称到按钮索引的映射
 dic_setting_name_to_index = {
     'fleet1_mob_fleet2_boss': 0,
     'fleet1_boss_fleet2_mob': 1,
@@ -24,10 +40,22 @@ dic_setting_name_to_index = {
     'sub_auto_call': 4,
     'sub_standby': 5,
 }
+# 按钮索引到设置名称的反向映射
 dic_setting_index_to_name = {v: k for k, v in dic_setting_name_to_index.items()}
 
 
 class AutoSearchHandler(EnemySearchingHandler):
+    """自动搜索功能处理器。
+
+    管理舰队准备界面和地图中的自动搜索相关操作。
+    不同服务器的 UI 布局略有差异（侧边栏按钮位置和大小），
+    通过 @Config.when 装饰器实现服务器特定的适配。
+
+    Attributes:
+        _auto_search_offset (tuple): 自动搜索选项的匹配偏移量。
+        _auto_search_menu_offset (tuple): 自动搜索菜单的匹配偏移量，
+            当 MULTIPLE_SORTIE 出现时向左偏移 213px。
+    """
     @Config.when(SERVER='en')
     def _fleet_sidebar(self):
         if FLEET_PREPARATION_CHECK.match(self.device.image, offset=(20, 80)):
@@ -75,8 +103,8 @@ class AutoSearchHandler(EnemySearchingHandler):
                 break
 
         if not current:
-            logger.warning('No fleet sidebar active.')
-        logger.attr('Fleet_sidebar', f'{current}/{total}')
+            logger.warning('[处理器-自动搜索] 没有活跃的舰队侧边栏')
+        logger.attr('舰队侧边栏', f'{current}/{total}')
         return current
 
     def fleet_preparation_sidebar_ensure(self, index):
@@ -94,7 +122,7 @@ class AutoSearchHandler(EnemySearchingHandler):
                   超过则返回 False，成功则返回 True。
         """
         if index <= 0 or index > 5:
-            logger.warning(f'Sidebar index cannot be ensured, {index}, limit 1 through 5 only')
+            logger.warning(f'[处理器-自动搜索] 无法确保侧边栏索引，{index}，限制为1到5')
             return False
 
         interval = Timer(1, count=2)
@@ -108,7 +136,7 @@ class AutoSearchHandler(EnemySearchingHandler):
                 interval.reset()
                 continue
         else:
-            logger.warning('Sidebar could not be ensured')
+            logger.warning('[处理器-自动搜索] 无法确保侧边栏切换')
             return False
 
     def _auto_search_set_click(self, setting):
@@ -128,17 +156,17 @@ class AutoSearchHandler(EnemySearchingHandler):
                 active.append(index)
 
         if not active:
-            logger.warning('No active auto search setting found')
+            logger.warning('[处理器-自动搜索] 未找到活跃的自动搜索设置')
             return False
 
-        logger.attr('Auto_Search_Setting', ', '.join([dic_setting_index_to_name[index] for index in active]))
+        logger.attr('自动搜索设置', ', '.join([dic_setting_index_to_name[index] for index in active]))
 
         if setting not in dic_setting_name_to_index:
-            logger.warning(f'Unknown auto search setting: {setting}')
+            logger.warning(f'[处理器-自动搜索] 未知的自动搜索设置: {setting}')
         target_index = dic_setting_name_to_index[setting]
 
         if target_index in active:
-            logger.info('Selected to the correct auto search setting')
+            logger.info('[处理器-自动搜索] 已选择正确的自动搜索设置')
             return True
         else:
             self.device.click(AUTO_SEARCH_SETTINGS[target_index])
@@ -168,7 +196,7 @@ class AutoSearchHandler(EnemySearchingHandler):
                 return True
             else:
                 if counter >= 5:
-                    logger.warning('Auto search setting could not be ensured')
+                    logger.warning('[处理器-自动搜索] 无法确保自动搜索设置切换')
                     return False
                 counter += 1
                 self.device.sleep((0.3, 0.5))

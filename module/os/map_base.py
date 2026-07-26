@@ -1,9 +1,30 @@
+"""大世界地图基础数据结构。
+
+定义大世界（Operation Siren）的地图数据模型。
+大世界的地图使用 OSCampaignMap 类，继承自主线战役的 CampaignMap，
+但有以下差异：
+- 使用 OSGridInfo 而非 GridInfo 作为格子类型
+- 相机视野范围不同（camera_sight = (-4, -1, 3, 3)）
+- 地图尺寸通过节点名称动态设置
+- 所有格子默认权重为 10
+
+继承自 CampaignMap，复用寻路和地图管理的核心逻辑。
+"""
+
 from module.base.utils import *
 from module.map.map_base import CampaignMap, camera_2d
 from module.map_detection.os_grid import OSGridInfo
 
 
 class OSCampaignMap(CampaignMap):
+    """大世界地图数据结构。
+
+    管理大世界海域的格子信息和寻路逻辑。
+
+    Attributes:
+        camera_sight (tuple): 相机视野范围。
+        camera_data (list): 相机位置数据列表。
+    """
     def __init__(self, name=None):
         super().__init__(name)
         self.camera_sight = (-4, -1, 3, 3)

@@ -1,9 +1,28 @@
+"""LLM 错误分析模块。
+
+使用 OpenAI 兼容 API 对脚本运行中捕获的异常进行智能分析。
+当配置启用 LLM 错误分析时，会将异常堆栈发送给 LLM，
+获取错误原因分析和修复建议，帮助用户快速定位问题。
+
+配置项：
+- Error_LlmAnalysis: 是否启用 LLM 错误分析
+- Error_LlmApiKey: OpenAI API Key
+- Error_LlmApiBase: API 基础 URL（默认 https://api.openai.com/v1）
+- Error_LlmModel: 使用的模型名称（默认 gpt-4o-mini）
+
+特性：
+- 相同错误的分析结果会缓存，避免重复调用 API
+- 使用 MD5 哈希进行错误去重
+- API 调用失败时静默降级，不影响正常运行
+"""
+
 import traceback
 import os
 from module.logger import logger
 
 import hashlib
 
+# 已分析错误的缓存，键为堆栈信息的 MD5 哈希
 _analyzed_errors_cache = {}
 LLM_CONFIG_WARNING = 'LLM 错误分析不可用，请检查 LLM 配置、API Key、API Base、模型名称以及账户余额。'
 LLM_EMPTY_RESULT_WARNING = 'LLM API 返回了空结果，请检查模型服务配置、模型名称或账户余额。'

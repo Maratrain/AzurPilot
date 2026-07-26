@@ -1,3 +1,26 @@
+"""舰队管理和地图行走模块。
+
+管理地图探索中的舰队操作，是地图自动化的核心模块。
+
+核心职责：
+- 舰队位置追踪：实时记录舰队1、舰队2和潜艇的位置
+- 舰队行走：控制舰队在网格间移动，处理移动过程中的各种事件
+- 战斗管理：追踪战斗次数、弹药消耗和敌人状态
+- 回合系统：管理可移动敌人和迷宫的回合机制
+- 路径规划：初始化寻路系统，处理路障和可通行性
+- 潜艇操作：控制潜艇移动和狩猎区域调整
+
+行走流程：
+1. 初始化地图数据和相机
+2. 扫描全图发现敌人和事件
+3. 规划路径到达目标格子
+4. 处理行走过程中的事件（战斗、伏击、神秘格子）
+5. 更新敌人状态和回合计数
+6. 检查是否有敌人移动触发重新规划
+
+继承链：Fleet -> Camera -> MapOperation -> AmbushHandler -> Combat -> ...
+"""
+
 import itertools
 
 import numpy as np
@@ -12,6 +35,23 @@ from module.map.utils import match_movable
 
 
 class Fleet(Camera, AmbushHandler):
+    """舰队管理和地图行走控制器。
+
+    追踪多个舰队的位置、战斗状态和弹药，并提供完整的地图行走逻辑。
+    行走过程中自动处理战斗、伏击、空袭、神秘格子等事件。
+
+    Attributes:
+        fleet_1_location (tuple): 舰队1的全局坐标位置。
+        fleet_2_location (tuple): 舰队2的全局坐标位置。
+        fleet_submarine_location (tuple): 潜艇的全局坐标位置。
+        battle_count (int): 当前地图中的战斗次数。
+        mystery_count (int): 当前地图中的神秘事件次数。
+        siren_count (int): 当前地图中的塞壬（精英敌人）战斗次数。
+        fleet_ammo (int): 舰队剩余弹药数，初始为 5。
+        ammo_count (int): 地图中的弹药补给格数量。
+        round (int): 当前回合数，用于可移动敌人系统。
+        enemy_round (dict): 敌人出现的回合记录，键为回合数，值为敌人数量。
+    """
     fleet_1_location = ()
     fleet_2_location = ()
     fleet_submarine_location = ()
@@ -119,7 +159,7 @@ class Fleet(Camera, AmbushHandler):
         if not self.config.MAP_HAS_MOVABLE_ENEMY and not self.config.MAP_HAS_MAZE:
             return False
         self.round += 1
-        logger.info(f'Round: {self.round}, enemy_round: {self.enemy_round}')
+        logger.info(f'[地图-回合] 回合: {self.round}, 敌方回合: {self.enemy_round}')
 
     def round_battle(self, after_battle=True):
         """清除敌人后调用此方法。
@@ -330,7 +370,7 @@ class Fleet(Camera, AmbushHandler):
                     if self.catch_camera_repositioning(self.map[location]):
                         self.handle_boss_appear_refocus()
                         if sum(self.hp) < 0.01:
-                            logger.warning('Empty HP on all slots, trying hp_get again')
+                            logger.warning('[地图-血量] 所有槽位血量为空，重试获取血量')
                             self.hp_get()
                     if self.config.MAP_FOCUS_ENEMY_AFTER_BATTLE:
                         self.camera = location
@@ -401,20 +441,20 @@ class Fleet(Camera, AmbushHandler):
                         arrive_checker = True
                 if arrive_checker:
                     if not arrive_timer.started():
-                        logger.info(f'Arrive {location2node(location)} {arrive_predict}'.strip())
+                        logger.info(f'[地图-移动] 到达 {location2node(location)} {arrive_predict}'.strip())
                     arrive_timer.start()
                     arrive_unexpected_timer.start()
                     if result == 'nothing' and not arrive_timer.reached():
                         continue
                     if expected and result not in expected:
                         if arrive_unexpected_timer.reached():
-                            logger.warning('Arrive with unexpected result')
+                            logger.warning('[地图-移动] 到达结果异常')
                         else:
                             continue
                     if is_portal:
                         location = self.map[location].portal_link
                         self.camera = location
-                    logger.info(f'Arrive {location2node(location)} confirm. Result: {result}. Expected: {expected}')
+                    logger.info(f'[地图-移动] 到达 {location2node(location)} 确认。结果: {result}，预期: {expected}')
                     arrived = True
                     break
                 else:
@@ -433,7 +473,7 @@ class Fleet(Camera, AmbushHandler):
                 if ambushed_retry.started() and ambushed_retry.reached():
                     break
                 if walk_timeout.reached():
-                    logger.warning('Walk timeout. Retrying.')
+                    logger.warning('[地图-移动] 移动超时，重试中')
                     self.predict()
                     self.ensure_edge_insight(skip_first_update=False)
                     break
@@ -492,7 +532,7 @@ class Fleet(Camera, AmbushHandler):
             nodes = self.map.find_path(location, step=step, turning_optimize=turning_optimize)
             for node in nodes:
                 if self.maze_active_on(node):
-                    logger.info(f'Maze is active on {location2node(node)}, bouncing to wait')
+                    logger.info(f'[地图-机关] 迷宫激活于 {location2node(node)}，弹跳等待')
                     for _ in range(10):
                         grids = self.map[node].maze_nearby.delete(self.map.select(is_fleet=True))
                         if grids.select(is_enemy=False):
@@ -502,7 +542,7 @@ class Fleet(Camera, AmbushHandler):
                 try:
                     self._goto(node, expected=expected if node == nodes[-1] else '')
                 except MapWalkError:
-                    logger.warning('Map walk error.')
+                    logger.warning('[地图-移动] 地图移动错误')
                     self.predict()
                     self.ensure_edge_insight()
                     nodes_ = self.map.find_path(node, step=1, turning_optimize=False)
@@ -538,10 +578,10 @@ class Fleet(Camera, AmbushHandler):
                 if self.fleet_current_index == n:
                     text = '[%s]' % text
                 fleets.append(text)
-        logger.info(' '.join(fleets))
+        logger.info('[地图-舰队] ' + ' '.join(fleets))
 
     def show_submarine(self):
-        logger.info(f'Submarine: {location2node(self.fleet_submarine_location)}')
+        logger.info(f'[地图-潜艇] 潜艇位置: {location2node(self.fleet_submarine_location)}')
 
     def full_scan(self, queue=None, must_scan=None, mode='normal'):
         if self.config.MAP_HAS_DECOY_ENEMY and mode == 'normal':
@@ -553,7 +593,7 @@ class Fleet(Camera, AmbushHandler):
         if self.config.FLEET_2 and not self.fleet_2_location:
             fleets = self.map.select(is_fleet=True, is_current_fleet=False)
             if fleets.count:
-                logger.info(f'Predict fleet_2 to be {fleets[0]}')
+                logger.info(f'[地图-舰队] 预测第二舰队为 {fleets[0]}')
                 self.fleet_2_location = fleets[0].location
 
         for loca in [self.fleet_1_location, self.fleet_2_location]:
@@ -571,7 +611,7 @@ class Fleet(Camera, AmbushHandler):
         prev = self.map.select(is_enemy=True)
         self.full_scan(mode='carrier')
         diff = self.map.select(is_enemy=True).delete(prev)
-        logger.info(f'Carrier spawn: {diff}')
+        logger.info(f'[地图-舰队] 航母出生点: {diff}')
 
     def full_scan_movable(self, enemy_cleared=True):
         """敌人移动后调用此方法。
@@ -624,15 +664,15 @@ class Fleet(Camera, AmbushHandler):
         )
         matched_before = self.map.to_selected(matched_before)
         matched_after = self.map.to_selected(matched_after)
-        logger.info(f'Movable enemy {before} -> {after}')
-        logger.info(f'Tracked enemy {matched_before} -> {matched_after}')
+        logger.info(f'[地图-敌舰] 可移动敌舰 {before} -> {after}')
+        logger.info(f'[地图-敌舰] 跟踪敌舰 {matched_before} -> {matched_after}')
 
         # 删除错误预测
         # 如果 MAP_HAS_MOVABLE_NORMAL_ENEMY 则保留，这种情况比较混乱
         if not self.config.MAP_HAS_MOVABLE_NORMAL_ENEMY:
             for grid in after.delete(matched_after):
                 if not grid.may_siren:
-                    logger.warning(f'Wrong detection: {grid}')
+                    logger.warning(f'[地图-检测] 错误检测: {grid}')
                     grid.wipe_out()
 
         # 预测缺失的塞壬
@@ -641,7 +681,7 @@ class Fleet(Camera, AmbushHandler):
             self.battle_count, self.mystery_count, self.siren_count, self.carrier_count, mode='normal')
         missing = missing['siren'] if siren else missing['enemy']
         if diff and missing != 0:
-            logger.warning(f'Movable enemy tracking lost: {diff}')
+            logger.warning(f'[地图-敌舰] 可移动敌舰跟踪丢失: {diff}')
 
             # 计算被覆盖的格子
             covered = self.map.grid_covered(self.map[self.fleet_current], location=[(0, -2)])
@@ -663,7 +703,7 @@ class Fleet(Camera, AmbushHandler):
             else:
                 for grid in self.map.select(is_siren=True):
                     covered = covered.add(self.map.grid_covered(grid))
-            logger.attr('enemy_covered', covered)
+            logger.attr('敌舰覆盖', covered)
 
             # 计算塞壬可达格子
             accessible = SelectedGrids([])
@@ -685,25 +725,25 @@ class Fleet(Camera, AmbushHandler):
                     portal=self.config.MAP_HAS_PORTAL,
                 )
             self.map.find_path_initial(self.fleet_current, has_ambush=self.config.MAP_HAS_AMBUSH)
-            logger.attr('enemy_accessible', accessible)
+            logger.attr('敌舰可达', accessible)
 
             # 取交集进行预测
             predict = accessible.intersect(covered).select(is_sea=True, is_fleet=False)
-            logger.info(f'Movable enemy predict: {predict}')
+            logger.info(f'[地图-敌舰] 可移动敌舰预测: {predict}')
             matched_after = matched_after.add(predict)
             for grid in predict:
                 if siren:
                     grid.is_siren = True
                 grid.is_enemy = True
         elif missing == 0:
-            logger.info(f'Movable enemy tracking drop: {diff}')
+            logger.info(f'[地图-敌舰] 可移动敌舰跟踪丢弃: {diff}')
 
         for grid in matched_after:
             if grid.location != self.fleet_current:
                 grid.is_movable = True
 
     def find_all_fleets(self):
-        logger.hr('Find all fleets')
+        logger.hr('查找所有舰队')
         queue = self.map.select(is_spawn_point=True)
         while queue:
             queue = queue.sort_by_camera_distance(self.camera)
@@ -717,22 +757,22 @@ class Fleet(Camera, AmbushHandler):
             queue = queue[1:]
 
     def find_current_fleet(self):
-        logger.hr('Find current fleet')
+        logger.hr('查找当前舰队')
         if not self.config.POOR_MAP_DATA:
             fleets = self.map.select(is_fleet=True, is_spawn_point=True)
         else:
             fleets = self.map.select(is_fleet=True)
-        logger.info('Fleets: %s' % str(fleets))
+        logger.info('[地图-舰队] 舰队: %s' % str(fleets))
         count = fleets.count
         if count == 1:
             if not self.config.FLEET_2:
                 self.fleet_1 = fleets[0].location
             else:
-                logger.info('Fleet_2 not detected.')
+                logger.info('[地图-舰队] 未检测到第二舰队')
                 if self.config.POOR_MAP_DATA and not self.map.select(is_spawn_point=True):
                     self.fleet_1 = fleets[0].location
                 elif self.map.select(is_spawn_point=True).count == 2:
-                    logger.info('Predict fleet to be spawn point')
+                    logger.info('[地图-舰队] 预测舰队为出生点')
                     another = self.map.select(is_spawn_point=True).delete(SelectedGrids([fleets[0]]))[0]
                     if fleets[0].is_current_fleet:
                         self.fleet_1 = fleets[0].location
@@ -764,24 +804,24 @@ class Fleet(Camera, AmbushHandler):
                         self.fleet_1 = fleets[1].location
                         self.fleet_2 = fleets[0].location
                     else:
-                        logger.warning('Current fleet not found')
+                        logger.warning('[地图-舰队] 未找到当前舰队')
                         self.fleet_1 = fleets[0].location
                         self.fleet_2 = fleets[1].location
         else:
             if count == 0:
-                logger.warning('No fleets detected.')
+                logger.warning('[地图-舰队] 未检测到任何舰队')
                 fleets = self.map.select(is_current_fleet=True)
                 if fleets.count:
                     self.fleet_1 = fleets[0].location
             if count > 2:
-                logger.warning('Too many fleets: %s.' % str(fleets))
+                logger.warning('[地图-舰队] 舰队过多: %s' % str(fleets))
             self.find_all_fleets()
 
         self.show_fleet()
         return self.fleet_current
 
     def find_all_submarines(self):
-        logger.hr('Find all submarines')
+        logger.hr('查找所有潜艇')
         queue = self.map.select(is_submarine_spawn_point=True)
         while queue:
             queue = queue.sort_by_camera_distance(self.camera)
@@ -801,14 +841,14 @@ class Fleet(Camera, AmbushHandler):
         if count == 1:
             self.fleet_submarine = fleets[0].location
         elif count == 0:
-            logger.info('No submarine found')
+            logger.info('[地图-潜艇] 未找到潜艇')
             # 尝试出生点
             spawn_point = self.map.select(is_submarine_spawn_point=True)
             if spawn_point.count == 1:
-                logger.info(f'Predict the only submarine spawn point {spawn_point[0]} as submarine')
+                logger.info(f'[地图-潜艇] 预测唯一潜艇出生点 {spawn_point[0]} 为潜艇')
                 self.fleet_submarine = spawn_point[0].location
             else:
-                logger.info(f'Having multiple submarine spawn points: {spawn_point}')
+                logger.info(f'[地图-潜艇] 存在多个潜艇出生点: {spawn_point}')
                 # 尝试被覆盖的格子
                 covered = SelectedGrids([])
                 for grid in spawn_point:
@@ -816,18 +856,18 @@ class Fleet(Camera, AmbushHandler):
                 covered = covered.filter(lambda g: g.is_enemy or g.is_fleet or g.is_siren or g.is_boss)
                 if covered.count == 1:
                     spawn_point = self.map.grid_covered(covered[0], location=[(0, -1)])
-                    logger.info(f'Submarine {spawn_point[0]} covered by {covered[0]}')
+                    logger.info(f'[地图-潜艇] 潜艇 {spawn_point[0]} 被 {covered[0]} 覆盖')
                     self.fleet_submarine = spawn_point[0].location
                 else:
-                    logger.info('Found multiple submarine spawn points being covered')
+                    logger.info('[地图-潜艇] 发现多个潜艇出生点被覆盖')
                     # 放弃预测，全面搜索
                     self.find_all_submarines()
         else:
-            logger.warning('Too many submarines: %s.' % str(fleets))
+            logger.warning('[地图-潜艇] 潜艇过多: %s' % str(fleets))
             self.find_all_submarines()
 
         if not len(self.fleet_submarine_location):
-            logger.warning('Unable to find submarine, assume it is at map center')
+            logger.warning('[地图-潜艇] 无法找到潜艇，假设在地图中心')
             shape = self.map.shape
             center = (shape[0] // 2, shape[1] // 2)
             self.fleet_submarine = self.map.select(is_land=False).sort_by_camera_distance(center)[0].location
@@ -841,7 +881,7 @@ class Fleet(Camera, AmbushHandler):
         Args:
             map_ (CampaignMap): 战役地图对象。
         """
-        logger.hr('Map init')
+        logger.hr('地图初始化')
         self.map_data_init(map_)
         self.map_control_init()
 
@@ -1012,7 +1052,7 @@ class Fleet(Camera, AmbushHandler):
             return SelectedGrids([])
 
         enemies = self.map.select(is_enemy=True)
-        logger.info(f'Potential enemy roadblocks: {enemies}')
+        logger.info(f'[地图-路障] 潜在敌舰路障: {enemies}')
         for repeat in range(1, enemies.count + 1):
             for select in itertools.product(enemies, repeat=repeat):
                 for block in select:
@@ -1023,13 +1063,13 @@ class Fleet(Camera, AmbushHandler):
 
                 if grid.is_accessible:
                     select = SelectedGrids(list(select))
-                    logger.info(f'Enemy roadblock: {select}')
+                    logger.info(f'[地图-路障] 敌舰路障: {select}')
                     if backup is not None:
                         self.fleet_current_index = backup
                         self.find_path_initial()
                     return select
 
-        logger.warning('Enemy roadblock try exhausted.')
+        logger.warning('[地图-路障] 敌舰路障尝试耗尽')
 
     def catch_camera_repositioning(self, destination):
         """
@@ -1039,7 +1079,7 @@ class Fleet(Camera, AmbushHandler):
         appear = False
         for data in self.map.spawn_data:
             if data.get('battle') == self.battle_count and data.get('boss', 0):
-                logger.info('Catch camera re-positioning after boss appear')
+                logger.info('[地图-摄像机] Boss出现后摄像机重新定位')
                 appear = True
 
         # if self.config.POOR_MAP_DATA:
@@ -1049,7 +1089,7 @@ class Fleet(Camera, AmbushHandler):
         #     grids.show()
         #     for grid in grids:
         #         if grid.is_boss:
-        #             logger.info('Catch camera re-positioning after boss appear')
+        #             logger.info('[地图-摄像机] Boss出现后摄像机重新定位')
         #             appear = True
         #             for g in self.map:
         #                 g.wipe_out()
@@ -1071,7 +1111,7 @@ class Fleet(Camera, AmbushHandler):
             try:
                 self.update()
             except MapDetectionError:
-                logger.info(f'MapDetectionError occurs after boss appear, trying swipe preset {preset}')
+                logger.info(f'[地图-摄像机] Boss出现后发生地图检测错误，尝试滑动预设 {preset}')
                 # Swipe optimize here may not be accurate.
                 self.map_swipe(preset)
             self.ensure_edge_insight()
@@ -1079,7 +1119,7 @@ class Fleet(Camera, AmbushHandler):
             self.update()
             self.ensure_edge_insight()
 
-        logger.info('Refocus to previous camera position.')
+        logger.info('[地图-摄像机] 重新聚焦到之前的摄像机位置')
         self.focus_to(camera)
 
     def fleet_checked_reset(self):
@@ -1127,19 +1167,19 @@ class Fleet(Camera, AmbushHandler):
                     moved = False
                 if arrive_checker:
                     if not arrive_timer.started():
-                        logger.info(f'Arrive {location2node(location)}')
+                        logger.info(f'[地图-移动] 到达 {location2node(location)}')
                     arrive_timer.start()
                     if not arrive_timer.reached():
                         continue
-                    logger.info(f'Submarine arrive {location2node(location)} confirm.')
+                    logger.info(f'[地图-潜艇] 潜艇到达 {location2node(location)} 确认')
                     if not moved:
-                        logger.info(f'Submarine already at {location2node(location)}')
+                        logger.info(f'[地图-潜艇] 潜艇已在 {location2node(location)}')
                     arrived = True
                     break
 
                 # End
                 if walk_timeout.reached():
-                    logger.warning('Walk timeout. Retrying.')
+                    logger.warning('[地图-移动] 移动超时，重试中')
                     self.predict()
                     self.ensure_edge_insight(skip_first_update=False)
                     break
@@ -1188,11 +1228,11 @@ class Fleet(Camera, AmbushHandler):
         if not (self.is_call_submarine_at_boss and self.map.select(is_submarine_spawn_point=True)):
             return False
         if self.config.Submarine_DistanceToBoss == 'use_open_ocean_support':
-            logger.info('Going to use Open Ocean Support, skip moving submarines')
+            logger.info('[地图-潜艇] 将使用远洋支援，跳过移动潜艇')
             return False
 
         boss = location_ensure(boss)
-        logger.info(f'Move submarine near {location2node(boss)}')
+        logger.info(f'[地图-潜艇] 移动潜艇到 {location2node(boss)} 附近')
 
         self.map.find_path_initial(self.fleet_submarine_location, has_ambush=False, has_enemy=False)
         self.map.show_cost()
@@ -1203,10 +1243,10 @@ class Fleet(Camera, AmbushHandler):
             if grids:
                 return grids.sort('cost')[0].location
             elif distance > 0:
-                logger.info(f'Unable to find a grid near boss in distance {distance}, fallback to {distance - 1}')
+                logger.info(f'[地图-潜艇] 无法在距离 {distance} 内找到Boss附近格子，回退到 {distance - 1}')
                 return get_location(distance - 1)
             else:
-                logger.warning(f'Unable to find a grid near boss in distance {distance}, return boss position')
+                logger.warning(f'[地图-潜艇] 无法在距离 {distance} 内找到Boss附近格子，返回Boss位置')
                 return boss
 
         distance_dict = {
@@ -1215,14 +1255,14 @@ class Fleet(Camera, AmbushHandler):
             '2_grid_to_boss': 2
         }
         distance_to_boss = distance_dict.get(self.config.Submarine_DistanceToBoss, 0)
-        logger.attr('Distance to boss', distance_to_boss)
+        logger.attr('距Boss距离', distance_to_boss)
 
         if np.sum(np.abs(np.subtract(self.fleet_submarine_location, boss))) <= distance_to_boss:
-            logger.info('Boss is already in hunting zone')
+            logger.info('[地图-潜艇] Boss已在狩猎区域内')
             self.find_path_initial()
             return False
         else:
             near = get_location(distance_to_boss)
             self.find_path_initial()
-            logger.info(f'Move submarine to {location2node(near)}')
+            logger.info(f'[地图-潜艇] 移动潜艇到 {location2node(near)}')
             return self.submarine_goto(near)

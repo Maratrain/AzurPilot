@@ -1,3 +1,12 @@
+"""
+私人休息室商店店员逻辑。
+
+封装私人宿舍商店的购买流程，继承通用 ShopClerk 和 PQShopUI，
+提供商品购买执行、间隔计时器清除等操作。
+支持最大数量购买和确认弹窗处理。
+
+Pages: in: PRIVATE_QUARTERS_SHOP
+"""
 from module.base.timer import Timer
 from module.logger import logger
 from module.private_quarters.assets import *
@@ -85,17 +94,17 @@ class PQShopClerk(ShopClerk, PQShopUI):
             out: 私人宿舍商店
         """
         for _ in range(12):
-            logger.hr('Shop buy', level=2)
+            logger.hr('商店购买', level=2)
             # 先获取商品列表，再读取货币以获得更准确的 OCR 结果
             items = self.shop_get_items()
             self.shop_currency()
             if self._currency <= 0:
-                logger.warning(f'Current funds: {self._currency}, stopped')
+                logger.warning(f'[私人休息室-店员] 当前资金: {self._currency}，停止购买')
                 return False
 
             item = self.shop_get_item_to_buy(items)
             if item is None:
-                logger.info('Shop buy finished')
+                logger.info('[私人休息室-店员] 商店购买完成')
                 return True
             else:
                 self.shop_buy_execute(item)
@@ -106,5 +115,5 @@ class PQShopClerk(ShopClerk, PQShopUI):
 
                 continue
 
-        logger.warning('Too many items to buy, stopped')
+        logger.warning('[私人休息室-店员] 购买物品过多，停止')
         return True

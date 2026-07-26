@@ -79,7 +79,7 @@ class ApiClient:
         for i, endpoint in enumerate(endpoints):
             try:
                 domain_type = "主域名" if i == 0 else "备用域名"
-                logger.debug(f'[Base] 尝试使用{domain_type}: {endpoint}')
+                logger.debug(f'[基础-API] 尝试使用{domain_type}: {endpoint}')
                 
                 if method == 'GET':
                     response = requests.get(
@@ -101,20 +101,20 @@ class ApiClient:
                 
                 if response.status_code in success_codes:
                     if i > 0:
-                        logger.info(f'[Base] ✓ 使用{domain_type}请求成功')
+                        logger.info(f'[基础-API] 使用{domain_type}请求成功')
                     return True, response.status_code, response.text
                 else:
-                    logger.warning(f'[Base] {domain_type}返回错误状态: {response.status_code}')
+                    logger.warning(f'[基础-API] {domain_type}返回错误状态: {response.status_code}')
                     last_error = f'HTTP {response.status_code}'
                     
             except requests.exceptions.Timeout:
-                logger.warning(f'[Base] {domain_type if i > 0 else "主域名"}请求超时')
+                logger.warning(f'[基础-API] {domain_type if i > 0 else "主域名"}请求超时')
                 last_error = 'Timeout'
             except requests.exceptions.RequestException as e:
-                logger.warning(f'[Base] {domain_type if i > 0 else "主域名"}请求失败: {e}')
+                logger.warning(f'[基础-API] {domain_type if i > 0 else "主域名"}请求失败: {e}')
                 last_error = str(e)
             except Exception as e:
-                logger.warning(f'[Base] {domain_type if i > 0 else "主域名"}发生异常: {e}')
+                logger.warning(f'[基础-API] {domain_type if i > 0 else "主域名"}发生异常: {e}')
                 last_error = str(e)
         
         return False, 0, last_error or 'Unknown error'
@@ -143,11 +143,11 @@ class ApiClient:
             )
             
             if success:
-                logger.info(f'Bug log submitted: {content[:50]}...')
+                logger.info(f'[基础-API] Bug日志已提交: {content[:50]}...')
             else:
-                logger.warning(f'Failed to submit bug log: {response_text}')
+                logger.warning(f'[基础-API] 提交Bug日志失败: {response_text}')
         except Exception as e:
-            logger.warning(f'Failed to submit bug log: {e}')
+            logger.warning(f'[基础-API] 提交Bug日志失败: {e}')
     
     @classmethod
     def submit_bug_log(cls, content: str, log_type: str = 'warning', enabled: bool = True):
@@ -176,13 +176,13 @@ class ApiClient:
         try:
             # 如果没有任何战斗数据,不提交
             if data.get('battle_count', 0) == 0:
-                logger.info('No CL1 battle data to submit')
+                logger.info('无CL1战斗数据可提交')
                 return
             
-            logger.info(f'Submitting CL1 data for {data.get("month", "unknown")}...')
-            logger.attr('battle_count', data.get('battle_count', 0))
-            logger.attr('akashi_encounters', data.get('akashi_encounters', 0))
-            logger.attr('akashi_probability', f"{data.get('akashi_probability', 0):.2%}")
+            logger.info(f'[基础-API] 提交CL1数据 {data.get("month", "unknown")}...')
+            logger.attr('战斗次数', data.get('battle_count', 0))
+            logger.attr('明石遭遇次数', data.get('akashi_encounters', 0))
+            logger.attr('明石出现概率', f"{data.get('akashi_probability', 0):.2%}")
             
             success, status_code, response_text = ApiClient._post_with_fallback(
                 ApiClient.CL1_DATA_PATH,
@@ -191,12 +191,12 @@ class ApiClient:
             )
             
             if success:
-                logger.info('✓ CL1 data submitted successfully')
+                logger.info('[基础-API] CL1 数据提交成功')
             else:
-                logger.warning(f'✗ CL1 data submission failed: {response_text}')
-        
+                logger.warning(f'[基础-API] CL1 数据提交失败: {response_text}')
+
         except Exception as e:
-            logger.exception(f'Unexpected error during CL1 data submission: {e}')
+            logger.exception(f'[基础-API] CL1 数据提交异常: {e}')
     
     @classmethod
     def submit_cl1_data(cls, data: Dict[str, Any], timeout: int = 10):

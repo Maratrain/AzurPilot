@@ -1,3 +1,14 @@
+"""
+月度Boss任务模块。
+
+挑战并击败大世界月度Boss，支持普通和困难两种难度。
+战斗前检查适应性数值以选择合适的难度，战斗后在港口修理舰队。
+每月重置时自动延迟到新的Boss出现周期。
+
+Classes:
+    OpsiMonthBoss: 月度Boss处理器，继承 OSMap。
+"""
+
 import numpy as np
 
 from module.config.utils import get_os_next_reset
@@ -36,7 +47,7 @@ class OpsiMonthBoss(OSMap):
         logger.hr("月度Boss预检查", level=2)
         checkout_offset = self.os_mission_enter(
             skip_siren_mission=self.config.cross_get('OpsiDaily.OpsiDaily.SkipSirenResearchMission'))
-        logger.attr('OpsiMonthBoss.Mode', self.config.OpsiMonthBoss_Mode)
+        logger.attr('OpsiMonthBoss.模式', self.config.OpsiMonthBoss_Mode)
         if self.appear(OS_MONTHBOSS_NORMAL, offset=checkout_offset):
             logger.attr('月度Boss难度', 'normal')
             is_normal = True
@@ -60,7 +71,7 @@ class OpsiMonthBoss(OSMap):
             self.os_map_goto_globe(unpin=False)
             adaptability = self.get_adaptability()
             if (np.array(adaptability) < (203, 203, 156)).any():
-                logger.info("Adaptability is lower than suppression level, get stronger and come back")
+                logger.info("[大世界-月度Boss] 适应性低于压制等级，需要变强后再来")
                 self.config.task_delay(server_update=True)
                 self.config.task_stop()
             # 无需退出，复用当前状态

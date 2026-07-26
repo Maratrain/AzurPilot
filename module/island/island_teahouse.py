@@ -1,3 +1,8 @@
+"""岛屿茶馆模块。
+
+继承 IslandShopBase，配置茶馆的商品列表与岗位参数。
+包含迎春花茶等固定位置饮品定义，支持季节性菜品、时长 OCR 与重试滑动机制。
+"""
 from module.island_teahouse.assets import *
 from module.island.island_shop_base import IslandShopBase
 from module.island.assets import *

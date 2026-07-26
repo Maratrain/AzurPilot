@@ -1,3 +1,9 @@
+"""战斗状态统计。
+
+从战斗结算截图中通过 OCR 识别敌方舰队名称，
+用于掉落统计系统中记录关卡敌人信息。
+"""
+
 from module.base.decorator import cached_property
 from module.combat.assets import BATTLE_STATUS_S
 from module.ocr.ocr import Ocr

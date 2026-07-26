@@ -1,3 +1,12 @@
+"""
+私人休息室状态 OCR 识别。
+
+提供私人宿舍商店的货币余额和互动次数的 OCR 读取能力，
+包括金币、钻石和每日互动剩余次数。
+通过服务器分支适配不同区域的 OCR 参数（字体颜色差异）。
+
+Pages: in: PRIVATE_QUARTERS_SHOP, PRIVATE_QUARTERS_MAIN
+"""
 import module.config.server as server
 from module.ocr.ocr import Digit, DigitCounter
 from module.private_quarters.assets import *

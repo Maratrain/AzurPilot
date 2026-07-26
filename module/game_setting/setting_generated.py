@@ -1,3 +1,7 @@
+"""游戏设置自动生成文件，由 setting_extractor 生成。
+定义了 GameSettingsGenerated 类，包含游戏中所有 PlayerPrefs
+配置项的字段声明（类型、默认值、匹配正则）。"""
+
 from module.game_setting.setting_extractor import Field
 
 # 由 module/game_setting/setting_extractor.py 自动生成

@@ -1,3 +1,9 @@
+"""大世界模拟器核心模块。
+
+通过蒙特卡洛模拟评估大世界（Operation Siren）行动力的最优使用策略。
+使用 Numba JIT 加速采样计算，模拟明石商店抽奖、海域净化、
+行动力消耗等随机过程，输出统计分布以辅助策略决策。
+"""
 import numpy as np
 import numba as nb
 import threading

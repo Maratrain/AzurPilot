@@ -1,3 +1,6 @@
+"""模拟器基类定义。提供 EmulatorBase、EmulatorInstanceBase、
+EmulatorManagerBase 的抽象接口，定义模拟器路径和实例管理的通用协议。"""
+
 import os
 import re
 import typing as t

@@ -1,3 +1,8 @@
+"""岛屿货物筹备与运输模块。
+
+处理岛屿货物筹备界面的检测、刷新与运输启动流程。
+包含运输状态识别（待处理/运行中）、运输时间 OCR、物品满意度模板匹配等核心功能。
+"""
 from datetime import timedelta
 
 from module.config.time_source import now as current_time
@@ -238,7 +243,7 @@ class IslandCargoPreparation(IslandUI):
         return blacklist
 
     def run(self):
-        logger.hr('Island Cargo Preparation Run', level=1)
+        logger.hr('岛屿货物准备运行', level=1)
 
         self.ui_ensure(page_island)
         self.ui_goto(page_island_phone, get_ship=False)
@@ -280,9 +285,9 @@ class IslandCargoPreparation(IslandUI):
             if self.transport_start(comm):
                 comm.convert_to_running()
 
-        logger.hr('Cargo preparation status', level=2)
+        logger.hr('货物准备状态', level=2)
         for comm in commissions:
-            logger.attr('Cargo Preparation', comm)
+            logger.attr('货运委托', comm)
 
         return commissions
 
@@ -293,7 +298,7 @@ class IslandCargoPreparation(IslandUI):
         更换页面默认选中第一个可替换委托，因此只需要确认列表不为空，
         再点击确定按钮。
         """
-        logger.info('Cargo preparation replace commission')
+        logger.info('货物准备替换委托')
         self.interval_clear([TRANSPORT_REFRESH, CARGO_PREPARATION_REPLACE_CONFIRM])
 
         if not self._open_replace_page(comm):
@@ -327,11 +332,11 @@ class IslandCargoPreparation(IslandUI):
 
     def _transport_detect(self):
         """从当前截图中检测所有货运委托。"""
-        logger.hr('Transport Commission detect')
+        logger.hr('运输委托检测')
         commissions = []
         for index in range(3):
             comm = CargoPreparationTransport(main=self, index=index, blacklist=self.blacklist)
-            logger.attr('Transport Commission', comm)
+            logger.attr('运输委托', comm)
             for item in comm.items:
                 logger.attr(item.button, item)
             commissions.append(comm)
@@ -348,19 +353,19 @@ class IslandCargoPreparation(IslandUI):
 
             commissions = self._transport_detect()
             if not commissions.count:
-                logger.warning('No commission detected, retry commission detect')
+                logger.warning('[岛屿-货运] 未检测到委托，重试检测')
                 continue
             if commissions.select(valid=False).count:
-                logger.warning('Found 1 invalid commission at least, retry commission detect')
+                logger.warning('[岛屿-货运] 检测到无效委托，重试检测')
                 continue
             return commissions.select(valid=True)
 
-        logger.info('trials of transport commission detect exhausted, stop')
+        logger.info('[岛屿-货运] 委托检测重试耗尽，停止')
         return commissions.select(valid=True)
 
     def transport_receive(self):
         """领取运输页面上所有已完成的货运委托。"""
-        logger.hr('Island Transport', level=2)
+        logger.hr('岛屿运输', level=2)
         self.device.click_record_clear()
         self.interval_clear([GET_ITEMS_ISLAND, TRANSPORT_RECEIVE, POPUP_CANCEL_WHITE])
         success = True
@@ -408,7 +413,7 @@ class IslandCargoPreparation(IslandUI):
 
     def transport_start(self, comm):
         """启动指定的货运委托。"""
-        logger.info('Transport commission start')
+        logger.info('[岛屿-货运] 运输委托开始')
         self.interval_clear([GET_ITEMS_ISLAND, TRANSPORT_START, POPUP_CANCEL_WHITE])
         success = True
         confirm_timer = Timer(1, count=2).start()

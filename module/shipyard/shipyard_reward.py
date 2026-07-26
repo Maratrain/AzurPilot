@@ -1,3 +1,28 @@
+"""
+船坞蓝图购买模块。
+
+自动化船坞（Shipyard）中的科研蓝图购买与使用流程。
+支持 PR（科研船）和 DR（决战方案）两种稀有度的蓝图管理。
+
+主要功能：
+    - 从主页面读取当前金币余额，用于购买计算
+    - 根据金币余额和蓝图价格阶梯计算可购买数量
+    - 自动进入船坞界面，定位目标舰船并执行蓝图购买
+    - 使用目标舰船的多余蓝图
+    - 每日防重复执行（基于服务器更新时间 04:00）
+
+价格阶梯：
+    - PR 蓝图：第1-2张免费，之后阶梯递增至 1500 金币/张
+    - DR 蓝图：第1-2张免费，之后阶梯递增至 6000 金币/张
+
+依赖关系：
+    继承自 ShipyardUI（船坞界面操作），调用船坞导航、蓝图购买确认等底层方法。
+
+Pages:
+    任务入口页面：任意页面
+    任务结束页面：page_shipyard
+"""
+
 from module.base.timer import Timer
 from module.config.time_source import now as current_time
 from module.config.utils import get_server_last_update
@@ -6,6 +31,7 @@ from module.logger import logger
 from module.shipyard.ui import ShipyardUI
 from module.ui.page import page_main, page_shipyard
 
+# PR 蓝图价格阶梯：键为已购蓝图序号范围，值为对应单价（金币）
 PRBP_BUY_PRIZE = {
     (1, 2):               0,
     (3, 4):               150,
@@ -13,6 +39,7 @@ PRBP_BUY_PRIZE = {
     (8, 9, 10):           600,
     (11, 12, 13, 14, 15): 1050,
 }
+# DR 蓝图价格阶梯：键为已购蓝图序号范围，值为对应单价（金币）
 DRBP_BUY_PRIZE = {
     (1, 2):               0,
     (3, 4, 5, 6):         600,
@@ -22,6 +49,28 @@ DRBP_BUY_PRIZE = {
 
 
 class RewardShipyard(ShipyardUI):
+    """
+    船坞蓝图购买任务处理器。
+
+    负责执行船坞中科研蓝图的购买和使用逻辑。支持 PR（普通科研船）
+    和 DR（决战方案）两种稀有度类型，按价格阶梯计算最优购买方案。
+
+    属性:
+        _shipyard_bp_rarity (str): 当前蓝图稀有度，'PR' 或 'DR'
+        _coin_count (int): 当前金币余额，从主页面 OCR 获取
+
+    配置项:
+        Shipyard_ShipIndex: PR 舰船索引
+        Shipyard_BuyAmount: PR 购买数量
+        Shipyard_ResearchSeries: PR 科研系列
+        ShipyardDr_ShipIndex: DR 舰船索引
+        ShipyardDr_BuyAmount: DR 购买数量
+        ShipyardDr_ResearchSeries: DR 科研系列
+
+    Pages:
+        任务入口页面：任意页面
+        任务结束页面：page_shipyard
+    """
     _shipyard_bp_rarity = 'PR'
     _coin_count = 0
 
@@ -88,15 +137,15 @@ class RewardShipyard(ShipyardUI):
                 if pay:
                     self._coin_count -= total
                 else:
-                    logger.info(f'Can only buy up to {(i - start)} '
-                                f'of the {count} BPs')
+                    logger.info(f'最多只能购买 {(i - start)} '
+                                f'/ {count} 张蓝图')
                 return i, i - start
             total += cost
 
         if pay:
             self._coin_count -= total
         else:
-            logger.info(f'Can buy all {count} BPs')
+            logger.info(f'可以购买全部 {count} 张蓝图')
         return i + 1, count
 
     def _shipyard_buy_calc(self, start, count):
@@ -117,7 +166,7 @@ class RewardShipyard(ShipyardUI):
         Args:
             count (int): 待购买总数
         """
-        logger.hr('shipyard_buy')
+        logger.hr('船坞购买')
         prev = 1
         start, count = self._shipyard_buy_calc(prev, count)
         while count > 0:
@@ -152,7 +201,7 @@ class RewardShipyard(ShipyardUI):
         Args:
             index (int): 目标舰船索引
         """
-        logger.hr('shipyard_use')
+        logger.hr('船坞使用')
         count = self._shipyard_get_bp_count(index)
         while count > 0:
             if not self._shipyard_buy_enter() or \
@@ -181,10 +230,10 @@ class RewardShipyard(ShipyardUI):
             bool: 是否执行了购买流程
         """
         if count <= 0:
-            logger.info('Shipyard buy amount is 0, skip')
+            logger.info('船坞购买数量为0，跳过')
             return False
         if index <= 0:
-            logger.info('Shipyard ship index is 0, skip')
+            logger.info('船坞舰船索引为0，跳过')
             return False
 
         # 船坞页面中金币 OCR 困难（文字和数字右对齐导致混淆）
@@ -203,7 +252,7 @@ class RewardShipyard(ShipyardUI):
             if self._coin_count > 0:
                 break
             if timeout.reached():
-                logger.warning('Assumes that OCR_COIN is in the right place')
+                logger.warning('假设OCR_COIN在正确位置')
                 break
 
         self.ui_goto(page_shipyard)
@@ -235,24 +284,24 @@ class RewardShipyard(ShipyardUI):
             self.config.Scheduler_Enable = False
             self.config.task_stop()
 
-        logger.hr('Shipyard DR', level=1)
-        logger.attr('ShipyardDr_LastRun', self.config.ShipyardDr_LastRun)
+        logger.hr('船坞DR', level=1)
+        logger.attr('船坞DR上次运行', self.config.ShipyardDr_LastRun)
         if not dr_enabled:
-            logger.info('Task Shipyard DR is not configured, skip')
+            logger.info('船坞DR任务未配置，跳过')
         elif self.config.ShipyardDr_LastRun > get_server_last_update('04:00'):
-            logger.warning('Task Shipyard DR has already been run today, skip')
+            logger.warning('船坞DR任务今天已运行，跳过')
         else:
             self._shipyard_bp_rarity = 'DR'
             self.shipyard_run(series=self.config.ShipyardDr_ResearchSeries,
                               index=self.config.ShipyardDr_ShipIndex,
                               count=self.config.ShipyardDr_BuyAmount)
 
-        logger.hr('Shipyard PR', level=1)
-        logger.attr('Shipyard_LastRun', self.config.Shipyard_LastRun)
+        logger.hr('船坞PR', level=1)
+        logger.attr('船坞PR上次运行', self.config.Shipyard_LastRun)
         if not pr_enabled:
-            logger.info('Task Shipyard PR is not configured, skip')
+            logger.info('船坞PR任务未配置，跳过')
         elif self.config.Shipyard_LastRun > get_server_last_update('04:00'):
-            logger.warning('Task Shipyard PR has already been run today, stop')
+            logger.warning('船坞PR任务今天已运行，停止')
             self.config.task_delay(server_update=True)
             self.config.task_stop()
         else:

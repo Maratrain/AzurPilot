@@ -1,4 +1,16 @@
-﻿from datetime import timedelta
+"""大世界深渊海域任务模块。
+
+执行大世界深渊海域（Abyssal）的清理挑战，包括：
+- 深渊坐标的获取和进入
+- 潜艇配置检测和自动编队
+- 多层深渊的逐层清理
+- 行动力保护和代币资源管理
+
+继承自 CoinTaskMixin 和 OSMap，提供代币保护和地图导航能力，
+深渊海域是大世界中高难度的战斗内容，奖励丰厚。
+"""
+
+from datetime import timedelta
 
 from module.exception import RequestHumanTakeover
 from module.config.time_source import now as current_time
@@ -86,7 +98,7 @@ class OpsiAbyssal(CoinTaskMixin, OSMap):
             self._smart_scheduling_no_content_task = 'OpsiAbyssal'
             return
 
-        logger.hr('Submarine cooldown detected', level=1)
+        logger.hr('检测到潜艇冷却', level=1)
         logger.info(f'[大世界-深渊坐标] 潜艇冷却结束时间：{cooldown_end_time}')
         logger.info('[大世界-深渊坐标] 延时深渊坐标任务到潜艇冷却结束')
 

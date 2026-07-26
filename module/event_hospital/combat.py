@@ -1,3 +1,10 @@
+"""医院活动战斗处理模块。
+
+处理医院活动中的战斗流程，包括舰队推荐编队、战斗准备、
+战斗执行和结果处理。继承 Combat、HospitalUI 和
+CampaignEvent，组合完整的战斗生命周期管理。
+"""
+
 from module.base.decorator import run_once
 from module.base.timer import Timer
 from module.campaign.campaign_event import CampaignEvent
@@ -36,12 +43,11 @@ class HospitalCombat(Combat, HospitalUI, CampaignEvent):
             return False
 
         if recommend:
-            logger.info('Recommend fleet')
+            logger.info('推荐舰队')
             fleet_1.recommend()
             return True
         else:
-            logger.error('Fleet not prepared and fleet recommend is not enabled, '
-                         'please prepare fleets manually before running')
+            logger.error('[医院-战斗] 舰队未就绪且未启用自动推荐，请在运行前手动编队')
             raise RequestHumanTakeover
 
     def combat_preparation(self, balance_hp=False, emotion_reduce=False, auto='combat_auto', fleet_index=1):
@@ -53,23 +59,23 @@ class HospitalCombat(Combat, HospitalUI, CampaignEvent):
             auto: 自动战斗模式。
             fleet_index: 舰队索引。
         """
-        logger.info('Combat preparation.')
+        logger.info('战斗准备。')
         skip_first_screenshot = True
 
         @run_once
         def check_oil():
             if self.get_oil() < max(500, self.config.StopCondition_OilLimit):
-                logger.hr('Triggered oil limit')
+                logger.hr('触发石油上限')
                 raise OilExhausted
 
         @run_once
         def check_coin():
             if self.coin_limit_triggered():
-                logger.hr('Triggered stop condition: Coin limit')
+                logger.hr('触发停止条件: 物资上限')
                 self.config.task_stop()
                 return True
             if self.config.TaskBalancer_Enable and self.triggered_task_balancer():
-                logger.hr('Triggered stop condition: Coin limit')
+                logger.hr('触发停止条件: 物资上限')
                 self.handle_task_balancer()
                 return True
 
@@ -103,7 +109,7 @@ class HospitalCombat(Combat, HospitalUI, CampaignEvent):
             # 战斗开始
             pause = self.is_combat_executing()
             if pause:
-                logger.attr('BattleUI', pause)
+                logger.attr('战斗UI', pause)
                 if emotion_reduce:
                     self.emotion.reduce(fleet_index)
                 break

@@ -1,8 +1,34 @@
+"""手动战斗模式管理模块。
+
+管理手动战斗中的舰队移动和操作策略。
+
+手动战斗模式下，需要通过摇杆控制舰队移动。
+支持的操作模式：
+- stand_still_in_the_middle: 舰队停留在画面中央（适合防空关卡）
+- 其他自定义移动模式
+
+手动模式通常用于：
+- 需要精确控制舰队位置的关卡
+- 自动模式无法通过的高难度关卡
+- 特殊战术需求（如潜艇战）
+
+继承自 ModuleBase，被 Combat 组合使用。
+"""
+
 from module.base.base import ModuleBase
 from module.combat.assets import *
 
 
 class CombatManual(ModuleBase):
+    """手动战斗模式管理器。
+
+    管理手动战斗中的舰队移动和操作。
+
+    Attributes:
+        auto_mode_checked (bool): 自动模式是否已检查。
+        auto_mode_switched (bool): 是否刚从自动模式切换过来。
+        manual_executed (bool): 是否已执行手动操作。
+    """
     auto_mode_checked = False
     auto_mode_switched = False
     manual_executed = False

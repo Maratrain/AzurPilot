@@ -1,3 +1,18 @@
+"""战役关卡 OCR 识别模块。
+
+通过 OCR 和模板匹配识别战役关卡页面中的关卡入口。
+在关卡选择页面中，每个关卡入口显示为一个可点击的区域，
+包含关卡名称、难度星级和通关状态。
+
+功能：
+- 识别当前页面上的所有关卡入口
+- 通过 OCR 读取关卡名称（如 "12-4"、"D3"、"SP3"）
+- 匹配关卡名称到目标关卡
+- 检测关卡页面是否已完全加载
+
+继承自 ModuleBase，被 CampaignUI 使用。
+"""
+
 import collections
 
 from module.base.base import ModuleBase
@@ -12,6 +27,15 @@ from module.template.assets import *
 
 
 class CampaignOcr(ModuleBase):
+    """战役关卡 OCR 识别器。
+
+    识别关卡选择页面上的关卡入口，通过 OCR 读取关卡名称。
+
+    Attributes:
+        stage_entrance (dict): 已识别的关卡入口缓存。
+        campaign_chapter (str): 当前章节标识。
+        _stage_detect_area (tuple): 关卡入口检测的大致区域，用于加速匹配。
+    """
     stage_entrance = {}
     campaign_chapter: str = '0'
     # 关卡入口的大致区域，用于加速模板匹配
@@ -84,10 +108,10 @@ class CampaignOcr(ModuleBase):
             return name[:-1], name[-1]
         elif name[0].isdigit() and name[-1].isalpha():
             # 49X
-            logger.warning(f'Unknown stage name: {name}')
+            logger.warning(f'[战役-OCR] 未知的关卡名称: {name}')
             return '', ''
 
-        logger.warning(f'Unknown stage name: {name}')
+        logger.warning(f'[战役-OCR] 未知的关卡名称: {name}')
         return '', ''
 
     def campaign_match_multi(self, template, image, stage_image=None, name_offset=(75, 9), name_size=(60, 16),
@@ -335,8 +359,8 @@ class CampaignOcr(ModuleBase):
             button.name = name
             self.stage_entrance[name] = button
 
-        logger.attr('Chapter', self.campaign_chapter)
-        logger.attr('Stage', ', '.join(self.stage_entrance.keys()))
+        logger.attr('章节', self.campaign_chapter)
+        logger.attr('关卡', ', '.join(self.stage_entrance.keys()))
 
     def handle_get_chapter_additional(self):
         """
@@ -346,7 +370,7 @@ class CampaignOcr(ModuleBase):
             bool: 是否进行了点击操作。
         """
         if self.appear(WITHDRAW, offset=(30, 30)):
-            logger.warning(f'get_chapter_index: WITHDRAW appears')
+            logger.warning(f'[战役-OCR] 获取章节索引时出现撤退按钮')
             raise CampaignNameError
 
     def get_chapter_index(self, skip_first_screenshot=True):

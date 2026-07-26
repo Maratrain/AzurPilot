@@ -1,3 +1,16 @@
+"""大舰队后勤模块。
+
+处理大舰队后勤页面中的所有交互操作，包括：
+- 大舰队物资补给的领取
+- 每周大舰队任务的接取与奖励领取
+- 大舰队资源兑换（使用舰队资源兑换物品）
+
+该模块支持多服务器（CN/EN/JP/TW）的差异化处理，
+通过 `@Config.when(SERVER=...)` 装饰器实现服务器特定的任务状态检测逻辑。
+
+配置项前缀：`GuildLogistics_*`
+"""
+
 import re
 
 from module.base.button import ButtonGrid
@@ -23,6 +36,10 @@ GUILD_EXCHANGE_BUG_RETRY = 5
 
 
 class ExchangeLimitOcr(Digit):
+    """大舰队兑换次数 OCR 识别器。
+
+    对图像进行反色和灰度映射预处理，以提高兑换次数数字的识别精度。
+    """
     def pre_process(self, image):
         """
         Args:
@@ -38,10 +55,31 @@ GUILD_EXCHANGE_LIMIT = ExchangeLimitOcr(OCR_GUILD_EXCHANGE_LIMIT, threshold=64)
 
 
 class GuildLogistics(GuildBase):
+    """大舰队后勤处理器。
+
+    负责大舰队后勤页面中的所有自动化操作：
+    - 领取物资补给（supply）
+    - 接取或领取每周任务奖励（mission）
+    - 使用资源兑换物品（exchange）
+
+    通过状态循环模式管理多个子任务的执行顺序，
+    并处理各种弹窗和异常情况。
+
+    Attributes:
+        _guild_logistics_mission_finished (bool): 本周大舰队任务是否已完成。
+        exchange_items (ItemGrid): 兑换物品网格，用于识别可兑换的物品类型。
+    """
     _guild_logistics_mission_finished = False
 
     @cached_property
     def exchange_items(self):
+        """获取兑换物品网格实例。
+
+        加载 `./assets/stats_basic` 中的模板图像，用于识别可兑换的物品类型。
+
+        Returns:
+            ItemGrid: 兑换物品网格对象。
+        """
         item_grid = ItemGrid(
             EXCHANGE_GRIDS, {}, template_area=(40, 21, 89, 70), amount_area=(60, 71, 91, 92))
         item_grid.load_template_folder('./assets/stats_basic')
@@ -109,21 +147,21 @@ class GuildLogistics(GuildBase):
         r, g, b = get_color(self.device.image, GUILD_MISSION.area)
         if g > max(r, b) - 10:
             # Green tick at the bottom right corner if guild mission finished
-            logger.info('Guild mission has finished this week')
+            logger.info('[大舰队-后勤] 本周大舰队任务已完成')
             self._guild_logistics_mission_finished = True
             return False
         # 0/300 in EN is bold and pure white, and Collect rewards is blue white, so reverse the if condition
         elif self.image_color_count(GUILD_MISSION, color=(255, 255, 255), threshold=235, count=100):
 
-            logger.info('Guild mission button inactive')
+            logger.info('[大舰队-后勤] 大舰队任务按钮未激活')
             return False
         elif self.image_color_count(GUILD_MISSION, color=(255, 255, 255), threshold=180, count=50):
             # white pixels less than 50, but has blue-white pixels
-            logger.info('Guild mission button active')
+            logger.info('[大舰队-后勤] 大舰队任务按钮已激活')
             return True
         else:
             # No guild mission counter
-            logger.info('No guild mission found, mission of this week may not started')
+            logger.info('[大舰队-后勤] 未找到大舰队任务，本周任务可能未开始')
             return False
             # if self.image_color_count(GUILD_MISSION_CHOOSE, color=(255, 255, 255), threshold=221, count=100):
             #     # Guild mission choose available if user is guild master
@@ -152,20 +190,20 @@ class GuildLogistics(GuildBase):
         r, g, b = get_color(self.device.image, GUILD_MISSION.area)
         if g > max(r, b) - 10:
             # Green tick at the bottom right corner if guild mission finished
-            logger.info('Guild mission has finished this week')
+            logger.info('[大舰队-后勤] 本周大舰队任务已完成')
             self._guild_logistics_mission_finished = True
             return False
         elif self.image_color_count(GUILD_MISSION, color=(255, 255, 255), threshold=254, count=50):
             # 0/300 in JP is (255, 255, 255)
-            logger.info('Guild mission button inactive')
+            logger.info('[大舰队-后勤] 大舰队任务按钮未激活')
             return False
         elif self.image_color_count(GUILD_MISSION, color=(255, 255, 255), threshold=180, count=400):
             # (255, 255, 255) less than 50, but has many blue-white pixels
-            logger.info('Guild mission button active')
+            logger.info('[大舰队-后勤] 大舰队任务按钮已激活')
             return True
         elif not self.image_color_count(GUILD_MISSION, color=(255, 255, 255), threshold=180, count=50):
             # No guild mission counter
-            logger.info('No guild mission found, mission of this week may not started')
+            logger.info('[大舰队-后勤] 未找到大舰队任务，本周任务可能未开始')
             # Guild mission choose in JP server disabled until we get the screenshot.
             return False
             # if self.image_color_count(GUILD_MISSION_CHOOSE, color=(255, 255, 255), threshold=221, count=100):
@@ -176,7 +214,7 @@ class GuildLogistics(GuildBase):
             #     logger.info('Guild mission choose not found')
             #     return False
         else:
-            logger.info('Unknown guild mission condition. Skipped.')
+            logger.info('[大舰队-后勤] 未知的大舰队任务条件，跳过')
             return False
 
     @Config.when(SERVER=None)
@@ -198,16 +236,16 @@ class GuildLogistics(GuildBase):
         r, g, b = get_color(self.device.image, GUILD_MISSION.area)
         if g > max(r, b) - 10:
             # Green tick at the bottom right corner if guild mission finished
-            logger.info('Guild mission has finished this week')
+            logger.info('[大舰队-后勤] 本周大舰队任务已完成')
             self._guild_logistics_mission_finished = True
             return False
         elif self.image_color_count(GUILD_MISSION, color=(255, 255, 255), threshold=180, count=400):
             # Unfinished mission accept/collect range from about 240 to 322
-            logger.info('Guild mission button active')
+            logger.info('[大舰队-后勤] 大舰队任务按钮已激活')
             return True
         elif not self.image_color_count(GUILD_MISSION, color=(255, 255, 255), threshold=180, count=50):
             # No guild mission counter
-            logger.info('No guild mission found, mission of this week may not started')
+            logger.info('[大舰队-后勤] 未找到大舰队任务，本周任务可能未开始')
             return False
             # if self.image_color_count(GUILD_MISSION_CHOOSE, color=(255, 255, 255), threshold=221, count=100):
             #     # Guild mission choose available if user is guild master
@@ -217,7 +255,7 @@ class GuildLogistics(GuildBase):
             #     logger.info('Guild mission choose not found')
             #     return False
         else:
-            logger.info('Guild mission button inactive')
+            logger.info('[大舰队-后勤] 大舰队任务按钮未激活')
             return False
 
     def _guild_logistics_supply_available(self):
@@ -239,10 +277,10 @@ class GuildLogistics(GuildBase):
         if np.max(color) > np.mean(color) + 25:
             # For members, click to receive supply
             # For leaders, click to buy supply and receive supply
-            logger.info('Guild supply button active')
+            logger.info('[大舰队-后勤] 大舰队补给按钮已激活')
             return True
         else:
-            logger.info('Guild supply button inactive')
+            logger.info('[大舰队-后勤] 大舰队补给按钮未激活')
             return False
 
     def _handle_guild_fleet_mission_start(self):
@@ -309,7 +347,7 @@ class GuildLogistics(GuildBase):
             return True
 
         if state['click_count'] >= GUILD_SUPPLY_MAX_RETRY:
-            logger.warning('Guild supply remains available after retries, skip supply this time')
+            logger.warning('[大舰队-后勤] 重试后大舰队补给仍可用，本次跳过')
             self._guild_logistics_supply_check_finished(state)
             return False
 
@@ -437,8 +475,8 @@ class GuildLogistics(GuildBase):
             in: GUILD_LOGISTICS
             out: GUILD_LOGISTICS
         """
-        logger.hr('Guild logistics')
-        logger.attr('Guild master/official', self.config.GuildLogistics_SelectNewMission)
+        logger.hr('大舰队后勤')
+        logger.attr('舰队司令/副司令', self.config.GuildLogistics_SelectNewMission)
         confirm_timer = Timer(1.5, count=3).start()
         exchange_interval = Timer(1.5, count=3)
         click_interval = Timer(0.5, count=1)
@@ -509,7 +547,7 @@ class GuildLogistics(GuildBase):
             item.enough = not self.image_color_count(area, color=(255, 93, 90), threshold=221, count=20)
 
         text = [str(item.name) if item.enough else f'{item.name} (not enough)' for item in items]
-        logger.info(f'Exchange items: {", ".join(text)}')
+        logger.info(f'[大舰队-后勤] 兑换物品: {", ".join(text)}')
         return items
 
     def _guild_exchange(self):
@@ -532,7 +570,7 @@ class GuildLogistics(GuildBase):
         items = self._guild_exchange_scan()
         EXCHANGE_FILTER.load(self.config.GuildLogistics_ExchangeFilter)
         selected = EXCHANGE_FILTER.apply(items, func=lambda item: item.enough)
-        logger.attr('Exchange_sort', ' > '.join([str(item.name) for item in selected]))
+        logger.attr('兑换排序', ' > '.join([str(item.name) for item in selected]))
 
         if len(selected):
             button = EXCHANGE_BUTTONS.buttons[items.index(selected[0])]
@@ -540,7 +578,7 @@ class GuildLogistics(GuildBase):
             self.device.click(button)
             return True
         else:
-            logger.warning('No guild exchange items satisfy current filter, or not having enough resources')
+            logger.warning('[大舰队-后勤] 没有符合当前筛选条件的兑换物品，或资源不足')
             return False
 
     def guild_logistics(self):
@@ -554,10 +592,10 @@ class GuildLogistics(GuildBase):
             in: page_guild
             out: page_guild, GUILD_LOGISTICS
         """
-        logger.hr('Guild logistics', level=1)
+        logger.hr('大舰队后勤', level=1)
         self.guild_side_navbar_ensure(bottom=3)
         self._guild_logistics_ensure()
 
         result = self._guild_logistics_collect()
-        logger.info(f'Guild logistics run success: {result}')
+        logger.info(f'[大舰队-后勤] 后勤运行成功: {result}')
         return result

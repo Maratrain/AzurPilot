@@ -1,3 +1,21 @@
+"""作战档案模块。
+
+自动执行碧蓝航线的作战档案战役。作战档案是过往活动的复刻入口，
+需要消耗数据密钥（Data Key）才能进入，每日上限 60 把。
+
+本模块的核心功能：
+- 通过 OCR 识别剩余数据密钥数量，控制出击节奏
+- 管理每日出击次数限制（可配置每日上限）
+- 自动在数据密钥用尽或每日额度耗尽时停止任务
+- 通关后实时扣减每日额度并持久化到配置
+
+注意：作战档案中禁用自动搜索续战功能，因为自动搜索菜单的模糊背景
+会遮挡数据密钥的 OCR 识别区域。
+
+配置路径: WarArchives.DailyRunCount (每日出击上限),
+         StopCondition.OilLimit (燃油限制)
+"""
+
 import re
 
 from campaign.campaign_war_archives.campaign_base import CampaignBase
@@ -37,6 +55,15 @@ DATA_KEY_CAMPAIGN = OcrDataKey(OCR_DATA_KEY_CAMPAIGN, letter=(255, 247, 247), th
 
 
 class CampaignWarArchives(CampaignRun, CampaignBase):
+    """作战档案战役执行器。
+
+    继承自 CampaignRun（战役运行）和 CampaignBase（作战档案战役基础），
+    在标准战役运行逻辑上增加作战档案特有的限制：
+    - 数据密钥消耗管理（强制启用 USE_DATA_KEY）
+    - 每日出击次数限制（跨天自动重置、配置变更实时调整）
+    - 数据密钥 OCR 检测（在档案战役界面识别剩余数量）
+    - 禁用自动搜索续战（避免遮挡 OCR 区域）
+    """
     def daily_run_limit_reset(self):
         """刷新作战档案每日出击额度。
 
@@ -123,9 +150,9 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
         if self.appear(WAR_ARCHIVES_CAMPAIGN_CHECK, offset=(20, 20)):
             # 检查数据密钥是否已用尽
             current, remain, total = DATA_KEY_CAMPAIGN.ocr(self.device.image)
-            logger.info(f'Inventory: {current} / {total}, Remain: {current}')
+            logger.info(f'[作战档案] 数据密钥: {current} / {total}, 剩余: {current}')
             if remain == total:
-                logger.hr('Triggered out of data keys')
+                logger.hr('[作战档案] 数据密钥已用尽')
                 # 仅在数据密钥用尽时才能延迟任务
                 self.config.task_delay(server_update=True)
                 return True

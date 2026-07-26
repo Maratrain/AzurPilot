@@ -1,4 +1,11 @@
-"""AzurPilot WebUI 的兼容入口和 ASGI 应用工厂。"""
+"""AzurPilot WebUI 的兼容入口和 ASGI 应用工厂。
+
+提供 WebUI 的主应用类，通过多个 Mixin 组合实现各功能页面：
+仪表盘（Dashboard）、开发者菜单、开发者设置、开发者工具、
+版本更新、活动工具等。同时提供 ASGI 应用创建和路由注册。
+
+该模块是 WebUI 的顶层入口，被 gui.py 启动时引用。
+"""
 
 from hashlib import sha256
 from pathlib import Path
@@ -257,12 +264,12 @@ def app():
     # 未传入 --run 时保持 None，由进程管理器跳过启动实例。
     instances: List[str] | None = runs
 
-    logger.hr("Webui configs")
-    logger.attr("Theme", State.deploy_config.Theme)
-    logger.attr("Language", lang.LANG)
-    logger.attr("Password", is_webui_password_set(key))
+    logger.hr("[WebUI] WebUI 配置")
+    logger.attr("主题", State.deploy_config.Theme)
+    logger.attr("语言", lang.LANG)
+    logger.attr("密码", is_webui_password_set(key))
     logger.attr("CDN", cdn)
-    logger.attr("IS_ON_PHONE_CLOUD", IS_ON_PHONE_CLOUD)
+    logger.attr("云手机", IS_ON_PHONE_CLOUD)
 
     from deploy.atomic import atomic_failure_cleanup
 

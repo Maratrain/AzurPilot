@@ -1,3 +1,6 @@
+"""地图检测器封装模块。提供 MapDetector 类作为地图检测的统一入口，
+整合单应性变换（Homography）和透视检测（Perspective）两种后端。"""
+
 import numpy as np
 
 from module.config.config import AzurLaneConfig
