@@ -345,7 +345,6 @@ class UI(InfoHandler):
             skip_first_screenshot=False,
             fast=True,
             interval=(0.2, 0.3),
-            stall_tolerance=10,
     ):
         """
         确保翻页到指定索引位置，通过 OCR 识别当前页码并点击翻页按钮。
@@ -358,13 +357,9 @@ class UI(InfoHandler):
             skip_first_screenshot (bool): 是否跳过首次截图。
             fast (bool): 默认为 True。当索引不连续时设为 False。
             interval (tuple, int, float): 两次点击之间的间隔（秒）。
-            stall_tolerance (int): 允许索引连续不变的次数，超过后判定为无法达到目标并退出。
         """
         logger.hr("UI ensure index")
         retry = Timer(1, count=2)
-        # 进度停滞检测：记录上一次索引值和连续不变次数，防止因游戏端限制导致死循环
-        last_current = None
-        stall_count = 0
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
