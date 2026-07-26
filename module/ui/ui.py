@@ -376,17 +376,6 @@ class UI(InfoHandler):
             if diff == 0:
                 break
 
-            # 进度停滞检测：当连续stall_tolerance次索引值未变化且diff不为0时退出
-            if current == last_current:
-                stall_count += 1
-            else:
-                stall_count = 0
-                last_current = current
-            if stall_count >= stall_tolerance:
-                logger.warning(f'Index stuck at {current} for {stall_count} times, '
-                               f'unable to reach target {index}, skipping')
-                break
-
             if retry.reached():
                 button = next_button if diff > 0 else prev_button
                 if fast:
