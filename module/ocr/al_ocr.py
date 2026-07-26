@@ -9,6 +9,7 @@ from module.exception import RequestHumanTakeover
 from module.logger import logger
 from module.config.config import AzurLaneConfig
 from module.config.utils import DEFAULT_CONFIG_NAME
+from module.ocr.windows_ml import create_onnx_session
 
 
 def handle_ocr_error(e):
@@ -278,6 +279,38 @@ def _get_onnx_model_params(name):
         )
 
 
+def _configure_windows_ml_sessions(
+    ocr,
+    model_paths,
+    ocr_device,
+    allow_vendor_execution_providers,
+):
+    """将 RapidOCR 创建的 CPU session 替换为 Windows ML 精确选定的设备。"""
+    if os.name != 'nt':
+        return ocr
+
+    try:
+        import onnxruntime as ort
+    except Exception as exc:
+        handle_ocr_error(exc)
+
+    for config_name, component_name, model_path in model_paths:
+        component = getattr(ocr, component_name)
+        ort_session = component.session
+        engine_config = getattr(ocr.cfg, config_name).engine_cfg
+        session_options_factory = lambda: ort_session._init_sess_opts(engine_config)
+        ort_session.session, _ = create_onnx_session(
+            ort,
+            model_path,
+            session_options_factory=session_options_factory,
+            allow_acceleration=ocr_device != 'cpu',
+            allow_vendor_execution_providers=allow_vendor_execution_providers,
+            device_preference=ocr_device,
+        )
+
+    return ocr
+
+
 def _create_ocr(name):
     backend = config.ocr_backend
     if backend == 'ncnn':
@@ -287,7 +320,9 @@ def _create_ocr(name):
         return NcnnRecOCR(name, device=config.ocr_device)
     else:
         ocr_device = config.ocr_device
-        use_dml = os.name == 'nt' and ocr_device == 'gpu'
+        allow_vendor_execution_providers = config.Optimization_OcrWindowsMlVendorEp
+        # Windows 下由 Windows ML 显式选择设备，不能交给 RapidOCR 默认 DirectML。
+        use_dml = False
         use_coreml = ocr_device == 'ane'
         model_path, rec_keys_path, ocr_version = _get_onnx_model_params(name)
         params = {
@@ -302,7 +337,13 @@ def _create_ocr(name):
             "EngineConfig.onnxruntime.use_coreml": use_coreml,
             "EngineConfig.onnxruntime.coreml_ep_cfg.MLComputeUnits": "CPUAndNeuralEngine",
         }
-        return RecOnlyOCR(params=params)
+        ocr = RecOnlyOCR(params=params)
+        return _configure_windows_ml_sessions(
+            ocr,
+            [('Rec', 'text_rec', model_path)],
+            ocr_device,
+            allow_vendor_execution_providers,
+        )
 
 
 # 懒加载：模块级不再创建模型，首次 init() 时才加载
@@ -317,6 +358,7 @@ def _model_cache_key(name):
         name,
         config.ocr_backend,
         config.ocr_device,
+        config.Optimization_OcrWindowsMlVendorEp,
         config.ocr_model_version(name),
     )
 
@@ -376,7 +418,9 @@ class DetOnlyOCR(RapidOCR):
 def _create_det_ocr_for_onnx(name):
     """为 ONNX 后端创建完整的 RapidOCR 实例（检测 + 识别）。"""
     ocr_device = config.ocr_device
-    use_dml = os.name == 'nt' and ocr_device == 'gpu'
+    allow_vendor_execution_providers = config.Optimization_OcrWindowsMlVendorEp
+    # Windows 下由 Windows ML 显式选择设备，不能交给 RapidOCR 默认 DirectML。
+    use_dml = False
     use_coreml = ocr_device == 'ane'
     model_path, rec_keys_path, ocr_version = _get_onnx_model_params(name)
     params = {
@@ -391,7 +435,16 @@ def _create_det_ocr_for_onnx(name):
         "EngineConfig.onnxruntime.use_coreml": use_coreml,
         "EngineConfig.onnxruntime.coreml_ep_cfg.MLComputeUnits": "CPUAndNeuralEngine",
     }
-    return RapidOCR(params=params)
+    ocr = RapidOCR(params=params)
+    return _configure_windows_ml_sessions(
+        ocr,
+        [
+            ('Det', 'text_det', DET_MODEL_PATH),
+            ('Rec', 'text_rec', model_path),
+        ],
+        ocr_device,
+        allow_vendor_execution_providers,
+    )
 
 
 def _create_det_ocr_for_ncnn():
@@ -441,7 +494,30 @@ def reset_ocr_model():
         _tw_model = None
         _det_model_cache.clear()
 
-    return _run_ocr_queued(_reset)
+    def _release():
+        released = 0
+        for cache in (_model_cache, _det_model_cache):
+            keys = [key for key in cache if names is None or key[0] in names]
+            for key in keys:
+                model = cache.pop(key)
+                close = getattr(model, "close", None)
+                if callable(close):
+                    try:
+                        close()
+                    except Exception as exc:
+                        logger.warning("关闭 OCR 模型缓存失败: %s", exc)
+                released += 1
+
+        if released:
+            logger.info("已释放 %s 个 OCR 模型缓存", released)
+        return released
+
+    return _run_ocr_queued(_release)
+
+
+def reset_ocr_model():
+    logger.info("重置 OCR 模型")
+    return release_ocr_models()
 
 
 class AlOcr:

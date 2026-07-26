@@ -134,8 +134,8 @@ page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_EVENT, destination=page_sp)
 page_campaign.link(button=CAMPAIGN_GOTO_EVENT, destination=page_sp)
 
 # 联动活动
-# 霜冻行动
-page_coalition = Page(FROSTFALL_COALITION_CHECK)
+# 怪谈纪实：逃离阈值山庄
+page_coalition = Page(MYSTERY_RECORD_CHECK)
 page_coalition.link(button=GOTO_MAIN, destination=page_main)
 page_coalition.link(button=BACK_ARROW, destination=page_campaign_menu)
 page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_EVENT, destination=page_coalition)

@@ -732,10 +732,14 @@
     },
     "OcrDevice": {
       "name": "OCR Device",
-      "help": "Choose the OCR device. GPU uses Windows DirectML, ANE uses macOS Apple Neural Engine. Auto: Apple Silicon Mac uses ANE, GPU when VRAM > 1GB on Windows, otherwise CPU.",
+      "help": "Choose the OCR inference device.\nAuto on Windows tries QNN NPU, OpenVINO NPU, OpenVINO discrete GPU, DirectML discrete GPU, OpenVINO CPU, then CPU. Disabling Auto-install and use vendor EPs limits Windows to DirectML discrete GPU and CPU.\nQNN/OpenVINO devices require ONNX Runtime. ANE is only for Apple Silicon Macs.",
       "auto": "Auto",
+      "qnn_npu": "QNN NPU",
+      "openvino_npu": "OpenVINO NPU",
+      "openvino_gpu": "OpenVINO Discrete GPU",
+      "gpu": "DirectML Discrete GPU",
+      "openvino_cpu": "OpenVINO CPU",
       "cpu": "CPU",
-      "gpu": "GPU",
       "ane": "ANE (Apple)"
     },
     "OcrBackend": {
@@ -744,6 +748,12 @@
       "auto": "Auto (ONNX Runtime)",
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
+    },
+    "OcrWindowsMlVendorEp": {
+      "name": "Auto-install and use vendor EPs",
+      "help": "Allow Windows ML to download and use QNN/OpenVINO execution providers through Windows Update.",
+      "True": "Enabled",
+      "False": "Disabled"
     },
     "OcrModelVersionEnglish": {
       "name": "OCR English Model Version",
@@ -1050,6 +1060,7 @@
       "coalition_20250626": "The Neon City Investigator",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "Light & Shadow Fashion Shoot!",
+      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "The Solomon Ranger Rerun",
       "event_20200326_cn": "Microlayer Medley",
@@ -1833,11 +1844,11 @@
     "Mode": {
       "name": "Difficulty",
       "help": "SP map requires running the daily SP mission first",
-      "tc1": "tc1",
-      "tc2": "tc2",
-      "tc3": "tc3",
+      "easy": "Easy",
+      "normal": "Normal",
+      "hard": "Hard",
       "sp": "SP",
-      "ex": "ex"
+      "ex": "EX"
     },
     "Fleet": {
       "name": "attack team",

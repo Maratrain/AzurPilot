@@ -103,7 +103,7 @@
       "help": ""
     },
     "Coalition": {
-      "name": "光影风尚-拍摄进行时",
+      "name": "夜勤病栋",
       "help": ""
     },
     "MaritimeEscort": {
@@ -732,10 +732,14 @@
     },
     "OcrDevice": {
       "name": "OCR设备",
-      "help": "选择OCR设备，不推荐任何没有独立显卡的用户使用GPU，除非你知道自己在做什么\nGPU 仅用于 Windows DirectML，ANE 仅用于 macOS Apple Neural Engine\n自动选择：Apple Silicon Mac 使用 ANE，Windows 显存超过1G时使用GPU，否则使用CPU",
+      "help": "选择 OCR 推理设备。\n自动选择：Windows 按 QNN NPU、OpenVINO NPU、OpenVINO 独显 GPU、DirectML 独显 GPU、OpenVINO CPU、CPU 的顺序尝试；关闭“自动安装并使用厂商 EP”后只尝试 DirectML 独显 GPU 和 CPU。\nQNN/OpenVINO 设备仅适用于 ONNX Runtime，ANE 仅适用于 Apple Silicon Mac。",
       "auto": "自动选择",
+      "qnn_npu": "QNN NPU",
+      "openvino_npu": "OpenVINO NPU",
+      "openvino_gpu": "OpenVINO 独显 GPU",
+      "gpu": "DirectML 独显 GPU",
+      "openvino_cpu": "OpenVINO CPU",
       "cpu": "CPU",
-      "gpu": "GPU",
       "ane": "ANE (Apple)"
     },
     "OcrBackend": {
@@ -744,6 +748,12 @@
       "auto": "自动 (onnxruntime)",
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
+    },
+    "OcrWindowsMlVendorEp": {
+      "name": "自动安装并使用厂商 EP",
+      "help": "允许 Windows ML 通过 Windows Update 下载并使用 QNN/OpenVINO 厂商 EP。",
+      "True": "启用",
+      "False": "禁用"
     },
     "OcrModelVersionEnglish": {
       "name": "OCR英文模型版本",
@@ -1050,6 +1060,7 @@
       "coalition_20250626": "迷彩都市的寻踪者",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "光影风尚-拍摄进行时",
+      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
       "event_20200227_cn": "北境序曲",
       "event_20200312_cn": "复刻斯图尔特的硝烟",
       "event_20200326_cn": "微层混合",
@@ -1833,11 +1844,11 @@
     "Mode": {
       "name": "难度",
       "help": "SP图需要使用活动每日SP运行",
-      "tc1": "tc1",
-      "tc2": "tc2",
-      "tc3": "tc3",
-      "sp": "sp",
-      "ex": "ex"
+      "easy": "简单",
+      "normal": "普通",
+      "hard": "困难",
+      "sp": "SP",
+      "ex": "EX"
     },
     "Fleet": {
       "name": "出击队伍",

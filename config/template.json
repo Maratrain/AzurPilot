@@ -108,6 +108,7 @@
     "Optimization": {
       "OcrDevice": "auto",
       "OcrBackend": "auto",
+      "OcrWindowsMlVendorEp": true,
       "OcrModelVersionEnglish": "auto",
       "OcrModelVersionChinese": "auto",
       "OcrModelVersionJapanese": "auto",
@@ -1160,7 +1161,7 @@
       "DefeatWithdraw": "withdraw_stop"
     },
     "Coalition": {
-      "Mode": "tc3",
+      "Mode": "hard",
       "Fleet": "single"
     },
     "StopCondition": {
@@ -1822,7 +1823,7 @@
       "DefeatWithdraw": "withdraw_stop"
     },
     "Coalition": {
-      "Mode": "tc3",
+      "Mode": "hard",
       "Fleet": "single"
     },
     "StopCondition": {

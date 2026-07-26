@@ -77,6 +77,10 @@ class Coalition(CoalitionCombat, CampaignEvent):
             ocr = DALPtOcr(DAL_PT_OCR, name='OCR_PT', letter=(255, 213, 69), threshold=128)
         elif event == 'coalition_20260122':
             ocr = Digit(FASHION_PT_OCR, name='OCR_PT', letter=(41, 40, 40), threshold=128)
+        elif event == 'coalition_20260723':
+            # 本期尚未提供 PT 数值模板，保留任务运行并禁用 PT 上限判断。
+            logger.info('Mystery Record event does not support PT OCR, skip')
+            return 0
         else:
             logger.error(f'ocr object is not defined in event {event}')
             raise ScriptError
@@ -132,7 +136,10 @@ class Coalition(CoalitionCombat, CampaignEvent):
         部分活动出于 UI 设计考虑移除了燃油显示。
         参见: https://github.com/LmeSzinc/AzurLaneAutoScript/issues/5214
         """
-        if self.config.Campaign_Event == 'coalition_20260122':
+        if self.config.Campaign_Event in [
+            'coalition_20260122',
+            'coalition_20260723',
+        ]:
             return False
         return True
 
@@ -227,7 +234,8 @@ class Coalition(CoalitionCombat, CampaignEvent):
     def handle_stage_name(event, stage):
         """标准化活动名称和关卡名称。
 
-        去除空白字符并转小写。霜落活动额外去除连字符。
+        去除空白字符并转小写。霜落活动使用内部 TC 编号；
+        其他活动兼容旧配置中的 TC-1/2/3 难度名。
 
         Args:
             event: 活动名称。
@@ -239,6 +247,20 @@ class Coalition(CoalitionCombat, CampaignEvent):
         stage = re.sub('[ \t\n]', '', str(stage)).lower()
         if event == 'coalition_20230323':
             stage = stage.replace('-', '')
+            stage = {
+                'easy': 'tc1',
+                'normal': 'tc2',
+                'hard': 'tc3',
+            }.get(stage, stage)
+        else:
+            converted = {
+                'tc1': 'easy',
+                'tc2': 'normal',
+                'tc3': 'hard',
+            }.get(stage.replace('-', ''), stage)
+            if converted != stage:
+                logger.warning(f'Convert legacy Coalition stage: {stage} -> {converted}')
+                stage = converted
 
         return event, stage
 

@@ -53,11 +53,18 @@ from pywebio.session import (
     download,
     go_app,
     info,
+    lang,
+    load_webui_styles,
     local,
-    register_thread,
+    logger,
+    login,
+    os,
+    popup,
     run_js,
     set_env,
-    eval_js,
+    task_handler,
+    time,
+    updater,
 )
 
 import module.webui.lang as lang
@@ -149,9 +156,33 @@ WEBUI_AUTO_PASSWORD_FILE = "password.txt"
 DEMO_DEVICE_ID_TEXT = "此程序是为了演示用途构建的版本/This application is a version built for demonstration purposes."
 
 
-def is_demo_mode():
+class AlasGUI(
+    AppShellMixin,
+    StatisticsPageMixin,
+    ActionPointStatisticsMixin,
+    ActionPointToolbarMixin,
+    ResourceStatisticsMixin,
+    OpsiStatisticsMixin,
+    OpsiExportMixin,
+    ShipExperienceStatisticsMixin,
+    CommissionIncomeStatisticsMixin,
+    TaskConfigMixin,
+    EventToolsMixin,
+    OverviewMixin,
+    DashboardMixin,
+    DeveloperMenuMixin,
+    DeveloperUpdateMixin,
+    DeveloperSettingsMixin,
+    DeveloperToolsMixin,
+    InstanceMixin,
+    HomeMixin,
+    Frame,
+):
+    """组合各 WebUI 视图的会话控制器。
+
+    Mixin 的顺序明确会话能力的组合层次。统计页入口通过 ``self`` 调用具体
+    视图的渲染方法，因此各视图模块既可独立维护，也保持原有会话接口不变。
     """
-    判断是否处于演示环境。
 
     Returns:
         bool: True 表示 DEMO=1。
@@ -329,12 +360,6 @@ class AlasGUI(Frame):
     theme = "default"
     _log = RichLog
 
-    def initial(self) -> None:
-        self.ALAS_MENU = read_file(filepath_args("menu", self.alas_mod))
-        self.ALAS_ARGS = read_file(filepath_args("args", self.alas_mod))
-        self.ALAS_MENU = read_file(filepath_args("menu", self.alas_mod))
-        self.ALAS_ARGS = read_file(filepath_args("args", self.alas_mod))
-        self._init_alas_config_watcher()
 
         if self.theme == "apple":
             add_css(filepath_css("apple-alas"))
@@ -5605,42 +5630,12 @@ def debug():
     AlasGUI().run()
 
 
-def startup():
-    State.init()
-    lang.reload()
-    updater.event = State.manager.Event()
-    if State.deploy_config.AutoUpdate:
-        if updater.delay > 0:
-            task_handler.add(updater.check_update, updater.delay)
-        task_handler.add(updater.schedule_update(), 86400)
-    task_handler.start()
-    if State.deploy_config.DiscordRichPresence:
-        init_discord_rpc()
-    if State.deploy_config.StartOcrServer and not is_demo_mode():
-        start_ocr_server_process(State.deploy_config.OcrServerPort)
-    if State.deploy_config.EnableRemoteAccess and (
-        State.deploy_config.Password is not None or os.environ.get("DEMO") == "1"
-    ):
-        task_handler.add(RemoteAccess.keep_ssh_alive(), 60)
-
-
-def clearup():
-    """
-    Notice: Ensure run it before uvicorn reload app,
-    all process will NOT EXIT after close electron app.
-    """
-    logger.info("Start clearup")
-    RemoteAccess.kill_ssh_process()
-    close_discord_rpc()
-    stop_ocr_server_process()
-    for alas in ProcessManager._processes.values():
-        alas.stop()
-    State.clearup()
-    task_handler.stop()
-    logger.info("Alas closed.")
-
-
 def app():
+    """创建供 Uvicorn 使用的 ASGI 应用工厂。
+
+    Returns:
+        Starlette: 挂载 WebUI 页面和 MCP 子应用的 ASGI 应用。
+    """
     parser = argparse.ArgumentParser(description="Alas web service")
     parser.add_argument(
         "-k", "--key", type=str, help="Password of alas. No password by default"
@@ -5673,15 +5668,16 @@ def app():
     lang.LANG = State.deploy_config.Language
     key = args.key if is_webui_password_set(args.key) else State.deploy_config.Password
     key, password_error = ensure_public_webui_password(key)
-    cdn = args.cdn if args.cdn else State.deploy_config.CDN
-    runs = None
+    cdn: str | bool = args.cdn if args.cdn else State.deploy_config.CDN
+    runs: List[str] | None = None
     if args.run:
         runs = args.run
     elif State.deploy_config.Run:
-        # TODO: refactor poor_yaml_read() to support list
+        # deploy.yaml 的旧格式仍是逗号分隔字符串，保持兼容直到配置读取器支持列表。
         tmp = State.deploy_config.Run.split(",")
-        runs = [l.strip(" ['\"]") for l in tmp if len(l)]
-    instances: List[str] = runs
+        runs = [item.strip(" ['\"]") for item in tmp if item]
+    # 未传入 --run 时保持 None，由进程管理器跳过启动实例。
+    instances: List[str] | None = runs
 
     logger.hr("Webui configs")
     logger.attr("Theme", State.deploy_config.Theme)
@@ -5693,10 +5689,9 @@ def app():
     from deploy.atomic import atomic_failure_cleanup
 
     atomic_failure_cleanup("./config")
-
     static_path = os.getcwd()
 
-    def _block_restricted_device():
+    def _block_restricted_device() -> bool:
         if is_demo_mode():
             return False
         if get_device_id() not in RESTRICTED_DEVICE_IDS:
@@ -5709,7 +5704,7 @@ def app():
         )
         return True
 
-    def _block_public_webui_password_error():
+    def _block_public_webui_password_error() -> bool:
         if is_demo_mode() or password_error is None:
             return False
         popup(
@@ -5732,7 +5727,7 @@ def app():
             return
         gui = AlasGUI()
         local.gui = gui
-        gui.run()
+        gui.run(initial_page=initial_page)
 
     def manage():
         if _block_restricted_device():
@@ -5748,7 +5743,7 @@ def app():
 
     from mcp_server_sse import app as mcp_app
 
-    app = asgi_app(
+    application = asgi_app(
         applications=[index, manage],
         cdn=cdn,
         static_dir=static_path,
@@ -5761,6 +5756,5 @@ def app():
         ],
         on_shutdown=[clearup],
     )
-    app.mount("/mcp", mcp_app)
-
-    return app
+    application.mount("/mcp", mcp_app)
+    return application

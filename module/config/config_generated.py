@@ -126,7 +126,7 @@ class GeneratedConfig:
     Error_LlmModel = 'mimo-v2.5-pro'
 
     # 配置组 `Optimization`
-    Optimization_OcrDevice = 'auto'  # auto, cpu, gpu, ane
+    Optimization_OcrDevice = 'auto'  # auto, qnn_npu, openvino_npu, openvino_gpu, gpu, openvino_cpu, cpu, ane
     Optimization_OcrBackend = 'auto'  # auto, onnxruntime, ncnn
     Optimization_OcrModelVersionEnglish = 'auto'  # auto, azur_lane_v6_6, azur_lane_v6_5, ppocr_v6, alocr_en_v2_6, alocr_en_v2_0, alocr_en_v1_0
     Optimization_OcrModelVersionChinese = 'auto'  # auto, cn_v6_1, cn_v6, ppocr_v6, alocr_cn_v3, alocr_cn_v2_5
@@ -325,7 +325,7 @@ class GeneratedConfig:
     MaritimeEscort_Enable = True
 
     # 配置组 `Coalition`
-    Coalition_Mode = 'tc3'  # tc1, tc2, tc3, sp, ex
+    Coalition_Mode = 'hard'  # easy, normal, hard, sp, ex
     Coalition_Fleet = 'single'  # single, multi
 
     # 配置组 `EventShop`

@@ -61,6 +61,10 @@ class CoalitionUI(Combat):
             mode_switch = Switch('CoalitionMode', offset=(20, 20))
             mode_switch.add_state('story', FASHION_MODE_STORY)
             mode_switch.add_state('battle', FASHION_MODE_BATTLE)
+        elif event == 'coalition_20260723':
+            # 常规活动入口直接进入作战页面，无需切换剧情模式。
+            logger.info('Mystery Record event has no mode switch')
+            return
         else:
             logger.error(f'MODE_SWITCH is not defined in event {event}')
             raise ScriptError
@@ -100,6 +104,9 @@ class CoalitionUI(Combat):
         elif event == 'coalition_20260122':
             fleet_switch.add_state('single', FASHION_SWITCH_SINGLE)
             fleet_switch.add_state('multi', FASHION_SWITCH_MULTI)
+        elif event == 'coalition_20260723':
+            fleet_switch.add_state('single', MYSTERY_RECORD_SWITCH_SINGLE)
+            fleet_switch.add_state('multi', MYSTERY_RECORD_SWITCH_MULTI)
         else:
             logger.error(f'FLEET_SWITCH is not defined in event {event}')
             raise ScriptError
@@ -164,6 +171,12 @@ class CoalitionUI(Combat):
             ('coalition_20260122', 'hard'): FASHION_HARD,
             ('coalition_20260122', 'sp'): FASHION_SP,
             ('coalition_20260122', 'ex'): FASHION_EX,
+            # MYSTERY_RECORD
+            ('coalition_20260723', 'easy'): MYSTERY_RECORD_EASY,
+            ('coalition_20260723', 'normal'): MYSTERY_RECORD_NORMAL,
+            ('coalition_20260723', 'hard'): MYSTERY_RECORD_HARD,
+            ('coalition_20260723', 'sp'): MYSTERY_RECORD_SP,
+            ('coalition_20260723', 'ex'): MYSTERY_RECORD_EX,
         }
         stage = stage.lower()
         try:
@@ -252,6 +265,12 @@ class CoalitionUI(Combat):
             ('coalition_20260122', 'hard'): 3,
             ('coalition_20260122', 'sp'): 4,
             ('coalition_20260122', 'ex'): 5,
+            # MYSTERY_RECORD
+            ('coalition_20260723', 'easy'): 1,
+            ('coalition_20260723', 'normal'): 2,
+            ('coalition_20260723', 'hard'): 3,
+            ('coalition_20260723', 'sp'): 4,
+            ('coalition_20260723', 'ex'): 5,
         }
         stage = stage.lower()
         try:
@@ -280,6 +299,8 @@ class CoalitionUI(Combat):
         elif event == 'coalition_20260122':
             # FASHION reuses NEONCITY, just (-12, -12) shifted
             return NEONCITY_FLEET_PREPARATION
+        elif event == 'coalition_20260723':
+            return MYSTERY_RECORD_FLEET_PREPARATION
         else:
             logger.error(f'FLEET_PREPARATION is not defined in event {event}')
             raise ScriptError
@@ -304,6 +325,7 @@ class CoalitionUI(Combat):
             'coalition_20240627',
             'coalition_20250626',
             'coalition_20260122',
+            'coalition_20260723',
         ]:
             # easy is single fleet, SP and EX must must multiple fleets
             if stage in ['easy', 'sp', 'ex']:

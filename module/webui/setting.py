@@ -58,6 +58,7 @@ class State:
     _clearup = False
 
     restart_event: threading.Event = None
+    dependency_sync_event: threading.Event = None
     manager: SyncManager = None
     electron: bool = False
     webui_host: str = None

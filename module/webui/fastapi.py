@@ -1,17 +1,23 @@
 """
 Copy from pywebio.platform.fastapi
 """
+
 import asyncio
 import logging
 import os
+from typing import Any, cast
 
 import uvicorn
 import pywebio.platform.fastapi as pywebio_fastapi
-from pywebio.platform.fastapi import (STATIC_PATH, Session, cdn_validation,
-                                      get_free_port,
-                                      open_webbrowser_on_server_started,
-                                      start_remote_access_service,
-                                      webio_routes)
+from pywebio.platform.fastapi import (
+    STATIC_PATH,
+    Session,
+    cdn_validation,
+    get_free_port,
+    open_webbrowser_on_server_started,
+    start_remote_access_service,
+    webio_routes,
+)
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -63,10 +69,8 @@ class SafeWebSocketConnection(pywebio_fastapi.WebSocketConnection):
             try:
                 await self.ws.send_json(message)
             except TypeError:
-                logger.exception(
-                    "PyWebIO 消息序列化失败，消息内容: %s", message
-                )
-            except (AssertionError, RuntimeError, WebSocketDisconnect):
+                logger.exception("PyWebIO 消息序列化失败，消息内容: %s", message)
+            except AssertionError, RuntimeError, WebSocketDisconnect:
                 logger.debug("WebSocket 已断开，跳过 PyWebIO 消息发送")
             except Exception as e:
                 logger.debug("PyWebIO WebSocket 消息发送失败: %s", e)
@@ -77,7 +81,7 @@ class SafeWebSocketConnection(pywebio_fastapi.WebSocketConnection):
                 return
             try:
                 await self.ws.close()
-            except (AssertionError, RuntimeError, WebSocketDisconnect):
+            except AssertionError, RuntimeError, WebSocketDisconnect:
                 logger.debug("WebSocket 已断开，跳过 PyWebIO 连接关闭")
             except Exception as e:
                 logger.debug("PyWebIO WebSocket 连接关闭失败: %s", e)
@@ -95,21 +99,23 @@ def patch_pywebio_websocket_connection():
 
 def asgi_app(
     applications,
-    cdn=True,
+    cdn: str | bool = True,
     static_dir=None,
-    debug=False,
+    debug: bool = False,
     allowed_origins=None,
     check_origin=None,
-    **starlette_settings
+    **starlette_settings,
 ):
-    debug = Session.debug = os.environ.get("PYWEBIO_DEBUG", debug)
-    cdn = cdn_validation(cdn, "warn")
-    if cdn is False:
-        cdn = "pywebio_static"
+    debug = bool(os.environ.get("PYWEBIO_DEBUG", debug))
+    Session.debug = debug
+    validated_cdn: str | bool = cdn_validation(cdn, "warn")
+    if validated_cdn is False:
+        validated_cdn = "pywebio_static"
     patch_pywebio_websocket_connection()
     routes = webio_routes(
         applications,
-        cdn=cdn,
+        # PyWebIO 支持 CDN 地址字符串，但其运行时类型推断仅保留了 bool。
+        cdn=cast(Any, validated_cdn),
         allowed_origins=allowed_origins,
         check_origin=check_origin,
     )
@@ -125,12 +131,14 @@ def asgi_app(
             name="pywebio_static",
         )
     )
-    
+
     try:
         from module.webui.api import api_routes
+
         routes.extend(api_routes)
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).error(f"Failed to load api routes: {e}")
 
     middleware = [Middleware(HeaderMiddleware)]
@@ -143,14 +151,14 @@ def start_server(
     applications,
     port=0,
     host="",
-    cdn=True,
+    cdn: str | bool = True,
     static_dir=None,
     remote_access=False,
     debug=False,
     allowed_origins=None,
     check_origin=None,
     auto_open_webbrowser=False,
-    **uvicorn_settings
+    **uvicorn_settings,
 ):
 
     app = asgi_app(

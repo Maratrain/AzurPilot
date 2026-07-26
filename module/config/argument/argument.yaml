@@ -198,10 +198,14 @@ Error:
 Optimization:
   OcrDevice:
     value: auto
-    option: [auto, cpu, gpu, ane]
+    option: [auto, qnn_npu, openvino_npu, openvino_gpu, gpu, openvino_cpu, cpu, ane]
   OcrBackend:
     value: auto
     option: [auto, onnxruntime, ncnn]
+  OcrWindowsMlVendorEp:
+    type: checkbox
+    value: true
+    option: [true, false]
   OcrModelVersionEnglish:
     value: auto
     option:
@@ -580,8 +584,8 @@ MaritimeEscort:
   Enable: true
 Coalition:
   Mode:
-    value: tc3
-    option: [ tc1, tc2, tc3, sp, ex ]
+    value: hard
+    option: [ easy, normal, hard, sp, ex ]
   Fleet:
     value: single
     option: [ single, multi ]

@@ -732,10 +732,14 @@
     },
     "OcrDevice": {
       "name": "OCR 裝置",
-      "help": "選擇 OCR 裝置。GPU 用 Windows DirectML，ANE 用 macOS Apple Neural Engine。自動：Apple Silicon Mac 使用 ANE，Windows VRAM > 1GB 用 GPU，否則 CPU。",
+      "help": "選擇 OCR 推論裝置。\n自動選擇：Windows 依序嘗試 QNN NPU、OpenVINO NPU、OpenVINO 獨顯 GPU、DirectML 獨顯 GPU、OpenVINO CPU、CPU；關閉「自動安裝並使用廠商 EP」後只嘗試 DirectML 獨顯 GPU 和 CPU。\nQNN/OpenVINO 裝置僅適用於 ONNX Runtime，ANE 僅適用於 Apple Silicon Mac。",
       "auto": "自動選擇",
+      "qnn_npu": "QNN NPU",
+      "openvino_npu": "OpenVINO NPU",
+      "openvino_gpu": "OpenVINO 獨顯 GPU",
+      "gpu": "DirectML 獨顯 GPU",
+      "openvino_cpu": "OpenVINO CPU",
       "cpu": "CPU",
-      "gpu": "GPU",
       "ane": "ANE (Apple)"
     },
     "OcrBackend": {
@@ -744,6 +748,12 @@
       "auto": "自動 (onnxruntime)",
       "onnxruntime": "ONNX Runtime",
       "ncnn": "ncnn (Vulkan)"
+    },
+    "OcrWindowsMlVendorEp": {
+      "name": "自動安裝並使用廠商 EP",
+      "help": "允許 Windows ML 透過 Windows Update 下載並使用 QNN/OpenVINO 廠商 EP。",
+      "True": "啟用",
+      "False": "停用"
     },
     "OcrModelVersionEnglish": {
       "name": "OCR 英文模型版本",
@@ -1050,6 +1060,7 @@
       "coalition_20250626": "迷彩都市的尋蹤者",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "光影風尚-拍攝進行時",
+      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "斯圖爾特的硝煙",
       "event_20200326_cn": "Microlayer Medley",
@@ -1833,11 +1844,11 @@
     "Mode": {
       "name": "難度",
       "help": "SP圖需要使用活動每日SP執行",
-      "tc1": "tc1",
-      "tc2": "tc2",
-      "tc3": "tc3",
-      "sp": "sp",
-      "ex": "ex"
+      "easy": "簡單",
+      "normal": "普通",
+      "hard": "困難",
+      "sp": "SP",
+      "ex": "EX"
     },
     "Fleet": {
       "name": "出擊隊伍",

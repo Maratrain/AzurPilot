@@ -184,6 +184,8 @@
         mediaSource: null,
         sourceBuffer: null,
         queue: [],
+        queueBytes: 0,
+        lastMediaTrimAt: 0,
         objectUrl: '',
         instance: 'alas',
         codec: 'h264',
@@ -215,6 +217,13 @@
 
     var BITRATE_STEPS = [0.35, 0.5, 0.7, 1, 1.25];
     var FPS_STEPS = [15, 24, 30, 45, 60, 90, 120, 180, 240];
+    // 防止页面被挂起或解码滞后时，WebSocket 二进制帧在浏览器内无界积压。
+    var MAX_MEDIA_QUEUE_ITEMS = 24;
+    var MAX_MEDIA_QUEUE_BYTES = 12 * 1024 * 1024;
+    // 预览仅需保留短暂回看窗口，过期片段必须主动从 SourceBuffer 释放。
+    var MEDIA_BUFFER_KEEP_SECONDS = 30;
+    var MEDIA_BUFFER_MAX_SECONDS = 60;
+    var MEDIA_BUFFER_TRIM_INTERVAL_SECONDS = 5;
 
     function sanitizeText(text) {
         return String(text || '').replace(/[<>&]/g, function (ch) {
@@ -299,6 +308,9 @@
         }
         if (state.sourceBuffer) {
             state.sourceBuffer.onupdateend = null;
+            try {
+                if (state.sourceBuffer.updating) state.sourceBuffer.abort();
+            } catch (e) { }
             state.sourceBuffer = null;
         }
         if (state.decoder) {
@@ -311,11 +323,13 @@
             } catch (e) { }
             state.mediaSource = null;
         }
+        releaseMediaElement();
         if (state.objectUrl) {
             URL.revokeObjectURL(state.objectUrl);
             state.objectUrl = '';
         }
-        state.queue = [];
+        resetMediaQueue();
+        state.lastMediaTrimAt = 0;
         state.lastChunkAt = 0;
         state.firstChunkAt = 0;
         state.videoPressure = false;
@@ -341,15 +355,111 @@
         return scheme + location.host + prefix + path;
     }
 
+    function releaseMediaElement() {
+        var panel = document.getElementById('alas-live-preview');
+        if (!panel) return;
+        var video = panel.querySelector('.alas-live-preview-video');
+        if (!video) return;
+        video.onwaiting = null;
+        video.onstalled = null;
+        video.onplaying = null;
+        video.oncanplay = null;
+        try {
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        } catch (e) { }
+        state.renderCanvas = null;
+        state.renderContext = null;
+    }
+
+    function resetMediaQueue() {
+        state.queue = [];
+        state.queueBytes = 0;
+    }
+
+    function getMediaSegmentSize(data) {
+        if (data && typeof data.byteLength === 'number') return data.byteLength;
+        if (data && typeof data.size === 'number') return data.size;
+        return 0;
+    }
+
+    function lowerQualityForMediaPressure() {
+        var fps = nearestFpsStep(state.fps);
+        var fpsIndex = FPS_STEPS.indexOf(fps);
+        if (fpsIndex > 0) {
+            state.fps = FPS_STEPS[fpsIndex - 1];
+            return;
+        }
+        var bitrate = nearestBitrateStep(state.bitrateScale);
+        var bitrateIndex = BITRATE_STEPS.indexOf(bitrate);
+        if (bitrateIndex > 0) state.bitrateScale = BITRATE_STEPS[bitrateIndex - 1];
+    }
+
+    function enqueueMediaSegment(data, transportId) {
+        if (transportId !== state.transportId || state.reconnectingForQuality) return false;
+        var bytes = getMediaSegmentSize(data);
+        state.queue.push({ data: data, bytes: bytes });
+        state.queueBytes += bytes;
+
+        if (
+            state.queue.length <= MAX_MEDIA_QUEUE_ITEMS
+            && state.queueBytes <= MAX_MEDIA_QUEUE_BYTES
+        ) {
+            return true;
+        }
+
+        state.videoPressure = true;
+        resetMediaQueue();
+        lowerQualityForMediaPressure();
+        reconnectForQuality('浏览器视频缓冲积压，降低质量并重新连接');
+        return false;
+    }
+
+    function trimBufferedMedia(sb) {
+        if (!sb.buffered.length) return false;
+        var panel = document.getElementById('alas-live-preview');
+        var video = panel && panel.querySelector('.alas-live-preview-video');
+        if (!video || !isFinite(video.currentTime)) return false;
+        var bufferStart = sb.buffered.start(0);
+        var bufferEnd = sb.buffered.end(sb.buffered.length - 1);
+        var removeEnd = video.currentTime - MEDIA_BUFFER_KEEP_SECONDS;
+        var isOverBuffered = bufferEnd - bufferStart > MEDIA_BUFFER_MAX_SECONDS;
+        if (isOverBuffered) {
+            removeEnd = Math.max(removeEnd, bufferEnd - MEDIA_BUFFER_KEEP_SECONDS);
+            if (video.currentTime < removeEnd) {
+                try { video.currentTime = removeEnd; } catch (e) { }
+            }
+        } else if (video.currentTime - state.lastMediaTrimAt < MEDIA_BUFFER_TRIM_INTERVAL_SECONDS) {
+            return false;
+        }
+        if (removeEnd <= bufferStart) return false;
+
+        state.lastMediaTrimAt = video.currentTime;
+        try {
+            sb.remove(bufferStart, removeEnd);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     function appendNext(transportId) {
         if (transportId !== state.transportId) return;
         var sb = state.sourceBuffer;
-        if (!sb || sb.updating || !state.queue.length) return;
+        if (!sb || sb.updating) return;
+        if (trimBufferedMedia(sb)) return;
+        if (!state.queue.length) return;
+        var segment = state.queue.shift();
+        state.queueBytes = Math.max(0, state.queueBytes - segment.bytes);
         try {
-            sb.appendBuffer(state.queue.shift());
+            sb.appendBuffer(segment.data);
         } catch (e) {
             if (transportId !== state.transportId) return;
-            setStatus(e.message || e);
+            state.videoPressure = true;
+            resetMediaQueue();
+            lowerQualityForMediaPressure();
+            reconnectForQuality('浏览器视频缓冲异常，降低质量并重新连接');
         }
     }
 
@@ -727,7 +837,7 @@
             }
             state.lastChunkAt = Date.now();
             if (!state.firstChunkAt) state.firstChunkAt = state.lastChunkAt;
-            state.queue.push(event.data);
+            if (!enqueueMediaSegment(event.data, transportId)) return;
             setStatus('');
             appendNext(transportId);
         };

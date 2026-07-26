@@ -63,17 +63,24 @@
     var W, H, pad, gW, gH;
     var chartState = null;
     var cleanupHandlers = [];
+    var initialRenderTimer = null;
 
     window.__resourceChartCleanups = window.__resourceChartCleanups || {};
     if (window.__resourceChartCleanups[chartId]) {
         window.__resourceChartCleanups[chartId]();
     }
-    window.__resourceChartCleanups[chartId] = function () {
+    var cleanup = function () {
         cleanupHandlers.forEach(function (item) {
             item.target.removeEventListener(item.type, item.handler, item.options);
         });
         cleanupHandlers = [];
+        if (initialRenderTimer !== null) clearTimeout(initialRenderTimer);
+        initialRenderTimer = null;
+        if (window.__resourceChartCleanups[chartId] === cleanup) {
+            delete window.__resourceChartCleanups[chartId];
+        }
     };
+    window.__resourceChartCleanups[chartId] = cleanup;
 
     function addListener(target, type, handler, options) {
         if (!target) return;
@@ -121,7 +128,8 @@
         seriesVisible.push(true);
     }
 
-    setTimeout(function () {
+    initialRenderTimer = setTimeout(function () {
+        initialRenderTimer = null;
         initChart();
     }, 300);
 
