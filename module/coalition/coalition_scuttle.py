@@ -3,7 +3,6 @@ from module.combat.assets import (
     OPTS_INFO_D,
     EXP_INFO_D, EXP_INFO_A, EXP_INFO_B, EXP_INFO_S
 )
-from module.handler.assets import GET_MISSION
 from module.coalition.assets import *
 from module.coalition.combat import CoalitionCombat
 from module.coalition.coalition import Coalition
@@ -17,6 +16,7 @@ class CoalitionScuttleCombat(CoalitionCombat):
 
     triggered_normal_end = False
     _is_shipwreck = False  # 当前战斗是否为沉船D评价
+    _is_s_rank = False  # 当前战斗是否为S评价
 
     def auto_search_combat_execute(self, emotion_reduce=True, fleet_index=1, expected_end=None):
         """
@@ -87,10 +87,8 @@ class CoalitionScuttleCombat(CoalitionCombat):
                 break
             # D评价结算界面：S/A/B评价的动画过渡帧可能短暂误匹配D评价模板，
             # 但只有真正的沉船才会出现OPTS_INFO_D弹窗。
-            # 此处仅break退出循环，不设置沉船标记（未经过OPTS_INFO_D确认）。
-            # 真正的沉船由上方OPTS_INFO_D路径触发并设置_is_shipwreck。
+            # 此处不设置沉船标记（未经过OPTS_INFO_D确认），让后续S/A/B条件覆盖。
             if self.appear(BATTLE_STATUS_D) or self.appear(EXP_INFO_D):
-                self._withdraw = True
                 break
             if confirm_timer.reached():
                 self._withdraw = True
@@ -107,7 +105,8 @@ class CoalitionScuttleCombat(CoalitionCombat):
 
             # S评价或自动搜索运行中
             if self.appear(BATTLE_STATUS_S) or self.appear(EXP_INFO_S) \
-                    or self.appear(GET_MISSION) or self.is_auto_search_running():
+                    or self.is_auto_search_running():
+                self._is_s_rank = True
                 self.device.screenshot_interval_set()
                 break
 
@@ -132,6 +131,7 @@ class CoalitionScuttleCombat(CoalitionCombat):
             while 1:
                 logger.hr(f'{self.FUNCTION_NAME_BASE}{self.battle_count}', level=2)
                 self._is_shipwreck = False
+                self._is_s_rank = False
                 # 仅第一场战斗扣减2心情（关卡进入代价），后续战斗不再扣减
                 self.auto_search_combat_execute(
                     emotion_reduce=self.battle_count == 0,
@@ -383,10 +383,10 @@ class CoalitionScuttleRun(Coalition, CoalitionScuttleCombat):
             if self.config.StopCondition_RunCount:
                 self.config.StopCondition_RunCount -= 1
 
-            # SP关卡非D评价（沉船）：视为已通过，延迟至服务器刷新
-            # D评价视为未通过，继续出击
-            if mode == 'sp' and self.triggered_normal_end and not self._is_shipwreck:
-                logger.info('SP passed with non-D rank')
+            # SP关卡仅S评价视为已通过，延迟至服务器刷新
+            # A/B/C/D评价均视为未通过，继续出击
+            if mode == 'sp' and self._is_s_rank and not self._is_shipwreck:
+                logger.info('SP以S评价通过')
                 self.config.task_delay(server_update=True)
                 self.config.task_stop()
 

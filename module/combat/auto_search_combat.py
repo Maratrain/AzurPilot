@@ -293,11 +293,9 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
             # D评价结算界面（BATTLE_STATUS_D / EXP_INFO_D）
             # S/A/B评价的动画过渡帧可能短暂误匹配D评价模板，
             # 但只有真正的沉船才会出现OPTS_INFO_D弹窗。
-            # 此处仅break退出循环，不扣减shipwreck心情。
-            # 真正的沉船扣减由上方OPTS_INFO_D路径触发。
-            # 退出后由auto_search_combat_status()中的handle_battle_status()处理结算画面。
+            # 此处不设置 _withdraw，让后续S/A/B评价条件覆盖误匹配。
+            # 真正的D评价会先被上方OPTS_INFO_D捕获。
             if self.appear(BATTLE_STATUS_D) or self.appear(EXP_INFO_D):
-                self._withdraw = True
                 break
             if confirm_timer.reached():
                 self._withdraw = True
@@ -475,6 +473,19 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
             if self.handle_vote_popup():
                 continue
             if self.handle_mission_popup_ack():
+                continue
+
+            # 处理战斗结算界面——SABC评价在自动搜索中可能快速自动过渡，
+            # 若截图恰好捕获到结算画面则点击推进并记录评价
+            # D评价点击BATTLE_STATUS_D后，会出现OPTS_INFO_D沉船弹窗
+            if self.handle_battle_status():
+                continue
+            if self.handle_exp_info():
+                continue
+            # 检测D评价（沉船）弹窗——这是沉船的确认性标志
+            if self.appear(OPTS_INFO_D, offset=(30, 30)):
+                logger.info('[自动搜索-结算] 检测到沉船弹窗，进入撤退处理')
+                self._withdraw = True
                 continue
 
             # Handle low emotion combat
