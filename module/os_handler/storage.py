@@ -1,4 +1,5 @@
 from enum import Enum
+import time
 
 from module.base.timer import Timer
 from module.base.utils import area_offset, crop, rgb2gray
@@ -39,11 +40,24 @@ class StorageHandler(GlobeOperation, ZoneManager):
             in: is_in_map, STORAGE_ENTER
             out: STORAGE_CHECK
         """
-        logger.info('Storage enter')
+        logger.info('[大世界-仓库] 进入仓库')
+        wait_seconds = 0
         for _ in self.loop():
             # End
             if self.is_in_storage():
                 break
+
+            if self.appear(MISSION_CHECK, offset=(20, 20)):
+                logger.warning('[大世界-仓库] 误进入情报界面，尝试退出')
+                self.ui_click(
+                    MISSION_QUIT,
+                    check_button=self.is_in_map,
+                    offset=(20, 20),
+                    skip_first_screenshot=True
+                )
+                wait_seconds += 1
+                time.sleep(wait_seconds)
+                continue
 
             if self.appear_then_click(STORAGE_ENTER, offset=(200, 5), interval=3):
                 continue
