@@ -85,10 +85,11 @@ class CoalitionScuttleCombat(CoalitionCombat):
                 self._withdraw = True
                 self._is_shipwreck = True
                 break
+            # D评价结算界面：等待OPTS_INFO_D弹窗确认，不立即设置沉船标记
+            # S/A/B评价的动画过渡帧可能误匹配BATTLE_STATUS_D模板
+            # 只有真正的D评价（沉船）才会出现OPTS_INFO_D弹窗
             if self.appear(BATTLE_STATUS_D) or self.appear(EXP_INFO_D):
-                self._withdraw = True
-                self._is_shipwreck = True
-                break
+                continue
             if confirm_timer.reached():
                 self._withdraw = True
                 self._is_shipwreck = True

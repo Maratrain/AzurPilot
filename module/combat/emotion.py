@@ -228,6 +228,7 @@ class Emotion:
         仅在心情整数值发生变化时更新 Record 时间戳，
         并将 Record 回扣 fractional_seconds 对应的等效秒数，
         使未满1点的恢复余数可在下次 update() 时继续累积。
+        同时同步 fleet.value 属性，确保下次 update() 基于正确值计算恢复。
         """
         if self.using_public:
             fleet = self.public_fleet
@@ -243,6 +244,9 @@ class Emotion:
                 with self.config.multi_set():
                     setattr(self.config, fleet.value_name, new_value)
                     setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
+                # 同步属性，确保下次 update() 基于新值计算恢复
+                fleet.value = new_value
+                fleet.record = record_time
             return
 
         with self.config.multi_set():
@@ -256,6 +260,9 @@ class Emotion:
                         record_time = record_time - timedelta(seconds=fractional * 360 / fleet.speed)
                     setattr(self.config, fleet.value_name, new_value)
                     setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
+                    # 同步属性，确保下次 update() 基于新值计算恢复
+                    fleet.value = new_value
+                    fleet.record = record_time
 
     def show(self):
         """显示当前计算的心情值（含时间恢复），而非上次保存值。"""
