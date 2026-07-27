@@ -154,17 +154,10 @@ class IslandAirDrop(Island):
                 visit_button = self.calculate_visit_position(
                     air_drop_button_x, air_drop_button_y
                 )
-                result = self.check_visit(visit_button)
-                if result == "skip":
-                    logger.info("[岛屿-每日补给] 无法访问，跳过当前补给")
+                if not self.check_visit_friend_island(visit_button):
                     continue
-                elif result == "success":
-                    logger.info("[岛屿-每日补给] 成功进入拜访状态，返回True")
-                    return True
-                elif result == "timeout":
-                    self.island_error = True
-                    return False
                 has_clickable_air_drop = True
+                return True
             # 如果当前页面所有补给都不可用（全部skip或timeout）
             if not has_clickable_air_drop:
                 logger.info("[岛屿-每日补给] 当前页面没有可用补给目标")
@@ -199,21 +192,6 @@ class IslandAirDrop(Island):
         logger.info("[岛屿-每日补给] 未检测到可用补给")
         return False
 
-    def check_visit(self, visit_button):
-        number = 20
-        self.device.click(visit_button)
-        self.device.sleep(5)
-        while number:
-            self.device.screenshot()
-            if self.appear(ISLAND_ACCESS_MAP, offset=1):
-                return "success"
-            if self.appear(CANT_ACCESS, similarity=0.85):
-                return "skip"
-            self.device.sleep(1)
-            self.device.click(visit_button)
-            number -= 1
-        return "timeout"
-
     def calculate_visit_position(self, air_drop_button_x, air_drop_button_y):
 
         visit_button_x1 = air_drop_button_x + 225  # x偏移
@@ -244,15 +222,6 @@ class IslandAirDrop(Island):
         self.device.click(stop_button)
         self.device.click_record_clear()
 
-    def island_access_map_check(self):
-        while True:
-            self.device.screenshot()
-            if self.appear(ISLAND_ACCESS_MAP):
-                return False
-            if self.appear(CANT_ACCESS):
-                return True
-            self.device.sleep(0.5)
-
     def island_air_drop(self):
         self.device.click(ISLAND_AIR_DROP_A)
         sleep(0.1)
@@ -265,6 +234,7 @@ class IslandAirDrop(Island):
         self.device.click(ISLAND_AIR_DROP_B)
         sleep(0.1)
         self.device.click(ISLAND_AIR_DROP_C)
+        sleep(0.5)
 
     def run_and_get(self):
         self.island_up(3000)
@@ -299,7 +269,7 @@ class IslandAirDrop(Island):
                 break
             self.island_down(500)
             self.island_air_drop()
-        self.device.click(AIR_DROP_RUN_AWAY)
+        self.exit_friend_island()
 
     def test(self):
         image = self.device.screenshot()

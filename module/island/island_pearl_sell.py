@@ -361,20 +361,6 @@ class IslandPearlSell(Island):
                 continue
         return False
 
-    def exit_friend_island(self):
-        """退出好友岛屿。"""
-        logger.info("[岛屿-珍珠采购] 退出好友岛屿")
-        self._island_expect_friend = False
-        for _ in self.loop(timeout=20):
-            if self.appear_then_click(AIR_DROP_RUN_AWAY, offset=(20, 20), interval=2):
-                continue
-            if self.appear(ISLAND_ACCESS_MAP, offset=(20, 20)):
-                return True
-            if self.ui_additional():
-                continue
-        logger.warning("[岛屿-珍珠采购] 退出好友岛屿超时")
-        return False
-
     # ==================== 好友排名 ====================
 
     def visit_friend_by_rank(self, mode, threshold):
@@ -399,7 +385,7 @@ class IslandPearlSell(Island):
 
         self._rank_visit_target_selected = True
         logger.info(f"[岛屿-珍珠采购] 选择好友珍珠价格 {target['price']}")
-        return self.click_rank_visit(target["visit_button"])
+        return self.check_visit_friend_island(target["visit_button"])
 
     def switch_to_friend_rank_tab(self):
         """切换到好友排名页签。"""
@@ -529,33 +515,6 @@ class IslandPearlSell(Island):
         return self._area_button(
             area, f"OCR_ISLAND_PEARL_RANK_PRICE_FROM_VISIT_{index}"
         )
-
-    def click_rank_visit(self, visit_button):
-        """点击好友排名拜访按钮并等待进入好友岛屿。
-
-        检测逻辑分为两个阶段：
-        1. 等待 ISLAND_ACCESS_MAP（右上角地图入口）出现，表示已开始加载好友岛
-        2. 等待 AIR_DROP_RUN_AWAY（顶部"离开"按钮）也出现，确认场景完全加载完毕
-        只有两者同时出现（is_in_friend_island() 为 True），才视为成功进入好友岛屿。
-        """
-        click_timer = Timer(3).start()
-        self.device.click(visit_button)
-        self.device.sleep(3)
-        for _ in self.loop(timeout=30, skip_first=False):
-            if self.is_in_friend_island():
-                self._island_expect_friend = True
-                logger.info("[岛屿-珍珠采购] 成功进入好友岛屿")
-                return True
-            if self.appear(CANT_ACCESS, offset=(20, 20)):
-                logger.info("[岛屿-珍珠采购] 好友不可访问")
-                return False
-            if click_timer.reached():
-                self.device.click(visit_button)
-                click_timer.reset()
-            if self.ui_additional():
-                continue
-        logger.warning("[岛屿-珍珠采购] 拜访好友超时")
-        return False
 
     # ==================== OCR ====================
 
@@ -687,6 +646,7 @@ class IslandPearlSell(Island):
             logger.warning(f"[岛屿-珍珠采购] 打开珍珠{self._action_name(action)}弹窗超时")
             return False
 
+        self.device.sleep(0.5)
         if not self.adjust_trade_count(count):
             logger.warning(f"[岛屿-珍珠采购] 珍珠{self._action_name(action)}数量未调整到目标: {count}")
             return False

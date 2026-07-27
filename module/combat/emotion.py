@@ -133,9 +133,22 @@ class FleetEmotion:
         return DIC_RECOVER_MAX[self.recover]
 
     def update(self):
-        recover_count = int(int(current_time().timestamp()) // 360 - int(self.record.timestamp()) // 360)
-        recover_count = max(recover_count, 0)
-        self.current = min(max(self.value, 0) + self.speed * recover_count, self.max)
+        """根据实际经过时间计算情绪恢复。
+
+        使用连续时间恢复计算，保留浮点恢复量以累积分数部分。
+        游戏服务端按实际经过时间精确计算恢复，每6分钟恢复speed点。
+        旧方法用 int() 截断恢复量，每次 record() 重置时间戳后，
+        未满1点的恢复余数被丢弃，长时间运行导致严重低估。
+        现改为 floor() 取整保留整数部分，同时 record() 仅在整数变化时
+        重置时间戳并回扣分数秒，确保余数可跨次累积。
+        """
+        time_diff = current_time().timestamp() - self.record.timestamp()
+        time_diff = max(time_diff, 0)
+        # speed 为每360秒的恢复量，换算为每秒恢复 speed/360 点
+        recovery = self.speed * time_diff / 360
+        self.current = min(max(self.value, 0) + int(recovery), self.max)
+        # 保留未满1点的恢复余数对应的秒数，用于 record() 回扣
+        self._fractional_seconds = recovery - int(recovery)
 
     def get_recovered(self, expected_reduce=0):
         """计算情绪恢复到控制阈值的时间。
@@ -210,25 +223,48 @@ class Emotion:
             fleet.update()
 
     def record(self):
-        """将当前情绪值保存到配置中。"""
-        if self.using_public:
-            value = {self.public_fleet.value_name: self.public_fleet.current}
-            self.config.set_record(**value)
-            return
-        
-        value = {}
-        for fleet in self.fleets:
-            value[fleet.value_name] = fleet.current
+        """将当前情绪值保存到配置中。
 
-        self.config.set_record(**value)
+        仅在心情整数值发生变化时更新 Record 时间戳，
+        并将 Record 回扣 fractional_seconds 对应的等效秒数，
+        使未满1点的恢复余数可在下次 update() 时继续累积。
+        """
+        if self.using_public:
+            fleet = self.public_fleet
+            old_value = fleet.value
+            new_value = fleet.current
+            # 仅在整数变化时重置时间戳，回扣分数秒
+            if new_value != old_value:
+                record_time = current_time().replace(microsecond=0)
+                fractional = getattr(fleet, '_fractional_seconds', 0)
+                if fractional > 0:
+                    # 回扣 fractional_seconds 对应的秒数
+                    record_time = record_time - timedelta(seconds=fractional * 360 / fleet.speed)
+                with self.config.multi_set():
+                    setattr(self.config, fleet.value_name, new_value)
+                    setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
+            return
+
+        with self.config.multi_set():
+            for fleet in self.fleets:
+                old_value = fleet.value
+                new_value = fleet.current
+                if new_value != old_value:
+                    record_time = current_time().replace(microsecond=0)
+                    fractional = getattr(fleet, '_fractional_seconds', 0)
+                    if fractional > 0:
+                        record_time = record_time - timedelta(seconds=fractional * 360 / fleet.speed)
+                    setattr(self.config, fleet.value_name, new_value)
+                    setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
 
     def show(self):
+        """显示当前计算的心情值（含时间恢复），而非上次保存值。"""
         if self.using_public:
-            logger.attr(f'Emotion PublicFleet', self.public_fleet.value)
+            logger.attr(f'情绪公海舰队', self.public_fleet.current)
             return
         
         for fleet in self.fleets:
-            logger.attr(f'Emotion fleet_{fleet.fleet}', fleet.value)
+            logger.attr(f'情绪舰队_{fleet.fleet}', fleet.current)
 
     @property
     def reduce_per_battle(self):
