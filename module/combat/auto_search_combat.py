@@ -290,12 +290,15 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                     self.emotion.reduce(fleet_index, shipwreck=True)
                 self._withdraw = True
                 break
-            # D评价结算界面：等待OPTS_INFO_D弹窗确认，不立即扣减
-            # S/A/B评价的动画过渡帧可能误匹配BATTLE_STATUS_D模板
-            # 只有真正的D评价（沉船）才会出现OPTS_INFO_D弹窗
-            # 此处仅作标记，继续循环等待OPTS_INFO_D或S/A/B评价确认
+            # D评价结算界面（BATTLE_STATUS_D / EXP_INFO_D）
+            # S/A/B评价的动画过渡帧可能短暂误匹配D评价模板，
+            # 但只有真正的沉船才会出现OPTS_INFO_D弹窗。
+            # 此处仅break退出循环，不扣减shipwreck心情。
+            # 真正的沉船扣减由上方OPTS_INFO_D路径触发。
+            # 退出后由auto_search_combat_status()中的handle_battle_status()处理结算画面。
             if self.appear(BATTLE_STATUS_D) or self.appear(EXP_INFO_D):
-                continue
+                self._withdraw = True
+                break
             if confirm_timer.reached():
                 self._withdraw = True
                 self.device.click(OPTS_INFO_D)
