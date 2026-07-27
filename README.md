@@ -1,8 +1,12 @@
 
-# AzurPilot
+# AzurPilot — 碧蓝航线自动化辅助工具
 
 <p align="center">
   <img src="doc/logo.webp" alt="AzurPilot Logo" width="400">
+</p>
+
+<p align="center">
+  <strong><a href="https://alas.nanoda.work/">AzurPilot 官网</a></strong> ｜ 碧蓝航线自动化脚本 · 大世界侵蚀循环 · 多平台支持
 </p>
 
 <p align="center">
@@ -48,7 +52,7 @@ AzurPilot 是基于 AzurLaneAutoScript 修改而来的碧蓝航线自动化辅�
 - 其他社区贡献的实用 [Pull Request](https://github.com/LmeSzinc/AzurLaneAutoScript/pulls)
 
 <div align="center">
-  <a href="https://alas.nanoda.work">
+  <a href="https://alas.nanoda.work/">
     <img src="https://img.shields.io/badge/Web-下载-blue?style=for-the-badge&logo=google-chrome&logoColor=white" />
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;
@@ -57,12 +61,16 @@ AzurPilot 是基于 AzurLaneAutoScript 修改而来的碧蓝航线自动化辅�
   </a>
 </div>
 
+访问 **[AzurPilot 官网](https://alas.nanoda.work/)** 了解更多功能详情，或前往 **[下载页面](https://alas.nanoda.work/download.html)** 获取最新版本。
+
 ## GUI
 <div align="center">
   <img src="doc/GUI.png" alt="GUI Preview" width="800">
 </div>
 
 ## 依赖与启动
+
+> 💡 **推荐方式**：直接从 [AzurPilot 官网下载页](https://alas.nanoda.work/download.html) 下载对应平台的启动器，内置 Python 环境，开箱即用。
 
 本项目使用 `uv` 和项目根目录 `.venv` 管理 Python 运行环境。发布版启动器会自带 uv、Python、ADB、Git，并在 `.venv` 中同步依赖；源码开发时可安装 uv 后运行：
 
@@ -194,6 +202,8 @@ curl -fsSL https://alas.nanoda.work/install/deploy-image.sh | sudo -E bash
 * 由 DeepSeek 结合项目分析生成 实际请以实物为准
 
 ## 多平台启动器
+
+> 📥 从 [AzurPilot 官网](https://alas.nanoda.work/download.html) 下载 Windows / macOS / Linux 启动器
 
 <div align="center">
   <img src="doc/loading.png" alt="loading" width="500" />
@@ -732,6 +742,14 @@ adb shell wm density reset
 <a href="https://github.com/wess09/alas-launcher/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=wess09/alas-launcher&max=1000" alt="Launcher Contributors">
 </a>
+
+## 相关链接
+
+- [AzurPilot 官网](https://alas.nanoda.work/) — 项目介绍、功能详情、碧蓝航线自动化方案
+- [AzurPilot 下载页](https://alas.nanoda.work/download.html) — 下载 Windows / macOS / Linux 版本的碧蓝航线脚本工具
+- [GitHub 仓库](https://github.com/wess09/AzurPilot) — 源码、Issue、Pull Request
+- [QQ 交流群](https://join.nanoda.work/#/) — 碧蓝航线自动化社区交流
+- [AzurLaneAutoScript 上游项目](https://github.com/LmeSzinc/AzurLaneAutoScript) — ALAS 原版
 
 ## 开发说明
 
