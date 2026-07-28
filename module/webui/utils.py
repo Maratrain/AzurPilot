@@ -17,7 +17,7 @@ import pywebio
 from pywebio.exceptions import SessionClosedException
 from pywebio.input import PASSWORD, actions, input, input_group
 from pywebio.output import PopupSize, popup, put_html, put_text, toast
-from pywebio.session import eval_js, info as session_info, register_thread, run_js
+from pywebio.session import eval_js, info as session_info, local, register_thread, run_js
 from rich.console import Console
 from rich.terminal_theme import TerminalTheme
 
@@ -93,6 +93,7 @@ WEBUI_LOGIN_MAX_FAILURES = 5
 _webui_login_failure_count = 0
 _webui_login_forbidden = False
 _webui_login_lock = threading.Lock()
+_LOCALSTORAGE_UNSET = object()
 
 
 class QueueHandler:
@@ -398,39 +399,67 @@ def filepath_icon(filename):
     return f"./assets/gui/icon/{filename}.svg"
 
 
-def add_css(filepath):
-    """
-    将 CSS 文件安全注入到文档头部。
+def add_css_files(filepaths):
+    """将多份 CSS 合并为一次会话命令，保持传入顺序注入。"""
+    injected_styles = getattr(local, "webui_injected_styles", None)
+    if injected_styles is None:
+        injected_styles = set()
+        local.webui_injected_styles = injected_styles
 
-    使用 document.createElement + 文本节点的方式，确保包含引号或 </style> 的 CSS
-    不会破坏 JS/HTML 解析。
-    """
-    with open(filepath, "r", encoding="utf-8") as f:
-        css = f.read()
+    styles = []
+    loaded_paths = []
+    for filepath in filepaths:
+        if filepath in injected_styles:
+            continue
 
-    style_id = f"alas-css-{os.path.basename(filepath).replace('.', '-') }"
+        with open(filepath, "r", encoding="utf-8") as f:
+            css = f.read()
+        style_id = f"alas-css-{os.path.basename(filepath).replace('.', '-') }"
+        styles.append((style_id, css))
+        loaded_paths.append(filepath)
+
+    if not styles:
+        return
 
     js = (
-        "(function(){"
-        "var old = document.getElementById('" + style_id + "');"
-        "if(old) old.parentNode.removeChild(old);"
-        "var s = document.createElement('style');"
-        "s.type = 'text/css';"
-        "s.id = '" + style_id + "';"
-        "s.appendChild(document.createTextNode(%s));"
-        "document.head.appendChild(s);"
-        "})();"
-    ) % json.dumps(css)
-
+        "(function(styles){"
+        "styles.forEach(function(style){"
+        "if(document.getElementById(style[0])) return;"
+        "var element=document.createElement('style');"
+        "element.type='text/css';element.id=style[0];"
+        "element.appendChild(document.createTextNode(style[1]));"
+        "document.head.appendChild(element);"
+        "});"
+        "})(%s);"
+    ) % json.dumps(styles)
     run_js(js)
+    injected_styles.update(loaded_paths)
 
 
-def load_webui_styles(theme=None, is_mobile=None):
-    """加载 WebUI 各入口共用的基础、响应式与主题样式。"""
+def add_css(filepath):
+    """将 CSS 文件安全注入到文档头部。"""
+    add_css_files((filepath,))
+
+
+def load_webui_styles(theme=None, is_mobile=None, preloaded_styles=()):
+    """加载 WebUI 各入口共用的基础、响应式与主题样式。
+
+    Args:
+        theme: 当前主题名称。
+        is_mobile: 当前会话是否为移动端。
+        preloaded_styles: 已由初始 HTML 加载的样式名称，避免重复经 WebSocket 注入。
+    """
     if theme is None:
         theme = State.theme or "default"
     if is_mobile is None:
         is_mobile = session_info.user_agent.is_mobile
+
+    if preloaded_styles:
+        injected_styles = getattr(local, "webui_injected_styles", None)
+        if injected_styles is None:
+            injected_styles = set()
+            local.webui_injected_styles = injected_styles
+        injected_styles.update(filepath_css(name) for name in preloaded_styles)
 
     styles = [
         "alas",
@@ -447,8 +476,7 @@ def load_webui_styles(theme=None, is_mobile=None):
     }
     styles.extend(theme_styles.get(theme, ("light-alas",)))
 
-    for name in styles:
-        add_css(filepath_css(name))
+    add_css_files(filepath_css(name) for name in styles)
 
 
 def _read(path):
@@ -629,11 +657,13 @@ def _input_webui_password():
         run_js("document.body.classList.remove('alas-login-page')")
 
 
-def login(password):
+def login(password, stored_password=_LOCALSTORAGE_UNSET):
     if is_login_forbidden():
         toast("密码错误次数过多，请重启后再试。", color="error")
         return False
-    if get_localstorage("password") == str(password):
+    if stored_password is _LOCALSTORAGE_UNSET:
+        stored_password = get_localstorage("password")
+    if stored_password == str(password):
         return True
     pwd = _input_webui_password()
     if is_login_forbidden():
@@ -664,6 +694,23 @@ def set_localstorage(key, value):
 
 def get_localstorage(key):
     return eval_js("localStorage.getItem(key)", key=key)
+
+
+def get_localstorage_values(keys):
+    """一次读取多个 localStorage 键，避免首屏串行浏览器往返。"""
+    keys = list(dict.fromkeys(keys))
+    if not keys:
+        return {}
+
+    values = eval_js(
+        "(function(keys) {"
+        "var values = {};"
+        "keys.forEach(function(key) { values[key] = localStorage.getItem(key); });"
+        "return values;"
+        "})(keys)",
+        keys=keys,
+    )
+    return values if isinstance(values, dict) else {}
 
 
 def re_fullmatch(pattern, string):

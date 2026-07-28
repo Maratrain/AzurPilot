@@ -21,6 +21,7 @@ from pywebio.platform.fastapi import (
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
@@ -33,11 +34,27 @@ Disallow: /
 
 logger = logging.getLogger(__name__)
 
+STATIC_ASSET_CACHE_CONTROL = "public, max-age=86400, must-revalidate"
+NO_CACHE_CONTROL = "no-cache"
+HTTP_GZIP_MINIMUM_SIZE = 1024
+HTTP_GZIP_COMPRESS_LEVEL = 5
+
 
 class HeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
-        response.headers["Cache-Control"] = "no-cache"
+        path = request.url.path
+        is_static_asset = path.startswith("/static/assets/") or path.startswith(
+            "/pywebio_static/"
+        )
+        is_cacheable_response = (
+            200 <= response.status_code < 300 or response.status_code == 304
+        )
+        if request.method in {"GET", "HEAD"} and is_static_asset and is_cacheable_response:
+            # 静态资源路径未使用内容哈希，缓存一天后仍通过 ETag 重新验证。
+            response.headers["Cache-Control"] = STATIC_ASSET_CACHE_CONTROL
+        else:
+            response.headers["Cache-Control"] = NO_CACHE_CONTROL
         response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
         return response
 
@@ -141,7 +158,15 @@ def asgi_app(
 
         logging.getLogger(__name__).error(f"Failed to load api routes: {e}")
 
-    middleware = [Middleware(HeaderMiddleware)]
+    middleware = [
+        # 仅处理 HTTP 响应；WebSocket 不经过该中间件，Starlette 也会跳过 SSE。
+        Middleware(
+            GZipMiddleware,
+            minimum_size=HTTP_GZIP_MINIMUM_SIZE,
+            compresslevel=HTTP_GZIP_COMPRESS_LEVEL,
+        ),
+        Middleware(HeaderMiddleware),
+    ]
     return Starlette(
         routes=routes, middleware=middleware, debug=debug, **starlette_settings
     )

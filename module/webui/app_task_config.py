@@ -17,12 +17,10 @@ from module.webui.app_dependencies import (
     deep_set,
     dict_to_kv,
     filepath_config,
-    get_alas_config_listen_path,
     get_device_id,
     logger,
     os,
     parse_pin_value,
-    partial,
     pin,
     pin_on_change,
     popup,
@@ -158,6 +156,7 @@ class TaskConfigMixin(WebUIMixinBase):
         group_name = group[0]
 
         output_list: List[Output] = []
+        watcher_paths: List[List[str]] = []
         for arg, arg_dict in deep_iter(arg_dict, depth=1):
             output_kwargs: T_Output_Kwargs = arg_dict.copy()
 
@@ -170,6 +169,7 @@ class TaskConfigMixin(WebUIMixinBase):
                 output_kwargs["disabled"] = True
             # Output type
             output_kwargs["widget_type"] = output_kwargs.pop("type")
+            widget_type = output_kwargs["widget_type"]
 
             arg_name = arg[0]  # [arg_name,]
             # Internal pin widget name
@@ -237,6 +237,8 @@ class TaskConfigMixin(WebUIMixinBase):
                 # output will inherit current scope when created, override here
                 o.spec["scope"] = f"#pywebio-scope-group_{group_name}"
                 output_list.append(o)
+                if display != "readonly" and widget_type != "stored":
+                    watcher_paths.append([task, group_name, arg_name])
 
         if not output_list:
             return 0
@@ -249,6 +251,9 @@ class TaskConfigMixin(WebUIMixinBase):
             put_html('<hr class="hr-group">')
             for output in output_list:
                 output.show()
+
+            for path in watcher_paths:
+                self._bind_config_watcher(path)
 
             # 在掉落记录组中显示可复制的设备ID
             if group_name == "DropRecord":
@@ -280,15 +285,23 @@ class TaskConfigMixin(WebUIMixinBase):
             return
         self.simulator.start()
 
-    def _init_alas_config_watcher(self) -> None:
-        def put_queue(path, value):
-            self.modified_config_queue.put({"name": path, "value": value})
+    def _bind_config_watcher(self, path: List[str]) -> None:
+        """为已渲染的配置控件注册一次变更监听。"""
+        pin_name = "_".join(path)
+        watcher_pins = getattr(self, "_config_watcher_pins", None)
+        if watcher_pins is None:
+            watcher_pins = set()
+            self._config_watcher_pins = watcher_pins
+        if pin_name in watcher_pins:
+            return
 
-        for path in get_alas_config_listen_path(self.ALAS_ARGS):
-            pin_on_change(
-                name="_".join(path), onchange=partial(put_queue, ".".join(path))
-            )
-        logger.info("Init config watcher done.")
+        path_text = ".".join(path)
+
+        def put_queue(value: Any) -> None:
+            self.modified_config_queue.put({"name": path_text, "value": value})
+
+        pin_on_change(name=pin_name, onchange=put_queue)
+        watcher_pins.add(pin_name)
 
     def _alas_thread_update_config(self) -> None:
         modified = {}

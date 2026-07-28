@@ -20,7 +20,6 @@ from typing import Any, Callable, Dict, List, Optional, cast
 from module.webui.fake_pil_module import import_fake_pil_module
 from module.config.time_source import now as current_time, status as time_source_status
 from module.statistics.azurstats import AzurStats
-from module.os_simulator.simulator import OSSimulator
 
 import_fake_pil_module()
 
@@ -104,6 +103,7 @@ from module.webui.utils import (
     TaskHandler,
     get_alas_config_listen_path,
     get_localstorage,
+    get_localstorage_values,
     load_webui_styles,
     set_localstorage,
     get_window_visibility_state,

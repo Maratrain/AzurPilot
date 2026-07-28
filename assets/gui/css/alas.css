@@ -3,7 +3,7 @@
     src: url('/static/assets/spa/MiSans-Demibold.ttf') format('truetype');
     font-weight: 450;
     font-style: normal;
-    font-display: swap;
+    font-display: optional;
 }
 
 @font-face {
