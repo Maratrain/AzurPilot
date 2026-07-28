@@ -16,7 +16,6 @@ from urllib.parse import urlparse
 BOOTSTRAPPED_ENV = "AZURPILOT_UV_BOOTSTRAPPED"
 BOOTSTRAP_UV_ENV = "AZURPILOT_BOOTSTRAP_UV"
 NO_BOOTSTRAP_ENV = "AZURPILOT_NO_UV_BOOTSTRAP"
-PYTHON_VERSION = "3.14.3"
 DEPENDENCY_SYNC_TIMEOUT = 30 * 60
 
 
@@ -183,10 +182,10 @@ def _uv_python_env(root: Path):
 
 def _managed_python_executable(root: Path) -> Optional[Path]:
     install_dir = venv_python_install_dir(root)
-    for python_home in sorted(install_dir.glob(f"cpython-{PYTHON_VERSION}-*")):
+    for python_home in sorted(install_dir.glob("cpython-*-*"), reverse=True):
         candidates = [
             python_home / "python.exe",
-            python_home / "bin" / "python3.14",
+            python_home / "bin" / "python3",
             python_home / "bin" / "python",
         ]
         for candidate in candidates:
@@ -204,7 +203,7 @@ def _venv_python_works(root: Path) -> bool:
             [
                 str(python),
                 "-c",
-                "import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 14) else 1)",
+                "import sys; raise SystemExit(0)",
             ],
             cwd=str(root),
             stdout=subprocess.DEVNULL,
@@ -335,10 +334,10 @@ def _ensure_self_contained_python(
     outputs: Optional[list[str]] = None,
     deadline: float | None = None,
 ):
+    env = _uv_python_env(root)
     if _venv_python_works(root) and _managed_python_executable(root):
         return
 
-    env = _uv_python_env(root)
     managed_python = _managed_python_executable(root)
     if managed_python is None:
         command = [
@@ -349,7 +348,6 @@ def _ensure_self_contained_python(
             venv_python_install_dir(root),
             "--no-bin",
             "--managed-python",
-            PYTHON_VERSION,
         ]
         _run_and_collect(
             command,
@@ -365,7 +363,6 @@ def _ensure_self_contained_python(
             "python",
             "find",
             "--managed-python",
-            PYTHON_VERSION,
         ]
         output = _run_output(
             command,
