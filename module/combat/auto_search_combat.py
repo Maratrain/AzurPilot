@@ -10,10 +10,28 @@ from module.map.map_operation import MapOperation
 
 
 class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
+    """自动搜索战斗执行器。
+
+    在通关模式下编排自动搜索战斗流程，处理各种战斗异常和停止条件。
+
+    Attributes:
+        _auto_search_in_stage_timer (Timer): 关卡页面检测计时器。
+        _auto_search_status_confirm (bool): 自动搜索状态是否已确认。
+        _withdraw (bool): 是否已执行撤退。
+        _defeat_count (int): 战败次数。
+        _shipwreck_emotion_reduced (bool): 沉船心情扣减是否已执行，防止重复扣减。
+        _auto_search_emotion_reduce (bool): 当前战斗是否启用心情扣减。
+        _auto_search_fleet_index (int): 当前战斗的舰队索引。
+        auto_search_oil_limit_triggered (bool): 石油限制是否已触发。
+        auto_search_coin_limit_triggered (bool): 物资限制是否已触发。
+    """
     _auto_search_in_stage_timer = Timer(3, count=6)
     _auto_search_status_confirm = False
     _withdraw = False
     _defeat_count = 0
+    _shipwreck_emotion_reduced = False
+    _auto_search_emotion_reduce = False
+    _auto_search_fleet_index = 1
     auto_search_oil_limit_triggered = False
     auto_search_coin_limit_triggered = False
 
@@ -286,8 +304,9 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
             if self.handle_get_ship():
                 continue
             if self.appear_then_click(OPTS_INFO_D, offset=(30, 30), interval=2):
-                if emotion_reduce:
+                if emotion_reduce and not self._shipwreck_emotion_reduced:
                     self.emotion.reduce(fleet_index, shipwreck=True)
+                    self._shipwreck_emotion_reduced = True
                 self._withdraw = True
                 break
             # D评价结算界面（BATTLE_STATUS_D / EXP_INFO_D）
@@ -298,10 +317,10 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
             if self.appear(BATTLE_STATUS_D) or self.appear(EXP_INFO_D):
                 break
             if confirm_timer.reached():
+                # 结算确认超时：不扣心情、不盲目点击OPTS_INFO_D
+                # 只设置_withdraw让status处理，status中检测到OPTS_INFO_D才扣心情
+                logger.warning('[自动搜索-战斗] 结算确认超时，进入status处理')
                 self._withdraw = True
-                self.device.click(OPTS_INFO_D)
-                if emotion_reduce:
-                    self.emotion.reduce(fleet_index, shipwreck=True)
                 confirm_timer.reset()
                 break
             if self.appear(BATTLE_STATUS_A) or self.appear(BATTLE_STATUS_B) \
@@ -482,9 +501,14 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                 continue
             if self.handle_exp_info():
                 continue
-            # 检测D评价（沉船）弹窗——这是沉船的确认性标志
+            # 检测D评价（沉船）弹窗——这是沉船的确认性标志（二次确认）
+            # 只有OPTS_INFO_D出现才确认是真正的D评价并扣心情
+            # S/A/B/C转场误匹配BATTLE_STATUS_D不会出现OPTS_INFO_D，不会扣心情
             if self.appear(OPTS_INFO_D, offset=(30, 30)):
                 logger.info('[自动搜索-结算] 检测到沉船弹窗，进入撤退处理')
+                if self._auto_search_emotion_reduce and not self._shipwreck_emotion_reduced:
+                    self.emotion.reduce(self._auto_search_fleet_index, shipwreck=True)
+                    self._shipwreck_emotion_reduced = True
                 self._withdraw = True
                 continue
 
@@ -512,6 +536,9 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
         """
         emotion_reduce = emotion_reduce if emotion_reduce is not None else self.emotion.is_calculate
 
+        self._auto_search_emotion_reduce = emotion_reduce
+        self._auto_search_fleet_index = fleet_index
+        self._shipwreck_emotion_reduced = False
         self.auto_search_combat_execute(emotion_reduce=emotion_reduce, fleet_index=fleet_index, battle=battle)
         self.auto_search_combat_status()
 
