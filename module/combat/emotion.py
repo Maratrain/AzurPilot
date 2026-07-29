@@ -170,10 +170,10 @@ class FleetEmotion:
 
         使用连续时间恢复计算，保留浮点恢复量以累积分数部分。
         游戏服务端按实际经过时间精确计算恢复，每6分钟恢复speed点。
-        旧方法用 int() 截断恢复量，每次 record() 重置时间戳后，
-        未满1点的恢复余数被丢弃，长时间运行导致严重低估。
-        现改为 floor() 取整保留整数部分，同时 record() 仅在整数变化时
-        重置时间戳并回扣分数秒，确保余数可跨次累积。
+        使用 int() 截断恢复量的整数部分，未满1点的余数通过
+        _fractional_seconds 保留，由 record() 回扣到 Record 时间戳中，
+        确保余数可跨次累积。int() 截断会导致计算值略低于实际值，
+        符合情绪控制的安全方向（宁可低估也不高估）。
         """
         time_diff = current_time().timestamp() - self.record.timestamp()
         time_diff = max(time_diff, 0)
@@ -274,8 +274,11 @@ class Emotion:
     def record(self):
         """将当前情绪值保存到配置中。
 
-        仅在心情整数值发生变化时更新 Record 时间戳，
-        并将 Record 回扣 fractional_seconds 对应的等效秒数，
+        每次调用都更新 Value 和 Record 时间戳，确保不会因
+        recovery + reduce 恰好使 value 不变时漏更新时间戳，
+        导致下次 update() 从旧时间戳重复计算已消费的恢复量。
+
+        Record 时间戳回扣 fractional_seconds 对应的等效秒数，
         使未满1点的恢复余数可在下次 update() 时继续累积。
 
         注意：FleetEmotion.value 和 FleetEmotion.record 是 @property，
@@ -283,31 +286,26 @@ class Emotion:
         """
         if self.using_public:
             fleet = self.public_fleet
-            old_value = fleet.value
             new_value = fleet.current
-            # 仅在整数变化时重置时间戳，回扣分数秒
-            if new_value != old_value:
-                record_time = current_time().replace(microsecond=0)
-                fractional = getattr(fleet, '_fractional_seconds', 0)
-                if fractional > 0:
-                    # 回扣 fractional_seconds 对应的秒数
-                    record_time = record_time - timedelta(seconds=fractional * 360 / fleet.speed)
-                with self.config.multi_set():
-                    setattr(self.config, fleet.value_name, new_value)
-                    setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
+            record_time = current_time().replace(microsecond=0)
+            fractional = getattr(fleet, '_fractional_seconds', 0)
+            if fractional > 0:
+                # 回扣 fractional_seconds 对应的秒数
+                record_time = record_time - timedelta(seconds=fractional * 360 / fleet.speed)
+            with self.config.multi_set():
+                setattr(self.config, fleet.value_name, new_value)
+                setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
             return
 
         with self.config.multi_set():
             for fleet in self.fleets:
-                old_value = fleet.value
                 new_value = fleet.current
-                if new_value != old_value:
-                    record_time = current_time().replace(microsecond=0)
-                    fractional = getattr(fleet, '_fractional_seconds', 0)
-                    if fractional > 0:
-                        record_time = record_time - timedelta(seconds=fractional * 360 / fleet.speed)
-                    setattr(self.config, fleet.value_name, new_value)
-                    setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
+                record_time = current_time().replace(microsecond=0)
+                fractional = getattr(fleet, '_fractional_seconds', 0)
+                if fractional > 0:
+                    record_time = record_time - timedelta(seconds=fractional * 360 / fleet.speed)
+                setattr(self.config, fleet.value_name, new_value)
+                setattr(self.config, fleet.value_name.replace('Value', 'Record'), record_time)
 
     def show(self):
         """显示当前计算的心情值（含时间恢复），而非上次保存值。"""
