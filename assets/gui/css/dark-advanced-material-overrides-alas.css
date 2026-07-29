@@ -249,6 +249,33 @@ select option {
 	background-color: #111827;
 }
 
+/* 覆盖高级材质菜单的透明化规则，保证搜索控件在暗色主题可见。 */
+#pywebio-scope-menu #pywebio-scope-task_config_search .form-control {
+	background-color: rgba(15, 23, 42, 0.82) !important;
+	border: 1px solid rgba(148, 163, 184, 0.3) !important;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+#pywebio-scope-menu #pywebio-scope-task_config_search .form-control:focus {
+	border-color: #60a5fa !important;
+	box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.26), 0 1px 4px rgba(0, 0, 0, 0.28) !important;
+}
+
+#pywebio-scope-menu .config-search-result {
+	background-color: rgba(30, 41, 59, 0.72) !important;
+	border: 1px solid rgba(148, 163, 184, 0.24) !important;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+#pywebio-scope-menu .config-search-result:hover,
+#pywebio-scope-menu .config-search-result:focus-visible {
+	background-color: rgba(37, 99, 235, 0.22) !important;
+	border-color: rgba(96, 165, 250, 0.48) !important;
+	box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+}
+
 /* 高级材质暗色：统计表格颜色修复，只处理单元格 */
 
 #pywebio-scope-opsi_stats,

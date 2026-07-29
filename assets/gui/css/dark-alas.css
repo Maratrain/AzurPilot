@@ -264,3 +264,18 @@ pre.rich-traceback-code {
 *[style*="--dashboard-limit--"] {
     color: #adb5bd;
 }
+
+/* 配置搜索结果在普通暗色主题中使用独立的高对比度表面。 */
+#pywebio-scope-menu .config-search-result {
+    color: #eeeeee;
+    background-color: #36393f;
+    border-color: #484b52;
+}
+
+#pywebio-scope-menu .config-search-result:hover,
+#pywebio-scope-menu .config-search-result:focus-visible {
+    color: #ffffff;
+    background-color: #3e3b6a;
+    border-color: #938f99;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .32);
+}

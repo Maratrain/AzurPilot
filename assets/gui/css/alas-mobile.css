@@ -16,6 +16,14 @@
     min-height: 44px;
 }
 
+#pywebio-scope-task_config_search {
+    padding-bottom: .5rem;
+}
+
+.config-search-result {
+    min-height: 44px;
+}
+
 #pywebio-scope-content {
     padding: .25rem;
     margin: 0
