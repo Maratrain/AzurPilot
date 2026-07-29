@@ -1,18 +1,19 @@
 {
   "name": "Alas Web UI",
   "short_name": "Alas",
-  "start_url": "/?app=index",
+  "start_url": "../../../?app=index",
+  "scope": "../../../",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "/static/assets/spa/spa-icon-192x192.png",
+      "src": "spa-icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/static/assets/spa/spa-icon-512x512.png",
+      "src": "spa-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

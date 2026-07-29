@@ -1,5 +1,8 @@
 """AzurPilot WebUI 的兼容入口和 ASGI 应用工厂。"""
 
+from hashlib import sha256
+from pathlib import Path
+
 from module.webui.app_dashboard import DashboardMixin
 from module.webui.app_dependencies import (
     Dict,
@@ -22,7 +25,6 @@ from module.webui.app_dependencies import (
     local,
     logger,
     login,
-    os,
     popup,
     run_js,
     set_env,
@@ -265,7 +267,10 @@ def app():
     from deploy.atomic import atomic_failure_cleanup
 
     atomic_failure_cleanup("./config")
-    static_path = os.getcwd()
+    static_mounts = {
+        "/static/assets": str(PROJECT_ROOT / "assets"),
+        "/static/doc": str(PROJECT_ROOT / "doc"),
+    }
 
     def _block_restricted_device() -> bool:
         if is_demo_mode():

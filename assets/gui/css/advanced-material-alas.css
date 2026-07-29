@@ -31,13 +31,11 @@
    1. CSS 变量定义
    ========================================== */
 
-/* 引入 Google Fonts 字体：Inter，包含常规、中等和半粗字重 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
 :root {
 	/* === 色彩系统 === */
 	--alas-apple-bg: #f5f5f7;
-	--alas-apple-bg-image: url("https://api.yppp.net/api.php");
+	/* 主题样式通过 WebSocket 内联注入，资源路径相对页面解析。 */
+	--alas-apple-bg-image: url("static/assets/gui/css/bj.jpg");
 	--alas-apple-bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 	--alas-apple-card-bg: rgba(255, 255, 255, 0.72);
 	--alas-apple-card-bg-solid: #ffffff;

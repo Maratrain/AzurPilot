@@ -1,6 +1,6 @@
 @font-face {
     font-family: 'JetBrains Mono NL';
-    src: url('/static/assets/spa/JetBrainsMonoNL-Regular.ttf') format('truetype');
+    src: url('../../spa/JetBrainsMonoNL-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
@@ -1112,7 +1112,7 @@ body.alas-login-page::after,
     width: 160px;
     height: 160px;
     margin: 0 auto;
-    background: url('/static/doc/logo.webp') center / contain no-repeat;
+    background: url('../../../doc/logo.webp') center / contain no-repeat;
 }
 
 .alas-login-page #input-container .card-body {

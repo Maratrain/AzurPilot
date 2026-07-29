@@ -36,7 +36,7 @@ Disallow: /
 
 logger = logging.getLogger(__name__)
 
-STATIC_ASSET_CACHE_CONTROL = "public, max-age=86400, must-revalidate"
+STATIC_ASSET_CACHE_CONTROL = "no-cache"
 NO_CACHE_CONTROL = "no-cache"
 HTTP_GZIP_MINIMUM_SIZE = 1024
 HTTP_GZIP_COMPRESS_LEVEL = 5
@@ -54,7 +54,7 @@ class HeaderMiddleware(BaseHTTPMiddleware):
             200 <= response.status_code < 300 or response.status_code == 304
         )
         if request.method in {"GET", "HEAD"} and is_static_asset and is_cacheable_response:
-            # 静态资源路径未使用内容哈希，缓存一天后仍通过 ETag 重新验证。
+            # 部分静态资源没有内容哈希，必须在每次使用前重新验证。
             response.headers["Cache-Control"] = STATIC_ASSET_CACHE_CONTROL
         else:
             response.headers["Cache-Control"] = NO_CACHE_CONTROL
@@ -168,11 +168,12 @@ def patch_pywebio_websocket_connection():
 
 def asgi_app(
     applications,
-    cdn: str | bool = True,
+    cdn: str | bool = False,
     static_dir=None,
     debug: bool = False,
     allowed_origins=None,
     check_origin=None,
+    static_mounts: Mapping[str, str] | None = None,
     **starlette_settings,
 ):
     debug = bool(os.environ.get("PYWEBIO_DEBUG", debug))
@@ -189,6 +190,9 @@ def asgi_app(
         check_origin=check_origin,
     )
     routes.insert(0, Route("/robots.txt", robots_txt, methods=["GET", "HEAD"]))
+    if static_mounts:
+        for mount_path, directory in static_mounts.items():
+            routes.append(Mount(mount_path, app=StaticFiles(directory=directory)))
     if static_dir:
         routes.append(
             Mount("/static", app=StaticFiles(directory=static_dir), name="static")
@@ -228,13 +232,14 @@ def start_server(
     applications,
     port=0,
     host="",
-    cdn: str | bool = True,
+    cdn: str | bool = False,
     static_dir=None,
     remote_access=False,
     debug=False,
     allowed_origins=None,
     check_origin=None,
     auto_open_webbrowser=False,
+    static_mounts: Mapping[str, str] | None = None,
     **uvicorn_settings,
 ):
 
@@ -242,6 +247,7 @@ def start_server(
         applications,
         cdn=cdn,
         static_dir=static_dir,
+        static_mounts=static_mounts,
         debug=debug,
         allowed_origins=allowed_origins,
         check_origin=check_origin,
