@@ -615,6 +615,9 @@ class OpsiAshBeacon(Meta):
                 MetaReward(self.config, self.device).run(category=meta)
             self._meta_receive = []
             self.config.task_delay(server_update=True)
+        # MetaReward 会导航到 META/档案页面，领取完毕后需返回主界面，
+        # 否则下一个任务启动时游戏仍在 META 页面导致页面识别失败而卡死
+        self.ui_goto_main()
 
 
 class AshBeaconAssist(Meta):
@@ -782,5 +785,8 @@ class AshBeaconAssist(Meta):
         if self._begin_meta_assist():
             MetaReward(self.config, self.device).run()
             self.config.task_delay(server_update=True)
+            # MetaReward 会导航到 META 页面，领取完毕后需返回主界面，
+            # 否则下一个任务启动时游戏仍在 META 页面导致页面识别失败而卡死
+            self.ui_goto_main()
         else:
             self.config.task_delay(minute=(10, 20))

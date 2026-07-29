@@ -104,6 +104,7 @@ def retry(func):
         if func.__name__ in [
             '_app_start_u2_am', '_app_start_u2_monkey',
             'screenshot_uiautomator2',
+            'app_current_uiautomator2',
         ]:
             logger.critical(f'Retry {func.__name__}() failed')
             raise EmulatorNotRunningError

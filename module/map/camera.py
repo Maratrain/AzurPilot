@@ -190,6 +190,11 @@ class Camera(MapOperation):
                 logger.warning('Perspective error caused by game tips')
                 self.device.click(GAME_TIPS)
                 return False
+            elif self.handle_popup_confirm('NETWORK'):
+                # 网络异常弹窗（包含确认按钮的通用弹窗）
+                # 网络弹窗会遮挡地图导致透视检测失败，点击确认后可恢复
+                logger.warning('[地图-摄像机] 网络弹窗或通用弹窗导致透视错误')
+                return False
             elif 'Camera outside map' in str(e):
                 string = str(e)
                 logger.warning(string)

@@ -296,6 +296,12 @@ def handle_adb_error(e):
         # Response telling adbd service has reset, client should reconnect
         logger.error(e)
         return True
+    elif text == '':
+        # AdbError('')
+        # 空错误消息，通常是 ADB 连接被模拟器意外关闭（如网络弹窗导致 atx-agent 崩溃）
+        # 断开重连通常可以修复
+        logger.error(e)
+        return True
     else:
         # AdbError()
         logger.exception(e)
