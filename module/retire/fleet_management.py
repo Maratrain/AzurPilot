@@ -60,5 +60,5 @@ class FleetManagement(Dock):
 
             self._save_result(result)
         finally:
-            # 扫描不改变用户后续使用船坞时的筛选和排序状态。
+            # 扫描结束后恢复船坞默认筛选和排序状态。
             self.dock_reset()
