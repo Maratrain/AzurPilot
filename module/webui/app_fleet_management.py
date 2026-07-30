@@ -27,10 +27,27 @@ class FleetManagementMixin(WebUIMixinBase):
         if not isinstance(ships, list):
             return '<div class="fleet-info-empty">-</div>'
 
-        names = [escape(str(ship).strip()) for ship in ships if str(ship).strip()]
-        if not names:
+        entries = []
+        for ship in ships:
+            if isinstance(ship, dict):
+                name = str(ship.get("name", "")).strip()
+                level = ship.get("level")
+            else:
+                name = str(ship).strip()
+                level = None
+            if not name:
+                continue
+
+            level_html = ""
+            if isinstance(level, int) and level > 0:
+                level_html = f'<span class="fleet-info-level">Lv.{level}</span>'
+            entries.append(
+                f'<div class="fleet-info-ship"><span>{escape(name)}</span>{level_html}</div>'
+            )
+
+        if not entries:
             return '<div class="fleet-info-empty">-</div>'
-        return ''.join(f'<div class="fleet-info-ship">{name}</div>' for name in names)
+        return ''.join(entries)
 
     def _fleet_info_html(self, result: dict, record) -> str:
         surface_cards = []
@@ -133,7 +150,19 @@ class FleetManagementMixin(WebUIMixinBase):
             line-height: 1.55;
             overflow-wrap: anywhere;
           }}
-          .fleet-info-ship {{ min-height: 1.55em; }}
+          .fleet-info-ship {{
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: .5rem;
+            min-height: 1.55em;
+          }}
+          .fleet-info-level {{
+            color: #697783;
+            font-size: .8rem;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+          }}
           .fleet-info-empty {{ color: #a0a8af; }}
           .fleet-info-group-title {{
             margin: 1.35rem 0 .65rem;

@@ -1,5 +1,6 @@
 """舰队管理扫描任务。"""
 
+from module.base.timer import Timer
 from module.config.time_source import now as current_time
 from module.logger import logger
 from module.retire.dock import Dock
@@ -17,12 +18,19 @@ class FleetManagement(Dock):
     }
     RESULT_PATH = "FleetInfo.FleetInfo.Result"
     RECORD_PATH = "FleetInfo.FleetInfo.Record"
+    FILTER_LOADING_DELAY = 0.2
 
     @staticmethod
     def _normalize_result(result):
         """将舰队编号规范化为 JSON 对象可用的字符串键。"""
         return {
-            str(fleet): [str(name) for name in names]
+            str(fleet): [
+                {
+                    'name': str(ship.get('name', '')),
+                    'level': int(ship.get('level', 0)),
+                }
+                for ship in names
+            ]
             for fleet, names in result.items()
         }
 
@@ -31,6 +39,13 @@ class FleetManagement(Dock):
         self.config.modified[self.RESULT_PATH] = result
         self.config.modified[self.RECORD_PATH] = current_time().replace(microsecond=0)
         self.config.save()
+
+    def _wait_dock_filter_loaded(self) -> None:
+        """等待筛选后的船坞卡片开始加载并确认画面稳定。"""
+        timer = Timer(self.FILTER_LOADING_DELAY).start()
+        while not timer.reached():
+            self.device.screenshot()
+        self.handle_dock_cards_loading()
 
     def run(self) -> None:
         """执行一次舰队扫描。
@@ -55,7 +70,9 @@ class FleetManagement(Dock):
                     faction="all",
                     rarity="all",
                     extra="no_limit",
+                    wait_loading=False,
                 )
+                self._wait_dock_filter_loaded()
                 result[category] = self._normalize_result(scanner.scan(self.device.image))
 
             self._save_result(result)
