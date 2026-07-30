@@ -33,8 +33,8 @@
       "help": ""
     },
     "FleetManagement": {
-      "name": "Menu.FleetManagement.name",
-      "help": "Menu.FleetManagement.help"
+      "name": "艦隊管理",
+      "help": ""
     },
     "Tool": {
       "name": "ツール+",
