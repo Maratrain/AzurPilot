@@ -370,6 +370,14 @@
       "name": "每週珍珠採購與售賣",
       "help": "僅支援minitouch。每週二 01:00 自動處理珍珠：先採購本週珍珠，再售賣已有珍珠。金幣一定要夠購買200x220個這是最低要求能一次買光本週珍珠, 否則可能會報錯."
     },
+    "FleetScan": {
+      "name": "Task.FleetScan.name",
+      "help": "Task.FleetScan.help"
+    },
+    "FleetInfo": {
+      "name": "Task.FleetInfo.name",
+      "help": "Task.FleetInfo.help"
+    },
     "Daemon": {
       "name": "半自動點選",
       "help": ""
@@ -5623,6 +5631,20 @@
       "help": "多個加成餐品時按過濾順序優先替換第一個；替換槽位從餐品5→1倒查替換最後一個非空餐品\n可用餐品key對照：cheese:芝士, strawberry_milkshake:草莓奶綠, morning_light:晨光活力組合, wake_up_call:醒神套餐, fruity_fruitier:果香雙杯樂\n示例：30 > 20 > cheese > 10"
     }
   },
+  "FleetInfo": {
+    "_info": {
+      "name": "FleetInfo._info.name",
+      "help": "FleetInfo._info.help"
+    },
+    "Result": {
+      "name": "FleetInfo.Result.name",
+      "help": "FleetInfo.Result.help"
+    },
+    "Record": {
+      "name": "FleetInfo.Record.name",
+      "help": "FleetInfo.Record.help"
+    }
+  },
   "Daemon": {
     "_info": {
       "name": "半自動點選",
@@ -5949,6 +5971,25 @@
     "MenuAlas": {
       "Overview": "總覽",
       "Log": "執行日誌"
+    },
+    "TaskConfig": {
+      "SearchPlaceholder": "搜尋設定",
+      "SearchNoResult": "找不到相符的設定",
+      "SearchResultCount": "共 {count} 項結果"
+    },
+    "FleetManagement": {
+      "StartScan": "Gui.FleetManagement.StartScan",
+      "Scanning": "Gui.FleetManagement.Scanning",
+      "ScanStarted": "Gui.FleetManagement.ScanStarted",
+      "ScanAlreadyRunning": "Gui.FleetManagement.ScanAlreadyRunning",
+      "ScanStartFailed": "Gui.FleetManagement.ScanStartFailed",
+      "LastScan": "Gui.FleetManagement.LastScan",
+      "NoResult": "Gui.FleetManagement.NoResult",
+      "Main": "Gui.FleetManagement.Main",
+      "Vanguard": "Gui.FleetManagement.Vanguard",
+      "Submarine": "Gui.FleetManagement.Submarine",
+      "Fleet": "Gui.FleetManagement.Fleet",
+      "Ships": "Gui.FleetManagement.Ships"
     },
     "MenuDevelop": {
       "HomePage": "主頁",

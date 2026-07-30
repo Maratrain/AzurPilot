@@ -370,6 +370,14 @@
       "name": "每周珍珠采购与售卖喵",
       "help": "仅支持minitouch喵。每周二 01:00 自动处理珍珠喵：先买本周珍珠，再卖已有珍珠。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错喵。(´;ω;`)"
     },
+    "FleetScan": {
+      "name": "Task.FleetScan.name",
+      "help": "Task.FleetScan.help"
+    },
+    "FleetInfo": {
+      "name": "Task.FleetInfo.name",
+      "help": "Task.FleetInfo.help"
+    },
     "Daemon": {
       "name": "半自动点击小助手喵",
       "help": "遇到未适配关卡？雪风帮你点击准备、结算、退役，你只需手动选敌人喵~ (｀・ω・´)"
@@ -5623,6 +5631,20 @@
       "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品喵 可用餐品key对照：cheese:芝士, strawberry_milkshake:草莓奶绿, morning_light:晨光活力组合, wake_up_call:醒神套餐, fruity_fruitier:果香双杯乐 示例：30 > 20 > cheese > 10 (´・ω・`)"
     }
   },
+  "FleetInfo": {
+    "_info": {
+      "name": "FleetInfo._info.name",
+      "help": "FleetInfo._info.help"
+    },
+    "Result": {
+      "name": "FleetInfo.Result.name",
+      "help": "FleetInfo.Result.help"
+    },
+    "Record": {
+      "name": "FleetInfo.Record.name",
+      "help": "FleetInfo.Record.help"
+    }
+  },
   "Daemon": {
     "_info": {
       "name": "半自动点击助手",
@@ -5949,6 +5971,25 @@
     "MenuAlas": {
       "Overview": "总览喵",
       "Log": "运行日志喵"
+    },
+    "TaskConfig": {
+      "SearchPlaceholder": "搜索配置喵",
+      "SearchNoResult": "没有找到匹配的配置喵",
+      "SearchResultCount": "共找到 {count} 项结果喵"
+    },
+    "FleetManagement": {
+      "StartScan": "Gui.FleetManagement.StartScan",
+      "Scanning": "Gui.FleetManagement.Scanning",
+      "ScanStarted": "Gui.FleetManagement.ScanStarted",
+      "ScanAlreadyRunning": "Gui.FleetManagement.ScanAlreadyRunning",
+      "ScanStartFailed": "Gui.FleetManagement.ScanStartFailed",
+      "LastScan": "Gui.FleetManagement.LastScan",
+      "NoResult": "Gui.FleetManagement.NoResult",
+      "Main": "Gui.FleetManagement.Main",
+      "Vanguard": "Gui.FleetManagement.Vanguard",
+      "Submarine": "Gui.FleetManagement.Submarine",
+      "Fleet": "Gui.FleetManagement.Fleet",
+      "Ships": "Gui.FleetManagement.Ships"
     },
     "MenuDevelop": {
       "HomePage": "主页喵",

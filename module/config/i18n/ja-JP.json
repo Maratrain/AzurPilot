@@ -370,6 +370,14 @@
       "name": "週間パール取引",
       "help": "minitouchのみ対応。毎週火曜日01:00にパールを自動処理：まず今週のパールを購入し、次に既存のパールを販売します。コインが200x220個分の購入に十分であることを確認してください。これが今週のパールを一括購入するための最低要件です。不足するとエラーが発生する可能性があります。"
     },
+    "FleetScan": {
+      "name": "Task.FleetScan.name",
+      "help": "Task.FleetScan.help"
+    },
+    "FleetInfo": {
+      "name": "Task.FleetInfo.name",
+      "help": "Task.FleetInfo.help"
+    },
     "Daemon": {
       "name": "半自動クリック",
       "help": ""
@@ -5623,6 +5631,20 @@
       "help": "複数のブースト商品が検出された場合、フィルター順で最初のものを優先して置き換えます；置き換えスロットは商品5→1から最後の空でないスロットを探します"
     }
   },
+  "FleetInfo": {
+    "_info": {
+      "name": "FleetInfo._info.name",
+      "help": "FleetInfo._info.help"
+    },
+    "Result": {
+      "name": "FleetInfo.Result.name",
+      "help": "FleetInfo.Result.help"
+    },
+    "Record": {
+      "name": "FleetInfo.Record.name",
+      "help": "FleetInfo.Record.help"
+    }
+  },
   "Daemon": {
     "_info": {
       "name": "半自動クリック",
@@ -5949,6 +5971,25 @@
     "MenuAlas": {
       "Overview": "概要",
       "Log": "実行ログ"
+    },
+    "TaskConfig": {
+      "SearchPlaceholder": "設定を検索",
+      "SearchNoResult": "一致する設定がありません",
+      "SearchResultCount": "{count} 件の結果"
+    },
+    "FleetManagement": {
+      "StartScan": "Gui.FleetManagement.StartScan",
+      "Scanning": "Gui.FleetManagement.Scanning",
+      "ScanStarted": "Gui.FleetManagement.ScanStarted",
+      "ScanAlreadyRunning": "Gui.FleetManagement.ScanAlreadyRunning",
+      "ScanStartFailed": "Gui.FleetManagement.ScanStartFailed",
+      "LastScan": "Gui.FleetManagement.LastScan",
+      "NoResult": "Gui.FleetManagement.NoResult",
+      "Main": "Gui.FleetManagement.Main",
+      "Vanguard": "Gui.FleetManagement.Vanguard",
+      "Submarine": "Gui.FleetManagement.Submarine",
+      "Fleet": "Gui.FleetManagement.Fleet",
+      "Ships": "Gui.FleetManagement.Ships"
     },
     "MenuDevelop": {
       "HomePage": "ホームページ",

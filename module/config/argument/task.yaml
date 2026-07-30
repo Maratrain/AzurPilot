@@ -450,7 +450,10 @@ Island:
 FleetManagement:
   menu: collapse
   page: setting
-  tasks: {}
+  tasks:
+    FleetScan: []
+    FleetInfo:
+      - FleetInfo
 
 # ==================== Tool ====================
 

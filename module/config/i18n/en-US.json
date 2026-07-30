@@ -370,6 +370,14 @@
       "name": "Weekly Pearl Trade",
       "help": "Only supports minitouch. Process pearls every Tuesday at 01:00."
     },
+    "FleetScan": {
+      "name": "Task.FleetScan.name",
+      "help": "Task.FleetScan.help"
+    },
+    "FleetInfo": {
+      "name": "Task.FleetInfo.name",
+      "help": "Task.FleetInfo.help"
+    },
     "Daemon": {
       "name": "Semi-Auto Click",
       "help": ""
@@ -5623,6 +5631,20 @@
       "help": "When multiple boosted products are detected, the first one in filter order is prioritized for replacement; the replacement slot is the last non-empty slot searched from Product5→1"
     }
   },
+  "FleetInfo": {
+    "_info": {
+      "name": "FleetInfo._info.name",
+      "help": "FleetInfo._info.help"
+    },
+    "Result": {
+      "name": "FleetInfo.Result.name",
+      "help": "FleetInfo.Result.help"
+    },
+    "Record": {
+      "name": "FleetInfo.Record.name",
+      "help": "FleetInfo.Record.help"
+    }
+  },
   "Daemon": {
     "_info": {
       "name": "semi-automatic click",
@@ -5949,6 +5971,25 @@
     "MenuAlas": {
       "Overview": "Overview",
       "Log": "Log"
+    },
+    "TaskConfig": {
+      "SearchPlaceholder": "Search settings",
+      "SearchNoResult": "No matching settings",
+      "SearchResultCount": "{count} results"
+    },
+    "FleetManagement": {
+      "StartScan": "Gui.FleetManagement.StartScan",
+      "Scanning": "Gui.FleetManagement.Scanning",
+      "ScanStarted": "Gui.FleetManagement.ScanStarted",
+      "ScanAlreadyRunning": "Gui.FleetManagement.ScanAlreadyRunning",
+      "ScanStartFailed": "Gui.FleetManagement.ScanStartFailed",
+      "LastScan": "Gui.FleetManagement.LastScan",
+      "NoResult": "Gui.FleetManagement.NoResult",
+      "Main": "Gui.FleetManagement.Main",
+      "Vanguard": "Gui.FleetManagement.Vanguard",
+      "Submarine": "Gui.FleetManagement.Submarine",
+      "Fleet": "Gui.FleetManagement.Fleet",
+      "Ships": "Gui.FleetManagement.Ships"
     },
     "MenuDevelop": {
       "HomePage": "Home",

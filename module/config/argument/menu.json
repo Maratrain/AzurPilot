@@ -132,7 +132,10 @@
   "FleetManagement": {
     "menu": "collapse",
     "page": "setting",
-    "tasks": []
+    "tasks": [
+      "FleetScan",
+      "FleetInfo"
+    ]
   },
   "Tool": {
     "menu": "collapse",

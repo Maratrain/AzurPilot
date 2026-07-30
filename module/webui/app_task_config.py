@@ -79,19 +79,26 @@ class TaskConfigMixin(WebUIMixinBase):
                 _onclick = self.alas_set_group
 
             if task_data.get("menu") == "collapse":
-                task_btn_list = [
-                    put_buttons(
-                        [
-                            {
-                                "label": t(f"Task.{task}.name"),
-                                "value": task,
-                                "color": "menu",
-                            }
-                        ],
-                        onclick=_onclick,
-                    ).style(f"--menu-{task}--")
-                    for task in task_data.get("tasks", [])
-                ]
+                task_btn_list = []
+                for task in task_data.get("tasks", []):
+                    onclick = _onclick
+                    if menu == "FleetManagement":
+                        onclick = {
+                            "FleetScan": self.fleet_scan_page,
+                            "FleetInfo": self.fleet_info_page,
+                        }.get(task, _onclick)
+                    task_btn_list.append(
+                        put_buttons(
+                            [
+                                {
+                                    "label": t(f"Task.{task}.name"),
+                                    "value": task,
+                                    "color": "menu",
+                                }
+                            ],
+                            onclick=onclick,
+                        ).style(f"--menu-{task}--")
+                    )
                 put_collapse(title=t(f"Menu.{menu}.name"), content=task_btn_list)
             else:
                 title = t(f"Menu.{menu}.name")
@@ -103,6 +110,12 @@ class TaskConfigMixin(WebUIMixinBase):
                     "</div>"
                 )
                 for task in task_data.get("tasks", []):
+                    onclick = _onclick
+                    if menu == "FleetManagement":
+                        onclick = {
+                            "FleetScan": self.fleet_scan_page,
+                            "FleetInfo": self.fleet_info_page,
+                        }.get(task, _onclick)
                     put_buttons(
                         [
                             {
@@ -111,7 +124,7 @@ class TaskConfigMixin(WebUIMixinBase):
                                 "color": "menu",
                             }
                         ],
-                        onclick=_onclick,
+                        onclick=onclick,
                     ).style(f"--menu-{task}--").style(f"padding-left: 0.75rem")
 
         self.alas_overview()
