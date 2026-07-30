@@ -381,6 +381,84 @@ class FleetScanner(Scanner):
         return limit_in(value, 0, 6)
 
 
+class FleetNameScanner(Scanner):
+    """识别船坞卡片中的舰娘名称，保留 OCR 原始结果。"""
+    OCR_LANG = {
+        'cn': 'ppocr_v6',
+        'en': 'ppocr_v6',
+        'jp': 'jp',
+        'tw': 'tw',
+    }
+
+    def __init__(
+        self,
+        grid_shape: Tuple[int, int] = (7, 2),
+        excluded_positions: Tuple[Tuple[int, int], ...] = (),
+    ) -> None:
+        super().__init__()
+        self._results = []
+        card_grids = ButtonGrid(
+            origin=CARD_GRIDS.origin,
+            delta=CARD_GRIDS.delta,
+            button_shape=CARD_GRIDS.button_shape,
+            grid_shape=grid_shape,
+            name='CARD',
+        )
+        self.grids = card_grids.crop(area=(-10, 160, 142, 190), name='SHIP_NAME')
+        self.excluded_positions = set(excluded_positions)
+        self.ocr_model = Ocr(
+            self._buttons(),
+            lang=self.OCR_LANG[server.server],
+            letter=(255, 255, 255),
+            threshold=128,
+            name='FLEET_SHIP_NAME',
+        )
+
+    def _buttons(self) -> List:
+        return [
+            button.area
+            for x, y, button in self.grids.generate()
+            if (x, y) not in self.excluded_positions
+        ]
+
+    def _scan(self, image) -> List:
+        return self.ocr_model.ocr(image)
+
+    def limit_value(self, value) -> str:
+        return value
+
+    def move(self, vector) -> None:
+        super().move(vector)
+        self.ocr_model.buttons = self._buttons()
+
+
+class FleetManagementScanner:
+    """扫描当前船坞页面，并按舰队归属聚合舰娘名称。"""
+    def __init__(
+        self,
+        grid_shape: Tuple[int, int] = (7, 3),
+        excluded_positions: Tuple[Tuple[int, int], ...] = ((4, 2), (5, 2), (6, 2)),
+    ) -> None:
+        self.fleet_scanner = FleetScanner(
+            grid_shape=grid_shape,
+            excluded_positions=excluded_positions,
+        )
+        self.name_scanner = FleetNameScanner(
+            grid_shape=grid_shape,
+            excluded_positions=excluded_positions,
+        )
+
+    def scan(self, image) -> Dict[int, List[str]]:
+        """返回按舰队编号分组的舰娘名称原始 OCR 结果。"""
+        fleets = self.fleet_scanner.scan(image, output=False)
+        names = self.name_scanner.scan(image, output=False)
+        result = defaultdict(list)
+        for fleet, name in zip(fleets, names):
+            if fleet:
+                result[fleet].append(name)
+        return dict(result)
+
+
 class StatusScanner(Scanner):
     def __init__(self) -> None:
         super().__init__()
