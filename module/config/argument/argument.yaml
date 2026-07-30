@@ -1839,8 +1839,6 @@ IslandBusinessShop5:
     value: |-
       30 > 20 > cheese > 10
 
-# ==================== Tools ====================
-
 # ==================== Fleet Management ====================
 
 FleetInfo:

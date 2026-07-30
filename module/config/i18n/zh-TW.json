@@ -371,12 +371,12 @@
       "help": "僅支援minitouch。每週二 01:00 自動處理珍珠：先採購本週珍珠，再售賣已有珍珠。金幣一定要夠購買200x220個這是最低要求能一次買光本週珍珠, 否則可能會報錯."
     },
     "FleetScan": {
-      "name": "Task.FleetScan.name",
-      "help": "Task.FleetScan.help"
+      "name": "艦隊掃描",
+      "help": "掃描目前編入艦隊的艦船資訊"
     },
     "FleetInfo": {
-      "name": "Task.FleetInfo.name",
-      "help": "Task.FleetInfo.help"
+      "name": "艦隊資訊",
+      "help": "查看最近一次艦隊掃描結果"
     },
     "Daemon": {
       "name": "半自動點選",
@@ -5633,16 +5633,16 @@
   },
   "FleetInfo": {
     "_info": {
-      "name": "FleetInfo._info.name",
-      "help": "FleetInfo._info.help"
+      "name": "艦隊資訊",
+      "help": "儲存艦隊掃描結果"
     },
     "Result": {
-      "name": "FleetInfo.Result.name",
-      "help": "FleetInfo.Result.help"
+      "name": "掃描結果",
+      "help": "依艦種與艦隊編號儲存的艦船資訊"
     },
     "Record": {
-      "name": "FleetInfo.Record.name",
-      "help": "FleetInfo.Record.help"
+      "name": "掃描時間",
+      "help": "最近一次完成艦隊掃描的時間"
     }
   },
   "Daemon": {
@@ -5978,18 +5978,20 @@
       "SearchResultCount": "共 {count} 項結果"
     },
     "FleetManagement": {
-      "StartScan": "Gui.FleetManagement.StartScan",
-      "Scanning": "Gui.FleetManagement.Scanning",
-      "ScanStarted": "Gui.FleetManagement.ScanStarted",
-      "ScanAlreadyRunning": "Gui.FleetManagement.ScanAlreadyRunning",
-      "ScanStartFailed": "Gui.FleetManagement.ScanStartFailed",
-      "LastScan": "Gui.FleetManagement.LastScan",
-      "NoResult": "Gui.FleetManagement.NoResult",
-      "Main": "Gui.FleetManagement.Main",
-      "Vanguard": "Gui.FleetManagement.Vanguard",
-      "Submarine": "Gui.FleetManagement.Submarine",
-      "Fleet": "Gui.FleetManagement.Fleet",
-      "Ships": "Gui.FleetManagement.Ships"
+      "StartScan": "開始掃描",
+      "Scanning": "掃描中",
+      "ScanStarted": "艦隊掃描已啟動",
+      "ScanAlreadyRunning": "目前實例正在執行任務，無法啟動艦隊掃描",
+      "ScanStartFailed": "艦隊掃描啟動失敗",
+      "LastScan": "最近掃描",
+      "NoResult": "尚未儲存艦隊掃描結果",
+      "Main": "後排主力",
+      "Vanguard": "前排先鋒",
+      "Submarine": "潛艇",
+      "SurfaceFleet": "水上艦隊",
+      "UnderwaterFleet": "水下艦隊",
+      "Fleet": "艦隊",
+      "Ships": "艦船"
     },
     "MenuDevelop": {
       "HomePage": "主頁",

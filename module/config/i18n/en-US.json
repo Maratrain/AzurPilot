@@ -371,12 +371,12 @@
       "help": "Only supports minitouch. Process pearls every Tuesday at 01:00."
     },
     "FleetScan": {
-      "name": "Task.FleetScan.name",
-      "help": "Task.FleetScan.help"
+      "name": "Fleet Scan",
+      "help": "Scan ships assigned to fleets"
     },
     "FleetInfo": {
-      "name": "Task.FleetInfo.name",
-      "help": "Task.FleetInfo.help"
+      "name": "Fleet Information",
+      "help": "View the latest fleet scan result"
     },
     "Daemon": {
       "name": "Semi-Auto Click",
@@ -5633,16 +5633,16 @@
   },
   "FleetInfo": {
     "_info": {
-      "name": "FleetInfo._info.name",
-      "help": "FleetInfo._info.help"
+      "name": "Fleet information",
+      "help": "Stores fleet scan results"
     },
     "Result": {
-      "name": "FleetInfo.Result.name",
-      "help": "FleetInfo.Result.help"
+      "name": "Scan result",
+      "help": "Ships grouped by category and fleet number"
     },
     "Record": {
-      "name": "FleetInfo.Record.name",
-      "help": "FleetInfo.Record.help"
+      "name": "Scan time",
+      "help": "Time when the latest fleet scan completed"
     }
   },
   "Daemon": {
@@ -5978,18 +5978,20 @@
       "SearchResultCount": "{count} results"
     },
     "FleetManagement": {
-      "StartScan": "Gui.FleetManagement.StartScan",
-      "Scanning": "Gui.FleetManagement.Scanning",
-      "ScanStarted": "Gui.FleetManagement.ScanStarted",
-      "ScanAlreadyRunning": "Gui.FleetManagement.ScanAlreadyRunning",
-      "ScanStartFailed": "Gui.FleetManagement.ScanStartFailed",
-      "LastScan": "Gui.FleetManagement.LastScan",
-      "NoResult": "Gui.FleetManagement.NoResult",
-      "Main": "Gui.FleetManagement.Main",
-      "Vanguard": "Gui.FleetManagement.Vanguard",
-      "Submarine": "Gui.FleetManagement.Submarine",
-      "Fleet": "Gui.FleetManagement.Fleet",
-      "Ships": "Gui.FleetManagement.Ships"
+      "StartScan": "Start scan",
+      "Scanning": "Scanning",
+      "ScanStarted": "Fleet scan started",
+      "ScanAlreadyRunning": "This instance is already running a task and cannot start a fleet scan",
+      "ScanStartFailed": "Failed to start fleet scan",
+      "LastScan": "Latest scan",
+      "NoResult": "No fleet scan result has been saved",
+      "Main": "Main fleet",
+      "Vanguard": "Vanguard fleet",
+      "Submarine": "Submarine fleet",
+      "SurfaceFleet": "Surface Fleets",
+      "UnderwaterFleet": "Underwater Fleets",
+      "Fleet": "Fleet",
+      "Ships": "Ships"
     },
     "MenuDevelop": {
       "HomePage": "Home",
