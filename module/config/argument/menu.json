@@ -129,6 +129,11 @@
       "IslandPearlSell"
     ]
   },
+  "FleetManagement": {
+    "menu": "collapse",
+    "page": "setting",
+    "tasks": []
+  },
   "Tool": {
     "menu": "collapse",
     "page": "tool",

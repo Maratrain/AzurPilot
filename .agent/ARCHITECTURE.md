@@ -24,7 +24,6 @@ alwaysApply: true
 | **语言** | Python 3.14+ |
 | **包管理** | uv (项目模式) |
 | **Web 框架** | PyWebIO + Starlette + uvicorn |
-| **桌面应用** | Electron + Vue 3 + Ant Design Vue |
 | **设备控制** | ADB + uiautomator2 |
 | **图像处理** | OpenCV + Pillow + NumPy |
 | **OCR 引擎** | RapidOCR + ONNX Runtime + NCNN |

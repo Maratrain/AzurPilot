@@ -32,6 +32,10 @@
       "name": "Island Plan",
       "help": ""
     },
+    "FleetManagement": {
+      "name": "Menu.FleetManagement.name",
+      "help": "Menu.FleetManagement.help"
+    },
     "Tool": {
       "name": "Tools+",
       "help": ""

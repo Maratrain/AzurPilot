@@ -126,7 +126,6 @@ alwaysApply: true
 | **dev_tools** | `dev_tools/` | 开发工具 |
 | **deploy** | `deploy/` | 部署脚本 |
 | **config** | `config/` | 配置模板 |
-| **webapp** | `webapp/` | Electron 桌面应用 |
 
 ---
 

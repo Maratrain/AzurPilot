@@ -315,13 +315,16 @@ class ConfigGenerator:
                 v = deep_get(old, keys=k, default=d)
                 deep_set(new, keys=k, value=v)
 
-        # 菜单翻译
+        # 菜单翻译。空菜单分组也需要翻译，用于预留尚未实现内容的入口。
+        for task_group in self.task:
+            if task_group != 'Dashboard':
+                deep_load(['Menu', task_group])
+
         for path, data in deep_iter(self.task, depth=3):
             if 'tasks' not in path:
                 continue
             task_group, _, task = path
             if task_group != 'Dashboard':
-                deep_load(['Menu', task_group])
                 deep_load(['Task', task])
         # 参数翻译
         visited_group = set()

@@ -32,6 +32,10 @@
       "name": "岛屿计划展开喵",
       "help": "在平静的小岛上建设家园喵，享受悠闲时光 (｡•̀ᴗ-)✧"
     },
+    "FleetManagement": {
+      "name": "Menu.FleetManagement.name",
+      "help": "Menu.FleetManagement.help"
+    },
     "Tool": {
       "name": "雪风的工具箱",
       "help": "里面装满了雪风的私房道具喵，别乱翻！(｀皿´＃)"
