@@ -60,13 +60,9 @@ class OpsiShop(OSMap):
 
         if self.appear(OS_SHOP_CHECK):
             not_empty = self.handle_port_supply_buy()
-            next_reset = self._os_shop_delay(not_empty)
-            logger.info('大世界商店+已完成，延迟到下次重置')
-            logger.attr('OpsiShopNextReset', next_reset)
         else:
-            next_reset = get_os_next_reset()
-            logger.warning('There is no shop in the port, skip to the next month.')
-            logger.attr('OpsiShopNextReset', next_reset)
+            not_empty = False
+            logger.warning('[大世界-商店] 港口中没有商店')
 
         self.port_shop_quit()
         self.port_quit()

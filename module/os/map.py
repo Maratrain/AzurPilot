@@ -751,55 +751,6 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
 
         return True
 
-    def get_action_point_limit(self, preserve=False):
-        """
-        每月末覆盖用户配置，以便无需手动配置即可消耗所有行动力。
-
-        Args:
-            preserve (bool): 是否保留行动力直到大世界重置。
-
-        Returns:
-            int: 行动力保留值。
-        """
-        if preserve:
-            if self.config.is_task_enabled("OpsiCrossMonth"):
-                logger.info("Preserve action points until OpsiCrossMonth")
-                return maxsize
-            else:
-                logger.info(
-                    "OpsiCrossMonth is not enabled, skip OpsiMeowfficerFarming.APPreserveUntilReset"
-                )
-
-        remain = get_os_reset_remain()
-        if remain <= 0:
-            if self.config.is_task_enabled("OpsiCrossMonth"):
-                logger.info(
-                    "Just less than 1 day to OpSi reset, OpsiCrossMonth is enabled, "
-                    "set OpsiMeowfficerFarming.ActionPointPreserve to 500 temporarily"
-                )
-                return 500
-            else:
-                logger.info(
-                    "Just less than 1 day to OpSi reset, "
-                    "set ActionPointPreserve to 0 temporarily"
-                )
-                return 0
-        elif self.is_cl1_mode_enabled and remain <= 2:
-            logger.info(
-                "Just less than 3 days to OpSi reset, "
-                "set ActionPointPreserve to 2000 temporarily for hazard 1 leveling"
-            )
-            return 2000
-        elif remain <= 2:
-            logger.info(
-                "Just less than 3 days to OpSi reset, "
-                "set ActionPointPreserve to 500 temporarily"
-            )
-            return 500
-        else:
-            logger.info("Not close to OpSi reset")
-            return maxsize
-
     def handle_after_auto_search(self):
         logger.hr("After auto search", level=2)
         solved = False
