@@ -135,7 +135,6 @@ class OpsiCrossMonth(MeowfficerTargetZoneMixin, OSMap):
             OpsiMeowfficerFarming_HazardLevel=OpsiMeowfficerFarming_HazardLevel,
             OpsiMeowfficerFarming_TargetZone=self.config.cross_get('OpsiMeowfficerFarming.OpsiMeowfficerFarming.TargetZone'),
             OpsiMeowfficerFarming_StayInZone=self.config.cross_get('OpsiMeowfficerFarming.OpsiMeowfficerFarming.StayInZone'),
-            OpsiMeowfficerFarming_APPreserveUntilReset=False
         )
         target_zone_tokens = self._meow_target_zone_tokens()
         target_zones = []

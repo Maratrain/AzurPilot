@@ -677,6 +677,10 @@ class GeneratedConfig:
     OpsiScheduling_EnableAbyssal = False  # True, False
     OpsiScheduling_EnableStronghold = False  # True, False
     OpsiScheduling_TaskPriority = 'OpsiStronghold > OpsiObscure > OpsiAbyssal > OpsiMeowfficerFarming'
+    OpsiScheduling_MonthEndActionPointCleanupEnable = False  # True, False
+    OpsiScheduling_MonthEndActionPointCleanupDays = 0
+    OpsiScheduling_MonthEndActionPointPreserve = 0
+    OpsiScheduling_MonthEndShopPurchase = True  # True, False
 
     # 配置组 `OpsiPreventActionPointOverflow`
     OpsiPreventActionPointOverflow_Task = 'OpsiScheduling'  # OpsiScheduling, OpsiHazard1Leveling, OpsiMeowfficerFarming

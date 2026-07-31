@@ -3520,6 +3520,26 @@
     "TaskPriority": {
       "name": "補充黃幣任務優先級",
       "help": "黃幣不足時，執行補充黃幣任務的優先級順序。使用 > 分隔。"
+    },
+    "MonthEndActionPointCleanupEnable": {
+      "name": "OpsiScheduling.MonthEndActionPointCleanupEnable.name",
+      "help": "OpsiScheduling.MonthEndActionPointCleanupEnable.help",
+      "True": "True",
+      "False": "False"
+    },
+    "MonthEndActionPointCleanupDays": {
+      "name": "OpsiScheduling.MonthEndActionPointCleanupDays.name",
+      "help": "OpsiScheduling.MonthEndActionPointCleanupDays.help"
+    },
+    "MonthEndActionPointPreserve": {
+      "name": "OpsiScheduling.MonthEndActionPointPreserve.name",
+      "help": "OpsiScheduling.MonthEndActionPointPreserve.help"
+    },
+    "MonthEndShopPurchase": {
+      "name": "OpsiScheduling.MonthEndShopPurchase.name",
+      "help": "OpsiScheduling.MonthEndShopPurchase.help",
+      "True": "True",
+      "False": "False"
     }
   },
   "OpsiPreventActionPointOverflow": {

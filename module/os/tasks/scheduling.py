@@ -30,6 +30,7 @@ from datetime import timedelta
 from module.config.config import Function, name_to_function
 from module.config.deep import deep_get
 from module.config.time_source import now as current_time
+from module.config.utils import get_os_reset_remain
 
 from module.logger import logger
 from module.os.map import OSMap
@@ -69,11 +70,18 @@ class CoinTaskMixin:
     CONFIG_PATH_SMART_AP_PRESERVE = 'OpsiScheduling.OpsiScheduling.ActionPointPreserve'
     CONFIG_PATH_SMART_COIN_RETURN_THRESHOLD = 'OpsiScheduling.OpsiScheduling.OperationCoinsReturnThreshold'
     CONFIG_PATH_SMART_STATE = 'OpsiScheduling.Storage.Storage'
+    # 月末清理行动力配置路径
+    CONFIG_PATH_MONTH_END_CLEANUP_ENABLE = 'OpsiScheduling.OpsiScheduling.MonthEndActionPointCleanupEnable'
+    CONFIG_PATH_MONTH_END_CLEANUP_DAYS = 'OpsiScheduling.OpsiScheduling.MonthEndActionPointCleanupDays'
+    CONFIG_PATH_MONTH_END_AP_PRESERVE = 'OpsiScheduling.OpsiScheduling.MonthEndActionPointPreserve'
+    CONFIG_PATH_MONTH_END_SHOP_PURCHASE = 'OpsiScheduling.OpsiScheduling.MonthEndShopPurchase'
     STATE_KEY_COIN_REPLENISH_START = 'CoinReplenishStart'
     STATE_KEY_AP_REPLENISH_ACTIVE = 'ApReplenishActive'
     STATE_KEY_SCHEDULING_MODE = 'SchedulingMode'
+    STATE_KEY_MONTH_END_CLEANUP_FIRST_RUN = 'MonthEndCleanupFirstRun'
     SCHEDULING_MODE_COIN_TARGET = 'coin_target'
     SCHEDULING_MODE_ACTION_POINT = 'action_point'
+    SCHEDULING_MODE_MONTH_END_CLEANUP = 'month_end_cleanup'
     RUNTIME_ATTR_LAST_NOTIFIED_COIN_TASK = '_smart_scheduling_last_notified_coin_task'
     RUNTIME_ATTR_LAST_COIN_TASK_NOTIFICATION_ATTEMPT = '_smart_scheduling_last_coin_task_notification_attempt'
     RUNTIME_ATTR_PREVENT_OVERFLOW_DELAY = '_prevent_action_point_overflow_delay'
@@ -185,6 +193,32 @@ class CoinTaskMixin:
                 keys=f'{self.TASK_NAME_SCHEDULING}.Scheduler.ServerUpdate',
                 default='00:00',
             ),
+            task=self.TASK_NAME_SCHEDULING,
+        )
+
+    def _delay_smart_scheduling_with_minutes(self, reason, minutes):
+        """
+        将实际运行智能调度+的任务延迟指定分钟数。
+
+        Args:
+            reason (str): 延迟原因（用于日志）。
+            minutes (int): 延迟的分钟数。
+        """
+        self._clear_coin_task_notification_state()
+        if self.is_running_prevent_action_point_overflow_task():
+            setattr(
+                self,
+                self.RUNTIME_ATTR_PREVENT_OVERFLOW_DELAY,
+                ((), {'minutes': minutes}),
+            )
+            logger.info(
+                f'[大世界-智能调度+] {reason}，防止行动力溢出任务延迟 {minutes} 分钟'
+            )
+            return
+
+        logger.info(f'[大世界-智能调度+] {reason}，智能调度+延迟 {minutes} 分钟')
+        self.config.task_delay(
+            minute=minutes,
             task=self.TASK_NAME_SCHEDULING,
         )
     
@@ -923,6 +957,39 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         """执行一轮智能调度+决策。"""
         yellow_coins = self.get_yellow_coins()
         total_ap, current_ap = self._get_scheduling_action_point()
+
+        # 月末清理行动力检查（优先级最高，先于黄币和侵蚀1调度）
+        self._reset_month_end_cleanup_first_run_if_new_month()
+        if self._is_month_end_cleanup_active():
+            month_end_preserve = self._get_month_end_action_point_preserve()
+            if total_ap > month_end_preserve:
+                logger.info(
+                    f'[大世界-智能调度+] 进入月末清理行动力模式: '
+                    f'总行动力={total_ap}, 保留值={month_end_preserve}'
+                )
+                self._run_month_end_cleanup(
+                    month_end_preserve, yellow_coins, total_ap, current_ap
+                )
+                return
+            else:
+                logger.info(
+                    f'[大世界-智能调度+] 月末清理已启用但行动力 {total_ap} '
+                    f'<= 保留值 {month_end_preserve}，跳过清理'
+                )
+                # 月底最后一天（重置日当天）行动力不足时，每隔 2 小时再次检查
+                # 因为行动力会自然回复，2 小时后可能又有足够的行动力执行月末清理
+                remain = get_os_reset_remain()
+                if remain <= 0:
+                    logger.info(
+                        '[大世界-月末清理] 今天是月底最后一天，行动力不足，'
+                        '2 小时后再次运行'
+                    )
+                    self._delay_smart_scheduling_with_minutes(
+                        '月末清理行动力不足（月底最后一天）', 120
+                    )
+                    self.config.task_stop()
+                    return
+
         cl1_preserve = self._get_smart_scheduling_operation_coins_preserve()
         cl1_ap_preserve = self._get_effective_cl1_ap_preserve()
         meow_ap_preserve = self._get_coin_task_action_point_preserve()

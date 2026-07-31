@@ -2,7 +2,6 @@
 # 包括全球地图切换、海域初始化、处理各种地图减益状态以及海域自动搜索的守护逻辑。
 import time
 from contextlib import suppress
-from sys import maxsize
 
 import inflection
 
@@ -46,6 +45,24 @@ from module.ui.page import page_os
 
 
 class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
+    """大世界地图主控类。
+
+    整合舰队控制 (OSFleet)、地图操作 (Map)、全球地图摄像机 (GlobeCamera)、
+    仓库管理 (StorageHandler) 和战略搜索 (StrategicSearchHandler)，
+    提供大世界模式下的完整自动化能力。
+
+    核心职责:
+    - 大世界初始化 (os_init): 确保进入正确的海域并完成初始清理。
+    - 海域导航 (globe_goto): 通过全球地图切换到目标海域。
+    - 舰队维护: 修理 (fleet_repair)、士气恢复 (fleet_resolve)、EMP 解除。
+    - 自律寻敌 (run_auto_search): 清理当前海域的所有敌人和事件。
+    - 地图重扫 (map_rescan): 自动搜索后清理遗漏的事件和装置。
+
+    Attributes:
+        _auto_search_battle_count (int): 当前自动搜索的战斗次数。
+        _solved_map_event (set[str]): 已处理的地图事件类型集合。
+        _solved_fleet_mechanism (bool): 是否已解锁双舰队机关。
+    """
     def is_smart_scheduling_enabled(self) -> bool:
         """
         统一判断是否启用了智能调度+（侵蚀1与补黄币任务共享的开关逻辑）。

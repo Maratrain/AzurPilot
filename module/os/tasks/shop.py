@@ -26,6 +26,32 @@ class OpsiShop(OSMap):
             self.config.task_delay(server_update=True)
             self.config.task_stop()
 
+        not_empty = self.perform_port_shop_purchase()
+
+        next_reset = self._os_shop_delay(not_empty)
+        if not_empty:
+            logger.info('大世界商店+已完成，延迟到下次重置')
+        else:
+            logger.warning('[大世界-商店] 港口中没有商店，跳到下个月')
+        logger.attr('大世界商店下次重置', next_reset)
+
+        self.config.task_delay(target=next_reset)
+        self.config.task_stop()
+
+    def perform_port_shop_purchase(self):
+        """
+        执行一次港口商店购买流程，不包含任务延迟和停止逻辑。
+
+        供 os_shop 和智能调度+月末清理共用。前往最近友方港口，
+        进入商店购买所有补给，购买完成后退出港口。
+
+        Returns:
+            bool: True 表示商店非空且已尝试购买，False 表示商店为空。
+
+        Pages:
+            in: page_os, 大世界地图
+            out: page_os, 大世界地图
+        """
         if not self.zone.is_azur_port:
             self.globe_goto(self.zone_nearest_azur_port(self.zone))
 
@@ -44,9 +70,7 @@ class OpsiShop(OSMap):
 
         self.port_shop_quit()
         self.port_quit()
-
-        self.config.task_delay(target=next_reset)
-        self.config.task_stop()
+        return not_empty
 
     def _os_shop_delay(self, not_empty) -> datetime:
         """
