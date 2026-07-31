@@ -1157,6 +1157,246 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         self._clear_coin_task_notification_state()
         logger.info('[大世界-智能调度+] 执行侵蚀1练级任务')
         self._run_scheduled_hazard1_leveling(self._get_effective_cl1_ap_preserve())
+
+    # ==================== 月末清理行动力相关方法 ====================
+
+    def _get_month_end_cleanup_days(self):
+        """
+        读取月末清理行动力的触发天数。
+
+        Returns:
+            int: 距大世界重置剩余天数小于等于此值时启动月末清理，0 表示禁用。
+        """
+        try:
+            days = int(self.config.cross_get(
+                keys=self.CONFIG_PATH_MONTH_END_CLEANUP_DAYS,
+                default=0,
+            ) or 0)
+        except (TypeError, ValueError):
+            days = 0
+        return max(0, days)
+
+    def _get_month_end_action_point_preserve(self):
+        """
+        获取月末清理行动力时的保留值。
+
+        规则：
+            - 用户配置 MonthEndActionPointPreserve 作为基础值
+            - 如果启用 OpsiCrossMonth，最低预留 200 行动力
+            - 取两者最大值作为最终保留值
+
+        Returns:
+            int: 月末清理行动力保留值。
+        """
+        try:
+            user_preserve = int(self.config.cross_get(
+                keys=self.CONFIG_PATH_MONTH_END_AP_PRESERVE,
+                default=0,
+            ) or 0)
+        except (TypeError, ValueError):
+            user_preserve = 0
+
+        cross_month_enabled = self.config.is_task_enabled('OpsiCrossMonth')
+        min_preserve = 200 if cross_month_enabled else 0
+        final_preserve = max(user_preserve, min_preserve)
+        logger.info(
+            f'[大世界-月末清理] 行动力保留值: 用户配置={user_preserve}, '
+            f'跨月每日{"启用" if cross_month_enabled else "未启用"}, '
+            f'最低预留={min_preserve}, 最终保留={final_preserve}'
+        )
+        return final_preserve
+
+    def _is_month_end_cleanup_active(self):
+        """
+        判断当前是否应进入月末清理行动力模式。
+
+        触发条件：
+            1. MonthEndActionPointCleanupEnable 开关已开启
+            2. MonthEndActionPointCleanupDays > 0
+            3. 距大世界重置剩余天数 <= MonthEndActionPointCleanupDays
+
+        Returns:
+            bool: 是否启用月末清理。
+        """
+        if not self._config_enabled(keys=self.CONFIG_PATH_MONTH_END_CLEANUP_ENABLE, default=False):
+            return False
+        cleanup_days = self._get_month_end_cleanup_days()
+        if cleanup_days <= 0:
+            return False
+        remain = get_os_reset_remain()
+        active = remain <= cleanup_days
+        logger.info(
+            f'[大世界-月末清理] 清理天数={cleanup_days}, 重置剩余={remain}, '
+            f'月末清理{"启用" if active else "未启用"}'
+        )
+        return active
+
+    def _is_month_end_cleanup_first_run(self):
+        """
+        判断本月是否首次运行月末清理。
+
+        Returns:
+            bool: True 表示本月首次运行。
+        """
+        first_run = self._get_smart_scheduling_state_value(
+            self.STATE_KEY_MONTH_END_CLEANUP_FIRST_RUN,
+            default=True,
+        )
+        return first_run is not False
+
+    def _set_month_end_cleanup_first_run(self, value):
+        """
+        标记本月是否已运行过月末清理。
+
+        Args:
+            value (bool): False 表示已运行过，True 表示首次运行。
+        """
+        self._set_smart_scheduling_state_value(
+            self.STATE_KEY_MONTH_END_CLEANUP_FIRST_RUN,
+            value,
+        )
+
+    def _reset_month_end_cleanup_first_run_if_new_month(self):
+        """
+        检测到大世界重置周期已进入新月时，重置月末清理首次运行标记。
+        """
+        if not self._is_month_end_cleanup_active():
+            if not self._is_month_end_cleanup_first_run():
+                logger.info('[大世界-月末清理] 大世界已进入新月周期，重置首次运行标记')
+                self._set_month_end_cleanup_first_run(True)
+
+    def _is_month_end_shop_purchase_enabled(self):
+        """
+        读取月末清理时是否执行商店购买。
+
+        Returns:
+            bool: True 表示执行商店购买。
+        """
+        return self._config_enabled(keys=self.CONFIG_PATH_MONTH_END_SHOP_PURCHASE, default=True)
+
+    def _run_month_end_shop_purchase(self):
+        """
+        月末清理中的商店购买步骤。
+
+        以 OpsiShop 任务上下文执行一次港口商店购买，
+        不触发 task_delay/task_stop，购买完成后返回大世界地图。
+        若用户关闭了商店购买开关，则跳过此步骤。
+        """
+        if not self._is_month_end_shop_purchase_enabled():
+            logger.info('[大世界-月末清理] 商店购买已关闭，跳过')
+            return
+        logger.info('[大世界-月末清理] 执行港口商店购买')
+        self._run_with_opsi_task_context(
+            'OpsiShop',
+            self.perform_port_shop_purchase,
+        )
+
+    def _run_month_end_cleanup(self, month_end_preserve, yellow_coins, total_ap, current_ap):
+        """
+        月末清理行动力主循环。
+
+        执行流程：
+            1. 首次运行时先调出塞壬要塞
+            2. 每轮循环：短猫相接 → 商店购买 → 隐秘海域 → 深渊坐标
+            3. 循环直到总行动力 <= 保留值 或 所有任务无可执行内容
+
+        Args:
+            month_end_preserve (int): 月末清理行动力保留值。
+            yellow_coins (int): 当前黄币数量。
+            total_ap (int): 当前总行动力。
+            current_ap (int): 当前真实行动力。
+        """
+        logger.hr('大世界-月末清理行动力', level=2)
+        logger.info(
+            f'[大世界-月末清理] 开始清理: 黄币={yellow_coins}, '
+            f'总行动力={total_ap}, 当前行动力={current_ap}, 保留值={month_end_preserve}'
+        )
+
+        # 首次运行时先调出塞壬要塞
+        is_first_run = self._is_month_end_cleanup_first_run()
+        if is_first_run:
+            logger.info('[大世界-月末清理] 本月首次运行，先调出塞壬要塞')
+            try:
+                self._run_scheduled_coin_task_once(self.TASK_NAME_STRONGHOLD, 0)
+            except ActionPointLimit as e:
+                logger.warning(f'[大世界-月末清理] 塞壬要塞行动力不足: {e}')
+            self._set_month_end_cleanup_first_run(False)
+
+        # 月末清理主循环（无限制，依靠退出条件终止）
+        round_num = 0
+        while True:
+            round_num += 1
+            logger.hr(f'大世界-月末清理 第{round_num}轮', level=3)
+
+            # 检查行动力是否已降到保留值
+            total_ap, current_ap = self._get_scheduling_action_point()
+            if total_ap <= month_end_preserve:
+                logger.info(
+                    f'[大世界-月末清理] 总行动力 {total_ap} <= 保留值 {month_end_preserve}，'
+                    f'月末清理完成'
+                )
+                break
+
+            logger.info(
+                f'[大世界-月末清理] 第{round_num}轮: 总行动力={total_ap}, '
+                f'保留值={month_end_preserve}, 继续清理'
+            )
+
+            # 1. 调出隐秘海域
+            try:
+                self._run_scheduled_coin_task_once(self.TASK_NAME_OBSCURE, 0)
+            except ActionPointLimit as e:
+                logger.warning(f'[大世界-月末清理] 隐秘海域行动力不足: {e}')
+
+            # 2. 调出深渊坐标
+            try:
+                self._run_scheduled_coin_task_once(self.TASK_NAME_ABYSSAL, 0)
+            except ActionPointLimit as e:
+                logger.warning(f'[大世界-月末清理] 深渊坐标行动力不足: {e}')
+
+            # 3. 执行一轮短猫相接
+            meow_success = False
+            try:
+                meow_success = self._run_scheduled_coin_task_once(
+                    self.TASK_NAME_MEOWFFICER_FARMING, 0
+                )
+            except ActionPointLimit as e:
+                logger.warning(f'[大世界-月末清理] 短猫相接行动力不足: {e}')
+
+            # 4. 回到大世界商店购买
+            try:
+                self._run_month_end_shop_purchase()
+            except Exception as e:
+                logger.warning(f'[大世界-月末清理] 商店购买异常: {e}')
+
+            # 短猫无可执行内容时，其他任务也跑完一轮，结束月末清理
+            if not meow_success:
+                logger.info('[大世界-月末清理] 短猫相接无可执行内容，月末清理结束')
+                break
+
+        # 月末清理结束，刷新行动力并通知
+        total_ap, current_ap = self._get_scheduling_action_point()
+        logger.info(
+            f'[大世界-月末清理] 清理结束: 总行动力={total_ap}, '
+            f'当前行动力={current_ap}, 保留值={month_end_preserve}'
+        )
+        self.notify_push(
+            title='[AzurPilot] 智能调度+ - 月末清理行动力完成',
+            content=(
+                f'月末清理行动力已完成\n'
+                f'总行动力: {total_ap} (保留值 {month_end_preserve})\n'
+                f'当前行动力: {current_ap}'
+            ),
+        )
+
+        # 月底最后一天（重置日当天）每隔 2 小时运行一次，其他情况延迟到服务器刷新
+        remain = get_os_reset_remain()
+        if remain <= 0:
+            logger.info('[大世界-月末清理] 今天是月底最后一天，2 小时后再次运行')
+            self._delay_smart_scheduling_with_minutes('月末清理行动力已完成（月底最后一天）', 120)
+        else:
+            self._delay_smart_scheduling_to_server_update('月末清理行动力已完成')
+        self.config.task_stop()
     
     def notify_action_point_threshold(self, title, content):
         """
