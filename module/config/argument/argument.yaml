@@ -1839,6 +1839,18 @@ IslandBusinessShop5:
     value: |-
       30 > 20 > cheese > 10
 
+# ==================== Fleet Management ====================
+
+FleetInfo:
+  Result:
+    type: stored
+    value: {}
+    display: hide
+  Record:
+    type: stored
+    value: 2020-01-01 00:00:00
+    display: hide
+
 # ==================== Tools ====================
 
 Daemon:

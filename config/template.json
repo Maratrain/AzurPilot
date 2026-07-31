@@ -3365,6 +3365,20 @@
       "Storage": {}
     }
   },
+  "FleetScan": {
+    "Storage": {
+      "Storage": {}
+    }
+  },
+  "FleetInfo": {
+    "FleetInfo": {
+      "Result": {},
+      "Record": "2020-01-01 00:00:00"
+    },
+    "Storage": {
+      "Storage": {}
+    }
+  },
   "Daemon": {
     "Daemon": {
       "EnterMap": true

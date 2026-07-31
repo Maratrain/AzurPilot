@@ -260,6 +260,8 @@ class UI(InfoHandler):
         self.interval_clear(list(Page.iter_check_buttons()))
 
         logger.hr(f"UI goto {destination}")
+        # 导航超时计时器：长时间无法识别页面时触发恢复
+        nav_timeout = Timer(30, count=60).start()
         while 1:
             GOTO_MAIN.clear_offset()
             if skip_first_screenshot:
@@ -290,11 +292,30 @@ class UI(InfoHandler):
                     clicked = True
                     break
             if clicked:
+                nav_timeout.reset()
                 continue
 
             # 处理额外弹窗
             if self.ui_additional(get_ship=get_ship):
+                nav_timeout.reset()
                 continue
+
+            # 导航超时：当前页面无法识别，调用 ui_get_current_page 触发恢复
+            if nav_timeout.reached():
+                logger.warning(f'[UI] 导航到 {destination} 超时，尝试检测当前页面并恢复')
+                Page.clear_connection()
+                current = self.ui_get_current_page(skip_first_screenshot=True)
+                if current == destination:
+                    logger.info(f'[UI] 到达页面: {destination}')
+                    return
+                # 主界面新旧主题互为等价
+                if destination in (page_main, page_main_white) and self.is_in_main():
+                    logger.info(f'[UI] 到达页面: {destination}')
+                    return
+                # 重新初始化导航
+                Page.init_connection(destination)
+                self.interval_clear(list(Page.iter_check_buttons()))
+                nav_timeout.reset()
 
         # 重置页面连接
         Page.clear_connection()

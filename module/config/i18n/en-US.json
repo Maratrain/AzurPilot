@@ -32,6 +32,10 @@
       "name": "Island Plan",
       "help": ""
     },
+    "FleetManagement": {
+      "name": "Fleet Management",
+      "help": ""
+    },
     "Tool": {
       "name": "Tools+",
       "help": ""
@@ -365,6 +369,14 @@
     "IslandPearlSell": {
       "name": "Weekly Pearl Trade",
       "help": "Only supports minitouch. Process pearls every Tuesday at 01:00."
+    },
+    "FleetScan": {
+      "name": "Fleet Scan",
+      "help": "Scan ships assigned to fleets"
+    },
+    "FleetInfo": {
+      "name": "Fleet Information",
+      "help": "View the latest fleet scan result"
     },
     "Daemon": {
       "name": "Semi-Auto Click",
@@ -5619,6 +5631,20 @@
       "help": "When multiple boosted products are detected, the first one in filter order is prioritized for replacement; the replacement slot is the last non-empty slot searched from Product5→1"
     }
   },
+  "FleetInfo": {
+    "_info": {
+      "name": "Fleet information",
+      "help": "Stores fleet scan results"
+    },
+    "Result": {
+      "name": "Scan result",
+      "help": "Ships grouped by category and fleet number"
+    },
+    "Record": {
+      "name": "Scan time",
+      "help": "Time when the latest fleet scan completed"
+    }
+  },
   "Daemon": {
     "_info": {
       "name": "semi-automatic click",
@@ -5945,6 +5971,27 @@
     "MenuAlas": {
       "Overview": "Overview",
       "Log": "Log"
+    },
+    "TaskConfig": {
+      "SearchPlaceholder": "Search settings",
+      "SearchNoResult": "No matching settings",
+      "SearchResultCount": "{count} results"
+    },
+    "FleetManagement": {
+      "StartScan": "Start scan",
+      "Scanning": "Scanning",
+      "ScanStarted": "Fleet scan started",
+      "ScanAlreadyRunning": "This instance is already running a task and cannot start a fleet scan",
+      "ScanStartFailed": "Failed to start fleet scan",
+      "LastScan": "Latest scan",
+      "NoResult": "No fleet scan result has been saved",
+      "Main": "Main fleet",
+      "Vanguard": "Vanguard fleet",
+      "Submarine": "Submarine fleet",
+      "SurfaceFleet": "Surface Fleets",
+      "UnderwaterFleet": "Underwater Fleets",
+      "Fleet": "Fleet",
+      "Ships": "Ships"
     },
     "MenuDevelop": {
       "HomePage": "Home",

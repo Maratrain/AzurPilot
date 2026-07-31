@@ -298,7 +298,6 @@ TEMPLATE_SHIP = Template(file='assets/cn/module/TEMPLATE_SHIP.png')
 
 - **没有正式的 Python 测试套件**
 - 测试通过运行任务对接真实模拟器进行
-- Webapp 有基本的 Playwright 测试（`webapp/tests/app.spec.js`）
 
 ---
 

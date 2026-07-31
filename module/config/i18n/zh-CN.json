@@ -32,6 +32,10 @@
       "name": "赤石计划",
       "help": ""
     },
+    "FleetManagement": {
+      "name": "舰队管理",
+      "help": ""
+    },
     "Tool": {
       "name": "工具+",
       "help": ""
@@ -365,6 +369,14 @@
     "IslandPearlSell": {
       "name": "每周珍珠采购与售卖",
       "help": "仅支持minitouch。每周二 01:00 自动处理珍珠：先采购本周珍珠，再售卖已有珍珠。金币一定要够购买200x220个这是最低要求能一次买光本周珍珠, 否则可能会报错."
+    },
+    "FleetScan": {
+      "name": "舰队扫描",
+      "help": "扫描当前编入舰队的舰娘信息"
+    },
+    "FleetInfo": {
+      "name": "舰队信息",
+      "help": "查看最近一次舰队扫描结果"
     },
     "Daemon": {
       "name": "半自动点击",
@@ -5619,6 +5631,20 @@
       "help": "多个加成餐品时按过滤顺序优先替换第一个；替换槽位从餐品5→1倒查替换最后一个非空餐品\n可用餐品key对照：cheese:芝士, strawberry_milkshake:草莓奶绿, morning_light:晨光活力组合, wake_up_call:醒神套餐, fruity_fruitier:果香双杯乐\n示例：fruity_fruitier > wake_up_call > 30 > morning_light > strawberry_milkshake > 20 > cheese > 10"
     }
   },
+  "FleetInfo": {
+    "_info": {
+      "name": "舰队信息",
+      "help": "保存舰队扫描结果"
+    },
+    "Result": {
+      "name": "扫描结果",
+      "help": "按舰种和舰队编号保存的舰娘信息"
+    },
+    "Record": {
+      "name": "扫描时间",
+      "help": "最近一次完成舰队扫描的时间"
+    }
+  },
   "Daemon": {
     "_info": {
       "name": "半自动点击",
@@ -5945,6 +5971,27 @@
     "MenuAlas": {
       "Overview": "总览",
       "Log": "运行日志"
+    },
+    "TaskConfig": {
+      "SearchPlaceholder": "搜索配置",
+      "SearchNoResult": "未找到匹配的配置",
+      "SearchResultCount": "共 {count} 项结果"
+    },
+    "FleetManagement": {
+      "StartScan": "开始扫描",
+      "Scanning": "扫描中",
+      "ScanStarted": "舰队扫描已启动",
+      "ScanAlreadyRunning": "当前实例正在运行任务，无法启动舰队扫描",
+      "ScanStartFailed": "舰队扫描启动失败",
+      "LastScan": "最近扫描",
+      "NoResult": "尚未保存舰队扫描结果",
+      "Main": "后排主力",
+      "Vanguard": "前排先锋",
+      "Submarine": "潜艇",
+      "SurfaceFleet": "水上舰队",
+      "UnderwaterFleet": "水下舰队",
+      "Fleet": "舰队",
+      "Ships": "舰娘"
     },
     "MenuDevelop": {
       "HomePage": "主页",

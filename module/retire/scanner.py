@@ -26,6 +26,7 @@ from module.retire.assets import (DOCK_CHECK, SHIP_DETAIL_CHECK,
 from module.retire.dock import (CARD_EMOTION_GRIDS, CARD_EMOTION_STATUS_GRIDS, CARD_GRIDS,
                                 CARD_LEVEL_GRIDS, CARD_RARITY_GRIDS, DOCK_SCROLL,
                                 EMOTION_RED, EMOTION_YELLOW, EMOTION_GREEN)
+from module.retire.ship_name import ShipNameMatcher
 
 
 class EmotionDigit(Digit):
@@ -189,12 +190,34 @@ class Scanner(metaclass=ABCMeta):
 
 
 class LevelScanner(Scanner):
-    def __init__(self) -> None:
+    """等级扫描器，通过 OCR 识别船坞卡片上显示的舰船等级。"""
+    def __init__(
+        self,
+        grid_shape: Tuple[int, int] = (7, 2),
+        excluded_positions: Tuple[Tuple[int, int], ...] = (),
+    ) -> None:
         super().__init__()
         self._results = []
-        self.grids = CARD_LEVEL_GRIDS
-        self.ocr_model = LevelOcr(self.grids.buttons,
+        card_grids = ButtonGrid(
+            origin=CARD_GRIDS.origin,
+            delta=CARD_GRIDS.delta,
+            button_shape=CARD_GRIDS.button_shape,
+            grid_shape=grid_shape,
+            name='CARD',
+        )
+        level_origin = CARD_LEVEL_GRIDS.origin - CARD_GRIDS.origin
+        level_area = tuple(np.append(level_origin, level_origin + CARD_LEVEL_GRIDS.button_shape))
+        self.grids = card_grids.crop(area=level_area, name='LEVEL')
+        self.excluded_positions = set(excluded_positions)
+        self.ocr_model = LevelOcr(self._buttons(),
                                   name='DOCK_LEVEL_OCR', threshold=64)
+
+    def _buttons(self) -> List:
+        return [
+            button
+            for x, y, button in self.grids.generate()
+            if (x, y) not in self.excluded_positions
+        ]
 
     def _scan(self, image) -> List:
         return self.ocr_model.ocr(image)
@@ -204,7 +227,7 @@ class LevelScanner(Scanner):
     
     def move(self, vector) -> None:
         super().move(vector)
-        self.ocr_model.buttons = [button.area for button in self.grids.buttons]
+        self.ocr_model.buttons = self._buttons()
 
 
 class EmotionScanner(Scanner):
@@ -327,10 +350,36 @@ class RarityScanner(Scanner):
 
 
 class FleetScanner(Scanner):
-    def __init__(self) -> None:
+    """舰队归属扫描器，通过模板匹配识别舰船所属的舰队编号。
+
+    对卡片左下角的舰队标识进行灰度二值化预处理后，
+    逐一匹配 Fleet 1-6 的模板图像。未匹配到则返回 0（不在编队）。
+    """
+    TEMPLATE_SIMILARITY = 0.75
+
+    def __init__(
+        self,
+        grid_shape: Tuple[int, int] = (7, 2),
+        excluded_positions: Tuple[Tuple[int, int], ...] = (),
+    ) -> None:
+        """初始化舰队归属扫描器。
+
+        Args:
+            grid_shape: 待扫描的卡片网格。退役流程保持默认的 7×2；
+                舰队管理可使用 7×3 扫描当前页面的第三行卡片。
+            excluded_positions: 不扫描的卡片坐标，格式为 ``(列, 行)``。
+        """
         super().__init__()
         self._results = []
-        self.grids = CARD_GRIDS.crop(area=(0, 117, 35, 162), name='FLEET')
+        card_grids = ButtonGrid(
+            origin=CARD_GRIDS.origin,
+            delta=CARD_GRIDS.delta,
+            button_shape=CARD_GRIDS.button_shape,
+            grid_shape=grid_shape,
+            name='CARD',
+        )
+        self.grids = card_grids.crop(area=(0, 117, 35, 162), name='FLEET')
+        self.excluded_positions = set(excluded_positions)
         self.templates = {
             TEMPLATE_FLEET_1: 1,
             TEMPLATE_FLEET_2: 2,
@@ -359,17 +408,9 @@ class FleetScanner(Scanner):
         未匹配到任何舰队时返回 0（不在任何编队中）。
         """
         for template, fleet in self.templates.items():
-            if template.match(image):
+            if template.match(image, similarity=self.TEMPLATE_SIMILARITY):
                 return fleet
-
-        if TEMPLATE_FLEET_1.match(image, similarity=0.80):
-            return 1
-        elif TEMPLATE_FLEET_3.match(image, similarity=0.80):
-            return 3
-        elif TEMPLATE_FLEET_4.match(image, similarity=0.80):
-            return 4
-        else:
-            return 0
+        return 0
 
     def _scan(self, image) -> List:
         image = self.pre_process(image)
@@ -379,6 +420,95 @@ class FleetScanner(Scanner):
 
     def limit_value(self, value) -> int:
         return limit_in(value, 0, 6)
+
+
+class FleetNameScanner(Scanner):
+    """识别船坞卡片中的舰娘名称，保留 OCR 原始结果。"""
+    OCR_LANG = {
+        'cn': 'ppocr_v6',
+        'en': 'ppocr_v6',
+        'jp': 'jp',
+        'tw': 'tw',
+    }
+
+    def __init__(
+        self,
+        grid_shape: Tuple[int, int] = (7, 2),
+        excluded_positions: Tuple[Tuple[int, int], ...] = (),
+    ) -> None:
+        super().__init__()
+        self._results = []
+        card_grids = ButtonGrid(
+            origin=CARD_GRIDS.origin,
+            delta=CARD_GRIDS.delta,
+            button_shape=CARD_GRIDS.button_shape,
+            grid_shape=grid_shape,
+            name='CARD',
+        )
+        self.grids = card_grids.crop(area=(-10, 160, 142, 190), name='SHIP_NAME')
+        self.excluded_positions = set(excluded_positions)
+        self.ocr_model = Ocr(
+            self._buttons(),
+            lang=self.OCR_LANG[server.server],
+            letter=(255, 255, 255),
+            threshold=128,
+            name='FLEET_SHIP_NAME',
+        )
+        self.name_matcher = ShipNameMatcher(server.server)
+
+    def _buttons(self) -> List:
+        return [
+            button.area
+            for x, y, button in self.grids.generate()
+            if (x, y) not in self.excluded_positions
+        ]
+
+    def _scan(self, image) -> List:
+        names = self.ocr_model.ocr(image)
+        corrected = [self.name_matcher.correct(name) for name in names]
+        for raw, name in zip(names, corrected):
+            if raw != name:
+                logger.info(f'[舰队扫描-OCR] 舰娘名修正: {raw!r} -> {name!r}')
+        return corrected
+
+    def limit_value(self, value) -> str:
+        return value
+
+    def move(self, vector) -> None:
+        super().move(vector)
+        self.ocr_model.buttons = self._buttons()
+
+
+class FleetManagementScanner:
+    """扫描当前船坞页面，并按舰队归属聚合舰娘名称与等级。"""
+    def __init__(
+        self,
+        grid_shape: Tuple[int, int] = (7, 3),
+        excluded_positions: Tuple[Tuple[int, int], ...] = (),
+    ) -> None:
+        self.fleet_scanner = FleetScanner(
+            grid_shape=grid_shape,
+            excluded_positions=excluded_positions,
+        )
+        self.name_scanner = FleetNameScanner(
+            grid_shape=grid_shape,
+            excluded_positions=excluded_positions,
+        )
+        self.level_scanner = LevelScanner(
+            grid_shape=grid_shape,
+            excluded_positions=excluded_positions,
+        )
+
+    def scan(self, image) -> Dict[int, List[Dict[str, Union[str, int]]]]:
+        """返回按舰队编号分组的舰娘名称与等级 OCR 结果。"""
+        fleets = self.fleet_scanner.scan(image, output=False)
+        names = self.name_scanner.scan(image, output=False)
+        levels = self.level_scanner.scan(image, output=False)
+        result = defaultdict(list)
+        for fleet, name, level in zip(fleets, names, levels):
+            if fleet:
+                result[fleet].append({'name': name, 'level': level})
+        return dict(result)
 
 
 class StatusScanner(Scanner):

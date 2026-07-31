@@ -40,6 +40,27 @@ MenuAlas:
   Overview:
   Log:
 
+TaskConfig:
+  SearchPlaceholder:
+  SearchNoResult:
+  SearchResultCount:
+
+FleetManagement:
+  StartScan:
+  Scanning:
+  ScanStarted:
+  ScanAlreadyRunning:
+  ScanStartFailed:
+  LastScan:
+  NoResult:
+  Main:
+  Vanguard:
+  Submarine:
+  SurfaceFleet:
+  UnderwaterFleet:
+  Fleet:
+  Ships:
+
 MenuDevelop:
   HomePage:
   Translate:

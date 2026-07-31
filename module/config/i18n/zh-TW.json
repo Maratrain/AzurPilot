@@ -32,6 +32,10 @@
       "name": "島嶼計劃",
       "help": ""
     },
+    "FleetManagement": {
+      "name": "艦隊管理",
+      "help": ""
+    },
     "Tool": {
       "name": "工具+",
       "help": ""
@@ -365,6 +369,14 @@
     "IslandPearlSell": {
       "name": "每週珍珠採購與售賣",
       "help": "僅支援minitouch。每週二 01:00 自動處理珍珠：先採購本週珍珠，再售賣已有珍珠。金幣一定要夠購買200x220個這是最低要求能一次買光本週珍珠, 否則可能會報錯."
+    },
+    "FleetScan": {
+      "name": "艦隊掃描",
+      "help": "掃描目前編入艦隊的艦船資訊"
+    },
+    "FleetInfo": {
+      "name": "艦隊資訊",
+      "help": "查看最近一次艦隊掃描結果"
     },
     "Daemon": {
       "name": "半自動點選",
@@ -5619,6 +5631,20 @@
       "help": "多個加成餐品時按過濾順序優先替換第一個；替換槽位從餐品5→1倒查替換最後一個非空餐品\n可用餐品key對照：cheese:芝士, strawberry_milkshake:草莓奶綠, morning_light:晨光活力組合, wake_up_call:醒神套餐, fruity_fruitier:果香雙杯樂\n示例：30 > 20 > cheese > 10"
     }
   },
+  "FleetInfo": {
+    "_info": {
+      "name": "艦隊資訊",
+      "help": "儲存艦隊掃描結果"
+    },
+    "Result": {
+      "name": "掃描結果",
+      "help": "依艦種與艦隊編號儲存的艦船資訊"
+    },
+    "Record": {
+      "name": "掃描時間",
+      "help": "最近一次完成艦隊掃描的時間"
+    }
+  },
   "Daemon": {
     "_info": {
       "name": "半自動點選",
@@ -5945,6 +5971,27 @@
     "MenuAlas": {
       "Overview": "總覽",
       "Log": "執行日誌"
+    },
+    "TaskConfig": {
+      "SearchPlaceholder": "搜尋設定",
+      "SearchNoResult": "找不到相符的設定",
+      "SearchResultCount": "共 {count} 項結果"
+    },
+    "FleetManagement": {
+      "StartScan": "開始掃描",
+      "Scanning": "掃描中",
+      "ScanStarted": "艦隊掃描已啟動",
+      "ScanAlreadyRunning": "目前實例正在執行任務，無法啟動艦隊掃描",
+      "ScanStartFailed": "艦隊掃描啟動失敗",
+      "LastScan": "最近掃描",
+      "NoResult": "尚未儲存艦隊掃描結果",
+      "Main": "後排主力",
+      "Vanguard": "前排先鋒",
+      "Submarine": "潛艇",
+      "SurfaceFleet": "水上艦隊",
+      "UnderwaterFleet": "水下艦隊",
+      "Fleet": "艦隊",
+      "Ships": "艦船"
     },
     "MenuDevelop": {
       "HomePage": "主頁",
