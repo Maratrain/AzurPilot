@@ -431,6 +431,32 @@ class FleetNameScanner(Scanner):
         'tw': 'tw',
     }
 
+    class NameOcr(Ocr):
+        """提取白色和婚舰粉色名称，统一为黑白图像。"""
+        PINK_LETTER = (255, 170, 206)
+        PINK_THRESHOLD = 108
+        TEXT_ROWS = (4, 23)
+        TEXT_LEFT = 4
+
+        @staticmethod
+        def _remove_edge_noise(image):
+            """移除名称区域左右边缘残留的卡片边框像素。"""
+            count, labels, stats, _ = cv2.connectedComponentsWithStats(
+                (image < 120).astype(np.uint8), connectivity=8
+            )
+            for label in range(1, count):
+                x, _, component_width, _, _ = stats[label]
+                if x == 0 or x + component_width == image.shape[1]:
+                    image[labels == label] = 255
+            return image
+
+        def pre_process(self, image):
+            white = extract_letters(image, letter=self.letter, threshold=self.threshold)
+            pink = extract_letters(image, letter=self.PINK_LETTER, threshold=self.PINK_THRESHOLD)
+            merged = cv2.min(white, pink)
+            merged = merged[self.TEXT_ROWS[0]:self.TEXT_ROWS[1], self.TEXT_LEFT:]
+            return self._remove_edge_noise(merged)
+
     def __init__(
         self,
         grid_shape: Tuple[int, int] = (7, 2),
@@ -447,10 +473,9 @@ class FleetNameScanner(Scanner):
         )
         self.grids = card_grids.crop(area=(-10, 160, 142, 190), name='SHIP_NAME')
         self.excluded_positions = set(excluded_positions)
-        self.ocr_model = Ocr(
+        self.ocr_model = self.NameOcr(
             self._buttons(),
             lang=self.OCR_LANG[server.server],
-            letter=(255, 255, 255),
             threshold=128,
             name='FLEET_SHIP_NAME',
         )
