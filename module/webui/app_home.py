@@ -140,6 +140,8 @@ class HomeMixin(WebUIMixinBase):
             self._announcement_result = (None, force, str(e))
         finally:
             self._announcement_fetching = False
+            # 后台请求完成后立即唤醒会话调度器，无需依靠高频轮询收结果。
+            self.task_handler.wake_task("announcement_checker")
 
     def _start_announcement_fetch(self, force=False):
         """
@@ -364,8 +366,6 @@ class HomeMixin(WebUIMixinBase):
             # 首次检查：触发异步获取
             self._start_announcement_fetch(force=False)
             next_periodic_check = time.time() + ApiClient.ANNOUNCEMENT_CHECK_INTERVAL
-            th._task.delay = 0.1  # 始终保持短间隔轮询
-            yield
             while True:
                 # 处理已有结果（来自定期检查或手动点击）
                 self._process_announcement_result()
@@ -378,9 +378,16 @@ class HomeMixin(WebUIMixinBase):
                     next_periodic_check = (
                         time.time() + ApiClient.ANNOUNCEMENT_CHECK_INTERVAL
                     )
+                # 后台线程会在完成时主动唤醒；1 秒仅作为请求中的兜底。
+                # 空闲时直接睡到下次周期检查，避免每个会话持续轮询。
+                if self._announcement_fetching:
+                    th._task.delay = 1
+                else:
+                    remaining = max(0.25, next_periodic_check - time.time())
+                    th._task.delay = remaining
                 yield
 
-        # 添加公告检查任务（初始延迟5秒）
+        # 首次立即执行，后续间隔由任务自身根据请求状态动态调整。
         self.task_handler.add(announcement_checker(), delay=5)
 
         if restore_instance:

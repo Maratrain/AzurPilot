@@ -1,7 +1,6 @@
 """WebUI 短猫收益刷新和大世界统计导出。"""
 
 from module.webui.app_dependencies import (
-    AzurStats,
     Path,
     current_time,
     datetime,
@@ -27,10 +26,14 @@ class OpsiExportMixin(WebUIMixinBase):
     """WebUI 短猫收益刷新和大世界统计导出。"""
 
     def _refresh_meowofficer_farming(self):
+        from module.statistics.azurstats import AzurStats
+
         AzurStats.get_meowofficer_farming()
         self._render_meowofficer_farming()
 
     def _render_meowofficer_farming(self):
+        from module.statistics.azurstats import AzurStats
+
         with use_scope("meow_loot_scope", clear=True):
             all_data = AzurStats.load_meowofficer_farming()
             meow_rows = []

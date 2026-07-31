@@ -138,34 +138,70 @@ class TaskConfigMixin(WebUIMixinBase):
         self.init_menu(name=task)
         self.set_title(t(f"Task.{task}.name"))
 
-        put_scope("_groups", [put_none(), put_scope("groups"), put_scope("navigator")])
+        group_outputs: List[Output] = []
+        navigator_outputs: List[Output] = []
+        watcher_paths: List[List[str]] = []
+        render_event_calculator = False
 
         task_help: str = t(f"Task.{task}.help")
         if task_help:
-            put_scope(
-                "group__info",
-                scope="groups",
-                content=[put_text(task_help).style("font-size: 1rem")],
+            group_outputs.append(
+                put_scope(
+                    "group__info",
+                    content=[put_text(task_help).style("font-size: 1rem")],
+                )
             )
 
         if task == "Alas":
-            with use_scope("groups"):
-                self._render_startup_run_setting()
+            group_outputs.append(put_scope("group_StartupRun"))
 
         if task == "OpsiSimulator":
-            with use_scope("groups"):
-                self._os_simulator()
+            group_outputs.append(put_scope("group_OpsiSimulatorRuntime"))
 
         for group, arg_dict in deep_iter(self.ALAS_ARGS[task], depth=1):
-            if self.set_group(group, arg_dict, config, task):
-                self.set_navigator(group)
+            group_output, group_watcher_paths, _ = self._build_config_group(
+                group, arg_dict, config, task
+            )
+            if group_output is not None:
+                group_outputs.append(group_output)
+                navigator_outputs.append(self._build_navigator(group))
+                watcher_paths.extend(group_watcher_paths)
                 if task == "EventGeneral" and group[0] == "EventGeneral":
-                    with use_scope("groups"):
-                        put_scope("group_EventCalculator")
-                    self._render_event_calculator(config)
+                    group_outputs.append(put_scope("group_EventCalculator"))
+                    render_event_calculator = True
 
-    @use_scope("groups")
-    def set_group(self, group, arg_dict, config: Dict[str, Any], task: str) -> int:
+        # PyWebIO 的每个独立 output 都会形成一条 WebSocket 指令。将整个配置页
+        # 作为嵌套 Output 一次发送，避免数十个控件触发数百次网络往返和重复布局。
+        put_scope(
+            "_groups",
+            [
+                put_none(),
+                put_scope("groups", group_outputs),
+                put_scope("navigator", navigator_outputs),
+            ],
+        )
+
+        for path in watcher_paths:
+            self._bind_config_watcher(path)
+
+        # 依赖已有 DOM scope 或需要执行脚本的特殊区域，在基础配置页落地后再初始化。
+        if task == "Alas":
+            with use_scope("group_StartupRun"):
+                self._render_startup_run_setting()
+        elif task == "OpsiSimulator":
+            with use_scope("group_OpsiSimulatorRuntime"):
+                self._os_simulator()
+        elif render_event_calculator:
+            self._render_event_calculator(config)
+
+    def _build_config_group(
+        self,
+        group,
+        arg_dict,
+        config: Dict[str, Any],
+        task: str,
+    ) -> tuple[Optional[Output], List[List[str]], int]:
+        """构建一个配置分组，延迟到外层页面统一发送。"""
         group_name = group[0]
 
         output_list: List[Output] = []
@@ -254,40 +290,60 @@ class TaskConfigMixin(WebUIMixinBase):
                     watcher_paths.append([task, group_name, arg_name])
 
         if not output_list:
+            return None, [], 0
+
+        content: List[Output] = [put_text(t(f"{group_name}._info.name"))]
+        group_help = t(f"{group_name}._info.help")
+        if group_help != "":
+            content.append(put_text(group_help))
+        content.append(put_html('<hr class="hr-group">'))
+
+        for arg_name, output in output_list:
+            field_scope = config_search_field_scope(task, group_name, arg_name)
+            content.append(put_scope(field_scope, content=[output]))
+
+        # 在掉落记录组中显示可复制的设备ID
+        if group_name == "DropRecord":
+            device_id = DEMO_DEVICE_ID_TEXT if is_demo_mode() else get_device_id()
+            content.append(put_html(build_copyable_device_id(device_id)))
+
+        return (
+            put_scope(f"group_{group_name}", content=content),
+            watcher_paths,
+            len(output_list),
+        )
+
+    @use_scope("groups")
+    def set_group(self, group, arg_dict, config: Dict[str, Any], task: str) -> int:
+        """兼容总览页：单独构建并发送一个配置分组。"""
+        group_output, watcher_paths, output_count = self._build_config_group(
+            group, arg_dict, config, task
+        )
+        if group_output is None:
             return 0
 
-        with use_scope(f"group_{group_name}"):
-            put_text(t(f"{group_name}._info.name"))
-            group_help = t(f"{group_name}._info.help")
-            if group_help != "":
-                put_text(group_help)
-            put_html('<hr class="hr-group">')
-            for output in output_list:
-                output.show()
+        group_output.show()
+        for path in watcher_paths:
+            self._bind_config_watcher(path)
+        return output_count
 
-            for path in watcher_paths:
-                self._bind_config_watcher(path)
-
-            # 在掉落记录组中显示可复制的设备ID
-            if group_name == "DropRecord":
-                device_id = DEMO_DEVICE_ID_TEXT if is_demo_mode() else get_device_id()
-                put_html(build_copyable_device_id(device_id))
-
-        return len(output_list)
-
-    @use_scope("navigator")
-    def set_navigator(self, group):
+    def _build_navigator(self, group) -> Output:
+        """构建分组导航按钮，供配置页统一批量输出。"""
         js = f"""
             $("#pywebio-scope-groups").scrollTop(
                 $("#pywebio-scope-group_{group[0]}").position().top
                 + $("#pywebio-scope-groups").scrollTop() - 59
             )
         """
-        put_button(
+        return put_button(
             label=t(f"{group[0]}._info.name"),
             onclick=lambda: run_js(js),
             color="navigator",
         )
+
+    @use_scope("navigator")
+    def set_navigator(self, group):
+        self._build_navigator(group).show()
 
     def _alas_start(self):
         self.alas.start(None, updater.event)

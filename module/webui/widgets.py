@@ -122,8 +122,17 @@ class RichLog:
             self.terminal_theme = LIGHT_TERMINAL_THEME
 
     def render(self, renderable: ConsoleRenderable) -> str:
+        return self.render_many((renderable,))
+
+    def render_many(self, renderables) -> str:
+        """一次性把一批 Rich 日志转换为 HTML，减少重复导出开销。"""
+        renderables = list(renderables)
+        if not renderables:
+            return ""
+
         with self.console.capture():
-            self.console.print(renderable)
+            for renderable in renderables:
+                self.console.print(renderable)
 
         html = self.console.export_html(
             theme=self.terminal_theme,
@@ -225,7 +234,7 @@ class RichLog:
         try:
             while True:
                 last_idx = len(pm.renderables)
-                html = "".join(map(self.render, pm.renderables[:]))
+                html = self.render_many(pm.renderables[:])
                 self.reset()
                 self.extend(html)
                 counter = last_idx
@@ -235,7 +244,7 @@ class RichLog:
                     if idx < last_idx:
                         last_idx -= pm.renderables_reduce_length
                     if idx != last_idx:
-                        html = "".join(map(self.render, pm.renderables[last_idx:idx]))
+                        html = self.render_many(pm.renderables[last_idx:idx])
                         self.extend(html)
                         counter += idx - last_idx
                         last_idx = idx
