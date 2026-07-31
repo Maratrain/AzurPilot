@@ -2683,8 +2683,7 @@
       "ActionPointPreserve": 1000,
       "HazardLevel": 5,
       "TargetZone": 0,
-      "StayInZone": false,
-      "APPreserveUntilReset": false
+      "StayInZone": false
     },
     "OpsiSirenBug": {
       "SirenResearch_Enable": true,

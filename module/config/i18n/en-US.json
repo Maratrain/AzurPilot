@@ -3318,10 +3318,6 @@
     "StayInZone": {
       "name": "Planned Operation in Target Zone",
       "help": "After enabling this, the task runs according to Target Zone. With one zone it stays there; with multiple zones it cycles through them in the configured order. Only takes effect when Target Zone is not 0."
-    },
-    "APPreserveUntilReset": {
-      "name": "Preserve Action Points Until End of Month",
-      "help": "'Preserve X Action Points' setting will no longer decrease before Operation Siren reset.\nNote: Once enabled, these AP will only be consumed in cross-month daily tasks. This setting is invalid when cross-month daily tasks are not enabled, which means you need to manually use these AP to obtain higher benefits."
     }
   },
   "OpsiTarget": {

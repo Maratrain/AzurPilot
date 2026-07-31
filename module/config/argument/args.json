@@ -13619,10 +13619,6 @@
       "StayInZone": {
         "type": "checkbox",
         "value": false
-      },
-      "APPreserveUntilReset": {
-        "type": "checkbox",
-        "value": false
       }
     },
     "OpsiSirenBug": {
