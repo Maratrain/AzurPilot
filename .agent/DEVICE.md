@@ -24,7 +24,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 device.py（452 行）
+### 2.1 device.py（476 行）
 
 **导出类型**：类 `Device`
 
@@ -44,7 +44,7 @@ alwaysApply: true
 - `L372-421`：点击记录 — `click_record_add()`/`click_record_check()`。最近 15 次点击中，单按钮 >=12 次或双按钮各 >=6 次触发 `GameTooManyClickError`。
 - `L423-451`：`disable_stuck_detection()`/`app_start()`/`app_stop()` — 禁用检测和应用管理。
 
-### 2.2 connection.py（1299 行）
+### 2.2 connection.py（1302 行）
 
 **导出类型**：类 `Connection`、`AdbDeviceWithStatus`
 
@@ -64,7 +64,7 @@ alwaysApply: true
 - `L600-900`：设备检测 — `detect_device()`、`detect_package()`。扫描可用设备、匹配包名。
 - `L900-1299`：高级功能 — `adb_forward()`、`adb_reverse()`、`adb_push()`。逆向服务器用于快速数据传输。MuMu/BlueStacks 特殊处理。
 
-### 2.3 connection_attr.py（355 行）
+### 2.3 connection_attr.py（480 行）
 
 **导出类型**：类 `ConnectionAttr`
 
@@ -77,7 +77,7 @@ alwaysApply: true
 - `L17-57`：`ConnectionAttr.__init__()` — 初始化 ADB 客户端。移除代理环境变量。解析序列号。
 - `L59-100`：`revise_serial()` — 序列号修正。处理中文标点、端口映射、模拟器名称等。
 - `L102-135`：`serial_check()` — 序列号检查。BlueStacks Hyper-V、WSA、HTTP 连接验证。
-- `L137-209`：设备系列检测 — `is_bluestacks4/5_hyperv`、`is_wsa`、`is_mumu12_family`、`is_ldplayer_bluestacks_family`、`is_nox_family`、`is_vmos`、`is_emulator`、`is_network_device`、`is_over_http`。
+- `L137-209`：设备系列检测 — `is_bluestacks4/5_hyperv`、`is_wsa`、`is_mumu12_family`、`is_ldplayer_bluestacks_family`、`is_nox_family`、`is_vmos`、`is_emulator`、`is_network_device`、`is_over_http`。新增：`is_bluestacks_hyperv`、`is_local_network_device`、`is_chinac_phone_cloud`（云手机）。
 - `L211-288`：BlueStacks 查找 — `find_bluestacks4/5_hyperv()` 从注册表读取动态端口。
 - `L290-355`：缓存属性 — `adb_binary`（ADB 可执行文件路径）、`adb_client`、`adb`、`u2`（uiautomator2 设备）。
 
@@ -92,27 +92,33 @@ alwaysApply: true
 
 ### 2.5 method/ 目录
 
-包含各种截图/控制后端的实现：
+包含各种截图/控制后端的实现（当前实际文件）:
 
-- `adb.py`/`adb_nc.py`：ADB 截图（压缩/无压缩）
-- `uiautomator2.py`：uiautomator2 截图
-- `ascreencap.py`/`ascreencap_nc.py`：aScreenCap 截图
-- `droidcast.py`/`droidcast_raw.py`：DroidCast 截图
-- `scrcpy.py`：scrcpy 截图
+- `adb.py`：ADB 截图/控制（含 `ADB_nc` 无压缩变体，通过 `screenshot.py` 的 `screenshot_adb_nc()` 方法分发，无独立文件）
+- `uiautomator_2.py`：uiautomator2 截图
+- `ascreencap.py`：aScreenCap 截图（含 `nc` 无压缩变体）
+- `droidcast.py`：DroidCast 截图（类名为 `DroidCast`，非 `DroidCast_raw`）
+- `scrcpy/`：scrcpy 截图子包（core.py、options.py、control.py）
 - `nemu_ipc.py`：MuMu 12 IPC 截图（最快）
 - `ldopengl.py`：LDPlayer OpenGL 截图
+- `wsa.py`：WSA（Windows 子系统 for Android）截图/控制
+- `pool.py`：`WorkerPool` 并行截图
+- `remove_warning.py`：ADB shell 警告移除
 - `minitouch.py`：minitouch 控制
 - `maatouch.py`：MaaTouch 控制
 - `hermit.py`：Hermit 控制（VMOS）
 
 ### 2.6 platform/ 目录
 
-模拟器平台管理：
+模拟器平台管理（当前实际结构）:
 
-- `platform.py`：`Platform` 类，统一模拟器管理接口
-- `windows/`：Windows 模拟器（MuMu、LDPlayer、BlueStacks、Nox、Memu）
-- `mac/`：Mac 模拟器（BlueStacksAir、MuMuPro）
-- `ssh.py`：SSH 远程模拟器
+- `platform_base.py`：`PlatformBase` 统一模拟器管理接口
+- `platform_windows.py`：Windows 模拟器检测与管理（MuMu、LDPlayer、BlueStacks、Nox、MEmu，通过注册表 MUI Cache/UserAssist/安装路径/卸载注册表 + 进程扫描）
+- `platform_mac.py`：Mac 模拟器（BlueStacksAir、MuMuPro）
+- `emulator_base.py` / `emulator_windows.py` / `emulator_mac.py`：各平台模拟器实例管理
+- `utils.py`：平台工具函数
+
+> **注意**：SSH 远程模拟器工具位于 `module/base/ssh.py`，不在本目录下（旧文档误标）。
 
 ## 3. 内部调用关系
 
@@ -207,7 +213,7 @@ graph TD
 - `@retry` 装饰器统一处理 ADB 错误
 
 **问题**：
-- `connection.py` 过于庞大（1299 行），应拆分
+- `connection.py` 过于庞大（1302 行），应拆分
 - 多重继承增加理解难度
 - `@Config.when` 装饰器导致同名方法有两个实现，IDE 支持差
 - 部分方法缺少类型注解

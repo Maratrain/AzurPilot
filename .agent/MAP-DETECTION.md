@@ -316,7 +316,7 @@ alwaysApply: true
 
 ---
 
-### 2.6 grid_predictor.py (351 行)
+### 2.6 grid_predictor.py (367 行)
 
 **导出类型**：类 `GridPredictor`
 
@@ -328,7 +328,7 @@ alwaysApply: true
 
 ---
 
-### 2.7 view.py (197 行)
+### 2.7 view.py (200 行)
 
 **导出类型**：类 `View`
 
@@ -382,7 +382,7 @@ alwaysApply: true
 
 ---
 
-### 2.8 utils.py (395 行)
+### 2.8 utils.py (416 行)
 
 **导出类型**：工具函数和类
 
@@ -406,15 +406,17 @@ alwaysApply: true
 
 ---
 
-### 2.10 os_grid.py (328 行)
+### 2.10 os_grid.py (331 行)
 
-**导出类型**：类 `OSGrid`
+**导出类型**：类 `OSGridInfo`、`OSGridPredictor`
 
 **导入依赖**：
 - `module.map_detection.grid.Grid`：网格类
 - `module.map_detection.grid_predictor.GridPredictor`：网格预测
 
-**说明**：大世界网格类，继承自 `Grid` 和 `GridPredictor`。
+**说明**：大世界网格类。`OSGridInfo` 继承自 `Grid`，`OSGridPredictor` 继承自 `GridPredictor`。
+
+> **注意**：不存在名为 `OSGrid` 的类（旧文档误标），实际类名为 `OSGridInfo` 和 `OSGridPredictor`。
 
 ---
 

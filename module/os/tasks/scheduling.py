@@ -953,8 +953,24 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         self._delay_smart_scheduling_to_server_update('行动力不足')
         self.config.task_stop()
 
+    def _delay_smart_scheduling_for_opsi_explore(self):
+        """开荒未完成时延迟智能调度+并结束本轮。"""
+        if not self.is_in_opsi_explore():
+            return False
+
+        self._delay_smart_scheduling_to_server_update('每月开荒+正在运行')
+        self.config.task_stop()
+        return True
+
     def run_smart_scheduling_once(self):
         """执行一轮智能调度+决策。"""
+        # 防溢出任务直接调用本方法，需要在此处补齐开荒拦截。
+        if (
+            self.is_running_prevent_action_point_overflow_task()
+            and self._delay_smart_scheduling_for_opsi_explore()
+        ):
+            return
+
         yellow_coins = self.get_yellow_coins()
         total_ap, current_ap = self._get_scheduling_action_point()
 
@@ -1101,6 +1117,10 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         3. 按代理模式协调子任务执行
         """
         logger.hr('大世界-智能调度+', level=1)
+
+        # 直接调用入口仍保留保护，覆盖未经过 OSCampaignRun 的调用方。
+        if self._delay_smart_scheduling_for_opsi_explore():
+            return
 
         # 检查是否启用智能调度+
         if not self.is_smart_scheduling_enabled():

@@ -10,10 +10,10 @@ alwaysApply: true
 | 项目 | 内容 |
 |---|---|
 | 文件路径 | `mcp_server_sse.py` |
-| 总行数 | 517 行 |
+| 总行数 | 574 行 |
 | 文件类型 | Python 脚本（MCP SSE 服务器） |
 | 许可证 | GPL-3.0 |
-| 服务器名称 | `"ALAS-MCP"` |
+| 服务器名称 | `"AzurPilot-MCP"` |
 | 默认端口 | 22268 |
 | SSE 端点 | `/sse` |
 | 消息端点 | `/mcp/messages` |
@@ -32,8 +32,8 @@ alwaysApply: true
 | 第三方 | `mcp.server.models.InitializationOptions` | MCP 初始化选项 |
 | 第三方 | `mcp.server.sse.SseServerTransport` | SSE 传输层 |
 | 第三方 | `mcp.types.TextContent, ImageContent, Tool` | MCP 类型定义 |
-| 第三方 | `cv2` | OpenCV（导入但未直接使用） |
 | 项目内部 | `module.config.config.AzurLaneConfig` | 配置系统 |
+| 项目内部 | `module.config.time_source.now` | 统一时间源（NTP 校准） |
 | 项目内部 | `module.config.utils.alas_instance` | 实例列表 |
 | 项目内部 | `module.webui.process_manager.ProcessManager` | 进程管理 |
 | 项目内部 | `module.config.mcp_helper.McpConfigHelper` | MCP 配置辅助 |
@@ -50,12 +50,12 @@ logger = logging.getLogger("alas-mcp")
 
 helper = McpConfigHelper()
 
-mcp_server = Server("ALAS-MCP")
+mcp_server = Server("AzurPilot-MCP")
 ```
 
 - **日志**: 使用标准库 `logging`（非项目的 `module.logger`），级别 INFO
 - **helper**: `McpConfigHelper` 实例，加载 `args.json` 和 i18n 数据
-- **mcp_server**: MCP 服务器实例，名称 `"ALAS-MCP"`
+- **mcp_server**: MCP 服务器实例，名称 `"AzurPilot-MCP"`
 
 ---
 
@@ -127,7 +127,7 @@ inputSchema={
 
 ---
 
-## 4. `call_tool(name, arguments)` 工具调用处理 (L201-L454)
+## 4. `call_tool(name, arguments)` 工具调用处理 (L488-L497)
 
 ```python
 @mcp_server.call_tool()
@@ -139,8 +139,11 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
 - **参数**: `name` (str) - 工具名, `arguments` (Dict) - 工具参数
 - **返回**: `List[TextContent]` 或 `List[ImageContent]`
 - **错误处理**: 外层 `try/except` 捕获所有异常，返回错误文本
+- **分发机制**: 使用 `TOOL_HANDLERS` 字典（L466-485）将工具名映射到独立的 `_tool_*` 实现函数，`call_tool` 本身仅约 10 行，负责查表分发
 
 ### 4.1 逐工具分析
+
+> 注意：各工具实现已拆分为独立的 `_tool_*` 函数，行号与原 if/elif 结构不同，以下行号为函数内部实现位置。
 
 #### `list_instances` (L204-L206)
 
@@ -603,7 +606,7 @@ mcp_server_sse.py
 | 模式 | 应用位置 | 说明 |
 |---|---|---|
 | **注册模式** | `@mcp_server.list_tools()` | 装饰器注册工具列表 |
-| **分发模式** | `call_tool()` 中的 `if/elif` 链 | 根据工具名分发到处理逻辑 |
+| **分发模式** | `TOOL_HANDLERS` 字典 | 工具名 → `_tool_*` 实现函数映射分发 |
 | **传输抽象** | `SseServerTransport` | SSE 传输层抽象 |
 | **ASGI 组合** | `app.mount("/", mcp_asgi_app)` | Starlette 应用组合 |
 | **惰性加载** | `Device` 和 `remove_fake_pil_module` | 按需导入重模块 |
@@ -636,7 +639,7 @@ mcp_server_sse.py
 | `get_screenshot` 每次创建 Device | 缓存 Device 实例或使用连接池 |
 | `restart_emulator` 阻塞 60 秒 | 使用 `asyncio.sleep()` 替代 `time.sleep()` |
 | `get_recent_logs` 读取整个文件 | 使用文件尾部读取（`tail` 逻辑） |
-| `call_tool` 中的 `if/elif` 链 | 使用字典映射分发 |
+| `trigger_task` 使用 `time_source.now` | 统一时间源已引入（`module.config.time_source`） |
 
 ### 11.3 并发考虑
 
@@ -693,13 +696,12 @@ mcp_server_sse.py
 
 ### 13.2 问题与不足
 
-1. **`call_tool()` 函数过长** (250+ 行): 所有工具逻辑集中在一个函数中
-2. **`if/elif` 分发链**: 不利于扩展，应使用注册表模式
-3. **同步阻塞操作**: `restart_emulator` 中的 `time.sleep(60)` 在 async 函数中
-4. **重复的实例化模式**: 多个工具重复 `AzurLaneConfig(inst)` + `Device(config)` 模式
-5. **日志系统不一致**: 使用标准库 `logging` 而非项目的 `module.logger`
-6. **`cv2` 导入未使用**: L21 导入了 `cv2` 但未直接使用
-7. **注释混合语言**: 中英文注释混合
+1. **同步阻塞操作**: `restart_emulator` 中的 `time.sleep(60)` 在 async 函数中
+2. **重复的实例化模式**: 多个工具重复 `AzurLaneConfig(inst)` + `Device(config)` 模式
+3. **日志系统不一致**: 使用标准库 `logging` 而非项目的 `module.logger`
+4. **注释混合语言**: 中英文注释混合
+
+> 注：原 `call_tool()` 过长与 `if/elif` 分发链问题已通过 `TOOL_HANDLERS` 字典重构解决（L466-497）。
 
 ---
 
@@ -714,24 +716,7 @@ mcp_server_sse.py
 
 ### 14.2 改进建议
 
-1. **提取工具处理器**:
-   ```python
-   class ToolHandler:
-       async def list_instances(self) -> List[TextContent]: ...
-       async def get_status(self) -> List[TextContent]: ...
-       # ...
-   ```
-
-2. **使用注册表模式**:
-   ```python
-   tool_handlers: Dict[str, Callable] = {
-       "list_instances": handler.list_instances,
-       "get_status": handler.get_status,
-       # ...
-   }
-   ```
-
-3. **异步化阻塞操作**:
+1. **异步化阻塞操作**:
    ```python
    async def restart_emulator(self, inst):
        # ...
@@ -739,7 +724,7 @@ mcp_server_sse.py
        # ...
    ```
 
-4. **缓存 Device 实例**:
+2. **缓存 Device 实例**:
    ```python
    _device_cache: Dict[str, Device] = {}
    def get_device(inst: str) -> Device:
@@ -748,14 +733,12 @@ mcp_server_sse.py
        return _device_cache[inst]
    ```
 
-5. **添加输入验证**:
+3. **添加输入验证**:
    ```python
    def validate_instance(inst: str) -> bool:
        return inst in alas_instance()
    ```
 
-6. **统一日志系统**: 使用项目的 `module.logger` 替代标准库 `logging`
+4. **统一日志系统**: 使用项目的 `module.logger` 替代标准库 `logging`
 
-7. **移除未使用的导入**: 删除 `import cv2`
-
-8. **添加 API 认证**: 实现基于 Token 的认证机制
+5. **添加 API 认证**: 实现基于 Token 的认证机制

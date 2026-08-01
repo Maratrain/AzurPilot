@@ -26,7 +26,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 campaign_base.py (202 行)
+### 2.1 campaign_base.py (307 行)
 
 **导出类型**：类 `CampaignBase`
 
@@ -87,7 +87,7 @@ alwaysApply: true
 
 ---
 
-### 2.2 campaign_ui.py (484 行)
+### 2.2 campaign_ui.py (607 行)
 
 **导出类型**：类 `CampaignUI`、`ModeSwitch`
 
@@ -162,7 +162,7 @@ alwaysApply: true
 
 ---
 
-### 2.3 campaign_event.py (282 行)
+### 2.3 campaign_event.py (316 行)
 
 **导出类型**：类 `CampaignEvent`
 
@@ -219,7 +219,7 @@ alwaysApply: true
 
 ---
 
-### 2.4 campaign_ocr.py (373 行)
+### 2.4 campaign_ocr.py (405 行)
 
 **导出类型**：类 `CampaignOcr`
 
@@ -271,7 +271,7 @@ alwaysApply: true
 
 ---
 
-### 2.5 campaign_status.py (181 行)
+### 2.5 campaign_status.py (207 行)
 
 **导出类型**：类 `CampaignStatus`
 
@@ -286,7 +286,7 @@ alwaysApply: true
 
 ---
 
-### 2.6 run.py (489 行)
+### 2.6 run.py (550 行)
 
 **导出类型**：类 `CampaignRun`
 
@@ -349,7 +349,7 @@ alwaysApply: true
 
 ---
 
-### 2.7 gems_farming.py (928 行)
+### 2.7 gems_farming.py (1175 行)
 
 **导出类型**：类 `GemsFarming`
 
@@ -363,28 +363,31 @@ alwaysApply: true
 
 ---
 
-### 2.8 os_run.py (117 行)
+### 2.8 os_run.py (162 行)
 
-**导出类型**：类 `OpsiRun`
+**导出类型**：类 `OSCampaignRun`（继承 `OSMapOperation`）
 
 **导入依赖**：
-- `module.campaign.run.CampaignRun`：战役运行
+- `module.os.map.OSMapOperation`：大世界地图操作基类
 - `module.config.config.AzurLaneConfig`：配置管理
 - `module.logger.logger`：日志系统
 
-**说明**：大世界战役运行。
+**说明**：大世界战役运行。`OSCampaignRun` 提供 16 个 `opsi_*` 方法（`opsi_explore`、`opsi_shop`、`opsi_voucher`、`opsi_daily`、`opsi_stronghold`、`opsi_scheduling`、`opsi_abyssal`、`opsi_archive` 等），对应 `alas.py` 中的大世界任务入口。
+
+> **注意**：类名是 `OSCampaignRun`，不是 `OpsiRun`（旧文档误标）。
 
 ---
 
-### 2.9 ambush_1_1.py (296 行)
+### 2.9 ambush_1_1.py (300 行)
 
-**导出类型**：战役地图定义
+**导出类型**：类 `Ambush11`（继承 `GemsFarming`）
 
 **导入依赖**：
-- `module.campaign.campaign_base.CampaignBase`：战役基类
-- `module.map.map_base.CampaignMap`：战役地图
+- `module.campaign.gems_farming.GemsFarming`：钻石 farming 基类
+- `module.config.config.AzurLaneConfig`：配置管理
+- `module.logger.logger`：日志系统
 
-**说明**：1-1 伏击关卡的地图定义和战斗逻辑。
+**说明**：专用于 1-1 伏击刷关/钻石 farming。重写旗舰更换策略（旗舰血量阈值处理），用于 `ambush11` 任务。注意不是单纯的战役地图定义文件。
 
 ---
 

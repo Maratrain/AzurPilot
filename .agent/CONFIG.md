@@ -25,7 +25,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 config.py（836 行）
+### 2.1 config.py（910 行）
 
 **导出类型**：类 `AzurLaneConfig`、`Function`、`TaskEnd`，函数 `name_to_function()`
 
@@ -50,7 +50,7 @@ alwaysApply: true
 - `L400-462`：`task_delay()` — 设置任务延迟。支持多种延迟方式：成功/失败间隔、服务器更新时间、目标时间、分钟数。取最近的未来时间。
 - `L464-530`：`opsi_task_delay()` — 大世界任务专用延迟，处理侦察扫描、潜艇呼叫、行动力限制等。
 
-### 2.2 deep.py（533 行）
+### 2.2 deep.py（527 行）
 
 **导出类型**：函数 `deep_get()`、`deep_get_with_error()`、`deep_exist()`、`deep_set()`、`deep_default()`、`deep_pop()`、`deep_iter_depth1()`、`deep_iter_depth2()`、`deep_iter()`、`deep_values()`、`deep_iter_diff()`、`deep_iter_patch()`
 
@@ -68,7 +68,7 @@ alwaysApply: true
 - `L435-483`：`deep_iter_diff()` — 比较两个字典的差异。时间成本与差异数量成正比。
 - `L486-533`：`deep_iter_patch()` — 生成 JSON Patch 风格的变更事件（`OP_ADD`/`OP_SET`/`OP_DEL`）。
 
-### 2.3 server.py（141 行）
+### 2.3 server.py（142 行）
 
 **导出类型**：全局变量 `server`，常量 `VALID_SERVER`、`VALID_PACKAGE`、`VALID_CHANNEL_PACKAGE`、`DICT_PACKAGE_TO_ACTIVITY`、`VALID_SERVER_LIST`，函数 `set_server()`、`to_server()`、`to_package()`
 
@@ -82,7 +82,7 @@ alwaysApply: true
 - `L114-126`：`to_server()` — 包名/服务器名转服务器。未知包名默认 `'cn'`。
 - `L129-141`：`to_package()` — 服务器名转包名。
 
-### 2.4 watcher.py（33 行）
+### 2.4 watcher.py（38 行）
 
 **导出类型**：类 `ConfigWatcher`
 
@@ -94,7 +94,7 @@ alwaysApply: true
 
 - `L8-33`：`ConfigWatcher` — 文件修改时间监控。`start_watching()` 记录初始时间，`should_reload()` 检查文件是否被修改。用于任务间热重载。
 
-### 2.5 utils.py（676 行）
+### 2.5 utils.py（725 行）
 
 **导出类型**：常量 `LANGUAGES`、`SERVER_TO_LANG`、`LANG_TO_SERVER`、`SERVER_TO_TIMEZONE`、`DEFAULT_TIME`，函数 `filepath_args()`、`filepath_config()`、`read_file()`、`write_file()`、`parse_value()`、`server_timezone()`、`server_time_offset()`、`get_server_next_update()`、`get_os_next_reset()`、`random_id()`、`is_good_gpu()` 等
 
@@ -115,7 +115,7 @@ alwaysApply: true
 - `L404-449`：`get_server_next_update()`/`get_server_last_update()` — 计算服务器更新时间。
 - `L647-672`：`is_good_gpu()` — 检测高性能 GPU（>=1GB 显存）。
 
-### 2.6 mcp_helper.py（106 行）
+### 2.6 mcp_helper.py（135 行）
 
 **导出类型**：类 `McpConfigHelper`
 
@@ -126,6 +126,16 @@ alwaysApply: true
 **逐段分析**：
 
 - `L6-106`：`McpConfigHelper` — MCP 集成辅助类。`get_tasks()` 获取任务列表，`get_task_details()` 获取任务元数据（含 i18n 翻译），`get_dashboard_resources()` 获取仪表盘资源。
+
+### 2.7 新增子模块（2026-07 后新增）
+
+| 文件 | 行数 | 说明 |
+|---|---|---|
+| `time_source.py` | 224 | NTP 时间校准 `NetworkTimeSource`，提供统一时间源 `now`。被 `config.py`（`from module.config.time_source import now as current_time`）与 `mcp_server_sse.py` 等导入使用 |
+| `task_priority.py` | 124 | `parse_task_priority()` 任务优先级解析 |
+| `code_generator.py` | 309 | 配置代码生成器 |
+| `env.py` | 10 | 云手机环境检测 `IS_ON_PHONE_CLOUD` |
+| `redirect_utils/` | - | 版本升级的配置迁移重定向函数（utils.py、os_handler.py、shop_filter.py） |
 
 ## 3. 内部调用关系
 
@@ -213,7 +223,7 @@ graph TD
 - `ConfigWatcher` 实现简洁，满足热重载需求
 
 **问题**：
-- `config.py` 过于庞大（836 行），应拆分调度逻辑到独立模块
+- `config.py` 过于庞大（910 行），应拆分调度逻辑到独立模块
 - `AzurLaneConfig` 四重继承增加理解和维护难度
 - `Function` 类使用 `deep_get` 而非直接属性访问，类型安全性差
 - `server.py` 使用全局变量，测试困难

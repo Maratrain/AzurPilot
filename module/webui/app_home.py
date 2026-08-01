@@ -134,10 +134,10 @@ class HomeMixin(WebUIMixinBase):
             from module.base.api_client import ApiClient
 
             data = ApiClient.get_announcement(timeout=10)
-            self._announcement_result = (data, force)
+            self._announcement_result = {"data": data, "force": force}
         except Exception as e:
-            logger.error(f"Announcement fetch failed: {e}")
-            self._announcement_result = (None, force, str(e))
+            logger.error(f"[WebUI-主页] 获取公告失败: {e}")
+            self._announcement_result = {"data": None, "force": force, "error": str(e)}
         finally:
             self._announcement_fetching = False
             # 后台请求完成后立即唤醒会话调度器，无需依靠高频轮询收结果。
@@ -150,7 +150,6 @@ class HomeMixin(WebUIMixinBase):
         if self._announcement_fetching:
             return
         self._announcement_fetching = True
-        self._announcement_force = force
         self._announcement_result = None
         threading.Thread(
             target=self._fetch_announcement_thread, args=(force,), daemon=True
@@ -169,15 +168,15 @@ class HomeMixin(WebUIMixinBase):
         result = self._announcement_result
         self._announcement_result = None
 
-        # 解包结果
-        if len(result) == 3:
-            # 有错误
-            _, force, error = result
+        # 请求结果与请求发起时的 force 一起打包，避免读到旧请求的过期状态
+        data = result.get("data")
+        force = result.get("force", False)
+        error = result.get("error")
+
+        if error:
             if force:
                 toast(f"Check failed: {error}", color="error")
             return True
-
-        data, force = result
 
         if data:
             announcement_id = data.get("announcementId")
@@ -234,6 +233,14 @@ class HomeMixin(WebUIMixinBase):
         Args:
             force (bool): If True, show announcement even if already shown.
         """
+        if force:
+            if self._announcement_fetching:
+                # 已有请求在途：记下 force 意图并丢弃旧结果，
+                # 请求完成后 checker 会立即按新的 force 重新拉取。
+                self._announcement_force = force
+                self._announcement_result = None
+            else:
+                self._announcement_force = False
         self._start_announcement_fetch(force=force)
         if force:
             toast("正在获取公告... / Fetching announcement...", color="info")
@@ -369,6 +376,16 @@ class HomeMixin(WebUIMixinBase):
             while True:
                 # 处理已有结果（来自定期检查或手动点击）
                 self._process_announcement_result()
+                # 手动点击强制查看且请求已结束时，立即发起强制拉取。
+                # 标记仅在“已有请求在途、需要延迟重拉”时由 ui_check_announcement 置位，
+                # 发起的强制请求完成后会再次进入这里，此时标记已清除，不会重复拉取。
+                if (
+                    self._announcement_force
+                    and not self._announcement_fetching
+                    and self._announcement_result is None
+                ):
+                    self._start_announcement_fetch(force=True)
+                    self._announcement_force = False
                 # 定期触发新的异步获取
                 if (
                     not self._announcement_fetching

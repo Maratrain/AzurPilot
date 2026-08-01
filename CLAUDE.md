@@ -41,10 +41,16 @@ cd webapp && pnpm lint
 cd webapp && pnpm typecheck
 ```
 
-### 构建 Webapp
+### 测试
 ```bash
-cd webapp && pnpm install
-cd webapp && pnpm build && pnpm compile
+uv run python -m unittest discover -s tests    # 运行全部单元测试（约 160 个）
+uv run python -m unittest tests.test_webui_config_search  # 运行单个测试文件
+```
+
+### 构建 Webapp（前端静态资源）
+```bash
+# webapp/ 仅包含前端静态 HTML/JS 资源（Electron 客户端源码已于 2026-07 移除）
+# 前端资源直接放置在 webapp/ 与 assets/gui/、assets/spa/ 下，无构建步骤
 ```
 
 ### 配置生成（修改配置 YAML 文件后必须执行）
@@ -70,7 +76,7 @@ uv run -m dev_tools.button_extract    # 从截图中提取按钮定义
 
 ### 入口点
 - **`alas.py`** — 核心调度器。`AzurLaneAutoScript.loop()` 运行无限调度循环：按优先级选择下一个任务、分发到方法、处理错误、休眠到下一个任务。
-  - 55 个任务方法（research、commission、tactical、dorm、meowfficer、guild、reward、awaken、shop_frequent 等）
+  - 93 个任务方法（research、commission、tactical、dorm、meowfficer、guild、reward、awaken、shop_frequent、island_*、opsi_* 等）
   - 错误处理：返回 `True`（成功）、`False`（不可恢复）或 `'recoverable'`（可自动恢复）
   - 模拟器重启逻辑：`_try_restart_emulator()` 处理 ADB 离线/卡死场景
   - LLM 错误分析：可选集成 OpenAI API 进行错误诊断
@@ -220,7 +226,7 @@ Device ← Screenshot + Control + AppControl + Input
 ### 任务调度
 优先级顺序：`Restart > OpsiCrossMonth > Commission > Tactical > Research > Exercise > Dorm > Meowfficer > Guild > Gacha > Reward > ShopFrequent > ... > Main > Main2 > Main3 > GemsFarming`
 
-同一任务连续失败 3 次触发 `RequestHumanTakeover`。任务间通过 `ConfigWatcher` 热重载配置。`RESTART_SENSITIVE_TASKS = ['Commission', 'Research']` 的任务触发严格重启行为。
+同一任务连续失败 3 次触发 `RequestHumanTakeover`。任务间通过 `ConfigWatcher` 热重载配置。严格重启行为由 `Error_StrictRestart` + `{task}.Scheduler.Sensitive` 动态判断（原 `RESTART_SENSITIVE_TASKS` 常量已删除）。
 
 **任务分发**：`AzurLaneAutoScript.run(command)` 通过 `self.__getattribute__(command)()` 分发。返回 `True`（成功）、`False`（不可恢复）或 `'recoverable'`（可自动恢复，不计入失败次数）。
 
@@ -315,6 +321,17 @@ server.server = 'en'  # 在导入任何 AzurPilot 模块之前设置
 2. 运行 `uv run -m module.config.config_updater` 重新生成所有产物。
 3. **【必须手动】翻译新增的 i18n 条目**：打开 `i18n/<lang>.json`，找到值为 `"Group.Argument.name"` 这样的 key 路径字符串，逐行替换为正确的翻译文本。已有翻译会被保留（生成器从旧文件读取），只有新增 key 需要翻译。
 4. zh-TW 会自动简繁转换，但仍需人工校对。
+
+### 三层结构与生成规则（与 `.cursor/rules/config-system.mdc` 一致）
+
+- **task → group → argument** 三层映射：`task.yaml` 定义任务→选项组列表，`argument.yaml` 定义每组选项及属性（`type` / `value` / `option` / `validate` / `display`）。完整配置路径为 `<Task>.<Group>.<Argument>`，如 `OpsiScheduling.OpsiScheduling.ActionPointPreserve`。
+- 以 `_` 开头的 group 会被过滤（不进入 GUI/args）。
+- `argument.yaml` 中选项直接写标量值时，生成器自动推断 `type`（bool→`checkbox`、有 `option`→`select`、时间→`datetime`）；显式写成字典时字典内容优先。
+- `override.yaml` 只对已存在的 argument 生效（不存在则警告）；非 `state`/`lock` 类型且值非空时通常附带 `display: hide`；若原 argument 有 `option`，覆盖值必须在其列表内。
+- `default.yaml` 仅设置初始 `value`，`override.yaml` 再合入修改 `value` / `display` / `type`。
+- 每个有 `Scheduler.Command` 的 task，其 `.value` 自动设为该 task 名且 `display: hide`，防止 GUI 误改。
+- 代码中访问使用点分路径辅助函数：`deep_get(args, 'Main.Campaign.Name')`、`deep_set(args, path, value)`（`module/config/deep.py`）。
+- `ConfigUpdater.save_callback` 对关键路径做联动更新，如修改 `OpsiScheduling.OperationCoinsPreserve` 会同步到 `OpsiHazard1Leveling.OperationCoinsPreserve`（反之亦然）；智能调度/短猫的 `ActionPointPreserve` 按值是否大于 0 决定双向同步。
 
 ### i18n 翻译生成机制
 
@@ -441,13 +458,13 @@ uv run dev_tools/grids_debug.py         # 调试网格检测
 | `assets/` | UI 识别的模板图像，按服务器 (cn/en/jp/tw) 和功能组织 |
 | `config/` | 配置模板（`template.json`、`deploy.template.yaml` 等） |
 | `deploy/` | 安装脚本、Docker 设置、平台特定部署（AidLux、Windows） |
-| `webapp/` | Electron + Vue 3 桌面应用 |
+| `webapp/` | 前端静态资源（HTML/JS；原 Electron + Vue 3 应用已于 2026-07 移除） |
 | `dev_tools/` | 开发工具：地图提取器、战役滑动工具、物品统计 |
 | `bin/` | 二进制工具：DroidCast、scrcpy、ascreencap、MaaTouch、OCR 模型 |
 | `submodule/` | 外部桥接：AlasFpyBridge、AlasMaaBridge |
 
 ## 测试
-没有正式的 Python 测试套件。Webapp 有基本的 Playwright 测试（`webapp/tests/app.spec.js`）。测试通过在真实模拟器实例上运行任务完成。
+Python 单元测试在 `tests/`，使用标准库 `unittest`（`discover` 模式，非 pytest），覆盖 WebUI、进程管理、部署与配置逻辑。运行：`uv run python -m unittest discover -s tests`；单个文件：`uv run python -m unittest tests.test_webui_config_search`。游戏逻辑无自动化测试——通过在真实模拟器实例上运行任务完成。另有 `test/ncnn_ocr_benchmark.py` OCR 基准测试工具。
 
 ## 备注
 - `alas.py` 中的 `run()` 方法抛出异常而不是调用 `exit(1)`，允许调度循环捕获并重试
@@ -555,10 +572,8 @@ page_main.link(button=MAIN_GOTO_REWARD, destination=page_reward)
 - **MCP**：mcp、sse-starlette
 - **工具**：pyyaml、inflection、psutil、chardet、matplotlib、pycryptodome、watchdog、numba、lz4
 
-## Webapp（Electron）
-独立的前端在 `webapp/`——Vue 3 + Ant Design Vue + Electron。使用 pnpm、Vite、electron-builder。用 `pnpm lint` 检查，`pnpm typecheck` 类型检查，`pnpm test` 测试。
-
-Monorepo 结构：`webapp/packages/main`（Electron 主进程）、`webapp/packages/preload`（预加载脚本）、`webapp/packages/renderer`（Vue 前端）。
+## Webapp（前端静态资源）
+`webapp/` 仅包含前端静态资源（HTML/JS 片段，如 `ap_chart.js`、`resource_chart.html` 等），直接由 `module/webui/` 服务。原 Electron + Vue 3 应用（`webapp/packages/*`）已于 2026-07-24 提交 `53e23a23b` 移除，无 pnpm 构建步骤。`gui.py` 的 `--electron` 参数保留（用于旧客户端兼容），前端样式与 SPA 资源位于 `assets/gui/`、`assets/spa/`。
 
 ## CI
 GitHub Actions 使用 `uv sync --frozen` 和 `uv run`。运行：ruff lint、`button_extract.py`、`config_updater.py`（检查未提交的 diff）、Docker 发布、上游同步。

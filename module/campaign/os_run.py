@@ -123,6 +123,19 @@ class OSCampaignRun(OSMapOperation):
             self.delay_opsi_tasks_after_ap_limit(e)
 
     def opsi_scheduling(self):
+        # 必须在 load_campaign() 前拦截，否则 os_init() 会执行首次自律寻敌。
+        if self.is_in_opsi_explore():
+            logger.info('[大世界-智能调度+] 每月开荒+正在运行，初始化前延期智能调度+')
+            self.config.task_delay(
+                server_update=self.config.cross_get(
+                    keys='OpsiScheduling.Scheduler.ServerUpdate',
+                    default='00:00',
+                ),
+                task='OpsiScheduling',
+            )
+            self.config.task_stop()
+            return
+
         self._run_opsi_task_with_ap_overflow_guard(lambda campaign: campaign.run_smart_scheduling())
 
     def opsi_prevent_action_point_overflow(self):

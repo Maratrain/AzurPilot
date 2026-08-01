@@ -26,7 +26,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 map.py (746 行)
+### 2.1 map.py (764 行)
 
 **导出类型**：类 `Map`
 
@@ -125,7 +125,7 @@ alwaysApply: true
 
 ---
 
-### 2.2 map_base.py (832 行)
+### 2.2 map_base.py (1083 行)
 
 **导出类型**：类 `CampaignMap`
 
@@ -323,7 +323,7 @@ alwaysApply: true
 
 ---
 
-### 2.4 fleet.py (1239 行)
+### 2.4 fleet.py (1268 行)
 
 **导出类型**：类 `Fleet`
 
@@ -378,7 +378,7 @@ alwaysApply: true
 
 ---
 
-### 2.5 map_operation.py (446 行)
+### 2.5 map_operation.py (519 行)
 
 **导出类型**：类 `MapOperation`
 
@@ -396,7 +396,7 @@ alwaysApply: true
 
 **逐行分析**：
 
-**L14**：`MapOperation` 类定义，继承自多个处理器。
+**L14**：`MapOperation` 类定义，继承自 `MysteryHandler`、`FleetPreparation`、`Retirement`、`FastForwardHandler`。
 
 **L15-23**：类属性：
 - `map_cat_attack_timer`：猫咪攻击计时器
@@ -423,7 +423,7 @@ alwaysApply: true
 
 ---
 
-### 2.6 map_grids.py (377 行)
+### 2.6 map_grids.py (496 行)
 
 **导出类型**：类 `SelectedGrids`、`RoadGrids`
 
@@ -478,7 +478,7 @@ alwaysApply: true
 
 ---
 
-### 2.8 utils.py (186 行)
+### 2.8 utils.py (244 行)
 
 **导出类型**：工具函数
 

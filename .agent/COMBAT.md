@@ -25,7 +25,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 combat.py (666 行)
+### 2.1 combat.py (780 行)
 
 **导出类型**：主类 `Combat`
 
@@ -134,7 +134,7 @@ alwaysApply: true
 
 ---
 
-### 2.2 combat_auto.py (65 行)
+### 2.2 combat_auto.py (89 行)
 
 **导出类型**：类 `CombatAuto`
 
@@ -164,7 +164,7 @@ alwaysApply: true
 
 ---
 
-### 2.3 combat_manual.py (88 行)
+### 2.3 combat_manual.py (118 行)
 
 **导出类型**：类 `CombatManual`
 
@@ -198,7 +198,7 @@ alwaysApply: true
 
 ---
 
-### 2.4 hp_balancer.py (241 行)
+### 2.4 hp_balancer.py (268 行)
 
 **导出类型**：类 `HPBalancer`
 
@@ -255,7 +255,7 @@ alwaysApply: true
 
 ---
 
-### 2.5 level.py (154 行)
+### 2.5 level.py (177 行)
 
 **导出类型**：类 `Level`、`LevelOcr`
 
@@ -300,7 +300,7 @@ alwaysApply: true
 
 ---
 
-### 2.6 submarine.py (50 行)
+### 2.6 submarine.py (74 行)
 
 **导出类型**：类 `SubmarineCall`
 
@@ -326,7 +326,7 @@ alwaysApply: true
 
 ---
 
-### 2.7 emotion.py (398 行)
+### 2.7 emotion.py (476 行)
 
 **导出类型**：类 `FleetEmotion`、`Emotion`
 
@@ -371,7 +371,7 @@ alwaysApply: true
 
 ---
 
-### 2.8 auto_search_combat.py (410 行)
+### 2.8 auto_search_combat.py (561 行)
 
 **导出类型**：类 `AutoSearchCombat`
 

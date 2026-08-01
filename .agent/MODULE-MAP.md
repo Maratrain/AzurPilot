@@ -14,7 +14,7 @@ alwaysApply: true
 - **主要语言**: Python 3.14+
 - **框架**: PyWebIO + Starlette + uvicorn (WebUI), ADB/uiautomator2 (设备控制)
 - **包管理器**: uv (项目模式)
-- **总文件数**: 2654 个 Python 文件
+- **总文件数**: 2002 个 Python 文件
 
 ---
 
@@ -81,7 +81,11 @@ alwaysApply: true
 | **awaken** | `module/awaken/` | 觉醒系统 |
 | **retire** | `module/retire/` | 退役系统 |
 | **equipment** | `module/equipment/` | 装备管理 |
+| **auto_equip** | `module/auto_equip/` | 自动配装（AutoEquip） |
 | **meta_reward** | `module/meta_reward/` | META 奖励 |
+| **storage** | `module/storage/` | 仓库（拆解、StorageHandler） |
+| **game_setting** | `module/game_setting/` | 游戏内设置（player_prefs 等） |
+| **template** | `module/template/` | 模板匹配资源（assets.py） |
 
 ### 第五层：大世界系统
 
@@ -114,8 +118,11 @@ alwaysApply: true
 | **campaign_main** | `campaign/campaign_main/` | 主线战役数据 |
 | **campaign_hard** | `campaign/campaign_hard/` | 困难战役数据 |
 | **campaign_sos** | `campaign/campaign_sos/` | SOS 战役数据 |
+| **campaign_war_archives** | `campaign/campaign_war_archives/` | 作战档案数据 |
 | **event_*_cn** | `campaign/event_*/` | 各活动战役数据 |
-| **war_archives_*_cn** | `campaign/war_archives_*/` | 作战档案数据 |
+| **war_archives_*_cn** | `campaign/war_archives_*/` | 各作战档案活动数据 |
+
+> 实际目录结构：除 `campaign_main`、`campaign_hard`、`campaign_sos`、`campaign_war_archives` 外，含约 78 个 `event_*` 目录和 47 个 `war_archives_*` 目录（共 130+ 个条目）。
 
 ### 第八层：资源与工具层
 
@@ -148,9 +155,9 @@ alwaysApply: true
 ## 关键文件清单
 
 ### 入口文件
-- `alas.py` - 核心调度器（约 500 行）
-- `gui.py` - WebUI 启动器（约 150 行）
-- `mcp_server_sse.py` - MCP 服务器（约 200 行）
+- `alas.py` - 核心调度器（约 1500 行）
+- `gui.py` - WebUI 启动器（约 1000 行）
+- `mcp_server_sse.py` - MCP 服务器（约 570 行）
 
 ### 配置文件
 - `module/config/argument/*.yaml` - 配置源文件

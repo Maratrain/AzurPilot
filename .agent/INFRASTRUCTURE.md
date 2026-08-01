@@ -32,7 +32,7 @@ alwaysApply: true
 
 ### 文件清单与逐文件分析
 
-#### `cl1_database.py` (1343 行)
+#### `cl1_database.py` (1502 行)
 - **导出类型**：`Cl1Database` 类、`db` 单例实例
 - **导入依赖**：`sqlite3`, `json`, `pycryptodome` (AES-GCM), `module.base.device_id`, `module.logger`
 - **核心功能**：AES-GCM 加密的 SQLite 数据库管理，存储侵蚀1/短猫的战斗统计、明石事件、行动力快照、委托收益等
@@ -168,7 +168,7 @@ graph TD
 ### 代码质量评估
 
 - **优点**：类型注解完整、异常处理充分、文档注释详细
-- **缺点**：`cl1_database.py` 过长（1343 行），应拆分为多个子模块
+- **缺点**：`cl1_database.py` 过长（1502 行），应拆分为多个子模块
 - **命名**：遵循项目约定，使用下划线分隔
 
 ### 潜在问题与改进建议
@@ -218,7 +218,7 @@ graph TD
 - **导出类型**：`SceneOperationSiren` 类
 - **核心功能**：大世界场景识别，提取掉落物品的服务器、区域、侵蚀等级、物品名称和数量
 
-#### `statistics/azurstats.py` (383 行)
+#### `statistics/azurstats.py` (438 行)
 - **导出类型**：`AzurStats` 类、`DropImage` 类
 - **导入依赖**：`sqlite3`, `threading`, `numpy`, `module.base.device_id`
 - **核心功能**：AzurStats 主类——截图保存、本地解析、CSV 导出
@@ -290,7 +290,7 @@ graph TD
 - **导出类型**：`handle_notify()`, `notify_webui()` 惰性导入函数
 - **核心功能**：延迟导入，避免启动时加载 onepush
 
-#### `notify.py` (102 行)
+#### `notify.py` (134 行)
 - **导出类型**：`handle_notify()`, `notify_webui()` 函数
 - **导入依赖**：`onepush`, `yaml`, `requests`
 - **核心功能**：
@@ -354,13 +354,13 @@ graph TD
 - **导出类型**：`DaemonBase` 类
 - **核心功能**：继承 `ModuleBase`，禁用卡死检测
 
-#### `daemon.py` (71 行)
+#### `daemon.py` (125 行)
 - **导出类型**：`AzurLaneDaemon` 类
 - **导入依赖**：`CampaignBase`, `DaemonBase`
 - **核心功能**：主线守护循环——战斗、地图操作、退役、紧急委托、弹窗处理
 - **关键设计**：无终止条件，需手动停止
 
-#### `os_daemon.py` (73 行)
+#### `os_daemon.py` (84 行)
 - **导出类型**：`AzurLaneDaemon` 类（大世界版本）
 - **导入依赖**：`DaemonBase`, `OSFleet`, `PortHandler`
 - **核心功能**：大世界守护——战斗、地图事件、港口维修、敌人选择
@@ -431,16 +431,17 @@ graph TD
 
 ### 文件清单与逐文件分析
 
-#### `app.py` (5060+ 行)
-- **导出类型**：`AlasGUI` 类
-- **导入依赖**：`pywebio`, `module.config`, `module.webui.*`
-- **核心功能**：WebUI 主应用——菜单、配置、仪表盘、统计图表
-- **关键设计**：
-  - 继承 `Frame` 基类
-  - 使用 `@use_scope` 装饰器管理 UI 作用域
-  - 体力 K 线图、资源趋势图、短猫统计等复杂图表
+> **2026-08 重构说明**：`app.py` 已从单体文件（5060+ 行，`AlasGUI` 类）重构为入口/ASGI 工厂（363 行），逻辑拆分为 `app_*` 系列约 50 个文件。
 
-#### `process_manager.py` (309 行)
+#### `app.py` (363 行)
+- **导出类型**：`app` 工厂函数（ASGI 应用工厂）
+- **导入依赖**：`pywebio`, `module.config`, `module.webui.*`
+- **核心功能**：WebUI 应用入口——组装各 `app_*` 页面的路由与作用域
+- **关键设计**：
+  - `factory=True` 模式下的 ASGI 应用工厂
+  - 页面逻辑拆分至：`app_home.py`（主页）、`app_manage.py`（实例管理）、`app_task_config.py`（任务配置）、`app_statistics_page.py` + `app_stat_*` 系列（统计页）、`app_developer_*` 系列（开发者工具）、`app_shell.py`、`app_dashboard.py` 等
+
+#### `process_manager.py` (756 行)
 - **导出类型**：`ProcessManager` 类
 - **导入依赖**：`multiprocessing`, `threading`, `queue`
 - **核心功能**：多实例进程管理——启动、停止、状态检测、日志队列
@@ -448,9 +449,10 @@ graph TD
   - 使用 `multiprocessing.Process` 运行实例
   - `ConsoleRenderable` 队列实现跨进程日志传输
   - 状态检测通过分析日志尾部内容判断
+  - 与 `worker_registry.py`（worker 进程登记/回收）配合
 
 #### `fastapi.py`
-- **核心功能**：FastAPI/Starlette ASGI 应用，提供 API 路由
+- **核心功能**：FastAPI/Starlette ASGI 应用，提供 API 路由（`api.py` 约 1696 行，含 17+ 个 API 路由）
 
 #### `setting.py`
 - **核心功能**：全局状态管理（`State` 类）
@@ -464,34 +466,37 @@ graph TD
 #### `updater.py`
 - **核心功能**：Git 更新管理
 
-#### `dashboard_utils.py` / `event_calculator.py`
-- **核心功能**：仪表盘工具、活动计算器
+#### `dashboard_utils.py` / `event_calculator.py` / `config_search.py` / `worker_registry.py` / `oobe.py` / `pin.py` / `remote_access.py` / `deploy_settings.py` / `launcher.py` 等
+- **核心功能**：仪表盘工具、活动计算器、配置搜索、worker 登记、首次设置向导、固定 pin、远程访问、部署设置、启动器逻辑
 
 ### 模块内部调用关系
 
 ```mermaid
 graph TD
-    A[app.py] --> B[process_manager.py]
-    A --> C[setting.py]
-    A --> D[fastapi.py]
-    A --> E[utils.py]
-    A --> F[widgets.py]
-    B --> G[multiprocessing.Process]
-    B --> H[module.submodule]
-    D --> I[Starlette/uvicorn]
+    A[app.py 工厂] --> B[app_home.py]
+    A --> C[app_manage.py]
+    A --> D[app_task_config.py]
+    A --> E[app_statistics_page.py]
+    A --> F[app_developer_tools.py]
+    A --> G[process_manager.py]
+    G --> H[worker_registry.py]
+    G --> I[multiprocessing.Process]
+    D --> J[config_search.py]
 ```
 
 ### 设计模式与架构分析
 
-1. **MVC 模式**：`app.py` 是 Controller，PyWebIO 是 View，`AzurLaneConfig` 是 Model
-2. **进程池模式**：`ProcessManager` 管理多个 AzurPilot 实例进程
+1. **MVC 模式**：`app_*` 页面是 Controller，PyWebIO 是 View，`AzurLaneConfig` 是 Model
+2. **工厂模式**：`app.py` 作为 ASGI 应用工厂，组装各页面
 3. **观察者模式**：日志队列实现跨进程事件传递
+4. **注册表模式**：`worker_registry.py` 登记 worker 进程，支持孤儿回收
 
 ### 性能分析
 
 - 日志队列使用 `queue.Queue`，有最大长度限制（400 条）
 - 状态检测通过分析日志字符串，非轮询式
 - 图表渲染在前端完成，后端只提供数据
+- 首屏加载与静态资源已优化（`app_home.py` 异步公告拉取、`api.py` 批量接口）
 
 ### 安全性分析
 
@@ -500,14 +505,14 @@ graph TD
 
 ### 代码质量评估
 
-- **优点**：功能完整，国际化支持好
-- **缺点**：`app.py` 过长（5000+ 行），应拆分为多个视图模块
+- **优点**：功能完整，国际化支持好，页面拆分清晰
+- **缺点**：`app_*` 系列文件数量多（约 50 个），职责边界需要文档维护
 
 ### 潜在问题与改进建议
 
-1. `app.py` 应按功能拆分为 `dashboard.py`, `config.py`, `stat.py` 等
-2. 添加基本的认证机制
-3. 日志队列应支持持久化
+1. 添加基本的认证机制
+2. 日志队列应支持持久化
+3. `api.py`（1696 行）仍偏大，可进一步拆分路由模块
 
 ---
 
@@ -571,7 +576,7 @@ graph TD
 
 ### 文件清单与逐文件分析
 
-#### `llm.py` (108 行)
+#### `llm.py` (154 行)
 - **导出类型**：`analyze_exception()` 函数
 - **导入依赖**：`openai`, `hashlib`, `traceback`
 - **核心功能**：LLM 错误分析
@@ -628,7 +633,7 @@ graph TD
 
 ### 文件清单与逐文件分析
 
-#### `logger.py` (609 行)
+#### `logger.py` (627 行)
 - **导出类型**：`logger` 全局实例、`set_file_logger()`, `set_func_logger()`, `hr()`, `attr()` 等函数
 - **导入依赖**：`rich`, `logging`, `multiprocessing`, `tarfile`, `zipfile`
 - **核心功能**：
@@ -686,7 +691,7 @@ graph TD
 
 ### 文件清单与逐文件分析
 
-#### `exception.py` (72 行)
+#### `exception.py` (186 行)
 - **导出类型**：12 个异常类
 - **导入依赖**：无
 - **异常层次**：
@@ -748,7 +753,7 @@ graph TD
 
 ### 文件清单与逐文件分析
 
-#### `server_checker.py` (205 行)
+#### `server_checker.py` (244 行)
 - **导出类型**：`ServerChecker` 类
 - **导入依赖**：`requests`, `module.base.timer.Timer`, `module.config.server`
 - **核心功能**：
@@ -841,23 +846,23 @@ graph TD
 
 | 模块 | 行数 | 质量评分 | 主要问题 |
 |------|------|----------|----------|
-| statistics | ~4000 | 8/10 | `cl1_database.py` 过长 |
+| statistics | ~4000 | 8/10 | `cl1_database.py` 过长（1502 行） |
 | azur_stats | ~800 | 7/10 | CSV/SQLite 存储并存 |
-| notify | ~110 | 8/10 | 特殊渠道处理未抽取 |
+| notify | ~134 | 8/10 | 特殊渠道处理未抽取 |
 | daemon | ~250 | 7/10 | 重复逻辑 |
-| webui | ~8000+ | 6/10 | `app.py` 严重过长 |
+| webui | ~18000 | 7/10 | 文件多（约 50 个），`api.py` 偏大 |
 | submodule | ~120 | 8/10 | 映射硬编码 |
-| llm | ~110 | 7/10 | 缓存策略简单 |
-| logger | ~610 | 8/10 | "傲娇"风格 |
-| exception | ~72 | 8/10 | 缺少基类分类 |
-| server_checker | ~205 | 8/10 | HTTP API |
+| llm | ~154 | 7/10 | 缓存策略简单 |
+| logger | ~627 | 8/10 | "傲娇"风格 |
+| exception | ~186 | 8/10 | 缺少基类分类 |
+| server_checker | ~244 | 8/10 | HTTP API |
 
 ### 改进优先级
 
 1. **高优先级**：
-   - 拆分 `webui/app.py`（5000+ 行）
-   - 拆分 `statistics/cl1_database.py`（1343 行）
+   - 拆分 `statistics/cl1_database.py`（1502 行）
    - LLM 模块添加隐私保护
+   - 维护 `webui/app_*` 文件职责清单（约 50 个文件）
 
 2. **中优先级**：
    - 统一 `resource_stats.py` 和 `cl1_database.py` 的数据库
