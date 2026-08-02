@@ -1,3 +1,7 @@
+"""船坞系统 UI 全局资源定义，声明船坞页面中使用的所有按钮网格和 OCR 实例。
+包括角色头像网格、蓝图计数网格、系列选择网格、
+开发等级和研究等级等 OCR 数字识别器。"""
+
 from module.base.button import ButtonGrid
 from module.ocr.ocr import Digit
 from module.shipyard.assets import *

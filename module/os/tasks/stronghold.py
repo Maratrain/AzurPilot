@@ -46,7 +46,7 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
 
         if self.config.OpsiStronghold_SubmarineEveryCombat:
             if self.zone.is_azur_port:
-                logger.info('Already in azur port')
+                logger.info('[大世界-要塞] 已在碧蓝港口')
             else:
                 self.globe_goto(self.zone_nearest_azur_port(self.zone))
         self.handle_fleet_repair_by_config(revert=False)
@@ -103,10 +103,10 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
 
             # 判断结果
             if self.get_stronghold_percentage() == '0':
-                logger.info('BOSS clear')
+                logger.info('[大世界-要塞] Boss已清除')
                 return True
             elif any(self.need_repair):
-                logger.info('Auto search stopped, because fleet died')
+                logger.info('[大世界-要塞] 自动搜索停止，因为舰队阵亡')
                 # 重新进入以重置舰队位置
                 prev = self.zone
                 self.globe_goto(self.zone_nearest_azur_port(self.zone))
@@ -114,12 +114,12 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
                 self.globe_goto(prev, types='STRONGHOLD')
                 return False
             elif submarine and self.os_sumbarine_empty():
-                logger.info('Submarine ammo exhausted, wait for the next clear')
+                logger.info('[大世界-要塞] 潜艇弹药耗尽，等待下次清理')
                 # 潜艇弹药耗尽，等待下次清理
                 self.globe_goto(self.zone_nearest_azur_port(self.zone))
                 return True
             else:
-                logger.info('Auto search stopped, because fleet stuck')
+                logger.info('[大世界-要塞] 自动搜索停止，因为舰队卡住')
                 # 重新进入以重置舰队位置
                 prev = self.zone
                 self.globe_goto(self.zone_nearest_azur_port(self.zone))
@@ -144,7 +144,7 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
         logger.hr('塞壬要塞清理', level=1)
         fleets = self.parse_fleet_filter()
         for fleet in fleets:
-            logger.hr(f'Turn: {fleet}', level=2)
+            logger.hr(f'[大世界-要塞] 回合: {fleet}', level=2)
             if not isinstance(fleet, BossFleet):
                 self.os_order_execute(recon_scan=False, submarine_call=True)
                 continue

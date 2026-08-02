@@ -1,3 +1,11 @@
+"""游戏服务器状态检查器。
+
+通过外部 API 查询碧蓝航线各服务器（CN/EN/JP/TW）的在线状态。
+在任务调度前检查服务器是否可用，避免在维护期间执行无效操作。
+
+状态检查结果通过队列缓存，支持定时刷新和即时查询。
+"""
+
 from collections import deque
 from json import JSONDecodeError
 
@@ -10,7 +18,20 @@ from module.logger import logger
 
 
 class ServerChecker:
-    # 震惊 ALAS 竟然公然收集用户IP地址
+    """游戏服务器状态检查器。
+
+    通过 HTTP API 查询指定服务器的在线状态，支持：
+    - 单服务器状态查询
+    - 全服务器状态查询
+    - 服务器列表获取
+
+    Attributes:
+        _server (str): 目标服务器标识，如 'cn'、'en'、'jp'、'tw'，或 'disabled'。
+        _state (deque): 状态历史队列（最大长度 2），用于状态变化检测。
+        _recover (bool): 服务器是否从不可用状态恢复。
+        _retry (bool): 是否需要重试。
+    """
+
     def __init__(self, server: str) -> None:
         self._base: str = 'http://sc.shiratama.cn'
         self._api: dict = {
@@ -59,10 +80,10 @@ class ServerChecker:
                 j = resp.json()
                 if j['state'] != 1:
                     self._state.append(True)
-                    logger.info(f'Server "{self._server}" is available.')
+                    logger.info(f'[服务器检查] 服务器 "{self._server}" 可用。')
                 else:
                     self._state.append(False)
-                    logger.info(f'Server "{self._server}" is under maintenance.')
+                    logger.info(f'[服务器检查] 服务器 "{self._server}" 维护中。')
 
                 # 检查 API 服务端是否已停止更新
                 if j['last_update'] > self._timestamp:
@@ -71,13 +92,13 @@ class ServerChecker:
                 else:
                     self._expired += 1
                     if self._expired > 3:
-                        logger.warning(f'Timestamp {self._timestamp} has not been updated for 3 times.')
+                        logger.warning(f'[服务器检查] 时间戳 {self._timestamp} 已3次未更新。')
             elif resp.status_code == 404:
                 # API 数据库可能未收录新增服务器（如"长弓计划"），
                 # 检查本地服务器列表确认该服务器是否真实存在
                 if self._server_in_local_list():
                     self._state.append(True)
-                    logger.info(f'Server "{self._server}" is available (local verified, API unknown).')
+                    logger.info(f'[服务器检查] 服务器 "{self._server}" 可用（本地已验证，API未知）。')
                 else:
                     self._state.append(False)
                     raise ScriptError(f'Server "{self._server}" does not exist!')
@@ -85,7 +106,7 @@ class ServerChecker:
                 raise ScriptError(f'Get status_code {resp.status_code}. Response is {resp.text}')
         except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout) as e:
             logger.error(e)
-            logger.error('Timeout while connecting to server checker API.')
+            logger.error('连接服务器检查API超时。')
             if self._retry:
                 self._state.append(False)
             else:
@@ -120,13 +141,12 @@ class ServerChecker:
             else:
                 if self._timer.limit < 600:
                     self._timer.limit += 120
-                logger.info(f'Server checker will retry after {self._timer.limit}s')
+                logger.info(f'服务器检查er will retry after {self._timer.limit}s')
             self._timer.reset()
         except ScriptError as e:
             logger.warning(str(e))
-            logger.warning('There may be something wrong with server checker.')
-            logger.warning('Please contact the developer to fix it.')
-            logger.warning('Server checker will be temporarily forced off.')
+            logger.warning('服务器检查可能有问题。')
+            logger.warning('请联系开发者修复。')
             self.reset()
             self._server = 'disabled'
             self._recover = True
@@ -204,21 +224,21 @@ class ServerChecker:
 
         logger.attr('network_available', network_available)
         if network_available:
-            logger.info('Trigger fast retry.')
+            logger.info('触发快速重试。')
             last = self._state.copy()
             for _ in range(3):
-                logger.info(f'Retry {_ + 1} times ...')
+                logger.info(f'重试 {_ + 1} times ...')
                 self._load_server()
                 if self._state[0]:
                     self._retry = False
                     self._state.extend(last)
                     return True
 
-            logger.error('Cannot connect to API. Please check you network or disable server checker.')
+            logger.error('无法连接API. Please check you network or disable server checker.')
             self._retry = False
             self._state.extend(last)
             return False
         else:
             self._retry = False
-            logger.error('Network is unavailable. Please check your network status.')
+            logger.error('网络不可用. Please check your network status.')
             return False

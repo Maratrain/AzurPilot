@@ -1114,7 +1114,6 @@ OpsiMeowfficerFarming:
   TargetZone:
     value: 0
   StayInZone: false
-  APPreserveUntilReset: false
 OpsiTarget:
   TargetFarming: false
   TargetZone:
@@ -1202,6 +1201,16 @@ OpsiScheduling:
   TaskPriority:
     type: textarea
     value: OpsiStronghold > OpsiObscure > OpsiAbyssal > OpsiMeowfficerFarming
+  MonthEndActionPointCleanupEnable:
+    value: false
+    option: [true, false]
+  MonthEndActionPointCleanupDays:
+    value: 0
+  MonthEndActionPointPreserve:
+    value: 0
+  MonthEndShopPurchase:
+    value: true
+    option: [true, false]
 OpsiPreventActionPointOverflow:
   Task:
     value: OpsiScheduling

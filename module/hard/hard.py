@@ -1,3 +1,12 @@
+"""困难模式战役执行模块。
+
+自动执行碧蓝航线的困难模式关卡。困难模式与普通模式共享同一张地图，
+但使用独立的战役入口和额外的限制条件（如每日出击次数、舰队锁定等）。
+通过 OCR 识别剩余出击次数，循环执行直到用尽。
+
+配置路径: Hard.HardStage (关卡选择), Hard.HardFleet (舰队选择)
+"""
+
 import importlib
 
 from campaign.campaign_hard.campaign_hard import Campaign
@@ -11,11 +20,21 @@ OCR_HARD_REMAIN = Digit(OCR_HARD_REMAIN, letter=(123, 227, 66), threshold=128, a
 
 
 class CampaignHard(CampaignRun):
+    """困难模式战役执行器。
+
+    继承自 CampaignRun，负责执行困难模式关卡。从普通模式战役加载地图数据，
+    强制启用舰队锁定和自动搜索，通过 OCR 识别每日剩余出击次数并循环执行。
+
+    Attributes:
+        equipment_has_take_on: 装备是否已穿戴（当前未使用）。
+        campaign: 战役执行实例，由 CampaignRun 提供。
+    """
+
     equipment_has_take_on = False
     campaign: Campaign
 
     def run(self):
-        logger.hr('Campaign hard', level=1)
+        logger.hr('困难战役', level=1)
         name = to_map_file_name(self.config.Hard_HardStage)
         self.config.override(
             Campaign_Mode='hard',
@@ -42,7 +61,7 @@ class CampaignHard(CampaignRun):
 
         # 执行
         remain = OCR_HARD_REMAIN.ocr(self.device.image)
-        logger.attr('Remain', remain)
+        logger.attr('剩余次数', remain)
         for n in range(remain):
             self.campaign.run()
 

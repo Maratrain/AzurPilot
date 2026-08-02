@@ -1,9 +1,12 @@
 """WebUI任务菜单和配置表单"""
 
+from html import escape
 from typing import cast
 
+import module.webui.lang as lang
 from module.webui.app_dependencies import (
     Any,
+    clear,
     Dict,
     List,
     Optional,
@@ -28,6 +31,7 @@ from module.webui.app_dependencies import (
     put_buttons,
     put_collapse,
     put_html,
+    put_input,
     put_none,
     put_output,
     put_scope,
@@ -48,6 +52,15 @@ from module.webui.app_helpers import (
     build_copyable_device_id,
     is_demo_mode,
 )
+from module.webui.config_search import (
+    ConfigSearchEntry,
+    build_config_search_result_click_script,
+    build_config_search_focus_script,
+    config_search_config_signature,
+    config_search_field_scope,
+    search_config_entries,
+    should_render_config_argument,
+)
 
 
 from module.webui.app_types import WebUIMixinBase
@@ -56,11 +69,23 @@ from module.webui.app_types import WebUIMixinBase
 class TaskConfigMixin(WebUIMixinBase):
     """WebUI任务菜单和配置表单"""
 
+    CONFIG_SEARCH_PIN = "config_search_keyword"
+    CONFIG_SEARCH_SELECTION_PIN = "config_search_selection"
+    CONFIG_SEARCH_RESULT_LIMIT = 20
+
     @use_scope("menu", clear=True)
     def alas_set_menu(self) -> None:
-        """
-        Set menu
-        """
+        """渲染任务菜单及配置搜索入口。"""
+        put_scope("task_config_search")
+        put_scope("task_config_search_results")
+        put_scope("task_config_menu_items")
+        self._render_config_search_control()
+        self._render_task_menu_items()
+        self.alas_overview()
+
+    @use_scope("task_config_menu_items", clear=True)
+    def _render_task_menu_items(self) -> None:
+        """渲染未搜索时的完整任务菜单。"""
         put_buttons(
             [
                 {
@@ -127,7 +152,230 @@ class TaskConfigMixin(WebUIMixinBase):
                         onclick=onclick,
                     ).style(f"--menu-{task}--").style(f"padding-left: 0.75rem")
 
-        self.alas_overview()
+    @use_scope("task_config_search", clear=True)
+    def _render_config_search_control(self) -> None:
+        """渲染搜索输入框，并注册不参与配置保存的实时回调。"""
+        put_input(
+            name=self.CONFIG_SEARCH_PIN,
+            value="",
+            placeholder=t("Gui.TaskConfig.SearchPlaceholder"),
+        ).style("--task-config-search-input--")
+        put_input(name=self.CONFIG_SEARCH_SELECTION_PIN, value="")
+        if not getattr(self, "_config_search_callbacks_bound", False):
+            pin_on_change(
+                name=self.CONFIG_SEARCH_PIN,
+                onchange=self._on_config_search_change,
+                clear=True,
+                serial_mode=True,
+            )
+            pin_on_change(
+                name=self.CONFIG_SEARCH_SELECTION_PIN,
+                onchange=self._on_config_search_result,
+                clear=True,
+                serial_mode=True,
+            )
+            self._config_search_callbacks_bound = True
+        run_js(build_config_search_result_click_script(self.CONFIG_SEARCH_SELECTION_PIN))
+        self._get_config_search_entries()
+
+    def _on_config_search_change(self, value: Any) -> None:
+        """根据输入值重绘搜索结果，不触碰实例配置。"""
+        self._render_config_search_results(str(value or ""))
+
+    def _on_config_search_result(self, key: Any) -> None:
+        """仅允许打开当前仍可见的搜索结果。"""
+        for entry in self._get_config_search_entries():
+            if entry.key == str(key):
+                self._open_config_search_result(entry)
+                return
+
+    @use_scope("task_config_search_results", clear=True)
+    def _render_config_search_results(self, query: str) -> None:
+        """显示匹配项，或在清空查询后恢复任务菜单。"""
+        if not query.strip():
+            self._render_task_menu_items()
+            return
+
+        clear("task_config_menu_items")
+        results, total = search_config_entries(
+            self._get_config_search_entries(),
+            query,
+            limit=self.CONFIG_SEARCH_RESULT_LIMIT,
+        )
+        if not results:
+            put_text(t("Gui.TaskConfig.SearchNoResult")).style(
+                "--task-config-search-empty--"
+            )
+            return
+
+        put_text(t("Gui.TaskConfig.SearchResultCount", count=total)).style(
+            "--task-config-search-count--"
+        )
+        for entry in results:
+            self._put_config_search_result(entry)
+
+    def _put_config_search_result(self, entry: ConfigSearchEntry) -> None:
+        """渲染一个可点击的配置搜索结果。"""
+        help_text = " ".join(entry.help_text.split())
+        if len(help_text) > 88:
+            help_text = help_text[:87].rstrip() + "..."
+        help_html = (
+            f'<span class="config-search-result-help">{escape(help_text)}</span>'
+            if help_text
+            else ""
+        )
+        put_html(
+            '<button class="config-search-result" type="button" '
+            f'data-config-search-key="{escape(entry.key)}">'
+            f'<span class="config-search-result-name">{escape(entry.argument_name)}</span>'
+            f'<span class="config-search-result-path">{escape(entry.task_name)} &gt; '
+            f"{escape(entry.group_name)}</span>"
+            f'<span class="config-search-result-key">{escape(entry.key)}</span>'
+            f"{help_html}"
+            "</button>"
+        )
+
+    def _open_config_search_result(self, entry: ConfigSearchEntry) -> None:
+        """打开结果所在任务，并定位到对应的参数容器。"""
+        self.alas_set_group(entry.task)
+        run_js(
+            build_config_search_focus_script(
+                config_search_field_scope(entry.task, entry.group, entry.argument)
+            )
+        )
+
+    def _get_config_search_entries(self) -> List[ConfigSearchEntry]:
+        """按当前实例和服务器返回可见参数的内存索引。"""
+        config = self.alas_config.read_file(self.alas_name)
+        package_name = deep_get(config, "Alas.Emulator.PackageName", "cn")
+        signature = (
+            self.alas_name,
+            self.alas_mod,
+            lang.LANG,
+            package_name,
+            id(self.ALAS_ARGS),
+            config_search_config_signature(config),
+        )
+        if getattr(self, "_config_search_signature", None) != signature:
+            self._config_search_entries = self._build_config_search_entries(config)
+            self._config_search_signature = signature
+        return self._config_search_entries
+
+    def _invalidate_config_search_cache(self) -> None:
+        """在配置写入后丢弃可能已经过期的可见参数索引。"""
+        self._config_search_entries = []
+        self._config_search_signature = None
+
+    def _build_config_search_entries(
+        self, config: Dict[str, Any]
+    ) -> List[ConfigSearchEntry]:
+        """从当前菜单中实际可显示的参数构建搜索索引。"""
+        entries: List[ConfigSearchEntry] = []
+        seen_tasks = set()
+        for task_data in self.ALAS_MENU.values():
+            if task_data.get("page") != "setting":
+                continue
+            for task in task_data.get("tasks", []):
+                if task in seen_tasks or task not in self.ALAS_ARGS:
+                    continue
+                seen_tasks.add(task)
+                task_name = self._translated_text(f"Task.{task}.name", task)
+                for group, group_args in deep_iter(self.ALAS_ARGS[task], depth=1):
+                    group_name = group[0]
+                    display_group_name = self._translated_text(
+                        f"{group_name}._info.name", group_name
+                    )
+                    for arg_name, _, _, output_kwargs in self._iter_group_arguments(
+                        task, group_name, group_args, config
+                    ):
+                        entries.append(
+                            ConfigSearchEntry(
+                                task=task,
+                                group=group_name,
+                                argument=arg_name,
+                                task_name=task_name,
+                                group_name=display_group_name,
+                                argument_name=str(output_kwargs["title"]),
+                                help_text=str(output_kwargs.get("help") or ""),
+                            )
+                        )
+        return entries
+
+    @staticmethod
+    def _translated_text(key: str, fallback: str) -> str:
+        """读取翻译，并在翻译缺失时保留技术名称作为可搜索回退。"""
+        translated = t(key)
+        return fallback if translated == key else translated
+
+    def _iter_group_arguments(
+        self,
+        task: str,
+        group_name: str,
+        group_args: Dict[str, Any],
+        config: Dict[str, Any],
+    ):
+        """解析当前服务器下会渲染的参数，并供表单与搜索索引共享。"""
+        package_name = deep_get(config, "Alas.Emulator.PackageName", "cn")
+        server = to_server(package_name if isinstance(package_name, str) else "cn")
+        for arg, arg_definition in deep_iter(group_args, depth=1):
+            if not isinstance(arg_definition, dict):
+                continue
+
+            arg_name = arg[0]
+            output_kwargs: T_Output_Kwargs = arg_definition.copy()
+            display: Optional[str] = output_kwargs.pop("display", None)
+            widget_type = output_kwargs.pop("type")
+            output_kwargs["widget_type"] = widget_type
+            if display == "disabled":
+                output_kwargs["disabled"] = True
+
+            value = deep_get(
+                config, [task, group_name, arg_name], output_kwargs["value"]
+            )
+            # datetime 控件只能接收文本，避免 Pin 在重绘时丢失原始时间值。
+            value = str(value) if isinstance(value, datetime) else value
+            output_kwargs["value"] = value
+
+            options = output_kwargs.pop("option", [])
+            available_events = deep_get(
+                self.ALAS_ARGS, keys=f"{task}.{group_name}.{arg_name}.option_{server}"
+            )
+            if available_events is not None:
+                options = [opt for opt in options if opt in available_events]
+            server_options = output_kwargs.get(f"option_{server}")
+            if (
+                widget_type == "select"
+                and isinstance(server_options, list)
+                and server_options
+            ):
+                options = server_options
+            output_kwargs["options"] = options
+
+            if not should_render_config_argument(
+                task,
+                group_name,
+                arg_name,
+                display,
+                widget_type,
+                options,
+                value,
+            ):
+                continue
+
+            if widget_type == "select" and len(options) == 1:
+                only_option = options[0]
+                if only_option in output_kwargs.get("option_bold", []):
+                    output_kwargs["widget_type"] = "state"
+            output_kwargs["name"] = f"{task}_{group_name}_{arg_name}"
+            output_kwargs["title"] = self._translated_text(
+                f"{group_name}.{arg_name}.name", arg_name
+            )
+            output_kwargs["options_label"] = [
+                t(f"{group_name}.{arg_name}.{opt}") for opt in options
+            ]
+            arg_help = t(f"{group_name}.{arg_name}.help")
+            output_kwargs["help"] = arg_help or None
+            yield arg_name, display, widget_type, output_kwargs
 
     @use_scope("content", clear=True)
     def alas_set_group(self, task: str) -> None:
@@ -138,156 +386,150 @@ class TaskConfigMixin(WebUIMixinBase):
         self.init_menu(name=task)
         self.set_title(t(f"Task.{task}.name"))
 
-        put_scope("_groups", [put_none(), put_scope("groups"), put_scope("navigator")])
+        group_outputs: List[Output] = []
+        navigator_outputs: List[Output] = []
+        watcher_paths: List[List[str]] = []
+        render_event_calculator = False
 
         task_help: str = t(f"Task.{task}.help")
         if task_help:
-            put_scope(
-                "group__info",
-                scope="groups",
-                content=[put_text(task_help).style("font-size: 1rem")],
+            group_outputs.append(
+                put_scope(
+                    "group__info",
+                    content=[put_text(task_help).style("font-size: 1rem")],
+                )
             )
 
         if task == "Alas":
-            with use_scope("groups"):
-                self._render_startup_run_setting()
+            group_outputs.append(put_scope("group_StartupRun"))
 
         if task == "OpsiSimulator":
-            with use_scope("groups"):
-                self._os_simulator()
+            group_outputs.append(put_scope("group_OpsiSimulatorRuntime"))
 
         for group, arg_dict in deep_iter(self.ALAS_ARGS[task], depth=1):
-            if self.set_group(group, arg_dict, config, task):
-                self.set_navigator(group)
+            group_output, group_watcher_paths, _ = self._build_config_group(
+                group, arg_dict, config, task
+            )
+            if group_output is not None:
+                group_outputs.append(group_output)
+                navigator_outputs.append(self._build_navigator(group))
+                watcher_paths.extend(group_watcher_paths)
                 if task == "EventGeneral" and group[0] == "EventGeneral":
-                    with use_scope("groups"):
-                        put_scope("group_EventCalculator")
-                    self._render_event_calculator(config)
+                    group_outputs.append(put_scope("group_EventCalculator"))
+                    render_event_calculator = True
 
-    @use_scope("groups")
-    def set_group(self, group, arg_dict, config: Dict[str, Any], task: str) -> int:
+        # PyWebIO 的每个独立 output 都会形成一条 WebSocket 指令。将整个配置页
+        # 作为嵌套 Output 一次发送，避免数十个控件触发数百次网络往返和重复布局。
+        put_scope(
+            "_groups",
+            [
+                put_none(),
+                put_scope("groups", group_outputs),
+                put_scope("navigator", navigator_outputs),
+            ],
+        )
+
+        for path in watcher_paths:
+            self._bind_config_watcher(path)
+
+        # 依赖已有 DOM scope 或需要执行脚本的特殊区域，在基础配置页落地后再初始化。
+        if task == "Alas":
+            with use_scope("group_StartupRun"):
+                self._render_startup_run_setting()
+        elif task == "OpsiSimulator":
+            with use_scope("group_OpsiSimulatorRuntime"):
+                self._os_simulator()
+        elif render_event_calculator:
+            self._render_event_calculator(config)
+
+    def _build_config_group(
+        self,
+        group,
+        arg_dict,
+        config: Dict[str, Any],
+        task: str,
+    ) -> tuple[Optional[Output], List[List[str]], int]:
+        """构建一个配置分组，延迟到外层页面统一发送。"""
         group_name = group[0]
 
-        output_list: List[Output] = []
+        output_list: List[tuple[str, Output]] = []
         watcher_paths: List[List[str]] = []
-        for arg, arg_dict in deep_iter(arg_dict, depth=1):
-            output_kwargs: T_Output_Kwargs = arg_dict.copy()
-
-            # Skip hide
-            display: Optional[str] = output_kwargs.pop("display", None)
-            if display == "hide":
-                continue
-            # Disable
-            elif display == "disabled":
-                output_kwargs["disabled"] = True
-            # Output type
-            output_kwargs["widget_type"] = output_kwargs.pop("type")
-            widget_type = output_kwargs["widget_type"]
-
-            arg_name = arg[0]  # [arg_name,]
-            # Internal pin widget name
-            output_kwargs["name"] = f"{task}_{group_name}_{arg_name}"
-            # Display title
-            output_kwargs["title"] = t(f"{group_name}.{arg_name}.name")
-
-            # Get value from config
-            value = deep_get(
-                config, [task, group_name, arg_name], output_kwargs["value"]
-            )
-            # datetime 控件只能接收文本，避免 Pin 在重绘时丢失原始时间值。
-            value = str(value) if isinstance(value, datetime) else value
-            # Default value
-            output_kwargs["value"] = value
-            # Options
-            options = output_kwargs.pop("option", [])
-            package_name = deep_get(config, "Alas.Emulator.PackageName", "cn")
-            server = to_server(package_name if isinstance(package_name, str) else "cn")
-            available_events = deep_get(
-                self.ALAS_ARGS, keys=f"{task}.{group_name}.{arg_name}.option_{server}"
-            )
-            if available_events is not None:
-                options = [opt for opt in options if opt in available_events]
-
-            server_options = output_kwargs.get(f"option_{server}")
-            if (
-                output_kwargs["widget_type"] == "select"
-                and isinstance(server_options, list)
-                and server_options
-            ):
-                options = server_options
-            output_kwargs["options"] = options
-            if (
-                task == "GemsFarming"
-                and group_name == "Campaign"
-                and arg_name == "Event"
-                and output_kwargs["widget_type"] == "select"
-                and len(options) == 1
-            ):
-                continue
-            if output_kwargs["widget_type"] == "select" and len(options) == 1:
-                only_option = options[0]
-                if only_option in output_kwargs.get("option_bold", []):
-                    output_kwargs["widget_type"] = "state"
-            # Options label
-            options_label = []
-            for opt in options:
-                options_label.append(t(f"{group_name}.{arg_name}.{opt}"))
-            output_kwargs["options_label"] = options_label
-            # Help
-            arg_help = t(f"{group_name}.{arg_name}.help")
-            if arg_help == "" or not arg_help:
-                arg_help = None
-            output_kwargs["help"] = arg_help
+        for (
+            arg_name,
+            display,
+            widget_type,
+            resolved_kwargs,
+        ) in self._iter_group_arguments(task, group_name, arg_dict, config):
+            output_kwargs = resolved_kwargs.copy()
             if group_name == "Scheduler" and arg_name == "NextRun":
                 output_kwargs["after"] = put_text(self._time_status_text()).style(
                     "font-size: .75rem; opacity: .68; margin: .2rem .25rem 0;"
                 )
-            # Invalid feedback
-            output_kwargs["invalid_feedback"] = t("Gui.Text.InvalidFeedBack", value)
+            output_kwargs["invalid_feedback"] = t(
+                "Gui.Text.InvalidFeedBack", output_kwargs["value"]
+            )
 
             o = put_output(output_kwargs)
             if o is not None:
-                # output will inherit current scope when created, override here
-                o.spec["scope"] = f"#pywebio-scope-group_{group_name}"
-                output_list.append(o)
+                output_list.append((arg_name, o))
                 if display != "readonly" and widget_type != "stored":
                     watcher_paths.append([task, group_name, arg_name])
 
         if not output_list:
+            return None, [], 0
+
+        content: List[Output] = [put_text(t(f"{group_name}._info.name"))]
+        group_help = t(f"{group_name}._info.help")
+        if group_help != "":
+            content.append(put_text(group_help))
+        content.append(put_html('<hr class="hr-group">'))
+
+        for arg_name, output in output_list:
+            field_scope = config_search_field_scope(task, group_name, arg_name)
+            content.append(put_scope(field_scope, content=[output]))
+
+        # 在掉落记录组中显示可复制的设备ID
+        if group_name == "DropRecord":
+            device_id = DEMO_DEVICE_ID_TEXT if is_demo_mode() else get_device_id()
+            content.append(put_html(build_copyable_device_id(device_id)))
+
+        return (
+            put_scope(f"group_{group_name}", content=content),
+            watcher_paths,
+            len(output_list),
+        )
+
+    @use_scope("groups")
+    def set_group(self, group, arg_dict, config: Dict[str, Any], task: str) -> int:
+        """兼容总览页：单独构建并发送一个配置分组。"""
+        group_output, watcher_paths, output_count = self._build_config_group(
+            group, arg_dict, config, task
+        )
+        if group_output is None:
             return 0
 
-        with use_scope(f"group_{group_name}"):
-            put_text(t(f"{group_name}._info.name"))
-            group_help = t(f"{group_name}._info.help")
-            if group_help != "":
-                put_text(group_help)
-            put_html('<hr class="hr-group">')
-            for output in output_list:
-                output.show()
+        group_output.show()
+        for path in watcher_paths:
+            self._bind_config_watcher(path)
+        return output_count
 
-            for path in watcher_paths:
-                self._bind_config_watcher(path)
-
-            # 在掉落记录组中显示可复制的设备ID
-            if group_name == "DropRecord":
-                device_id = DEMO_DEVICE_ID_TEXT if is_demo_mode() else get_device_id()
-                put_html(build_copyable_device_id(device_id))
-
-        return len(output_list)
-
-    @use_scope("navigator")
-    def set_navigator(self, group):
+    def _build_navigator(self, group) -> Output:
+        """构建分组导航按钮，供配置页统一批量输出。"""
         js = f"""
             $("#pywebio-scope-groups").scrollTop(
                 $("#pywebio-scope-group_{group[0]}").position().top
                 + $("#pywebio-scope-groups").scrollTop() - 59
             )
         """
-        put_button(
+        return put_button(
             label=t(f"{group[0]}._info.name"),
             onclick=lambda: run_js(js),
             color="navigator",
         )
+
+    @use_scope("navigator")
+    def set_navigator(self, group):
+        self._build_navigator(group).show()
 
     def _alas_start(self):
         self.alas.start(None, updater.event)
@@ -432,7 +674,7 @@ class TaskConfigMixin(WebUIMixinBase):
                 else:
                     modified.pop(k)
                     invalid.append(k)
-                    logger.warning(f"Invalid value {v} for key {k}, skip saving.")
+                    logger.warning(f"[WebUI-任务配置] 无效值 {v}，键 {k}，跳过保存")
             self.pin_remove_invalid_mark(valid)
             self.pin_set_invalid_mark(invalid)
             if modified:
@@ -443,8 +685,9 @@ class TaskConfigMixin(WebUIMixinBase):
                     color="success",
                 )
                 logger.info(
-                    f"Save config {filepath_config(config_name)}, {dict_to_kv(modified)}"
+                    f"[WebUI-任务配置] 保存配置 {filepath_config(config_name)}, {dict_to_kv(modified)}"
                 )
                 config_updater.write_file(config_name, config)
+                self._invalidate_config_search_cache()
         except Exception as e:
             logger.exception(e)

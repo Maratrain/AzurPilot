@@ -1,3 +1,7 @@
+"""功勋商店处理器，使用功勋点购买功勋商店专属商品。
+支持 2025-08-14 新 UI 布局，使用模板匹配识别商品。
+"""
+
 from module.base.decorator import cached_property
 from module.logger import logger
 from module.shop.base import ShopItemGrid, ShopItemGrid_250814
@@ -64,7 +68,7 @@ class MeritShop_250814(ShopClerk, ShopUI, ShopStatus):
             int: 功勋数量
         """
         self._currency = self.status_get_merit()
-        logger.info(f'Merit: {self._currency}')
+        logger.info(f'[商店-功勋] 功勋: {self._currency}')
         return self._currency
 
     def run(self):
@@ -79,7 +83,7 @@ class MeritShop_250814(ShopClerk, ShopUI, ShopStatus):
             return
 
         # 调用时应已在功勋商店界面
-        logger.hr('Merit Shop', level=1)
+        logger.hr('[商店-功勋] 功勋商店', level=1)
 
         # 执行购买操作，启用刷新时最多尝试 2 次
         refresh = self.config.MeritShop_Refresh

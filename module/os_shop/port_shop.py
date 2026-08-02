@@ -1,3 +1,9 @@
+"""大世界港口商店模块。
+
+管理大世界（Operation Siren）港口（Port）商店的物品浏览和购买。
+提供货币图标模板加载、商品网格定位、物品查找以及全量扫描功能，
+支持在港口商店中自动购买指定商品。
+"""
 from typing import List
 
 from module.base.button import ButtonGrid
@@ -44,7 +50,7 @@ class PortShop(OSStatus, OSShopUI, Selector, MapEventHandler):
         """
         image = self.image_crop((360, 320, 410, 700))
         result = sum([template.match_multi(image) for template in self.TEMPLATES], [])
-        logger.attr('Costs', f'{result}')
+        logger.attr('货币图标位置', f'{result}')
         return Points([(0., m.area[1]) for m in result]).group(threshold=5)
 
     @cached_property
@@ -101,12 +107,12 @@ class PortShop(OSStatus, OSShopUI, Selector, MapEventHandler):
         if len(shop_items):
             min_row = self.os_shop_items.grids[0, 0].area[1]
             row = [str(item) for item in shop_items if item.button[1] == min_row]
-            logger.info(f'大世界商店+第 1 行: {row}')
+            logger.info(f'[大世界商店-港口] 大世界商店+第 1 行: {row}')
             row = [str(item) for item in shop_items if item.button[1] != min_row]
-            logger.info(f'大世界商店+第 2 行: {row}')
+            logger.info(f'[大世界商店-港口] 大世界商店+第 2 行: {row}')
             return shop_items
         else:
-            logger.info('未找到大世界商店+物品')
+            logger.info('[大世界商店-港口] 未找到大世界商店+物品')
 
         return []
 
@@ -125,7 +131,7 @@ class PortShop(OSStatus, OSShopUI, Selector, MapEventHandler):
         items = self.os_shop_get_items()
         for _ in range(2):
             if not len(items) or any(not item.is_known_item() for item in items):
-                logger.warning('大世界商店+为空或物品为空，正在确认')
+                logger.warning('[大世界商店-港口] 大世界商店+为空或物品为空，正在确认')
                 self.device.sleep((0.3, 0.5))
                 self.device.screenshot()
                 items = self.os_shop_get_items()
@@ -163,12 +169,12 @@ class PortShop(OSStatus, OSShopUI, Selector, MapEventHandler):
                 for _ in range(3):
                     _items = self.os_shop_get_items(i, cur_pos)
                     if not len(_items) or any(not item.is_known_item() for item in _items):
-                        logger.warning('大世界商店+为空或物品为空，正在确认')
+                        logger.warning('[大世界商店-港口] 大世界商店+为空或物品为空，正在确认')
                         self.device.sleep((0.3, 0.5))
                         self.device.screenshot()
                         continue
                     else:
-                        logger.info(f'在商店 {i + 1} 的位置 {cur_pos:.2f} 找到 {len(_items)} 个物品')
+                        logger.info(f'[大世界商店-港口] 在商店 {i + 1} 的位置 {cur_pos:.2f} 找到 {len(_items)} 个物品')
                         break
                 # 始终添加物品，即使最后的物品列表包含未知物品
                 # 这样可以扫描到所有已知物品
@@ -179,7 +185,7 @@ class PortShop(OSStatus, OSShopUI, Selector, MapEventHandler):
                         items.append(item)
 
                 if OS_SHOP_SCROLL.at_bottom(main=self):
-                    logger.info('大世界商店+已滚动到底部，停止扫描')
+                    logger.info('[大世界商店-港口] 大世界商店+已滚动到底部，停止扫描')
                     break
                 else:
                     OS_SHOP_SCROLL.next_page(main=self, page=0.5, skip_first_screenshot=False)

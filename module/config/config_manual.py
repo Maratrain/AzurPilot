@@ -1,3 +1,15 @@
+"""手动配置定义模块。
+
+定义非自动生成的硬编码配置项，包括：
+- 服务器信息和资源文件路径
+- UI 按钮的服务器特定偏移量
+- 任务调度的默认优先级逻辑
+- 各功能模块的配置属性访问器
+
+此文件中的配置项需要手动维护，不随 config_updater.py 自动更新。
+配置属性通过 `@property` 装饰器暴露，供 AzurLaneConfig 通过多重继承访问。
+"""
+
 try:
     from pywebio.io_ctrl import Output
 except ImportError:
@@ -21,6 +33,16 @@ import module.config.server as server
 
 
 class ManualConfig:
+    """手动配置基类。
+
+    提供 AzurLaneConfig 中不通过代码生成器创建的配置属性。
+    这些属性包括：
+    - 服务器标识（SERVER）
+    - 任务调度优先级（_DEFAULT_SCHEDULER_PRIORITY）
+    - 各功能模块的配置访问器（如 Research_PresetFilter、Fleet_FleetOrder 等）
+
+    通过多重继承被 AzurLaneConfig 组合使用。
+    """
     if TYPE_CHECKING:
         def cross_get(self, keys: list[str], default: Any = None) -> Any: ...
         YukikazeTaskManager_TaskPriorityAdjustment: str | None

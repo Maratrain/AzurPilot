@@ -1,3 +1,6 @@
+"""设备方法层通用工具。包含 ADB 错误处理、重试策略、序列号解析、
+UI 层级解析（HierarchyButton）和 Shell 命令辅助函数。"""
+
 import os
 import random
 import re
@@ -79,14 +82,14 @@ def handle_image_truncated(obj, exc: Exception) -> None:
     """
     serial = getattr(obj, 'serial', None)
     cnt = report_image_truncated(serial)
-    logger.error(f'ImageTruncated occurred ({cnt}) for device {serial}: {exc}')
+    logger.error(f'图像截断发生 ({cnt}) for device {serial}: {exc}')
 
     if cnt >= IMAGE_TRUNCATED_THRESHOLD:
-        logger.warning(f'ImageTruncated reached threshold ({IMAGE_TRUNCATED_THRESHOLD}) for {serial}, attempting recovery')
+        logger.warning(f'[设备-工具] 图像截断达到阈值 ({IMAGE_TRUNCATED_THRESHOLD}) 对于 {serial}，尝试恢复')
         # Try specific recoveries in order of likelihood
         try:
             if hasattr(obj, 'droidcast_init'):
-                logger.info('Attempting to restart DroidCast service')
+                logger.info('尝试重启DroidCast服务')
                 try:
                     obj.droidcast_init()
                 except Exception:
@@ -225,7 +228,7 @@ def possible_reasons(*args):
     """
     for index, reason in enumerate(args):
         index += 1
-        logger.critical(f'Possible reason #{index}: {reason}')
+        logger.critical(f'[设备-工具] 可能原因 #{index}: {reason}')
 
 
 class PackageNotInstalled(Exception):

@@ -1,3 +1,8 @@
+"""岛屿渔业模块。
+
+管理岛屿渔业系统的自动化操作，包括鱼苗商店的分类浏览（淡水/海水/其他）与采购。
+支持渔场库存检测、鱼苗购买与鱼获处理，与仓库 OCR 联动获取物品数量。
+"""
 from module.island_fishery.assets import *
 from module.island_rancher.assets import *
 from module.island.island import *

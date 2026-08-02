@@ -115,7 +115,7 @@
       "help": "Task.CoalitionScuttle.help"
     },
     "MaritimeEscort": {
-      "name": "Merchant Ship Escort",
+      "name": "Trade Convoy Plus",
       "help": ""
     },
     "EventShop": {
@@ -159,11 +159,11 @@
       "help": ""
     },
     "Tactical": {
-      "name": "Tactical Academy",
+      "name": "Tactical Class Plus",
       "help": ""
     },
     "Research": {
-      "name": "Research",
+      "name": "Research Lab Plus",
       "help": ""
     },
     "Dorm": {
@@ -199,7 +199,7 @@
       "help": ""
     },
     "Exercise": {
-      "name": "Exercise",
+      "name": "Exercises Plus",
       "help": ""
     },
     "ShopFrequent": {
@@ -1022,8 +1022,8 @@
   },
   "OneClickRetire": {
     "_info": {
-      "name": "One-click retirement settings",
-      "help": "Only takes effect when \"Retirement Mode\" is set to \"One-click retirement\""
+      "name": "Quick Retire Settings",
+      "help": "Only takes effect when \"Retirement Mode\" is set to \"Quick Retire\""
     },
     "KeepLimitBreak": {
       "name": "Keep the star-filled ship with the same name",
@@ -1866,11 +1866,11 @@
   },
   "MaritimeEscort": {
     "_info": {
-      "name": "merchant ship escort",
-      "help": "If you enter and then retreat, you can get about 70% of the reward."
+      "name": "Trade Convoy",
+      "help": "Enter and immediately retreat, can earn about 70% of the rewards"
     },
     "Enable": {
-      "name": "Enable merchant ship escort",
+      "name": "Enable Trade Convoy",
       "help": ""
     }
   },
@@ -1977,7 +1977,7 @@
   },
   "Tactical": {
     "_info": {
-      "name": "Tactics Academy",
+      "name": "Tactical Class",
       "help": ""
     },
     "TacticalFilter": {
@@ -2046,7 +2046,7 @@
   },
   "Research": {
     "_info": {
-      "name": "Research",
+      "name": "Research Lab",
       "help": "When filters work with other settings, AzurPilot looks for items that satisfy all user settings simultaneously.\nFor example, if you set the research filter to `H1 > D2.5 > shortest` (including research that consumes cubes), but also set it not to allow cube consumption, the final result is that AzurPilot will not select research that consumes cubes. When you suddenly want to use cubes, you only need to enable cube consumption without modifying the filter, which is more convenient."
     },
     "UseCube": {
@@ -2564,7 +2564,7 @@
   },
   "CoreShop": {
     "_info": {
-      "name": "Core Data Exchange",
+      "name": "Core Shop",
       "help": ""
     },
     "Enable": {
@@ -2798,7 +2798,7 @@
       "help": "After getting S rank on the daily stage, sweep is unlocked. If not unlocked, it will automatically fall back to the traditional sortie."
     },
     "EscortMission": {
-      "name": "Escort Mission (Parts, Torpedo)",
+      "name": "Trade Convoy (Parts, Torpedo)",
       "help": "",
       "skip": "Skip",
       "first": "First",
@@ -2806,7 +2806,7 @@
       "third": "Third"
     },
     "EscortMissionFleet": {
-      "name": "Escort Mission sortie fleet",
+      "name": "Trade Convoy sortie fleet",
       "help": "",
       "1": "1",
       "2": "2",
@@ -2930,7 +2930,7 @@
   },
   "Exercise": {
     "_info": {
-      "name": "Exercise",
+      "name": "Exercises",
       "help": "Run Exercise, automatically retreat when HP is too low"
     },
     "DelayUntilHoursBeforeNextUpdate": {
@@ -3318,10 +3318,6 @@
     "StayInZone": {
       "name": "Planned Operation in Target Zone",
       "help": "After enabling this, the task runs according to Target Zone. With one zone it stays there; with multiple zones it cycles through them in the configured order. Only takes effect when Target Zone is not 0."
-    },
-    "APPreserveUntilReset": {
-      "name": "Preserve Action Points Until End of Month",
-      "help": "'Preserve X Action Points' setting will no longer decrease before Operation Siren reset.\nNote: Once enabled, these AP will only be consumed in cross-month daily tasks. This setting is invalid when cross-month daily tasks are not enabled, which means you need to manually use these AP to obtain higher benefits."
     }
   },
   "OpsiTarget": {
@@ -3480,7 +3476,7 @@
       "help": "Operation Siren smart scheduling function, used to coordinate switching between Corrosion 1 Leveling and yellow coin replenishment tasks.\nOnce enabled, it will automatically switch between different tasks and send push notifications based on coins and Action Points.\n\nSome safety restrictions of the original AzurPilot have been lifted, please set parameters carefully"
     },
     "UseSmartSchedulingOperationCoinsPreserve": {
-      "name": "Obtain X Combat Supply Vouchers",
+      "name": "Reserve X Operation Supply Coins",
       "help": "When enabled, will use the 'Obtain X Combat Supply Vouchers' configuration below. When disabled, will use the Corrosion 1 Leveling yellow coin retention configuration.\nWhen disabled, Action Points are used for control.\nWhen enabled, yellow coins are used for control.",
       "True": "Enabled",
       "False": "Disabled"
@@ -3494,7 +3490,7 @@
       "help": "Stop when Action Points are lower than X, and automatically open AP boxes. X includes AP in boxes. It is recommended to preserve 1000 AP for Corrosion 1 Leveling."
     },
     "OperationCoinsReturnThreshold": {
-      "name": "Obtain X Combat Supply Vouchers",
+      "name": "Return When Supply Coins Below X",
       "help": "During the yellow coin acquisition task, obtain (increase) X Combat Supply Vouchers in total, then return to Corrosion 1 Leveling."
     },
     "EnableMeowfficerFarming": {
@@ -3524,6 +3520,26 @@
     "TaskPriority": {
       "name": "Replenishment Task Priority",
       "help": "The priority order of tasks for yellow coin replenishment when they are insufficient. Separated by >."
+    },
+    "MonthEndActionPointCleanupEnable": {
+      "name": "OpsiScheduling.MonthEndActionPointCleanupEnable.name",
+      "help": "OpsiScheduling.MonthEndActionPointCleanupEnable.help",
+      "True": "True",
+      "False": "False"
+    },
+    "MonthEndActionPointCleanupDays": {
+      "name": "OpsiScheduling.MonthEndActionPointCleanupDays.name",
+      "help": "OpsiScheduling.MonthEndActionPointCleanupDays.help"
+    },
+    "MonthEndActionPointPreserve": {
+      "name": "OpsiScheduling.MonthEndActionPointPreserve.name",
+      "help": "OpsiScheduling.MonthEndActionPointPreserve.help"
+    },
+    "MonthEndShopPurchase": {
+      "name": "OpsiScheduling.MonthEndShopPurchase.name",
+      "help": "OpsiScheduling.MonthEndShopPurchase.help",
+      "True": "True",
+      "False": "False"
     }
   },
   "OpsiPreventActionPointOverflow": {

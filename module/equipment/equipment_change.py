@@ -1,3 +1,7 @@
+"""装备更换核心逻辑，处理舰船详细页面中的装备栏操作。
+包括装备筛选、装备选择、滚动翻页、匹配确认等步骤，
+继承 Equipment 基类提供完整的装备更换流程。"""
+
 from module.base.button import ButtonGrid
 from module.base.decorator import Config
 from module.base.utils import *
@@ -34,7 +38,7 @@ class EquipmentChange(Equipment):
         Record equipment through upgrade page
         Notice: The equipment icons in the upgrade page are the same size as the icons in the equipment status
         """
-        logger.info('RECORD EQUIPMENT')
+        logger.info('[装备-更换] 记录装备')
         self.equip_side_navbar_ensure(bottom=1)
 
         # Ensure EQUIPMENT_GRID in the right place
@@ -75,20 +79,20 @@ class EquipmentChange(Equipment):
                     click_button=UPGRADE_QUIT, check_button=EQUIPMENT_OPEN, appear_button=UPGRADE_ENTER_CHECK,
                     skip_first_screenshot=True)
             else:
-                logger.info(f"Equipment {index} is empty")
+                logger.info(f"[装备-更换] 装备栏 {index} 为空")
 
-        logger.info(f"Equipping list: {list(self.equip_list.keys())}")
+        logger.info(f"[装备-更换] 装备列表: {list(self.equip_list.keys())}")
 
     def equipment_take_on(self, index_list=range(0, 5), skip_first_screenshot=True):
         '''
         Equip the equipment previously recorded
         '''
-        logger.info('Take on equipment')
+        logger.info('[装备-更换] 装上装备')
         self.equip_side_navbar_ensure(bottom=2)
 
         for index in index_list:
             if index in self.equip_list:
-                logger.info(f'Take on {index}')
+                logger.info(f'[装备-更换] 装上装备 {index}')
                 enter_button = globals()[
                     'EQUIP_TAKE_ON_{index}'.format(index=index)]
 
@@ -125,11 +129,11 @@ class EquipmentChange(Equipment):
             in: EQUIPMENT STATUS
             out: SHIP_SIDEBAR_EQUIPMENT
         '''
-        logger.info('Equip equipment')
+        logger.info('[装备-更换] 装备装备')
         button = Button(area=(), color=(), button=(point[0], point[1], point[0] + offset[0], point[1] + offset[1]),
                         name='EQUIPMENT')
         self.ui_click(appear_button=EQUIPPING_OFF, click_button=button, check_button=EQUIP_CONFIRM)
-        logger.info('Equip confirm')
+        logger.info('[装备-更换] 装备确认')
         self.ui_click(click_button=EQUIP_CONFIRM, check_button=SHIP_INFO_EQUIPMENT_CHECK)
 
     def _find_equip(self, index):
@@ -150,7 +154,7 @@ class EquipmentChange(Equipment):
             return
 
         if not EQUIPMENT_SCROLL.appear(main=self):
-            logger.warning('No recorded equipment was found.')
+            logger.warning('[装备-更换] 未找到记录的装备')
             self.ui_back(check_button=globals()[f'EQUIP_TAKE_ON_{index}'], appear_button=EQUIPPING_OFF)
             return
 
@@ -168,7 +172,7 @@ class EquipmentChange(Equipment):
                 self._equip_equipment(point)
                 break
             if self.appear(EQUIPMENT_SCROLL_BOTTOM):
-                logger.warning('No recorded equipment was found.')
+                logger.warning('[装备-更换] 未找到记录的装备')
                 self.ui_back(check_button=globals()[f'EQUIP_TAKE_ON_{index}'], appear_button=EQUIPPING_OFF)
                 break
 

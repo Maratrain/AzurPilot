@@ -117,7 +117,9 @@ uv run python mcp_server_sse.py
 | 模块 | 说明 | 文档链接 |
 |------|------|---------|
 | module/combat | 战斗逻辑 | [COMBAT.md](COMBAT.md) |
+| module/combat_ui | 战斗 UI 资源 | [COMBAT-UI.md](COMBAT-UI.md) |
 | module/map | 地图处理 | [MAP.md](MAP.md) |
+| module/map_detection | 地图检测 | [MAP-DETECTION.md](MAP-DETECTION.md) |
 | module/campaign | 战役执行 | [CAMPAIGN.md](CAMPAIGN.md) |
 
 ### 4.4 游戏功能层
@@ -216,6 +218,10 @@ uv run python mcp_server_sse.py         # 启动 MCP 服务器
 # 代码检查
 uv run ruff check . --select E9,F63,F7,F82 --ignore F821,F722
 
+# 单元测试（tests/，unittest 框架）
+uv run python -m unittest discover -s tests
+uv run python -m unittest tests.test_webui_config_search   # 单个测试文件
+
 # 配置生成
 uv run -m module.config.config_updater
 
@@ -242,9 +248,12 @@ uv run dev_tools/emulator_test.py       # 模拟器连接测试
 | [DEVICE.md](DEVICE.md) | 设备层分析 |
 | [UI.md](UI.md) | UI 导航分析 |
 | [OCR.md](OCR.md) | OCR 系统分析 |
+| [OCR-USAGE.md](OCR-USAGE.md) | OCR 使用场景统计 |
 | [HANDLER.md](HANDLER.md) | 处理器层分析 |
 | [COMBAT.md](COMBAT.md) | 战斗系统分析 |
+| [COMBAT-UI.md](COMBAT-UI.md) | 战斗 UI 资源分析 |
 | [MAP.md](MAP.md) | 地图处理分析 |
+| [MAP-DETECTION.md](MAP-DETECTION.md) | 地图检测分析 |
 | [CAMPAIGN.md](CAMPAIGN.md) | 战役执行分析 |
 | [GAME-FUNCTIONS.md](GAME-FUNCTIONS.md) | 游戏功能模块分析 |
 | [OS-SYSTEM.md](OS-SYSTEM.md) | 大世界系统分析 |

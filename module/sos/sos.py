@@ -1,3 +1,18 @@
+"""SOS 深海搜索模块。
+
+自动执行碧蓝航线的 SOS 深海搜索任务。SOS 任务通过信号列表进入，
+每个章节（3~10 章）有独立的搜索信号。通过 OCR 识别剩余信号数量，
+循环选择目标章节并执行战役。
+
+注意：CN/EN/JP 服已不再有 SOS 地图，任务会自动禁用。
+仅 TW 服仍保留此功能。
+
+不同服务器的 UI 布局存在差异（滚动条颜色、章节 OCR 区域等），
+通过 @Config.when 装饰器实现服务器特定的适配。
+
+配置路径: Sos.Chapter (目标章节)
+"""
+
 from campaign.campaign_sos.campaign_base import CampaignBase
 from module.base.decorator import Config, cached_property
 from module.base.utils import area_pad, random_rectangle_vector
@@ -13,6 +28,22 @@ OCR_SOS_SIGNAL = Digit(OCR_SIGNAL, letter=(255, 255, 255), threshold=128, name='
 
 
 class CampaignSos(CampaignRun, CampaignBase):
+    """SOS 深海搜索战役执行器。
+
+    继承自 CampaignRun（战役运行）和 CampaignBase（SOS 战役基础），
+    负责 SOS 任务的完整自动化流程：
+    1. 进入战役页面，打开信号列表
+    2. 通过 OCR 识别剩余信号数量
+    3. 根据配置选择目标章节（3~10 章）
+    4. 在信号列表中定位目标章节（不同服务器使用滚动或滑动方式）
+    5. 执行 SOS 战役
+    6. 循环直到所有信号用尽
+
+    服务器差异：
+    - EN 服无滚动条，通过拖拽滑动信号列表
+    - TW 服滚动条颜色不同（金色 vs 灰色）
+    - 章节 OCR 的裁剪区域和颜色参数各服务器不同
+    """
 
     @cached_property
     @Config.when(SERVER='en')
@@ -69,7 +100,7 @@ class CampaignSos(CampaignRun, CampaignBase):
         sos_confirm_buttons = TEMPLATE_SIGNAL_CONFIRM.match_multi(self.device.image)
         all_buttons = sos_goto_buttons + signal_search_buttons + sos_confirm_buttons
         if not len(all_buttons):
-            logger.info('No SOS chapter found')
+            logger.info('未找到SOS章节')
             return None
 
         chapter_buttons = [button.crop(self._sos_chapter_crop) for button in all_buttons]
@@ -78,10 +109,10 @@ class CampaignSos(CampaignRun, CampaignBase):
         if not isinstance(chapter_list, list):
             chapter_list = [chapter_list]
         if chapter in chapter_list:
-            logger.info('Target SOS chapter found')
+            logger.info('找到目标SOS章节')
             return all_buttons[chapter_list.index(chapter)]
         else:
-            logger.info('Target SOS chapter not found')
+            logger.info('未找到目标SOS章节')
             return None
 
     @Config.when(SERVER='en')
@@ -100,7 +131,7 @@ class CampaignSos(CampaignRun, CampaignBase):
         Returns:
             bool: whether select successful
         """
-        logger.hr(f'Select chapter {chapter} signal ')
+        logger.hr(f'[SOS] 选择第 {chapter} 章信号 ')
         self.ui_click(SIGNAL_SEARCH_ENTER, appear_button=CAMPAIGN_CHECK, check_button=SIGNAL_LIST_CHECK,
                       skip_first_screenshot=True)
 
@@ -135,7 +166,7 @@ class CampaignSos(CampaignRun, CampaignBase):
         Returns:
             bool: whether select successful
         """
-        logger.hr(f'Select chapter {chapter} signal ')
+        logger.hr(f'[SOS] 选择第 {chapter} 章信号 ')
         self.ui_click(SIGNAL_SEARCH_ENTER, appear_button=CAMPAIGN_CHECK, check_button=SIGNAL_LIST_CHECK,
                       skip_first_screenshot=True)
         if chapter in [3, 4, 5]:
@@ -145,14 +176,14 @@ class CampaignSos(CampaignRun, CampaignBase):
         elif chapter in [8, 9, 10]:
             positions = [1.0, 0.5, 0.0]
         else:
-            logger.warning(f'Unknown SOS chapter: {chapter}')
+            logger.warning(f'[SOS] 未知的SOS章节: {chapter}')
             positions = [0.0, 0.5, 1.0]
 
         for scroll_position in positions:
             if self._sos_scroll.appear(main=self):
                 self._sos_scroll.set(scroll_position, main=self, distance_check=False)
             else:
-                logger.info('SOS signal scroll not appear, skip setting scroll position')
+                logger.info('SOS信号滚动条未出现，跳过设置滚动位置')
             target_button = self._find_target_chapter(chapter)
             if target_button is not None:
                 self._sos_signal_confirm(entrance=target_button)
@@ -203,19 +234,19 @@ class CampaignSos(CampaignRun, CampaignBase):
             out: page_campaign
         """
         if self.config.SERVER in ['cn', 'en', 'jp']:
-            logger.warning('AL no longer has SOS maps, disable task')
+            logger.warning('碧蓝航线不再有SOS地图，禁用任务')
             self.config.Scheduler_Enable = False
             self.config.task_stop()
 
-        logger.hr('Campaign SOS', level=1)
+        logger.hr('战役SOS', level=1)
         self.ui_ensure(page_campaign)
 
         while 1:
             # End
             remain = OCR_SOS_SIGNAL.ocr(self.device.image)
-            logger.attr('SOS signal', remain)
+            logger.attr('SOS信号', remain)
             if remain <= 0:
-                logger.info(f'All SOS signals cleared')
+                logger.info(f'所有SOS信号已清除')
                 break
 
             # Run
@@ -230,7 +261,7 @@ class CampaignSos(CampaignRun, CampaignBase):
             else:
                 self.ui_click(SIGNAL_SEARCH_CLOSE, appear_button=SIGNAL_LIST_CHECK, check_button=CAMPAIGN_CHECK,
                               skip_first_screenshot=True)
-                logger.warning(f'Failed to clear SOS signals, cannot locate chapter {self.config.Sos_Chapter}')
+                logger.warning(f'清除SOS信号失败，无法定位章节 {self.config.Sos_Chapter}')
                 break
 
         # Scheduler

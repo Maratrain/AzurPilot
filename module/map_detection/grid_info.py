@@ -1,3 +1,6 @@
+"""网格静态信息模块。定义 GridInfo 类，存储地图网格的固定属性（陆地、海洋、出生点、
+敌人刷新点等），数据来源于碧蓝航线 WIKI。"""
+
 from module.base.utils import location2node
 
 

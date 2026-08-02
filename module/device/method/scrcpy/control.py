@@ -1,3 +1,6 @@
+"""Scrcpy 控制指令发送器。封装触摸、按键等输入事件的
+二进制编码和 Socket 发送，通过 inject 装饰器实现协议注入。"""
+
 import functools
 import socket
 import struct

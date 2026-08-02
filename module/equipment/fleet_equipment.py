@@ -1,3 +1,7 @@
+"""舰队装备管理模块，提供按舰队维度进行装备操作的功能。
+支持切换舰队、进入舰船详情页面，并结合装备更换逻辑
+完成整个舰队的批量装备更换。"""
+
 from module.logger import logger
 from module.base.timer import Timer
 from module.campaign.campaign_base import CampaignBase
@@ -25,7 +29,7 @@ class FleetEquipment(EquipmentChange):
         retry = Timer(1, count=2)
         for _ in self.loop():
             current = letter.ocr(self.device.image)
-            logger.attr("Index", current)
+            logger.attr("索引", current)
 
             # ui_ensure_index but ignore default value 0
             # otherwise we would have 1 extra click switching from 1 to 4

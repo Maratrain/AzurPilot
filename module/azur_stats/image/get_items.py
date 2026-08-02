@@ -1,3 +1,10 @@
+"""
+获得物品截图识别。
+
+从战斗结算画面中识别获得的物品列表，支持单排/双排布局检测，
+处理物品网格定位和数量 OCR，以及信息栏遮挡的异常情况。
+"""
+
 import numpy as np
 import typing as t
 
@@ -104,7 +111,7 @@ class GetItems(ImageBase):
                 item = self.revise_item(item)
                 after = str(item)
                 if before != after:
-                    logger.info(f'Item {before} is revised to {after}')
+                    logger.info(f'[统计-物品] 物品 {before} 修正为 {after}')
                 if item.amount == 0:
                     raise ZeroAmountError(f'Invalid item amount: {item}')
                 yield item

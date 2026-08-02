@@ -1,3 +1,20 @@
+"""委托信息解析模块。
+
+负责从委托界面截图中解析单条委托的全部属性，包括名称 OCR 识别、
+委托类型匹配、执行时长解析、状态判断和后缀图像提取。
+
+核心类 Commission 封装了一条委托的所有信息，并通过 @Config.when
+装饰器为 CN/EN/JP/TW 四个服务器分别实现不同的解析逻辑。
+
+本模块还定义了 COMMISSION_FILTER 过滤器实例，用于根据用户配置的
+规则（如 'daily_resource-01:30'）筛选和排序委托列表。
+
+依赖：
+    - module.base.filter: 正则过滤器框架
+    - module.ocr.ocr: OCR 文字识别（Duration、Ocr）
+    - module.commission.project_data: 各服务器的委托名称字典
+"""
+
 from datetime import timedelta
 
 from module.base.decorator import Config
@@ -467,7 +484,7 @@ class Commission:
         string = string.replace('D', '0')
         result = re.search('(\d+):(\d+):(\d+)', string)
         if not result:
-            logger.warning(f'Invalid time string: {string}')
+            logger.warning(f'无效的时间字符串: {string}')
             self.valid = False
             return None
         else:
@@ -493,7 +510,7 @@ class Commission:
                 if keyword in string:
                     return key
 
-        logger.warning(f'Name with unknown genre: {string}')
+        logger.warning(f'未知类型的名称: {string}')
         self.valid = False
         return ''
 
@@ -526,7 +543,7 @@ class Commission:
         if min_distance < 3:
             return min_key
 
-        logger.warning(f'Name with unknown genre: {string}')
+        logger.warning(f'未知类型的名称: {string}')
         self.valid = False
         return ''
 
@@ -549,7 +566,7 @@ class Commission:
                 if keyword in string:
                     return key
 
-        logger.warning(f'Name with unknown genre: {string}')
+        logger.warning(f'未知类型的名称: {string}')
         self.valid = False
         return ''
 
@@ -572,7 +589,7 @@ class Commission:
                 if keyword in string:
                     return key
 
-        logger.warning(f'Name with unknown genre: {string}')
+        logger.warning(f'未知类型的名称: {string}')
         self.valid = False
         return ''
 

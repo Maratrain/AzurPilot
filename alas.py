@@ -342,7 +342,7 @@ class AzurLaneAutoScript:
             if self.config.Error_GameStuckRestart:
                 self.consecutive_game_stuck += 1
                 limit = int(self.config.Error_GameStuckThreshold)
-                logger.warning(f'GameStuckError: {self.consecutive_game_stuck}/{limit}')
+                logger.warning(f'[Alas] GameStuckError: {self.consecutive_game_stuck}/{limit}')
                 if self.consecutive_game_stuck >= limit:
                     logger.warning('[Alas] 游戏卡住次数过多，正在重启模拟器...')
                     if self._try_restart_emulator():
@@ -590,7 +590,7 @@ class AzurLaneAutoScript:
                         image = handle_sensitive_image(data['image'])
                         save_image(image, f'{folder}/{image_time}.png')
             except Exception as e:
-                logger.error(f"Save error screenshot failed: {e}")
+                logger.error(f"[Alas] 保存错误截图失败: {e}")
 
             try:
                 with open(logger.log_file, 'r', encoding='utf-8') as f:
@@ -605,7 +605,7 @@ class AzurLaneAutoScript:
                 with open(f'{folder}/log.txt', 'w', encoding='utf-8') as f:
                     f.writelines(lines)
             except Exception as e:
-                logger.error(f"Save error logs failed: {e}")
+                logger.error(f"[Alas] 保存错误日志失败: {e}")
                 
             self.keep_last_errlog(config_folder, getattr(self.config, 'Error_SaveErrorCount', 0))
 
@@ -1072,7 +1072,7 @@ class AzurLaneAutoScript:
             # 回退到 EmulatorManager 配置
             enable = deep_get(self.config.data, 'EmulatorManager.EmulatorManager.EnableRemoteSSH', False)
             if not enable:
-                logger.warning('Remote SSH is not enabled in EmulatorManager settings.')
+                logger.warning('[Alas-SSH] 模拟器管理器设置中未启用远程SSH')
                 return
 
             host = deep_get(self.config.data, 'EmulatorManager.EmulatorManager.RemoteSSHHost', '')
@@ -1084,10 +1084,10 @@ class AzurLaneAutoScript:
             key = deep_get(self.config.data, 'EmulatorManager.EmulatorManager.RemoteSSHPublicKey', '')
 
         if not host or not command:
-            logger.warning(f'RemoteSSHHost ({host}) or RemoteStartCommand ({command}) is empty, skip remote SSH command')
+            logger.warning(f'[Alas-SSH] 远程SSH主机 ({host}) 或远程启动命令 ({command}) 为空，跳过远程SSH命令')
             return
 
-        logger.hr('Remote SSH Command', level=1)
+        logger.hr('远程SSH命令', level=1)
         target = f'{user}@{host}' if user else host
         clear_ssh_host_key(host, port)
         # -n: 禁用标准输入  -T: 禁用伪终端分配  BatchMode: 避免密码提示导致挂起
@@ -1117,12 +1117,12 @@ class AzurLaneAutoScript:
                     os.chmod(key_file, 0o600)
 
                 cmd += ['-i', key_file]
-                logger.info(f'Using provided private key for authentication')
+                logger.info(f'[Alas-SSH] 使用提供的私钥进行认证')
             except Exception as e:
-                logger.error(f'Failed to create or secure temporary key file: {e}')
+                logger.error(f'[Alas-SSH] 创建或保护临时密钥文件失败: {e}')
 
         cmd += [target, command]
-        logger.info(f'Executing remote command: {" ".join(cmd)}')
+        logger.info(f'[Alas-SSH] 执行远程命令: {" ".join(cmd)}')
 
         try:
             process = subprocess.Popen(
@@ -1144,8 +1144,8 @@ class AzurLaneAutoScript:
             
             def collect_stdout():
                 for line in process.stdout:
-                    logger.info(f'Remote: {line.strip()}')
-            
+                    logger.info(f'[Alas-SSH] 远程输出: {line.strip()}')
+
             stderr_thread = threading.Thread(target=collect_stderr)
             stdout_thread = threading.Thread(target=collect_stdout)
             stderr_thread.start()
@@ -1156,20 +1156,20 @@ class AzurLaneAutoScript:
                 process.wait(timeout=30)
             except subprocess.TimeoutExpired:
                 process.kill()
-                logger.error('Remote SSH command timed out after 30 seconds')
+                logger.error('[Alas-SSH] 远程SSH命令超时（30秒）')
                 return
             finally:
                 stderr_thread.join(timeout=5)
                 stdout_thread.join(timeout=5)
 
             if process.returncode == 0:
-                logger.info('Remote command executed successfully')
+                logger.info('[Alas-SSH] 远程命令执行成功')
             else:
-                logger.error(f'Remote command failed with return code {process.returncode}')
+                logger.error(f'[Alas-SSH] 远程命令失败，返回码 {process.returncode}')
                 for line in stderr_content:
-                    logger.error(f'Remote Error: {line}')
+                    logger.error(f'[Alas-SSH] 远程错误: {line}')
         except Exception as e:
-            logger.error(f'Failed to execute remote SSH command: {e}')
+            logger.error(f'[Alas-SSH] 执行远程SSH命令失败: {e}')
         finally:
             if key_file and os.path.exists(key_file):
                 try:
@@ -1474,7 +1474,7 @@ class AzurLaneAutoScript:
                         from module.llm import analyze_exception
                         analyze_exception(self.config, e)
                 except Exception as ex:
-                    logger.error(f'LLM Analysis failed: {ex}')
+                    logger.error(f'[Alas] LLM错误分析失败: {ex}')
 
                 logger.warning(
                     f">>> 这是第 {consecutive_global_failures} 次连续全局失败，共 {MAX_GLOBAL_FAILURES} 次。"

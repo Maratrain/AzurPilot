@@ -1,3 +1,10 @@
+"""战役加成统计。
+
+识别并解析战役通关后的加成奖励弹窗，
+提取额外掉落物品信息并记录到统计数据中。
+继承 GetItemsStatistics 复用物品识别逻辑。
+"""
+
 from module.base.button import ButtonGrid
 from module.base.utils import *
 from module.handler.assets import AUTO_SEARCH_MENU_EXIT

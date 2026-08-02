@@ -1,3 +1,10 @@
+"""
+自动搜索奖励截图识别。
+
+从自动搜索结算画面中识别掉落物品，包括标题检测、物品网格定位
+和数量 OCR。支持多服务器的按钮模板匹配。
+"""
+
 import typing as t
 
 import cv2
@@ -105,7 +112,7 @@ class AutoSearchReward(ImageBase):
                 item = self.auto_search_revise_item(item)
                 after = str(item)
                 if before != after:
-                    logger.info(f'Item {before} is revised to {after}')
+                    logger.info(f'[统计-物品] 物品 {before} 修正为 {after}')
                 if item.amount == 0:
                     raise ZeroAmountError(f'Invalid item amount: {item}')
                 yield item

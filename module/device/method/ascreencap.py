@@ -1,3 +1,11 @@
+"""
+aScreenCap 截图方法。
+
+通过 aScreenCap 工具执行设备截图，是标准 `screencap` 命令的高性能替代方案。
+aScreenCap 直接读取 Android 设备的 framebuffer，绕过系统 screencap 的额外处理，
+截图速度更快、内存占用更低。支持原始压缩格式和 JPEG 编码两种模式。
+需要先通过 ADB 将 aScreenCap 推送至设备并赋予执行权限。
+"""
 import os
 import time
 from functools import wraps
@@ -74,9 +82,9 @@ def retry(func):
                     pass
 
         if func.__name__ in ['screenshot_ascreencap', 'screenshot_ascreencap_nc']:
-            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+            logger.critical(f'[设备-aScreenCap] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
-        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+        logger.critical(f'[设备-aScreenCap] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -89,13 +97,13 @@ class AScreenCap(Connection):
     ascreencap_available = True
 
     def ascreencap_init(self):
-        logger.hr('aScreenCap init')
+        logger.hr('[设备-aScreenCap] aScreenCap初始化')
         self.__bytepointer = 0
         self.ascreencap_available = True
 
         arc = self.cpu_abi
         sdk = self.sdk_ver
-        logger.info(f'cpu_arc: {arc}, sdk_ver: {sdk}')
+        logger.info(f'[设备-aScreenCap] cpu_arc: {arc}, sdk_ver: {sdk}')
 
         if sdk in range(21, 26):
             ver = "Android_5.x-7.x"
@@ -108,19 +116,17 @@ class AScreenCap(Connection):
         filepath = os.path.join(self.config.ASCREENCAP_FILEPATH_LOCAL, ver, arc, 'ascreencap')
         if not os.path.exists(filepath):
             self.ascreencap_available = False
-            logger.error('No suitable version of aScreenCap lib available for this device, '
-                         'please use other screenshot methods instead')
-            logger.error('[Device] 该设备没有可用的 aScreenCap 库，请使用其他截图方案。')
+            logger.error('[设备-aScreenCap] 该设备没有可用的 aScreenCap 库，请使用其他截图方案')
             raise RequestHumanTakeover
 
-        logger.info(f'pushing {filepath}')
+        logger.info(f'[设备-aScreenCap] 推送 {filepath}')
         self.adb_push(filepath, self.config.ASCREENCAP_FILEPATH_REMOTE)
 
-        logger.info(f'chmod 0777 {self.config.ASCREENCAP_FILEPATH_REMOTE}')
+        logger.info(f'[设备-aScreenCap] chmod 0777 {self.config.ASCREENCAP_FILEPATH_REMOTE}')
         self.adb_shell(['chmod', '0777', self.config.ASCREENCAP_FILEPATH_REMOTE])
 
     def uninstall_ascreencap(self):
-        logger.info('Removing ascreencap')
+        logger.info('[设备-aScreenCap] 移除ascreencap')
         self.adb_shell(['rm', self.config.ASCREENCAP_FILEPATH_REMOTE])
 
     def _ascreencap_reposition_byte_pointer(self, byte_array):
@@ -134,7 +140,7 @@ class AScreenCap(Connection):
                 text = 'Repositioning byte pointer failed, corrupted aScreenCap data received'
                 logger.warning(text)
                 if len(byte_array) < 500:
-                    logger.warning(f'Unexpected screenshot: {byte_array}')
+                    logger.warning(f'异常截图: {byte_array}')
                 raise AscreencapError(text)
         return byte_array[self.__bytepointer:]
 
@@ -156,7 +162,7 @@ class AScreenCap(Connection):
             text = 'aScreenCap returned incomplete data or empty payload'
             logger.warning(text)
             if raw_compressed_data is not None and len(raw_compressed_data) < 500:
-                logger.warning(f'Unexpected screenshot: {raw_compressed_data}')
+                logger.warning(f'异常截图: {raw_compressed_data}')
             raise AscreencapError(text)
 
         # 头部格式参考：
@@ -215,7 +221,7 @@ class AScreenCap(Connection):
 
         self.__screenshot_method_fixed = self.__screenshot_method
         if len(screenshot) < 500:
-            logger.warning(f'Unexpected screenshot: {screenshot}')
+            logger.warning(f'异常截图: {screenshot}')
         raise ImageTruncated(f'cannot load screenshot')
 
     @retry
@@ -228,6 +234,6 @@ class AScreenCap(Connection):
     def screenshot_ascreencap_nc(self):
         data = self.adb_shell_nc([self.config.ASCREENCAP_FILEPATH_REMOTE, '--pack', '2', '--stdout'])
         if len(data) < 500:
-            logger.warning(f'Unexpected screenshot: {data}')
+            logger.warning(f'异常截图: {data}')
 
         return self.__uncompress(data)

@@ -1,3 +1,19 @@
+"""舰船等级检测模块。
+
+通过 OCR 识别战斗画面中各舰船的等级信息。
+
+等级检测的使用场景：
+- 等级停止条件：当任一舰船达到目标等级时停止战役
+- LV.32 检测：当旗舰达到 32 级时停止（钻石 farming 场景）
+
+等级显示格式为 "LV.XX"，OCR 前需要：
+1. 去除 "LV." 前缀，仅保留数字部分
+2. 处理低血量时的遮罩效果（颜色偏暗）
+3. 处理半透明蓝色背景
+
+等级数据按 6 个位置独立追踪（先锋 3 + 主力 3）。
+"""
+
 import module.config.server as server
 
 from module.base.base import ModuleBase
@@ -6,11 +22,20 @@ from module.base.decorator import Config
 from module.logger import logger
 from module.ocr.ocr import Digit
 
+# 白色和遮罩后的参考颜色
 COLOR_WHITE = (255, 255, 255)
 COLOR_MASKED = (107, 105, 107)
 
 
 class Level(ModuleBase):
+    """舰船等级检测器。
+
+    通过 OCR 读取战斗画面中各位置舰船的等级，并提供等级停止条件判断。
+
+    Attributes:
+        _lv (list[int]): 各位置的当前等级，-1 表示未检测。
+        _lv_before_battle (list[int]): 战斗前的等级快照，用于检测升级。
+    """
     _lv = [-1, -1, -1, -1, -1, -1]
     _lv_before_battle = [-1, -1, -1, -1, -1, -1]
 
@@ -63,7 +88,7 @@ class Level(ModuleBase):
 
         ocr = LevelOcr(self._lv_grid().buttons, name='LevelOcr')
         self.lv = ocr.ocr(self.device.image)
-        logger.attr('LEVEL', ', '.join(str(data) for data in self.lv))
+        logger.attr('等级', ', '.join(str(data) for data in self.lv))
 
         if after_battle:
             self.lv_triggered()
@@ -79,15 +104,15 @@ class Level(ModuleBase):
         for i in range(6):
             before, after = self._lv_before_battle[i], self.lv[i]
             if after > before > 0:
-                logger.info(f'Position {i} LV.{before} -> LV.{after}')
+                logger.info(f'[等级-检测] 位置 {i} 等级.{before} -> 等级.{after}')
             if after >= limit > before > 0:
                 if after - before == 1 or after < 35:
-                    logger.info(f'Position {i} LV.{limit} Reached')
+                    logger.info(f'[等级-检测] 位置 {i} 等级.{limit} 已达到')
                     self.config.LV_TRIGGERED = True
                     return True
                 else:
-                    logger.warning(f'Level gap between {before} and {after} is too large. '
-                                   f'This will not be considered as a trigger')
+                    logger.warning(f'[等级-检测] {before} 和 {after} 之间的等级差距过大。'
+                                   f'这不会被视为触发条件')
 
         return False
 
@@ -96,7 +121,7 @@ class Level(ModuleBase):
             return False
 
         if self.lv[0] >= 32:
-            logger.info(f'Position 0 LV.32 Reached')
+            logger.info('[等级-检测] 位置 0 等级.32 已达到')
             self.config.LV32_TRIGGERED = True
             return True
 

@@ -1,3 +1,9 @@
+"""大世界状态追踪模块。
+
+管理大世界（Operation Siren）模式的状态信息，包括海域代币
+（黄币/紫币）的 OCR 数值追踪、任务类型识别、子任务冷却（CD）
+状态的实时计算，以及相关日志资源的记录。
+"""
 # 此文件用于管理大世界（Operation Siren）模式下的状态信息。
 # 负责海域代币（黄币/紫币）的数值追踪、任务类型识别以及子任务冷却（CD）状态的实时计算。
 import threading
@@ -120,13 +126,13 @@ class OSStatus(UI):
 
             current_value = OCR_SHOP_YELLOW_COINS.ocr(self.device.image)
             if timeout.reached():
-                logger.warning('Get yellow coins timeout')
+                logger.warning('[大世界处理-状态] 获取黄币超时')
                 break
 
             if current_value == 0:
                 # OCR may get 0 when amount is not immediately loaded
                 # Or when popups are obscuring the top bar
-                logger.info('Yellow coins is 0, assuming it is an ocr error or UI not loaded')
+                logger.info('[大世界处理-状态] 黄币为 0，可能是 OCR 错误或界面未加载')
                 continue
             else:
                 # 验证识别稳定性：连续两次识别相同才确认
@@ -143,14 +149,14 @@ class OSStatus(UI):
         # 如果最终仍未获取到有效数值，使用上次缓存的值（线程安全）
         with self._cache_lock:
             if yellow_coins == 0:
-                logger.info(f'Using cached yellow coins value: {self._last_yellow_coins}')
+                logger.info(f'[大世界处理-状态] 使用缓存的黄币值: {self._last_yellow_coins}')
                 yellow_coins = self._last_yellow_coins
             
             # 缓存当前值用于降级
             self._last_yellow_coins = yellow_coins
         
         LogRes(self.config).YellowCoin = yellow_coins
-        logger.info(f'Yellow coins: {yellow_coins}')
+        logger.info(f'[大世界处理-状态] 黄币: {yellow_coins}')
 
         return yellow_coins
 
@@ -165,7 +171,7 @@ class OSStatus(UI):
     def os_shop_get_coins(self):
         self._shop_yellow_coins = self.get_yellow_coins()
         self._shop_purple_coins = self.get_purple_coins()
-        logger.info(f'Yellow coins: {self._shop_yellow_coins}, purple coins: {self._shop_purple_coins}')
+        logger.info(f'[大世界处理-状态] 黄币: {self._shop_yellow_coins}, 紫币: {self._shop_purple_coins}')
 
         # 记录凭证快照到数据库（用于 WebUI 凭证变化曲线图）
         try:
@@ -181,4 +187,4 @@ class OSStatus(UI):
             # LogRes 已将值写入 config.modified，在此持久化
             self.config.save()
         except Exception:
-            logger.exception('Failed to record coins snapshot')
+            logger.exception('[大世界处理-状态] 记录凭证快照失败')

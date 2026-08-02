@@ -1,3 +1,7 @@
+"""建造（Gacha）系统模块，处理舰船建造的完整流程。
+包括建造页面导航、资源消耗预计算、订单提交、
+自动收菜（获取建造结果）以及建造队列的清理管理。"""
+
 # 此文件处理建造（Gacha/Build）相关的操作。
 # 包括多级建造页面的导航、资源消耗预计算、提交建造订单以及自动化收菜和队列清理逻辑。
 from module.base.timer import Timer
@@ -84,8 +88,8 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
 
         # 检查是否异常提前退出，并设置正确的提交数量
         if ocr_submit is None:
-            raise ScriptError('Failed to identify ocr asset required, '
-                              'cannot continue prep work')
+            raise ScriptError('[建造-准备] 无法识别OCR资产，'
+                              '无法继续准备工作')
         area = ocr_submit.buttons[0]
         ocr_submit.buttons = [(BUILD_MINUS.button[2] + 3, area[1], BUILD_PLUS.button[0] - 3, area[3])]
         self.ui_ensure_index(target, letter=ocr_submit, prev_button=BUILD_MINUS,
@@ -112,7 +116,7 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
 
             # 数量为 0，无法执行建造
             if not target_count:
-                logger.warning('Insufficient gold and/or cubes to gacha roll')
+                logger.warning('物资和/或心智魔方不足，无法建造')
                 break
 
             # 资源不足，减少 1 并重新计算
@@ -123,7 +127,7 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
             break
 
         # 扣除资源，返回当前 target_count
-        logger.info(f'Able to submit up to {target_count} build orders')
+        logger.info(f'最多可提交 {target_count} 个建造订单')
         self.build_coin_count -= gold_total
         self.build_cube_count -= cube_total
         LogRes(self.config).Cube = self.build_cube_count
@@ -252,7 +256,7 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
 
         # 许愿池不再显示金币，返回普通建造池
         if self.appear(BUILD_SUBMIT_WW_ORDERS):
-            logger.info('In wishing pool, go back to normal pools')
+            logger.info('在许愿池中，返回普通池')
             self.gacha_side_navbar_ensure(upper=1)
 
     def gacha_submit(self, skip_first_screenshot=True):
@@ -266,7 +270,7 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
             in: POPUP_CONFIRM
             out: BUILD_FINISH_ORDERS
         """
-        logger.info('Submit gacha')
+        logger.info('提交建造')
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -323,7 +327,7 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
             if self.appear(BUILD_TICKET_CHECK, offset=(30, 30)):
                 self.build_ticket_count = OCR_BUILD_TICKET_COUNT.ocr(self.device.image)
             else:
-                logger.info('Build ticket not detected, use cubes and coins')
+                logger.info('未检测到建造券，使用魔方和物资')
         if self.config.Gacha_Amount > self.build_ticket_count:
             buy[0] = self.build_ticket_count
             # 根据配置和资源计算允许的建造次数

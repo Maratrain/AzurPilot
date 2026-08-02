@@ -1,3 +1,9 @@
+"""自动生成的配置类。
+
+由 config_updater.py 自动生成，包含所有配置项的默认值定义。
+提供 IDE 自动补全支持，不应手动修改此文件。
+"""
+
 # 此文件是配置系统的更新器。
 # 负责读取配置定义、生成 config_generated.py 以及处理配置的版本迁移、i18n 生成等核心管理任务。
 import datetime
@@ -632,7 +638,6 @@ class GeneratedConfig:
     OpsiMeowfficerFarming_HazardLevel = 5  # 2, 3, 4, 5, 6, 10
     OpsiMeowfficerFarming_TargetZone = 0
     OpsiMeowfficerFarming_StayInZone = False
-    OpsiMeowfficerFarming_APPreserveUntilReset = False
 
     # 配置组 `OpsiTarget`
     OpsiTarget_TargetFarming = False
@@ -678,6 +683,10 @@ class GeneratedConfig:
     OpsiScheduling_EnableAbyssal = False  # True, False
     OpsiScheduling_EnableStronghold = False  # True, False
     OpsiScheduling_TaskPriority = 'OpsiStronghold > OpsiObscure > OpsiAbyssal > OpsiMeowfficerFarming'
+    OpsiScheduling_MonthEndActionPointCleanupEnable = False  # True, False
+    OpsiScheduling_MonthEndActionPointCleanupDays = 0
+    OpsiScheduling_MonthEndActionPointPreserve = 0
+    OpsiScheduling_MonthEndShopPurchase = True  # True, False
 
     # 配置组 `OpsiPreventActionPointOverflow`
     OpsiPreventActionPointOverflow_Task = 'OpsiScheduling'  # OpsiScheduling, OpsiHazard1Leveling, OpsiMeowfficerFarming

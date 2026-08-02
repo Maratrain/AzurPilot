@@ -1,3 +1,8 @@
+"""岛屿每日订单模块。
+
+处理岛屿每日订单的自动化交付，包括紧急委托检测、订单刷新与货物筹备状态判断。
+支持订单页面状态识别（为空/紧急/可交付/驳回）与左侧挑战图标的逐个处理。
+"""
 from module.island.island import Island
 import module.island_daily_order.assets as daily_order_assets
 from module.island_daily_order.assets import *
@@ -60,7 +65,7 @@ class IslandDailyOrder(Island):
     _urgent_template_cache = None
 
     def run(self):
-        logger.hr('Island Daily Order Run', level=1)
+        logger.hr('岛屿每日订单', level=1)
 
         self.ui_ensure(page_island)
 

@@ -106,10 +106,10 @@ def retry(func):
             'screenshot_uiautomator2',
             'app_current_uiautomator2',
         ]:
-            logger.critical(f'Retry {func.__name__}() failed')
+            logger.critical(f'[设备-U2] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
 
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'[设备-U2] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -196,13 +196,13 @@ class Uiautomator2(Connection):
             x, y, second = data
             if index == 0:
                 self.u2.touch.down(x, y)
-                logger.info(point2str(x, y) + ' down')
+                logger.info(point2str(x, y) + ' 按下')
             elif index - length == -1:
                 self.u2.touch.up(x, y)
-                logger.info(point2str(x, y) + ' up')
+                logger.info(point2str(x, y) + ' 抬起')
             else:
                 self.u2.touch.move(x, y)
-                logger.info(point2str(x, y) + ' move')
+                logger.info(point2str(x, y) + ' 移动')
             self.sleep(second)
 
     def drag_uiautomator2(self, p1, p2, segments=1, shake=(0, 15), point_random=(-10, -10, 10, 10),
@@ -327,7 +327,7 @@ class Uiautomator2(Connection):
         # 已在运行
         # Warning: Activity not started, intent has been delivered to currently running top-most instance.
         if 'Warning: Activity not started' in ret.output:
-            logger.info('App activity is already started')
+            logger.info('应用Activity已启动')
             return True
         # Starting: Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.YoStarEN.AzurLane/com.manjuu.azurlane.MainActivity }
         # java.lang.SecurityException: Permission Denial: starting Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 cmp=com.YoStarEN.AzurLane/com.manjuu.azurlane.MainActivity } from null (pid=5140, uid=2000) not exported from uid 10064
@@ -345,7 +345,7 @@ class Uiautomator2(Connection):
                 return False
             else:
                 logger.error(ret)
-                logger.error('Permission Denial while starting app, probably because activity invalid')
+                logger.error('启动应用时权限拒绝，可能Activity无效')
                 return False
         # 成功
         # Starting: Intent...
@@ -384,7 +384,7 @@ class Uiautomator2(Connection):
         if self._app_start_u2_am(package_name, activity_name, allow_failure):
             return True
 
-        logger.error('app_start_uiautomator2: All trials failed')
+        logger.error('[设备-U2] 所有尝试失败')
         return False
 
     @retry
@@ -401,7 +401,7 @@ class Uiautomator2(Connection):
         return hierarchy
 
     def uninstall_uiautomator2(self):
-        logger.info('Removing uiautomator2')
+        logger.info('[设备-U2] 移除uiautomator2')
         for file in [
             'app-uiautomator.apk',
             'app-uiautomator-test.apk',
@@ -431,7 +431,7 @@ class Uiautomator2(Connection):
             result = self.adb_shell(['wm', 'size'])
             lines = result.strip().split('\n')
         except Exception:
-            logger.warning('Failed to execute adb shell wm size, fallback to u2 /info')
+            logger.warning('[设备-U2] 执行adb shell wm size失败，回退到u2 /info')
 
         if lines:
             w, h = None, None
@@ -504,14 +504,14 @@ class Uiautomator2(Connection):
             RequestHumanTakeover: 分辨率不是 1280x720 时抛出
         """
         width, height = self.resolution_uiautomator2()
-        logger.attr('Screen_size', f'{width}x{height}')
+        logger.attr('屏幕尺寸', f'{width}x{height}')
         if width == 1280 and height == 720:
             return (width, height)
         if width == 720 and height == 1280:
             return (width, height)
 
-        logger.critical(f"[Device] 大叔，你看着分辨率对吗: {width}x{height}。真是个连分辨率都不会设的杂鱼呢❤")
-        logger.critical("[Device] 乖乖给我改成 1280x720 哦，不然我可不理你了❤")
+        logger.critical(f"[设备-U2] 大叔，你看着分辨率对吗: {width}x{height}。真是个连分辨率都不会设的杂鱼呢❤")
+        logger.critical("[设备-U2] 乖乖给我改成 1280x720 哦，不然我可不理你了❤")
         raise RequestHumanTakeover
 
     @retry

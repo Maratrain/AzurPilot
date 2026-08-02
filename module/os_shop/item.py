@@ -1,3 +1,9 @@
+"""大世界商店物品数据模块。
+
+定义大世界商店的物品数据结构，包括价格 OCR 识别器（修正常见
+OCR 错误）、计数器 OCR 识别器以及商品价格区域的识别逻辑，
+为商店购买决策提供准确的价格和数量信息。
+"""
 from typing import List
 import module.config.server as server
 from module.logger import logger

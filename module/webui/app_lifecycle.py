@@ -60,7 +60,7 @@ def clearup() -> bool:
         if State._clearup:
             return True
 
-        logger.info("Start clearup")
+        logger.info("[WebUI-生命周期] 开始清理")
         success = _clearup_step("任务处理器", task_handler.stop)
 
         for name, handler in (
@@ -100,5 +100,5 @@ def clearup() -> bool:
                 success = False
         else:
             logger.error("WebUI 清理未完成，保留 Manager 直到父进程终止进程树")
-        logger.info("Alas closed.")
+        logger.info("[WebUI-生命周期] Alas 已关闭")
         return success

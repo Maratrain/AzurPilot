@@ -233,7 +233,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
         try:
             return max(0, int(getattr(State.deploy_config, "MaxRedirects", 2) or 0))
         except (TypeError, ValueError):
-            logger.warning("Invalid MaxRedirects, fallback to 2")
+            logger.warning("无效的MaxRedirects，回退到2")
             return 2
 
     def _redirect_hosts(self, primary_host: str) -> List[str]:
@@ -283,10 +283,10 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
             f"-p {server_port} {server} -- --output json"
         )
         args = shlex.split(cmd)
-        logger.debug(f"remote access service command: {cmd}")
+        logger.debug(f"[WebUI-远程访问] 远程访问服务命令: {cmd}")
 
         if self.process is not None and self.process.poll() is None:
-            logger.warning(f"Kill previous ssh process [{self.process.pid}]")
+            logger.warning(f"终止之前的SSH进程 [{self.process.pid}]")
             self.process.kill()
         try:
             self.process = Popen(args, stdout=PIPE, stderr=PIPE)
@@ -298,7 +298,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
             self.info.error = "ssh_not_found"
             return None
 
-        logger.info(f"remote access process pid: {self.process.pid}")
+        logger.info(f"远程访问进程PID: {self.process.pid}")
         return self.process
 
     def _run(
@@ -330,7 +330,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
             def timeout_killer(wait_sec, target_process):
                 time.sleep(wait_sec)
                 if not success and target_process.poll() is None:
-                    logger.info("Connection timeout, kill ssh process")
+                    logger.info("连接超时，终止SSH进程")
                     target_process.kill()
 
             threading.Thread(
@@ -340,7 +340,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
             ).start()
 
             stdout = process.stdout.readline().decode("utf8")
-            logger.debug(f"ssh server stdout: {stdout}")
+            logger.debug(f"[WebUI-远程访问] SSH 服务器标准输出: {stdout}")
             try:
                 connection_info = json.loads(stdout)
             except json.JSONDecodeError:
@@ -352,7 +352,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
                     self.info.error = "ssh_host_key_changed"
                 elif stderr:
                     self.info.error = stderr.strip()
-                    logger.error(f"SSH remote access exited before registration: {stderr.strip()}")
+                    logger.error(f"SSH远程访问在注册前退出: {stderr.strip()}")
                 else:
                     self.info.error = "invalid_provider_response"
                 break
@@ -362,7 +362,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
                 redirects += 1
                 if redirects > self._max_redirects():
                     self.info.error = "too_many_redirects"
-                    logger.error("Too many SSH redirect responses")
+                    logger.error("SSH重定向响应过多")
                     self._terminate_process()
                     break
                 ssh_server = connection_info.get("ssh_server")
@@ -376,7 +376,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
                 redirect_user = connection_info.get("ssh_user") or primary_user or State.deploy_config.SSHUser
                 current_server = f"{redirect_user}@{redirect_host}" if redirect_user else redirect_host
                 current_port = redirect_port
-                logger.info(f"Remote access redirected to {redirect_host}:{redirect_port}")
+                logger.info(f"远程访问重定向到 {redirect_host}:{redirect_port}")
                 self._terminate_process()
                 continue
 
@@ -390,7 +390,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
                 )
                 new_username = connection_info.get("change_username", None)
                 if new_username:
-                    logger.info(f"Server requested to change username, change it to: {new_username}")
+                    logger.info(f"服务器请求更改用户名，更改为: {new_username}")
                     State.deploy_config.SSHUser = new_username
                 break
 
@@ -401,7 +401,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
             self.info.ice_servers = connection_info.get("ice_servers")
             self.info.connection_state = "ssh_forward"
             self.info.error = ""
-            logger.debug(f"Remote access url: {self.info.address}")
+            logger.debug(f"[WebUI-远程访问] 远程访问 URL: {self.info.address}")
             break
 
         while (
@@ -414,17 +414,17 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
 
         if self.process and self.process.poll() is None:
             if self.stop_event.is_set():
-                logger.info("Stop SSH remote access service")
+                logger.info("停止SSH远程访问服务")
             else:
-                logger.info("App process exit, killing ssh process")
+                logger.info("应用进程退出，终止SSH进程")
             self.process.kill()
         elif self.process:
             stderr = self.process.stderr.read().decode("utf8")
             if stderr:
-                logger.error(f"PyWebIO application remote access service error: {stderr}")
+                logger.error(f"PyWebIO应用远程访问服务错误: {stderr}")
                 self.info.error = stderr.strip()
             else:
-                logger.info("PyWebIO application remote access service exit.")
+                logger.info("PyWebIO应用远程访问服务退出.")
         self.info.connection_state = "stopped"
         self.info.address = None
 
@@ -436,7 +436,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
         self.notfound = False
         server, server_port = _parse_host_port(State.deploy_config.SSHServer)
         if State.deploy_config.SSHUser is None:
-            logger.info("SSHUser is not set, generate a random one")
+            logger.info("SSHUser未设置，生成随机用户")
             State.deploy_config.SSHUser = random_id(24)
 
         target = f"{State.deploy_config.SSHUser}@{server}"
@@ -453,7 +453,7 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
         self.thread.start()
 
     def _thread_main(self, **kwargs) -> None:
-        logger.info("Start SSH remote access service")
+        logger.info("启动SSH远程访问服务")
         reconnect_delay = SSH_RECONNECT_DELAY
         while not self.stop_event.is_set():
             try:
@@ -462,21 +462,21 @@ class SSHRemoteAccessProvider(RemoteAccessProvider):
                 break
             except Exception as e:
                 self.info.error = str(e)
-                logger.warning(f"SSH remote access service error: {e}")
+                logger.warning(f"SSH远程访问服务错误: {e}")
 
             if self.stop_event.is_set() or self.notfound:
                 break
 
-            logger.warning(f"SSH remote access disconnected, retry in {reconnect_delay} seconds")
+            logger.warning(f"[WebUI-远程] SSH远程访问断开，重试间隔 {reconnect_delay} 秒")
             self.info.connection_state = "reconnecting"
             if self.stop_event.wait(reconnect_delay):
                 break
             reconnect_delay = min(reconnect_delay * 2, SSH_RECONNECT_MAX_DELAY)
 
         if self.process and self.process.poll() is None:
-            logger.info("Stop SSH remote access process")
+            logger.info("停止SSH远程访问进程")
             self.process.kill()
-        logger.info("Exit SSH remote access service thread")
+        logger.info("退出SSH远程访问服务线程")
 
     def stop(self) -> None:
         self.stop_event.set()
@@ -620,7 +620,7 @@ class WebRTCTunnel:
                         })
                     self.send_json({"type": "http.response.end", "id": req_id})
         except Exception as e:
-            logger.warning(f"P2P HTTP proxy failed: {e}")
+            logger.warning(f"P2P HTTP代理失败: {e}")
             self.send_json({"type": "http.response.error", "id": req_id, "message": str(e)})
 
     async def _ws_open(self, payload: dict) -> None:
@@ -643,7 +643,7 @@ class WebRTCTunnel:
         except Exception as e:
             if session is not None:
                 await session.close()
-            logger.warning(f"P2P WebSocket open failed: {e}")
+            logger.warning(f"P2P WebSocket打开失败: {e}")
             self.send_json({"type": "ws.error", "id": ws_id, "message": str(e)})
 
     async def _ws_reader(self, ws_id, session, ws) -> None:
@@ -741,7 +741,7 @@ class WebRTCTunnel:
         except asyncio.CancelledError:
             raise
         except Exception as e:
-            logger.warning(f"P2P SSE proxy failed: {e}")
+            logger.warning(f"P2P SSE代理失败: {e}")
         finally:
             self.sse_tasks.pop(sse_id, None)
             self.send_json({"type": "sse.closed", "id": sse_id})
@@ -811,7 +811,7 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
         return False
 
     def _thread_main(self) -> None:
-        logger.info("Start WebRTC remote access service")
+        logger.info("启动WebRTC远程访问服务")
         try:
             if not self._wait_for_ssh_info():
                 self.info.error = "SSH fallback is not ready"
@@ -830,7 +830,7 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
             self._missing_dependency = str(e)
             self.info.error = str(e)
             self.info.connection_state = "dependency_missing"
-            logger.warning(f"WebRTC remote access disabled: {e}")
+            logger.warning(f"WebRTC远程访问已禁用: {e}")
         except RemoteSignalError as e:
             self.info.error = str(e)
             self.info.connection_state = "ssh_forward"
@@ -839,7 +839,7 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
             self.info.error = str(e)
             self.info.connection_state = "failed"
             logger.exception(e)
-        logger.info("Exit WebRTC remote access service thread")
+        logger.info("退出WebRTC远程访问服务线程")
 
     async def _run_signal_loop(self) -> None:
         try:
@@ -893,7 +893,7 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
                                 self.info.address = data.get("address") or self.info.address
                                 self.info.fallback_address = data.get("fallback_url") or self.info.fallback_address
                                 self.info.connection_state = "waiting_peer"
-                                logger.info(f"P2P remote access url: {self.info.address}")
+                                logger.info(f"P2P远程访问URL: {self.info.address}")
                             elif msg_type == "offer":
                                 pc = RTCPeerConnection(configuration=rtc_config)
                                 peer_connections.add(pc)
@@ -907,7 +907,7 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
 
                                 @pc.on("datachannel")
                                 def on_datachannel(channel):
-                                    logger.info(f"P2P datachannel opened: {channel.label}")
+                                    logger.info(f"P2P数据通道已打开: {channel.label}")
                                     tunnel = WebRTCTunnel(
                                         _local_host(),
                                         State.deploy_config.WebuiPort,
@@ -920,7 +920,7 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
                                         try:
                                             payload = json.loads(message)
                                         except Exception as e:
-                                            logger.warning(f"P2P channel message parse failed: {e}")
+                                            logger.warning(f"P2P通道消息解析失败: {e}")
                                             return
                                         asyncio.create_task(tunnel.handle(payload))
 
@@ -964,7 +964,7 @@ class WebRTCRemoteAccessProvider(RemoteAccessProvider):
                                     self.info.connection_state = state
                             elif msg_type == "error":
                                 self.info.error = data.get("message", "")
-                                logger.warning(f"P2P signaling error: {self.info.error}")
+                                logger.warning(f"P2P信令错误: {self.info.error}")
                     finally:
                         keepalive_task.cancel()
         except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
@@ -1064,7 +1064,7 @@ _provider = AutoRemoteAccessProvider()
 def start_remote_access_service(**kwargs):
     """兼容旧调用入口。"""
     if kwargs:
-        logger.debug(f"Ignore legacy remote access kwargs: {kwargs}")
+        logger.debug(f"[WebUI-远程访问] 忽略旧版远程访问参数: {kwargs}")
     _provider.start()
     return True
 
@@ -1078,7 +1078,7 @@ class RemoteAccess:
             if _provider.is_alive():
                 yield
                 continue
-            logger.info("Remote access service is not running, starting now")
+            logger.info("远程访问服务未运行，正在启动")
             try:
                 start_remote_access_service()
             except ParseError as e:

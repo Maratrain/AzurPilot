@@ -1,3 +1,10 @@
+"""
+大世界场景分析。
+
+组合大世界奖励、物品识别和区域检测，对大世界（Operation Siren）
+的截图进行完整的场景级分析，提取掉落物品和区域信息。
+"""
+
 import typing as t
 from dataclasses import dataclass
 

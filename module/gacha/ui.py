@@ -1,3 +1,10 @@
+"""建造系统 UI 处理模块。
+
+提供建造（Gacha）页面的 UI 操作，包括页面资源加载检测、
+侧边栏标签导航（轻型/重型/特型/限时建造）、
+建造池切换以及建造结果处理等界面交互功能。
+"""
+
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.base.timer import Timer
@@ -39,7 +46,7 @@ class GachaUI(UI):
 
             # 超时异常——资源加载未完成
             if ensure_timeout.reached():
-                logger.warning('Wait for loaded assets is incomplete, ensure not guaranteed')
+                logger.warning('[建造-UI] 等待资源加载超时，加载未完成')
                 return False
 
     @cached_property
@@ -91,7 +98,7 @@ class GachaUI(UI):
         """
         retire_upper = 5 if self._gacha_side_navbar.get_total(main=self) == 5 else 4
         if upper == retire_upper or bottom == 1:
-            logger.warning('Transitions to "retire" is not supported')
+            logger.warning('[建造-UI] 不支持跳转到退役页面')
             return False
 
         if self._gacha_side_navbar.set(self, upper=upper, bottom=bottom) \
@@ -194,7 +201,7 @@ class GachaUI(UI):
         gacha_bottom_navbar = self._gacha_bottom_navbar(is_build)
         if is_build and gacha_bottom_navbar.get_total(main=self) == 3:
             if left == 1 or right == 4:
-                logger.info('Construct event not available, default to light')
+                logger.info('[建造-UI] 限时建造不可用，切换到轻型建造')
                 left = 1
                 right = None
             if left == 4:

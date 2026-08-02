@@ -1,3 +1,6 @@
+"""透视检测模块。通过检测网格线的消失点和边缘，确定地图的透视变换参数，
+用于校正地图视角并识别网格边界。"""
+
 import time
 import warnings
 
@@ -121,8 +124,8 @@ class Perspective:
         self.vanish_point = optimize.brute(self._vanish_point_value, self.config.VANISH_POINT_RANGE)
         distance_point_x = optimize.brute(self._distant_point_value, self.config.DISTANCE_POINT_X_RANGE)[0]
         self.distant_point = (distance_point_x, self.vanish_point[1])
-        logger.attr_align('vanish_point', point2str(*self.vanish_point, length=5))
-        logger.attr_align('distant_point', point2str(*self.distant_point, length=5))
+        logger.attr_align('灭点', point2str(*self.vanish_point, length=5))
+        logger.attr_align('远点', point2str(*self.distant_point, length=5))
         if np.linalg.norm(np.subtract(self.vanish_point, self.distant_point)) < 10:
             raise MapDetectionError('Vanish point and distant point too close')
 
@@ -149,11 +152,11 @@ class Perspective:
 
         # Log
         time_cost = round(time.time() - start_time, 3)
-        logger.info('%ss  %s   Horizontal: %s (%s inner, %s edge)' % (
+        logger.info('[地图-透视] %ss  %s   水平: %s (%s 内部, %s 边缘)' % (
             float2str(time_cost), '_' if self.lower_edge else ' ',
             len(self.horizontal), len(horizontal), len(edge_h))
                     )
-        logger.info('Edges: %s%s%s    Vertical: %s (%s inner, %s edge)' % (
+        logger.info('[地图-透视] 边缘: %s%s%s    垂直: %s (%s 内部, %s 边缘)' % (
             '/' if self.left_edge else ' ', '_' if self.upper_edge else ' ',
             '\\' if self.right_edge else ' ', len(self.vertical), len(vertical), len(edge_v))
                     )
@@ -360,8 +363,8 @@ class Perspective:
 
         diff = np.max([mid_diff_range[0] - coincident_point[1], coincident_point[1] - mid_diff_range[1]])
         if diff > 0:
-            logger.info('%s coincident point unexpected: %s' % (
-                'Horizontal' if is_horizontal else 'Vertical',
+            logger.info('[地图-透视] %s 重合点异常: %s' % (
+                '水平' if is_horizontal else '垂直',
                 str(coincident_point)))
 
         # 检测区域的边界

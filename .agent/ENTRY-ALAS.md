@@ -10,7 +10,7 @@ alwaysApply: true
 | 项目 | 内容 |
 |---|---|
 | 文件路径 | `alas.py` |
-| 总行数 | 1138 行 |
+| 总行数 | 1509 行 |
 | 文件类型 | Python 脚本（主入口 + 核心调度器类） |
 | 许可证 | GPL-3.0 |
 | 修改注释 | 基于原版增加了自动尝试重启调度器的功能（rev: auto_restart, Last Updated: 2025-09-01） |
@@ -35,7 +35,7 @@ alwaysApply: true
 
 ## 2. 模块级全局变量与函数
 
-### 2.1 `_i18n_task_names` 缓存 (L27)
+### 2.1 `_i18n_task_names` 缓存 (L31)
 
 ```python
 _i18n_task_names = None
@@ -43,7 +43,7 @@ _i18n_task_names = None
 
 全局模块级缓存，用于存储 i18n 任务名称映射字典。首次调用 `_get_task_display_name()` 时从文件加载并缓存。
 
-### 2.2 `_get_task_display_name(task_command)` (L28-L53)
+### 2.2 `_get_task_display_name(task_command)` (L32-L57)
 
 ```python
 def _get_task_display_name(task_command):
@@ -61,17 +61,15 @@ def _get_task_display_name(task_command):
 - **设计模式**: 模块级单例缓存模式
 - **容错**: 所有异常均被静默捕获，失败时返回原始命令名
 
-### 2.3 `RESTART_SENSITIVE_TASKS` (L56)
+### 2.3 重启敏感任务机制（原 `RESTART_SENSITIVE_TASKS` 常量已删除）
 
-```python
-RESTART_SENSITIVE_TASKS = ['Commission', 'Research']
-```
+> **注意**：旧版本中 `RESTART_SENSITIVE_TASKS = ['Commission', 'Research']` 常量已被移除。
 
-重启敏感任务列表。当 `Error_StrictRestart` 启用且这些任务失败 >=1 次时，会触发程序终止请求人工接管。
+当前实现改为动态判断（alas.py L1401）：`Error_StrictRestart` 启用时，结合 `{task}.Scheduler.Sensitive` 配置项决定是否触发严格重启行为。敏感任务出错时直接停止，不做任何重启。
 
 ---
 
-## 3. `AzurLaneAutoScript` 类分析 (L59-L1137)
+## 3. `AzurLaneAutoScript` 类分析 (L61-L1508)
 
 ### 3.1 类定义与类属性
 
@@ -83,7 +81,7 @@ class AzurLaneAutoScript:
 - **类型注解**: `stop_event` 是类级别的 `threading.Event`，用于从外部（如 GUI 进程）通知调度器停止
 - **设计**: 类属性默认为 `None`，由 GUI 层在创建实例时注入
 
-### 3.2 `__init__(self, config_name='alas')` (L62-L74)
+### 3.2 `__init__(self, config_name='alas')` (L64-L76)
 
 ```python
 def __init__(self, config_name='alas'):
@@ -102,7 +100,7 @@ def __init__(self, config_name='alas'):
 
 ### 3.3 惰性缓存属性
 
-#### `config` (L129-L139)
+#### `config` (L178-L199)
 
 ```python
 @cached_property
@@ -115,7 +113,7 @@ def config(self):
 - **惰性加载**: 首次访问时从 `config/{config_name}.json` 加载配置
 - **错误处理**: `RequestHumanTakeover` 致命退出，其他异常记录后退出
 
-#### `device` (L141-L152)
+#### `device` (L201-L223)
 
 ```python
 @cached_property
@@ -129,7 +127,7 @@ def device(self):
 - **惰性导入**: 内部导入避免启动时就连接设备
 - **依赖**: 需要 `self.config` 先初始化
 
-#### `checker` (L154-L162)
+#### `checker` (L225-L243)
 
 ```python
 @cached_property
@@ -144,7 +142,7 @@ def checker(self):
 
 ---
 
-### 3.4 核心方法 `run(self, command, skip_first_screenshot=False)` (L168-L347)
+### 3.4 核心方法 `run(self, command, skip_first_screenshot=False)` (L279-L531)
 
 ```python
 def run(self, command, skip_first_screenshot=False):
@@ -187,7 +185,7 @@ def run(self, command, skip_first_screenshot=False):
 
 ---
 
-### 3.5 `_try_restart_emulator(self)` (L76-L127)
+### 3.5 `_try_restart_emulator(self)` (L118-L176)
 
 ```python
 def _try_restart_emulator(self):
@@ -208,7 +206,7 @@ def _try_restart_emulator(self):
 
 ---
 
-### 3.6 `keep_last_errlog(self, folder_path, n=30)` (L349-L366)
+### 3.6 `keep_last_errlog(self, folder_path, n=30)` (L533-L550)
 
 ```python
 def keep_last_errlog(self, folder_path, n: int = 30):
@@ -218,7 +216,7 @@ def keep_last_errlog(self, folder_path, n: int = 30):
 - **参数**: `folder_path` (str) - 目录路径, `n` (int) - 保留数量
 - **行为**: `n <= 0` 时不执行任何操作
 
-### 3.7 `save_error_log(self)` (L368-L420)
+### 3.7 `save_error_log(self)` (L551-L610)
 
 ```python
 def save_error_log(self):
@@ -226,36 +224,36 @@ def save_error_log(self):
 
 - **功能**: 保存错误现场（截图 + 日志）到 `./log/error/<config-name>/<timestamp>/`
 - **执行流程**:
-  1. **LLM 分析优先** (L379-L387): 如果启用了 `Error_LlmAnalysis`，先调用 `module.llm.analyze_exception()` 进行 AI 错误分析（避免后续保存截图时二次崩溃导致分析未执行）
-  2. **截图保存** (L395-L403): 从 `device.screenshot_deque` 获取最近截图，进行敏感信息遮罩后保存
-  3. **日志保存** (L405-L418): 读取日志文件，提取最后一个分隔线之后的内容，进行敏感信息遮罩后保存
-  4. **清理旧日志** (L420): 调用 `keep_last_errlog()` 限制日志数量
+  1. **LLM 分析优先**: 如果启用了 `Error_LlmAnalysis`，先调用 `module.llm.analyze_exception()` 进行 AI 错误分析（避免后续保存截图时二次崩溃导致分析未执行）
+  2. **截图保存**: 从 `device.screenshot_deque` 获取最近截图，进行敏感信息遮罩后保存
+  3. **日志保存**: 读取日志文件，提取最后一个分隔线之后的内容，进行敏感信息遮罩后保存
+  4. **清理旧日志**: 调用 `keep_last_errlog()` 限制日志数量
 
 **安全性**: 使用 `handle_sensitive_image` 和 `handle_sensitive_logs` 处理敏感信息
 
 ---
 
-### 3.8 基础任务方法 (L422-L441)
+### 3.8 基础任务方法 (L612-L676)
 
-#### `restart()` (L422-L425)
+#### `restart()` (L612-L617)
 ```python
 def restart(self):
     LoginHandler(self.config, device=self.device).app_restart()
     self.config.task_delay(server_update=True)
 ```
-重启游戏应用并设置下次运行时间。
+重启游戏应用并设置下次运行时间。同区域还提供 `restart_random_delay_minutes()`（L619）、`delay_due_restart()`（L632）、`delay_next_restart()`（L655）等延迟控制方法。
 
-#### `start()` (L427-L429)
+#### `start()` (L663-L665)
 启动游戏应用（不等待完成）。
 
-#### `goto_main()` (L431-L440)
+#### `goto_main()` (L667-L676)
 导航到游戏主页面。如果应用已运行则直接导航，否则先启动。
 
 ---
 
-### 3.9 游戏任务方法 (L442-L737)
+### 3.9 游戏任务方法 (L678-L1057)
 
-共 **55 个任务方法**，每个方法遵循统一模式：
+共 **93 个任务方法**，每个方法遵循统一模式：
 
 ```python
 def task_name(self):
@@ -282,7 +280,7 @@ def task_name(self):
 | **免费福利** | `freebies` | `module.freebies.freebies.Freebies` | 免费福利 |
 | **小游戏** | `minigame` | `module.minigame.minigame.Minigame` | 小游戏 |
 | **私人休息室** | `private_quarters` | `module.private_quarters.private_quarters.PrivateQuarters` | 私人休息室 |
-| **岛屿** | `island` | `module.island.island.Island` | 岛屿系统 |
+| **岛屿** | `island` + `island_*` (17个) | `module.island.*` | 岛屿系统及子任务（农场/牧场/渔业/烧烤/茶室/餐厅/咖啡/制造/运输/商业/日常订单/日常互动/珍珠出售等） |
 | **每日** | `daily` | `module.daily.daily.Daily` | 每日任务 |
 | **困难** | `hard` | `module.hard.hard.CampaignHard` | 困难模式 |
 | **演习** | `exercise` | `module.exercise.exercise.Exercise` | 演习 PvP |
@@ -291,23 +289,25 @@ def task_name(self):
 | **突袭** | `raid_daily` / `raid` / `raid_scuttle` | `module.raid.*` | 突袭任务 |
 | **活动** | `event_a/b/c/d/sp` | `module.event.campaign_abcd/sp` | 活动战役 (A-D, SP) |
 | **护航** | `maritime_escort` | `module.event.maritime_escort.MaritimeEscort` | 海上护航 |
-| **大世界** | `opsi_*` (12个) | `module.campaign.os_run.OSCampaignRun` | 大世界各种任务 |
+| **大世界** | `opsi_*` (18个) | `module.campaign.os_run.OSCampaignRun` | 大世界各种任务（探索/商店/行动力/深渊/强敌/档案/信标/余烬等） |
 | **主线** | `main/main2/main3` | `module.campaign.run.CampaignRun` | 主线战役（3个槽位） |
 | **活动战役** | `event/event2/event3` | `module.campaign.run.CampaignRun` | 活动战役（3个槽位） |
-| **联动** | `coalition/coalition_sp` | `module.coalition.*` | 联动活动 |
+| **联动** | `coalition/coalition_sp/coalition_scuttle` | `module.coalition.*` | 联动活动 |
 | **医院** | `hospital/hospital_event` | `module.event_hospital.*` | 医院活动 |
 | **守护** | `daemon/opsi_daemon` | `module.daemon.*` | 守护模式 |
 | **剧情** | `event_story` | `module.eventstory.eventstory.EventStory` | 活动剧情 |
 | **拆箱** | `box_disassemble` | `module.storage.box_disassemble.StorageBox` | 箱子拆解 |
+| **自动配装** | `auto_equip` | `module.auto_equip.auto_equip.AutoEquip` | 自动配装 |
 | **特殊** | `azur_lane_uncensored` | `module.daemon.uncensored.AzurLaneUncensored` | 去遮罩 |
 | **测试** | `benchmark/ocr_benchmark` | `module.daemon.*` | 性能基准测试 |
+| **舰队扫描** | `fleet_scan` | `module.fleet_management.*` | 舰队扫描 |
 | **管理** | `game_manager/emulator_manager` | `module.daemon.game_manager/手动SSH` | 游戏/模拟器管理 |
 
-**注意**: `main/main2/main3` 和 `event/event2/event3` 以及 `c72_mystery_farming`、`c122_medium_leveling`、`c124_large_leveling`、`gems_farming`、`three_oil_low_cost` 都是调用同一个 `CampaignRun.run()`，通过配置区分具体战役。
+**注意**: `main/main2/main3` 和 `event/event2/event3` 以及 `c72_mystery_farming`、`c122_medium_leveling`、`c124_large_leveling`、`gems_farming`、`three_oil_low_cost`、`ambush11` 都是调用同一个 `CampaignRun.run()`，通过配置区分具体战役。
 
 ---
 
-### 3.10 `emulator_manager()` (L738-L851) - 特殊方法
+### 3.10 `emulator_manager()` (L1058-L1170) - 特殊方法
 
 ```python
 def emulator_manager(self):
@@ -324,7 +324,7 @@ def emulator_manager(self):
 
 ---
 
-### 3.11 `wait_until(self, future)` (L853-L877)
+### 3.11 `wait_until(self, future)` (L1176-L1202)
 
 ```python
 def wait_until(self, future):
@@ -341,7 +341,7 @@ def wait_until(self, future):
 
 ---
 
-### 3.12 `get_next_task(self)` (L879-L934)
+### 3.12 `get_next_task(self)` (L1204-L1292)
 
 ```python
 def get_next_task(self):
@@ -364,7 +364,7 @@ def get_next_task(self):
 
 ---
 
-### 3.13 `loop(self)` (L936-L1137) - 主调度循环
+### 3.13 `loop(self)` (L1294-L1507) - 主调度循环
 
 ```python
 def loop(self):
@@ -419,7 +419,7 @@ loop()
 
 ---
 
-### 3.14 `__main__` 入口 (L1135-L1137)
+### 3.14 `__main__` 入口 (L1507-L1509)
 
 ```python
 if __name__ == '__main__':
@@ -475,7 +475,7 @@ alas.py
   │
   ├── ServerChecker (module.server_checker) - 惰性加载
   │
-  ├── 55 个任务处理器 (module.*.*) - 全部惰性加载
+  ├── 93 个任务处理器 (module.*.*) - 全部惰性加载
   │   └── 每个处理器继承 ModuleBase, 实现 run()
   │
   ├── LoginHandler (module.handler.login)
@@ -495,7 +495,7 @@ alas.py
 
 | 模式 | 应用位置 | 说明 |
 |---|---|---|
-| **命令模式** | `run(command)` + 55 个任务方法 | 通过方法名动态分发任务 |
+| **命令模式** | `run(command)` + 93 个任务方法 | 通过方法名动态分发任务 |
 | **策略模式** | `get_next_task()` 中的 `Optimization_WhenTaskQueueEmpty` | 空闲时不同行为策略 |
 | **惰性初始化** | `config`, `device`, `checker` 的 `@cached_property` | 按需加载重资源 |
 | **观察者模式** | `ConfigWatcher` + `stop_event` | 监听配置变更和停止信号 |

@@ -1,3 +1,6 @@
+"""地图检测后端示例模块。展示如何实现自定义地图检测后端，
+定义 load/detect/set_backend 等接口供 MapDetector 调用。"""
+
 import numpy as np
 
 from module.config.config import AzurLaneConfig

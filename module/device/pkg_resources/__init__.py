@@ -1,3 +1,5 @@
+"""pkg_resources 兼容性补丁，避免导入 adbutils/uiautomator2 时的性能损失。"""
+
 import os
 import re
 import sys
@@ -22,7 +24,7 @@ _ = get_distribution
 try:
     sys.modules['pkg_resources'] = sys.modules['module.device.pkg_resources']
 except KeyError:
-    logger.error('Patch pkg_resources failed, patch module does not exists')
+    logger.error('[设备-补丁] 修补pkg_resources失败，补丁模块不存在')
 
 
 def removesuffix(s, suffix):

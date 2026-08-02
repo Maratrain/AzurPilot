@@ -1,3 +1,13 @@
+"""
+档案任务模块。
+
+执行大世界档案坐标任务：先完成已持有的档案坐标，再通过白票商店
+购买新的档案坐标，循环执行直到资源耗尽。建议每周运行一次，
+开发团队通常在维护后更新新档案数据。
+
+Classes:
+    OpsiArchive: 档案任务处理器，继承 OSMap。
+"""
 
 from module.config.utils import get_nearest_weekday_date
 from module.logger import logger
@@ -35,5 +45,5 @@ class OpsiArchive(OSMap):
         # 延迟到最近的周三重置
         next_reset = get_nearest_weekday_date(target=2)
         logger.info('档案坐标已全部完成，延迟到下次重置')
-        logger.attr('OpsiNextReset', next_reset)
+        logger.attr('大世界下次重置', next_reset)
         self.config.task_delay(target=next_reset)

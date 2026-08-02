@@ -1,3 +1,21 @@
+"""资源变动记录与同步模块。
+
+当各项游戏资源数值（如石油、物资、钻石、魔方等）发生变化时，
+负责更新配置文件中对应的 Dashboard 项及记录时间戳。
+
+使用示例：
+    >>> log_res = LogRes(config)
+    >>> log_res.Oil = 12345  # 自动更新 Dashboard.Oil.Value 和记录时间
+    >>> log_res.Coin = {'Value': 50000, 'Limit': 99999}  # 同时记录值和上限
+
+Dashboard 数据结构：
+    Dashboard.<资源名> = {
+        'Value': int,      # 当前值
+        'Record': datetime, # 最后更新时间
+        'Limit': int,      # 上限（可选）
+    }
+"""
+
 # 此文件实现了资源变动的记录与同步功能。
 # 当各项资源数值（如石油、魔方等）发生变化时，负责更新配置文件中对应的 Dashboard 项及记录时间戳。
 from cached_property import cached_property
@@ -35,7 +53,7 @@ class LogRes:
                             instance_name = getattr(self.config, 'config_name', 'default')
                             cl1_db.async_add_yellow_coin_snapshot(instance_name, int(value), source='dashboard')
                         except Exception:
-                            logger.exception('Failed to save yellow coin snapshot')
+                            logger.exception('[日志资源] 保存金币快照失败')
                     # 记录全量资源快照
                     self._record_all_resource_snapshot({key: value})
             elif isinstance(value, dict):
@@ -72,7 +90,7 @@ class LogRes:
                     else:
                         self._record_all_resource_snapshot()
         else:
-            logger.info('No such resource on dashboard')
+            logger.info('[日志资源] 仪表盘中无此资源')
             super().__setattr__(name=key, value=value)
 
     def _record_all_resource_snapshot(self, overrides=None):
@@ -99,7 +117,7 @@ class LogRes:
                         pass
             record_resource_snapshot(instance_name, resources)
         except Exception:
-            logger.exception('Failed to record resource snapshot')
+            logger.exception('[日志资源] 记录资源快照失败')
 
     def group(self, name):
         return deep_get(self.config.data, f'Dashboard.{name}')
@@ -127,7 +145,7 @@ class LogRes:
                 if update:
                     self.config.update()
         else:
-            logger.warning('No such resource!')
+            logger.warning('[日志资源] 没有此资源！')
         return True
         """
 if __name__ == '__main__':

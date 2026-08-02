@@ -24,7 +24,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 info_handler.py（608 行）
+### 2.1 info_handler.py（659 行）
 
 **导出类型**：类 `InfoHandler`，函数 `info_letter_preprocess()`
 
@@ -42,7 +42,7 @@ alwaysApply: true
 - `L246-280`：大舰队弹窗 — `handle_guild_popup_confirm()`/`handle_guild_popup_cancel()`。
 - `L282-608`：剧情处理 — `_story_option_buttons()` 使用信号处理峰值检测剧情选项。`handle_story_skip()` 跳过剧情。
 
-### 2.2 login.py（346 行）
+### 2.2 login.py（385 行）
 
 **导出类型**：类 `LoginHandler`
 
@@ -59,7 +59,7 @@ alwaysApply: true
 - `L212-248`：`ensure_no_unfinished_campaign()` — 确保无未完成战役。
 - `L250-300`：`handle_user_agreement()` — uiautomator2 xpath 方式的用户协议处理。
 
-### 2.3 auto_search.py（247 行）
+### 2.3 auto_search.py（288 行）
 
 **导出类型**：类 `AutoSearchHandler`
 
@@ -74,7 +74,7 @@ alwaysApply: true
 - `L111-168`：`_auto_search_set_click()`/`auto_search_setting_ensure()` — 自动搜索设置。检测活跃设置（绿色），点击目标设置。
 - `L170-247`：自动搜索地图选项 — `is_auto_search_running()`、`handle_auto_search_map_option()`、`is_in_auto_search_menu()`。
 
-### 2.4 fast_forward.py（641 行）
+### 2.4 fast_forward.py（651 行）
 
 **导出类型**：类 `FastForwardHandler`，函数 `map_files()`、`to_map_input_name()`、`to_map_file_name()`
 
@@ -193,7 +193,7 @@ graph TD
 - 服务器特定处理（`@Config.when`）
 
 **问题**：
-- `info_handler.py` 过于庞大（608 行），应拆分
+- `info_handler.py` 过于庞大（659 行），应拆分
 - `fast_forward.py` 的 `STAGE_INCREASE` 硬编码
 - 继承链过深（6 层）
 - 部分方法缺少类型注解

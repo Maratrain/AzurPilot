@@ -10,9 +10,11 @@ alwaysApply: true
 | 项目 | 内容 |
 |---|---|
 | 文件路径 | `gui.py` |
-| 总行数 | 191 行 |
-| 文件类型 | Python 脚本（WebUI 启动器） |
+| 总行数 | 1026 行 |
+| 文件类型 | Python 脚本（WebUI 启动器/监督器） |
 | 许可证 | GPL-3.0 |
+
+> **版本说明**：本文档描述的 `func(ev)` 单事件热重载架构为早期版本。当前 gui.py 已大规模重写（1026 行），新增：依赖同步服务（`_start_dependency_sync_service`）、IPv4/IPv6 双栈 socket（`_create_dual_stack_sockets`）、worker 进程登记与孤儿回收（`worker_registry`）、进程树终止、WebUI 就绪检测等。核心结构变化见文末"当前版本差异"。
 
 ### 导入依赖
 
@@ -55,17 +57,21 @@ if sys.platform != "win32":
 
 ---
 
-## 3. `func(ev)` 函数分析 (L21-L124)
+## 3. `func(ev, dependency_sync_event=None, ready_event=None)` 函数分析 (L124-L267)
 
 ```python
-def func(ev: Optional[Event]):
+def func(ev: Optional[Event], dependency_sync_event: Optional[Event] = None,
+         ready_event: Optional[Event] = None):
 ```
 
 **这是 WebUI 服务的核心启动函数，在子进程或主进程中运行。**
 
 ### 3.1 函数签名
 
-- **参数**: `ev` (`Optional[multiprocessing.Event]`) - 可选的重启事件，用于热重载功能。`None` 表示非热重载模式。
+- **参数**:
+  - `ev` (`Optional[multiprocessing.Event]`) - 可选的重启事件，用于热重载功能。`None` 表示非热重载模式。
+  - `dependency_sync_event` - 请求父进程同步依赖的事件（WebUI 检测到依赖变更时触发）
+  - `ready_event` - Uvicorn 完成监听后通知父进程的事件（就绪检测）
 - **返回**: 无（运行 uvicorn 服务器，阻塞直到退出）
 
 ### 3.2 执行流程
@@ -86,15 +92,16 @@ elif sys.platform.startswith("win"):
 | Windows | `WindowsProactorEventLoopPolicy` | 支持子进程和管道 I/O |
 | Linux | 默认策略 | 无需特殊处理 |
 
-#### 阶段 2: 注入重启事件 (L40)
+#### 阶段 2: 注入事件 (L149-L150)
 
 ```python
 State.restart_event = ev
+State.dependency_sync_event = dependency_sync_event
 ```
 
-将重启事件存储到全局 `State` 单例中，供 WebUI 内部的热重载逻辑使用。
+将重启事件与依赖同步事件存储到全局 `State` 单例中，供 WebUI 内部的热重载逻辑使用。
 
-#### 阶段 3: 命令行参数解析 (L42-L78)
+#### 阶段 3: 命令行参数解析 (L153-L188)
 
 ```python
 parser = argparse.ArgumentParser(description="AzurPilot web service")
@@ -115,7 +122,7 @@ parser = argparse.ArgumentParser(description="AzurPilot web service")
 
 使用 `parse_known_args()` 而非 `parse_args()`，允许未知参数（被忽略）。
 
-#### 阶段 4: 服务器配置合并 (L80-L86)
+#### 阶段 4: 服务器配置合并 (L190-L197)
 
 ```python
 host = args.host or State.deploy_config.WebuiHost or "0.0.0.0"
@@ -124,13 +131,14 @@ ssl_key = args.ssl_key or State.deploy_config.WebuiSSLKey
 ssl_cert = args.ssl_cert or State.deploy_config.WebuiSSLCert
 ssl = ssl_key is not None and ssl_cert is not None
 State.electron = args.electron
+State.webui_host = host
 ```
 
 **优先级链**: 命令行参数 > deploy.yaml 配置 > 硬编码默认值
 
 **注意**: `port` 参数的 `or` 链有一个微妙问题：如果 `args.port` 为 `0`，会回退到配置文件。这在实践中不是问题（端口 0 无意义）。
 
-#### 阶段 5: 启动日志记录 (L88-L94)
+#### 阶段 5: 启动日志记录 (L200-L205)
 
 ```python
 logger.hr("Launcher config")
@@ -143,7 +151,7 @@ logger.attr("Reload", ev is not None)
 
 使用项目标准的日志格式记录启动配置。
 
-#### 阶段 6: Electron 客户端处理 (L97-L101)
+#### 阶段 6: Electron 客户端处理 (L208-L212)
 
 ```python
 if State.electron:
@@ -152,9 +160,9 @@ if State.electron:
     logger.removeHandler(console_hdlr)
 ```
 
-**原因**: Electron 的 stdout 被用于 IPC 通信，日志输出到 stdout 会干扰 Electron 主进程。参见 [GitHub Issue #2051](https://github.com/LmeSzinc/AzurLaneAutoScript/issues/2051)。
+**原因**: Electron 的 stdout 被用于 IPC 通信，日志输出到 stdout 会干扰 Electron 主进程。参见 [GitHub Issue #2051](https://github.com/LmeSzinc/AzurLaneAutoScript/issues/2051)。（注：`--electron` 参数仍保留，但 Electron 客户端源码已从仓库移除，webapp/ 仅剩静态资源。）
 
-#### 阶段 7: SSL 配置验证 (L103-L107)
+#### 阶段 7: SSL 配置验证 (L215-L218)
 
 ```python
 if ssl_cert is None and ssl_key is not None:
@@ -165,26 +173,23 @@ elif ssl_key is None and ssl_cert is not None:
 
 仅记录警告，不阻止启动（SSL 将不生效）。
 
-#### 阶段 8: 启动 uvicorn 服务器 (L109-L124)
+#### 阶段 8: 启动 uvicorn 服务器 (L220-L266)
 
 ```python
-try:
-    if ssl:
-        uvicorn.run(
-            "module.webui.app:app",
-            host=host, port=port, factory=True,
-            ssl_keyfile=ssl_key, ssl_certfile=ssl_cert
-        )
-    else:
-        uvicorn.run("module.webui.app:app", host=host, port=port, factory=True)
-except Exception as e:
-    logger.error(f"Uvicorn服务崩溃: {str(e)}")
-    raise
+if host in ("0.0.0.0", "::", "[::]"):  # 通配地址：显式创建双栈 socket
+    config = uvicorn.Config("module.webui.app:app", **uvicorn_options)
+    sockets = _create_dual_stack_sockets(port, backlog=config.backlog,
+                                         allow_ipv6_fallback=host == "0.0.0.0")
+    _run_uvicorn_server(config, ready_event=ready_event, sockets=sockets)
+else:
+    config = uvicorn.Config("module.webui.app:app", **uvicorn_options)
+    _run_uvicorn_server(config, ready_event=ready_event)
 ```
 
 **关键配置**:
 - `factory=True`: `module.webui.app:app` 是一个工厂函数，每次调用返回新的 ASGI 应用实例
-- 使用字符串路径而非直接引用，支持 uvicorn 的进程管理模式
+- **双栈 socket**: 通配地址（`0.0.0.0`/`::`）时显式创建 IPv4+IPv6 两个监听 socket，避免 Windows 将 IPv6 wildcard 作为仅 IPv6 监听（`_create_dual_stack_sockets`，L59-99）
+- **就绪检测**: `_run_uvicorn_server`（L109-122）启动 uvicorn 后通过 `ready_event` 通知父进程，配合父进程的 `_wait_for_webui_ready`（L316-327）实现启动超时重试
 - SSL 模式下同时提供密钥和证书文件
 
 ---
@@ -228,53 +233,51 @@ except RuntimeError:
 - **macOS**: 需要额外的环境变量来禁用 Objective-C 运行时的 fork 安全检查
 - **容错**: 如果 `set_start_method` 失败（已被设置过），仅记录警告
 
-### 5.2 热重载模式 (L152-L187)
+### 5.2 热重载模式：`run_webui_supervisor()` (L826-L1009)
 
 ```python
-if State.deploy_config.EnableReload:
-    should_exit = False
-    while not should_exit:
-        event = Event()
-        process = Process(target=func, args=(event,), name="gui")
-        process.start()
-        ...
+def run_webui_supervisor() -> None:
+    """监督热重载 WebUI 子进程及其独立依赖同步服务。"""
 ```
 
-**热重载架构**:
+**热重载架构**（当前版本，3 事件模型）:
 
 ```
 主进程 (gui.py __main__)
   │
+  ├── _recover_orphaned_workers()  # 回收上次崩溃遗留的 worker 进程
   ├── while not should_exit:
-  │   ├── 创建 Event
-  │   ├── 创建子进程 Process(target=func, args=(event,))
-  │   ├── 子进程启动
+  │   ├── _prepare_dependency_sync_before_webui_start()  # 启动前依赖同步
+  │   │   └── _start_dependency_sync_service()  # 独立依赖同步服务进程
+  │   ├── 创建 3 个 Event: event / dependency_sync_event / ready_event
+  │   ├── Process(target=func, args=(event, dependency_sync_event, ready_event))
+  │   ├── _wait_for_webui_ready(process, ready_event)  # 就绪检测（超时重试）
   │   │
   │   ├── 内层循环:
-  │   │   ├── event.wait(1)  # 等待重启信号，超时 1 秒
-  │   │   ├── KeyboardInterrupt -> should_exit = True
-  │   │   ├── restart_triggered -> 停止子进程，重新创建
-  │   │   └── 子进程意外退出 -> should_exit = True
+  │   │   ├── event.wait(1)  # 等待重启信号
+  │   │   ├── 重启触发 → _stop_webui_process_tree() → 重新循环
+  │   │   │   └── dependency_sync_event.is_set() 时先同步依赖
+  │   │   ├── 子进程意外退出 → runtime_failures 计数重试
+  │   │   └── KeyboardInterrupt -> should_exit = True
   │   │
-  │   └── _stop_process(process)  # 确保子进程退出
+  │   └── _stop_webui_process_tree(process)  # 进程树终止 + worker 回收
   │
-  └── 最终清理
+  └── finally: 清理进程树 + 停止依赖同步服务
 ```
 
-**工作原理**:
-1. 主进程创建 `Event` 对象和子进程
-2. 子进程中 `func()` 运行 uvicorn 服务器
-3. WebUI 内部的代码可以在需要重载时 `event.set()`
-4. 主进程检测到事件后，终止旧子进程，创建新子进程
-5. `KeyboardInterrupt` (Ctrl+C) 优雅退出
+**与旧版本（单 Event）的核心差异**:
+1. **依赖同步服务**: 独立子进程运行（`_start_dependency_sync_service`，L621），WebUI 检测到依赖变更时通过 `dependency_sync_event` 请求父进程执行 `uv sync`，完成后才创建替代 WebUI
+2. **worker 进程登记与回收**: 通过 `module/webui/worker_registry.py` 登记 worker PID，父进程用 `_stop_registered_workers`（L508）确认回收；`_recover_orphaned_workers`（L566）处理崩溃遗留
+3. **就绪检测**: `_wait_for_webui_ready`（L316）等待 `ready_event`，带 `WEBUI_READY_TIMEOUT` 超时与启动重试（`WEBUI_START_RETRY_LIMIT`）
+4. **进程树终止**: `_stop_process_tree`（L329）终止整个进程树而非单个进程
+5. **双栈 socket**: 通配地址显式创建 IPv4/IPv6 双监听
 
 **错误处理**:
-- 子进程意外退出 -> 设置 `should_exit = True`，退出主循环
-- `event.wait()` 中的 `KeyboardInterrupt` -> 优雅退出
-- `event.wait()` 中的其他异常 -> 退出主循环
-- 每次循环结束都调用 `_stop_process()` 确保清理
+- 子进程未就绪 → 递增 `startup_failures`，指数退避重试，超过 `WEBUI_START_RETRY_LIMIT` 退出
+- 子进程反复意外退出 → 递增 `runtime_failures`，超过 `WEBUI_RUNTIME_RETRY_LIMIT` 退出（避免无限崩溃循环）
+- 清理失败（worker 未回收）→ 不创建替代 WebUI，防止重复设备控制任务
 
-### 5.3 非重载模式 (L188-L191)
+### 5.3 非重载模式 (L1012-L1026)
 
 ```python
 else:
@@ -429,10 +432,11 @@ gui.py (__main__)
 
 | 措施 | 位置 | 说明 |
 |---|---|---|
-| SSL/TLS 支持 | L111-L119 | 可选的 HTTPS 加密 |
+| SSL/TLS 支持 | L215-L218 | 可选的 HTTPS 加密 |
 | 密码保护 | `--key` 参数 | WebUI 访问密码 |
-| Electron stdout 隔离 | L97-L101 | 防止日志干扰 IPC |
-| SSL 配置验证 | L103-L107 | 密钥/证书配对检查 |
+| Electron stdout 隔离 | L208-L212 | 防止日志干扰 IPC |
+| SSL 配置验证 | L215-L218 | 密钥/证书配对检查 |
+| worker 进程回收 | `_stop_registered_workers` | 防止重复设备控制任务 |
 
 ### 10.2 潜在安全风险
 
@@ -449,20 +453,19 @@ gui.py (__main__)
 
 ### 11.1 优点
 
-1. **简洁精炼**: 191 行代码实现了完整的 WebUI 启动器
+1. **职责分层**: 启动逻辑（`func`）、进程监督（`run_webui_supervisor`）、依赖同步（`_start_dependency_sync_service`）分离
 2. **平台兼容**: 通过条件导入和环境变量处理 Windows/macOS/Linux 差异
-3. **优雅退出**: 热重载模式下完善的进程生命周期管理
+3. **优雅退出**: 热重载模式下完善的进程生命周期管理与 worker 回收
 4. **配置灵活**: 多层级配置优先级（CLI > 文件 > 默认值）
 5. **错误容错**: 所有平台特定操作都有异常处理
 6. **热重载支持**: 通过进程重启实现配置变更后无需手动重启
 
 ### 11.2 问题与不足
 
-1. **`func()` 函数职责过重**: 同时负责参数解析、平台配置、服务器启动，可拆分
+1. **`func()` 函数职责较重**: 同时负责参数解析、平台配置、服务器启动
 2. **魔法数字**: `timeout=5`、`timeout=3` 等硬编码值
-3. **类型注解不完整**: `func()` 的返回值未注解
-4. **注释语言混合**: 中英文注释混合使用
-5. **SSL 验证逻辑**: 仅警告不阻止，可能导致用户困惑
+3. **监督逻辑复杂**: `run_webui_supervisor` 中启动/运行/清理三种失败路径交织
+4. **SSL 验证逻辑**: 仅警告不阻止，可能导致用户困惑
 
 ---
 
@@ -473,6 +476,8 @@ gui.py (__main__)
 1. **端口 0 问题**: `args.port or int(State.deploy_config.WebuiPort) or 25548` 中，端口 0 会回退到配置文件
 2. **Event 泄漏**: 如果子进程异常退出且未正确清理 Event，可能导致资源泄漏
 3. **`set_start_method("spawn", force=True)`**: 在多线程环境中调用可能引发 `RuntimeError`
+4. **双栈 socket 关闭时序**: 通配地址模式下监听 socket 的 `close()` 与 uvicorn 事件循环的竞态
+5. **worker 回收依赖 PID 复用判断**: `_pid_exists` 在极端情况下可能误判 PID 已被复用
 
 ### 12.2 改进建议
 
@@ -493,8 +498,9 @@ gui.py (__main__)
 
 3. **添加类型注解**:
    ```python
-   def func(ev: Optional[Event]) -> None: ...
-   def _stop_process(process: Process, timeout: float = 5) -> None: ...
+   def func(ev: Optional[Event], dependency_sync_event: Optional[Event] = None,
+            ready_event: Optional[Event] = None) -> None: ...
+   def _stop_process(process: Process, timeout: float = 5) -> bool: ...
    ```
 
 4. **改进 SSL 验证**: 如果 SSL 配置不完整，可以选择阻止启动或明确禁用 SSL
@@ -502,3 +508,18 @@ gui.py (__main__)
 5. **添加信号处理**: 支持 SIGTERM/SIGINT 的优雅退出
 
 6. **日志改进**: 启动时记录完整的配置摘要，便于问题排查
+
+---
+
+## 13. 当前版本差异（2026-08 重写）
+
+| 方面 | 旧版本（本文档正文） | 当前版本 |
+|---|---|---|
+| 总行数 | 191 行 | 1026 行 |
+| 热重载事件 | 单 Event | 3 事件（restart / dependency_sync / ready） |
+| 依赖同步 | 无 | 独立子进程服务（`_start_dependency_sync_service`） |
+| 进程管理 | `_stop_process` 单进程 | `_stop_process_tree` 进程树 + worker 回收 |
+| 就绪检测 | 无 | `_wait_for_webui_ready` 带超时重试 |
+| 网络监听 | uvicorn 默认 | 双栈 socket（IPv4+IPv6） |
+| 孤儿回收 | 无 | `_recover_orphaned_workers` |
+| 启动重试 | 无 | `WEBUI_START_RETRY_LIMIT` / `WEBUI_RUNTIME_RETRY_LIMIT` |

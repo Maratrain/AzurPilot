@@ -1,3 +1,9 @@
+"""模块基类定义。
+
+定义所有游戏逻辑模块的最高基类 ModuleBase，整合配置管理、设备控制、
+UI 导航、任务循环控制及基本异常处理逻辑，是所有功能模块的公共祖先。
+"""
+
 from typing import Tuple, Union
 
 from module.base.button import Button
@@ -43,7 +49,7 @@ class ModuleBase:
         elif isinstance(config, str):
             self.config = AzurLaneConfig(config, task=task)
         else:
-            logger.warning('Alas ModuleBase received an unknown config, assume it is AzurLaneConfig')
+            logger.warning('[基类] 收到未知的配置对象，假设是AzurLaneConfig')
             self.config = config
 
         if isinstance(device, Device):
@@ -54,7 +60,7 @@ class ModuleBase:
             self.config.override(Emulator_Serial=device)
             self.device = Device(config=self.config)
         else:
-            logger.warning('Alas ModuleBase received an unknown device, assume it is Device')
+            logger.warning('[基类] 收到未知的设备对象，假设是Device')
             self.device = device
 
         self.interval_timer = {}
@@ -89,7 +95,7 @@ class ModuleBase:
             ...         self.dungeon_update_stamina(image)
             >>> ModuleBase.worker.submit(func, self.device.image)
         """
-        logger.hr('Creating worker')
+        logger.hr('创建后台线程池')
         from concurrent.futures import ThreadPoolExecutor
         pool = ThreadPoolExecutor(1)
         return pool
@@ -319,7 +325,7 @@ class ModuleBase:
                 button._match_init = True
 
             if timeout.reached():
-                logger.warning(f'wait_until_stable({button}) timeout')
+                logger.warning(f'[基类] wait_until_stable({button}) 超时')
                 break
 
     def image_crop(self, button, copy=True):
@@ -459,4 +465,4 @@ class ModuleBase:
         package = to_package(server)
         self.device.package = package
         set_server(server)
-        logger.attr('Server', self.config.SERVER)
+        logger.attr('服务器', self.config.SERVER)

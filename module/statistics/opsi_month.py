@@ -1,3 +1,7 @@
+"""大世界（Operation Siren）月度统计模块。
+从加密 SQLite 数据库中读取战斗数据，
+计算月度练级效率、资源投入和战斗次数等汇总指标。"""
+
 # 此文件专门用于统计分析大世界（Operation Siren）的月度练级效率与资源投入数据。
 # 负责从加密 SQLite 数据库中读取统计数据，并具备计算概况与详细指标的功能。
 from __future__ import annotations

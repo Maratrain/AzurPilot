@@ -1,3 +1,27 @@
+"""
+科研项目数据模型与识别。
+
+本模块定义科研项目的数据结构，并提供从截图中识别科研项目的函数。
+
+包含两个主要数据类：
+- ResearchProject: 用于 CN/EN/TW 服务器，通过 OCR 项目名称 + 系列模板匹配
+  从项目列表截图中批量识别 5 个项目
+- ResearchProjectJp: 用于 JP 服务器，通过逐个点击详情页并使用模板匹配
+  识别系列、类型、消耗、舰船蓝图等信息（因 JP 服务器无 OCR 项目名称）
+
+模块还提供以下辅助函数：
+- 系列编号识别：通过 Sobel 边缘检测分析罗马数字的笔画结构
+- 已完成项目检测：通过状态指示灯的颜色（绿色=已完成）判断
+- JP 详情页识别：系列、时长、类型、消耗、舰船蓝图的模板匹配
+
+术语对照：
+    系列(Series): 科研系列编号 S1-S9，对应不同的科研舰船池
+    类型(Genre): 项目类型代码 B/C/D/E/G/H/Q/T
+    蓝图(Blueprint): 科研产出的舰船设计图，用于强化对应舰船
+    DR: 决战方案(Dreamship Rarity)，金色稀有度科研舰船
+    PRY: 近代方案(Priority Rarity)，紫色稀有度科研舰船
+    天运拟合(Fate Simulation): 使用蓝图对已满强化舰船进行的命运模拟
+"""
 from datetime import timedelta
 
 from scipy import signal
@@ -22,21 +46,17 @@ RESEARCH_DETAIL_GENRE = [DETAIL_GENRE_B, DETAIL_GENRE_C, DETAIL_GENRE_D, DETAIL_
 
 def get_research_series_old(image, series_button=RESEARCH_SERIES):
     """
-    使用简单的颜色检测获取科研系列。
-    通过计算白色线条数来检测罗马数字。
+    使用简单的颜色检测获取科研系列（旧版算法）。
 
-    -------               --- --   --
-     | | |   --> 3 条线    |   \   /   --> 3 条线
-     | | |                 |   \   /
-     | | |   --> 3 条线    |    \ /    --> 2 条线
-    -------               ---    v
+    通过计算白色线条数来检测罗马数字。
+    已被 get_research_series() 替代，保留用于兼容。
 
     Args:
-        image (np.ndarray):
-        series_button:
+        image (np.ndarray): 科研列表页面的截图。
+        series_button (tuple): 5 个系列标识区域的按钮定义。
 
     Returns:
-        list[int]: 如 [1, 1, 1, 2, 3]
+        list[int]: 5 个项目的系列编号列表，如 [1, 1, 1, 2, 3]。
     """
     result = []
     # 设置 'prominence = 50' 以忽略可能的噪声。
@@ -63,13 +83,26 @@ def get_research_series_old(image, series_button=RESEARCH_SERIES):
             series = 5
         else:
             series = 0
-            logger.warning(f'Unknown research series: button={button}, upper={upper}, lower={lower}')
+            logger.warning(f'[科研-系列] 未知的科研系列: 按钮={button}, 上限={upper}, 下限={lower}')
         result.append(series)
 
     return result
 
 
 def _get_research_series(img):
+    """
+    通过 Sobel 算子分析单个系列标识的笔画方向。
+
+    内部辅助函数，被 get_research_series() 调用。
+    通过检测边缘梯度角判断笔画是竖直（0）还是倾斜（1），
+    组合笔画序列映射到系列编号。
+
+    Args:
+        img (np.ndarray): 裁剪并缩放后的系列标识图像。
+
+    Returns:
+        int: 系列编号（1-6），无法识别返回 0。
+    """
     # img = rgb2luma(img)
     img = extract_white_letters(img)
     pos = img.shape[0] * 2 // 5
@@ -107,12 +140,17 @@ def _get_research_series(img):
 
 def get_research_series(image, series_button=RESEARCH_SERIES):
     """
-        Args:
-        image (np.ndarray):
-        series_button:
+    通过 Sobel 边缘检测识别科研系列编号。
+
+    分析系列标识区域的罗马数字笔画方向，通过边缘梯度角判断
+    笔画是竖直（/）还是倾斜（\），从而区分不同系列。
+
+    Args:
+        image (np.ndarray): 科研列表页面的截图。
+        series_button (tuple): 5 个系列标识区域的按钮定义。
 
     Returns:
-        list[int]: 如 [1, 1, 1, 2, 3]
+        list[int]: 5 个项目的系列编号列表，如 [1, 1, 1, 2, 3]。
     """
     result = []
     for button in series_button:
@@ -126,12 +164,16 @@ def get_research_series(image, series_button=RESEARCH_SERIES):
 
 def get_research_name(image, ocr=OCR_RESEARCH):
     """
+    通过 OCR 识别科研列表中 5 个项目的名称。
+
     Args:
-        image (np.ndarray):
-        ocr (Ocr):
+        image (np.ndarray): 科研列表页面的截图。
+        ocr (Ocr): OCR 识别器实例，默认使用 RESEARCH 专用 OCR，
+            支持字母数字混合识别（字母表：0123456789BCDEGHQTMIULRF-）。
 
     Returns:
-        list[str]: 如 ['D-057-UL', 'D-057-UL', 'D-057-UL', 'D-057-UL', 'D-057-UL']
+        list[str]: 5 个项目的名称列表，如
+            ['D-057-UL', 'C-038-RF', 'G-185-MI', 'H-339-MI', 'Q-027-MI']。
     """
     names = ocr.ocr(image)
     if not isinstance(names, list):
@@ -141,17 +183,24 @@ def get_research_name(image, ocr=OCR_RESEARCH):
 
 def get_research_finished(image):
     """
+    通过状态指示灯颜色检测已完成的科研项目。
+
+    遍历 5 个项目的状态指示灯，通过 RGB 颜色通道分析判断状态：
+    - 绿色（G 通道最大）= 已完成
+    - 蓝色（B 通道最大）= 运行中
+    - 其他颜色 = 异常，跳过
+
     Args:
-        image (np.ndarray):
+        image (np.ndarray): 科研列表页面的截图。
 
     Returns:
-        int: 已完成项目的索引，0 到 4。如果没有已完成项目则返回 None。
+        int: 已完成项目的索引（0-4）。如果没有已完成项目返回 None。
     """
     for index in [2, 1, 3, 0, 4]:
         button = RESEARCH_STATUS[index]
         color = get_color(image, button.area)
         if max(color) - min(color) < 40:
-            logger.warning(f'Unexpected color: {color}')
+            logger.warning(f'[科研-状态] 异常颜色: {color}')
             continue
         color_index = np.argmax(color)  # R, G, B
         if color_index == 1:
@@ -159,7 +208,7 @@ def get_research_finished(image):
         elif color_index == 2:
             continue  # 蓝色
         else:
-            logger.warning(f'Unexpected color: {color}')
+            logger.warning(f'[科研-状态] 异常颜色: {color}')
             continue
 
     return None
@@ -167,14 +216,18 @@ def get_research_finished(image):
 
 def parse_time(string):
     """
+    解析时间字符串为 timedelta 对象。
+
     Args:
-        string (str): 如 01:00:00, 05:47:10, 17:50:51。
+        string (str): 时间字符串，格式为 'HH:MM:SS'，
+            如 '01:00:00'、'05:47:10'、'17:50:51'。
+
     Returns:
-        timedelta: datetime.timedelta 实例。
+        timedelta: 解析后的时间间隔对象，解析失败返回 None。
     """
     result = re.search('(\d+):(\d+):(\d+)', string)
     if not result:
-        logger.warning(f'Invalid time string: {string}')
+        logger.warning(f'[科研-时间] 无效的时间字符串: {string}')
         return None
     else:
         result = [int(s) for s in result.groups()]
@@ -183,14 +236,18 @@ def parse_time(string):
 
 def match_template(image, template, area, offset=30, similarity=0.85):
     """
+    在截图的指定区域内进行模板匹配。
+
     Args:
-        image (np.ndarray): 截图
-        template (np.ndarray):
-        area (tuple): 图像裁剪区域。
-        offset (int, tuple): 检测区域偏移量。
-        similarity (float): 0-1。相似度。低于此值将返回 float(0)。
+        image (np.ndarray): 完整截图。
+        template (np.ndarray): 待匹配的模板图像。
+        area (tuple): 图像裁剪区域 (x1, y1, x2, y2)。
+        offset (int, tuple): 检测区域的扩展偏移量，用于扩大搜索范围。
+            整数表示上下对称偏移，元组表示 (左右, 上下) 独立偏移。
+        similarity (float): 相似度阈值（0-1），低于此值返回 0.0。
+
     Returns:
-        similarity (float):
+        float: 匹配相似度（0-1），低于阈值返回 0.0。
     """
     if isinstance(offset, tuple):
         offset = np.array((-offset[0], -offset[1], offset[0], offset[1]))
@@ -206,13 +263,16 @@ def match_template(image, template, area, offset=30, similarity=0.85):
 
 def get_research_series_jp_old(image):
     """
-    与 get_research_series 基本相同，区别在于按钮区域。
+    从 JP 服务器详情页识别系列编号（旧版算法）。
+
+    与 get_research_series 基本相同，区别在于按钮区域和无需缩放。
+    已被 get_research_series_jp() 替代，保留用于兼容。
 
     Args:
-        image (np.ndarray): 截图
+        image (np.ndarray): 科研详情页的截图。
 
     Returns:
-        str: 系列编号，如 "S4"
+        str: 系列标识，如 "S4"。
     """
     # 设置 'prominence = 50' 以忽略可能的噪声。
     parameters = {'height': 160, 'prominence': 50, 'width': 1}
@@ -236,18 +296,22 @@ def get_research_series_jp_old(image):
         series = 5
     else:
         series = 0
-        logger.warning(f'Unknown research series: upper={upper}, lower={lower}')
+        logger.warning(f'未知的科研系列: upper={upper}, lower={lower}')
 
     return f'S{series}'
 
 
 def get_research_series_jp(image):
     """
+    从 JP 服务器详情页识别系列编号。
+
+    通过模板匹配从详情页的系列标识区域识别系列编号。
+
     Args:
-        image:
+        image (np.ndarray): 科研详情页的截图。
 
     Returns:
-        str: 系列编号，如 "S4"
+        str: 系列标识，如 "S4"。
     """
     series = get_detail_series(image)
     return f'S{series}'
@@ -255,11 +319,13 @@ def get_research_series_jp(image):
 
 def get_research_duration_jp(image):
     """
+    通过 OCR 识别 JP 服务器详情页中的科研时长。
+
     Args:
-        image (np.ndarray): 截图
+        image (np.ndarray): 科研详情页的截图。
 
     Returns:
-        duration (int): 秒数
+        int: 科研时长，单位为秒。
     """
     ocr = Duration(DURATION_DETAIL)
     duration = ocr.ocr(image).total_seconds()
@@ -268,11 +334,15 @@ def get_research_duration_jp(image):
 
 def get_research_genre_jp(image):
     """
+    通过模板匹配识别 JP 服务器详情页中的科研类型。
+
+    遍历所有类型模板（B/C/D/E/G/H/Q/T），找到匹配度最高的类型。
+
     Args:
-        image (np.ndarray): 截图
+        image (np.ndarray): 科研详情页的截图。
 
     Returns:
-        genre (string):
+        str: 类型代码，如 'd'、'c'、'g'。无法识别返回空字符串。
     """
     genre = ''
     for button in RESEARCH_DETAIL_GENRE:
@@ -281,22 +351,24 @@ def get_research_genre_jp(image):
             genre = button.name.split("_")[2]
             break
     if not genre:
-        logger.warning(f'Not able to recognize research genre!')
+        logger.warning(f'无法识别科研类型!')
     return genre
 
 
 def get_research_cost_jp(image):
     """
-    当科研有 1 个消耗项时，其尺寸为 78x78。
-    当科研有 2 个消耗项时，每个尺寸为 77x77。
-    但金币、魔方和部件的模板差异较大，
-    因此在匹配时简单设置较低的阈值即可。
+    通过模板匹配识别 JP 服务器详情页中的资源消耗。
+
+    检测详情页中是否包含金币、魔方和部件的消耗图标。
+    当科研有 1 个消耗项时模板尺寸为 78x78，有 2 个时为 77x77，
+    因此匹配阈值设为较低的 0.8 以提高容错率。
 
     Args:
-        image (np.ndarray): 截图
+        image (np.ndarray): 科研详情页的截图。
 
     Returns:
-        costs (string): dict
+        dict: 消耗信息字典，键为 'need_coin'、'need_cube'、'need_part'，
+            值为 bool 表示是否需要该资源。
     """
     size_template = (78, 78)
     area_template = (0, 0, 78, 57)
@@ -327,14 +399,17 @@ def get_research_cost_jp(image):
 
 def get_research_ship_jp(image):
     """
-    注意 2.5、5 和 8 小时的 D 系列科研有 4 个物品，而 0.5 小时的有 3 个，
-    因此 DETAIL_BLUEPRINT 按钮不应只覆盖 4 个物品中的第一个。
+    通过模板匹配识别 JP 服务器详情页中的舰船蓝图。
+
+    从蓝图模板库中找到与详情页蓝图区域最匹配的舰船。
+    注意 2.5/5/8 小时的 D 系列有 4 个物品，0.5 小时有 3 个，
+    因此 DETAIL_BLUEPRINT 按钮不应只覆盖第一个物品。
 
     Args:
-        image (np.ndarray): 截图
+        image (np.ndarray): 科研详情页的截图。
 
     Returns:
-        ship (string):
+        str: 舰船名称，如 'azuma'、'drake'。无法识别返回空字符串。
     """
     folder = './assets/research_blueprint'
     templates = load_folder(folder)
@@ -350,17 +425,22 @@ def get_research_ship_jp(image):
             similarity = sim
             ship = name
     if ship == '':
-        logger.warning(f'Ship recognition failed')
+        logger.warning(f'舰船识别失败')
     return ship
 
 
 def research_jp_detect(image):
     """
-    Args:
-        image (np.ndarray): 截图
+    从 JP 服务器详情页完整识别一个科研项目。
 
-    Return:
-        project (ResearchProjectJp):
+    组合调用系列、时长、类型、消耗和舰船识别函数，
+    生成完整的 ResearchProjectJp 对象。
+
+    Args:
+        image (np.ndarray): 科研详情页的截图。
+
+    Returns:
+        ResearchProjectJp: 识别到的科研项目对象。
     """
     project = ResearchProjectJp()
     project.series = get_research_series_jp(image)
@@ -377,27 +457,60 @@ def research_jp_detect(image):
         project.ship_rarity = 'dr' if project.ship in project.DR_SHIP else 'pry'
     project.name = f'{project.series}-{project.genre}-{project.duration}{project.ship}'
     if not project.check_valid():
-        logger.warning(f'Invalid research {project}')
+        logger.warning(f'[科研-项目] 无效的科研项目 {project}')
     return project
 
 
 def research_detect(image):
     """
-    Args:
-        image (np.ndarray): 截图
+    从科研列表截图中批量识别 5 个科研项目。
 
-    Return:
-        list[ResearchProject]:
+    通过 OCR 识别项目名称，模板匹配识别系列编号，
+    组合生成 ResearchProject 对象列表。
+
+    Args:
+        image (np.ndarray): 科研列表页面的截图。
+
+    Returns:
+        list[ResearchProject]: 5 个科研项目对象的列表。
     """
     projects = []
     for name, series in zip(get_research_name(image), get_research_series_3(image)):
         project = ResearchProject(name=name, series=series)
-        logger.attr('Project', project)
+        logger.attr('科研项目', project)
         projects.append(project)
     return projects
 
 
 class ResearchProject:
+    """
+    科研项目数据模型，用于 CN/EN/TW 服务器。
+
+    通过项目名称（如 'D-057-UL'）和系列编号（如 3）在项目数据库中
+    查询匹配的项目信息，解析出类型、编号、时长、消耗需求和产出舰船等属性。
+
+    OCR 识别可能存在错误，构造函数中包含大量的名称修正逻辑，
+    例如：'G-185-MI' -> 'C-185-MI'、'D-022-ML' -> 'D-022-MI' 等。
+
+    Attributes:
+        valid (bool): 项目是否有效（在数据库中找到匹配项）。
+        raw_series (int): 原始系列编号（1-9）。
+        series (str): 格式化的系列标识，如 'S3'。
+        name (str): 修正后的项目名称，如 'D-057-UL'。
+        genre (str): 项目类型代码，如 'D'、'C'、'G'。
+        number (str): 项目编号，如 '057'。
+        duration (str): 项目时长（小时），如 '0.5'、'2'、'8'。
+        ship (str): 产出的舰船名称，如 'azuma'、'drake'。
+            非 D 系列项目通常为空字符串。
+        ship_rarity (str): 舰船稀有度，'dr' 或 'pry'。
+            仅 D 系列有蓝图产出时有值。
+        need_coin (bool): 是否消耗金币。
+        need_cube (bool): 是否消耗魔方。
+        need_part (bool): 是否消耗部件。
+        task (str): 项目特殊要求描述，如 'Scrap 8 pieces of gear.'。
+        equipment_amount (int): 需要拆解的装备数量（E 系列），0 表示无要求。
+        commission_amount (int): 需要完成的委托数量（T 系列），0 表示无要求。
+    """
     REGEX_SHIP = re.compile(
         '('
         'neptune|monarch|ibuki|izumo|roon|saintlouis'
@@ -460,7 +573,7 @@ class ResearchProject:
         # 'D-057-UL'
         self.name = self.check_name(name)
         if self.name != name:
-            logger.info(f'Research name {name} is revised to {self.name}')
+            logger.info(f'[科研-名称] 科研名称 {name} 修正为 {self.name}')
         # 'D'
         self.genre = ''
         # '057'
@@ -500,7 +613,7 @@ class ResearchProject:
             break
 
         if not matched:
-            logger.warning(f'Invalid research {self}')
+            logger.warning(f'[科研-项目] 无效的科研项目 {self}')
             self.valid = False
 
     def __str__(self):
@@ -514,11 +627,17 @@ class ResearchProject:
 
     def check_name(self, name):
         """
+        修正 OCR 识别中的常见项目名称错误。
+
+        处理多种 OCR 误识别情况，包括：前缀混淆（G/D/C/L）、
+        数字误识别（D->0, O->0, S->5）、后缀修正（ML->MI, 0C->UL）、
+        特定服务器的已知错误等。
+
         Args:
-            name (str):
+            name (str): OCR 识别的原始项目名称。
 
         Returns:
-            str:
+            str: 修正后的项目名称，如 'D-057-UL'。
         """
         name = name.strip('-')
         # G-185-MI, D-T85-MI -> C-185-MI
@@ -578,12 +697,18 @@ class ResearchProject:
 
     def get_data(self, name, series):
         """
+        从项目数据库中查询匹配的科研项目数据。
+
+        按优先级依次尝试精确匹配、前缀修正（G/C/D 混淆）、
+        后缀模糊匹配等多种策略，以应对 OCR 识别错误。
+
         Args:
-            name (str): 如 'D-057-UL'
-            series (int): 如 1, 2, 3
+            name (str): 修正后的项目名称，如 'D-057-UL'。
+            series (int): 系列编号，如 1, 2, 3。
 
         Yields:
-            dict:
+            dict: 匹配到的项目数据字典，包含 name、series、time、
+                task、input、output 等字段。
         """
         for data in LIST_RESEARCH_PROJECT:
             if (data['series'] == series) and (data['name'] == name):
@@ -592,7 +717,7 @@ class ResearchProject:
         if len(name) and name[0].isdigit():
             for t in 'QGE':
                 name1 = f'{t}-{self.name}'
-                logger.info(f'Testing the most similar candidate {name1}')
+                logger.info(f'[科研-匹配] 测试最相似的候选 {name1}')
                 for data in LIST_RESEARCH_PROJECT:
                     if (data['series'] == series) and (data['name'] == name1):
                         self.name = name1
@@ -636,6 +761,36 @@ class ResearchProject:
 
 
 class ResearchProjectJp:
+    """
+    科研项目数据模型，用于 JP 服务器。
+
+    JP 服务器的科研项目名称无法通过 OCR 识别，因此使用模板匹配
+    逐个检测详情页中的系列、类型、消耗和舰船蓝图信息。
+    项目名称由检测结果组合生成，格式为 '{series}-{genre}-{duration}{ship}'。
+
+    Attributes:
+        valid (bool): 项目是否有效（通过 check_valid() 验证）。
+        name (str): 组合生成的项目标识，如 'S4-D-0.5azuma'。
+        series (str): 格式化的系列标识，如 'S4'。
+        genre (str): 项目类型代码，如 'd'、'c'、'g'。
+        number (str): 项目编号，JP 服务器通常为空字符串。
+        duration (str): 项目时长（小时），如 '0.5'、'2'、'8'。
+        ship (str): 产出的舰船名称，如 'azuma'。
+        ship_rarity (str): 舰船稀有度，'dr' 或 'pry'。
+        need_coin (bool): 是否消耗金币。
+        need_cube (bool): 是否消耗魔方。
+        need_part (bool): 是否消耗部件。
+        task (str): 项目特殊要求，JP 服务器通常为空字符串。
+        equipment_amount (int): 需要拆解的装备数量（E 系列）。
+        commission_amount (int): 需要完成的委托数量（T 系列）。
+
+    类属性:
+        GENRE (list[str]): 所有有效的项目类型代码。
+        DURATION (list[str]): 所有有效的项目时长。
+        SHIP_S1 ~ SHIP_S9 (list[str]): 各系列对应的舰船名称列表。
+        SHIP_ALL (list[str]): 所有系列的舰船名称合并列表。
+        DR_SHIP (list[str]): 所有 DR（决战方案）舰船名称。
+    """
     GENRE = ['b', 'c', 'd', 'e', 'g', 'h', 'q', 't']
     DURATION = ['0.5', '1', '1.5', '2', '2.5', '3', '4', '5', '6', '8', '12']
     SHIP_S1 = ['neptune', 'monarch', 'ibuki', 'izumo', 'roon', 'saintlouis']
@@ -674,6 +829,15 @@ class ResearchProjectJp:
         self.task = ''
 
     def check_valid(self):
+        """
+        验证 JP 服务器科研项目的有效性。
+
+        检查系列、类型、时长是否在有效范围内，
+        以及 D 系列项目是否识别到了舰船蓝图。
+
+        Returns:
+            bool: 项目是否有效。
+        """
         self.valid = False
         if self.series.lower() == "s0":
             return False

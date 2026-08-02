@@ -1,3 +1,14 @@
+"""行动力溢出保护模块。
+
+防止大世界行动力（AP）因自然回复而溢出浪费，包括：
+- 监控行动力自然回复速率（每 10 分钟回复 1 点，上限 200）
+- 当行动力即将达到上限时触发其他大世界任务消耗行动力
+- 可配置上下限阈值控制触发时机
+
+继承自 OpsiScheduling，与其他大世界任务协调调度，
+确保行动力资源得到充分利用。
+"""
+
 from module.config.config import TaskEnd
 from module.logger import logger
 from module.os.tasks.scheduling import OpsiScheduling
@@ -172,9 +183,9 @@ class OpsiPreventActionPointOverflow(OpsiScheduling):
         logger.hr('大世界-防止行动力溢出', level=1)
         upperbound, lowerbound = self._get_prevent_action_point_overflow_thresholds()
         task_name = self._get_prevent_action_point_overflow_task()
-        logger.attr('ActionPointUpperbound', upperbound)
-        logger.attr('ActionPointLowerbound', lowerbound)
-        logger.attr('OverflowTask', task_name)
+        logger.attr('行动力上限', upperbound)
+        logger.attr('行动力下限', lowerbound)
+        logger.attr('溢出任务', task_name)
 
         started = False
         while True:

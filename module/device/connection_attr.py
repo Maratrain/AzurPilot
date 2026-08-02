@@ -56,11 +56,11 @@ class ConnectionAttr:
         """
         url = platform_tools_url()
         if url is None:
-            logger.warning(f'[Device] 当前平台不支持自动下载 ADB: {sys.platform}')
+            logger.warning(f'[设备] 当前平台不支持自动下载 ADB: {sys.platform}')
             return None
 
         if not target:
-            logger.warning('[Device] ADB 下载失败，目标路径为空')
+            logger.warning('[设备] ADB 下载失败，目标路径为空')
             return None
 
         target = Path(target).resolve()
@@ -72,14 +72,14 @@ class ConnectionAttr:
         executable = 'adb.exe' if os.name == 'nt' else 'adb'
         source = tools_dir / executable
 
-        logger.hr('Download ADB', level=2)
-        logger.warning(f'[Device] 未找到 ADB，正在下载 Android platform-tools: {url}')
+        logger.hr('下载ADB', level=2)
+        logger.warning(f'[设备] 未找到 ADB，正在下载 Android platform-tools: {url}')
         tools_dir.parent.mkdir(parents=True, exist_ok=True)
         try:
             urllib.request.urlretrieve(url, archive)
         except Exception as e:
             archive.unlink(missing_ok=True)
-            logger.warning(f'[Device] ADB 下载失败: {e}')
+            logger.warning(f'[设备] ADB 下载失败: {e}')
             return None
 
         if tools_dir.exists():
@@ -91,7 +91,7 @@ class ConnectionAttr:
             archive.unlink(missing_ok=True)
 
         if not source.exists():
-            logger.warning(f'[Device] ADB 下载失败，未找到 {source}')
+            logger.warning(f'[设备] ADB 下载失败，未找到 {source}')
             return None
 
         if os.name != 'nt':
@@ -107,7 +107,7 @@ class ConnectionAttr:
         else:
             target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-        logger.info(f'[Device] ADB 已安装: {target}')
+        logger.info(f'[设备] ADB 已安装: {target}')
         return str(target).replace('\\\\', '/').replace('\\', '/')
 
     def __init__(self, config):
@@ -115,16 +115,16 @@ class ConnectionAttr:
         Args:
             config (AzurLaneConfig, str): Name of the user config under ./config
         """
-        logger.hr('Device', level=1)
+        logger.hr('设备', level=1)
         if isinstance(config, str):
             self.config = AzurLaneConfig(config, task=None)
         else:
             self.config = config
 
-        logger.attr('IS_ON_PHONE_CLOUD', IS_ON_PHONE_CLOUD)
+        logger.attr('是否云手机', IS_ON_PHONE_CLOUD)
 
         # Init adb client
-        logger.attr('AdbBinary', self.adb_binary)
+        logger.attr('ADB路径', self.adb_binary)
         # Monkey patch to custom adb
         adbutils.adb_path = lambda: self.adb_binary
         # Remove global proxies, or uiautomator2 will go through it
@@ -191,7 +191,7 @@ class ConnectionAttr:
         # fool-proof
         new = self.revise_serial(self.serial)
         if new != self.serial:
-            logger.warning(f'Serial "{self.config.Emulator_Serial}" is revised to "{new}"')
+            logger.warning(f'[设备-属性] 序列号 "{self.config.Emulator_Serial}" 已修正为 "{new}"')
             self.config.Emulator_Serial = new
             self.serial = new
         if self.is_bluestacks4_hyperv:
@@ -199,8 +199,8 @@ class ConnectionAttr:
         if self.is_bluestacks5_hyperv:
             self.serial = self.find_bluestacks5_hyperv(self.serial)
         if "127.0.0.1:58526" in self.serial:
-            logger.warning('Serial 127.0.0.1:58526 seems to be WSA, '
-                           'please use "wsa-0" or others instead')
+            logger.warning('[设备-属性] 序列号 127.0.0.1:58526 疑似 WSA 设备，'
+                           '请改用 "wsa-0" 或其他格式')
             raise RequestHumanTakeover
         if self.is_wsa:
             self.serial = '127.0.0.1:58526'
@@ -305,8 +305,8 @@ class ConnectionAttr:
         """
         from winreg import HKEY_LOCAL_MACHINE, OpenKey, QueryValueEx
 
-        logger.info("Use BlueStacks4 Hyper-V Beta")
-        logger.info("Reading Realtime adb port")
+        logger.info("使用蓝叠4 Hyper-V测试版")
+        logger.info("读取实时ADB端口")
 
         if serial == "bluestacks4-hyperv":
             folder_name = "Android"
@@ -319,12 +319,11 @@ class ConnectionAttr:
                 port = QueryValueEx(key, "BstAdbPort")[0]
         except FileNotFoundError:
             logger.error(
-                rf'Unable to find registry HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests\{folder_name}\Config')
-            logger.error('Please confirm that your are using BlueStack 4 hyper-v and not regular BlueStacks 4')
-            logger.error(r'Please check if there is any other emulator instances under '
-                         r'registry HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests')
+                rf'[设备-蓝叠] 无法找到注册表 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests\{folder_name}\Config')
+            logger.error('[设备-蓝叠] 请确认您使用的是BlueStack 4 hyper-v而不是普通BlueStacks 4')
+            logger.error(r'[设备-蓝叠] 请检查注册表 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_bgp64_hyperv\Guests 下是否有其他模拟器实例')
             raise RequestHumanTakeover
-        logger.info(f"New adb port: {port}")
+        logger.info(f"新ADB端口: {port}")
         return f"127.0.0.1:{port}"
 
     @staticmethod
@@ -340,8 +339,8 @@ class ConnectionAttr:
         """
         from winreg import HKEY_LOCAL_MACHINE, OpenKey, QueryValueEx
 
-        logger.info("Use BlueStacks5 Hyper-V")
-        logger.info("Reading Realtime adb port")
+        logger.info("使用蓝叠5 Hyper-V")
+        logger.info("读取实时ADB端口")
 
         if serial == "bluestacks5-hyperv":
             parameter_name = r"bst\.instance\.(Nougat64|Pie64|Rvc64)\.status\.adb_port"
@@ -356,20 +355,20 @@ class ConnectionAttr:
                 with OpenKey(HKEY_LOCAL_MACHINE, r"SOFTWARE\BlueStacks_nxt_cn") as key:
                     directory = QueryValueEx(key, 'UserDefinedDir')[0]
             except FileNotFoundError:
-                logger.error('Unable to find registry HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt '
-                             'or HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt_cn')
-                logger.error('Please confirm that you are using BlueStacks 5 hyper-v and not regular BlueStacks 5')
+                logger.error('[设备-属性] 未找到注册表 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt '
+                             '或 HKEY_LOCAL_MACHINE\SOFTWARE\BlueStacks_nxt_cn')
+                logger.error('[设备-属性] 请确认使用的是蓝叠 5 Hyper-V 版本，而非普通蓝叠 5')
                 raise RequestHumanTakeover
-        logger.info(f"Configuration file directory: {directory}")
+        logger.info(f"配置文件目录: {directory}")
 
         with open(os.path.join(directory, 'bluestacks.conf'), encoding='utf-8') as f:
             content = f.read()
         port = re.search(rf'{parameter_name}="(\d+)"', content)
         if port is None:
-            logger.warning(f"Did not match the result: {serial}.")
+            logger.warning(f"未匹配结果: {serial}.")
             raise RequestHumanTakeover
         port = port.group(2)
-        logger.info(f"Match to dynamic port: {port}")
+        logger.info(f"匹配到动态端口: {port}")
         return f"127.0.0.1:{port}"
 
     @cached_property
@@ -436,17 +435,34 @@ class ConnectionAttr:
             try:
                 port = int(env)
             except ValueError:
-                logger.warning(f'Invalid environ variable ANDROID_ADB_SERVER_PORT={port}, using default port')
+                logger.warning(f'无效的环境变量 ANDROID_ADB_SERVER_PORT={port}, 使用默认端口')
 
-        logger.attr('AdbClient', f'AdbClient({host}, {port})')
+        logger.attr('ADB客户端', f'AdbClient({host}, {port})')
         return AdbClient(host, port)
 
     @cached_property
     def adb(self) -> AdbDevice:
+        """获取 ADB 设备实例。
+
+        Returns:
+            AdbDevice: 通过 ADB 客户端和序列号绑定的设备对象。
+        """
         return AdbDevice(self.adb_client, self.serial)
 
     @cached_property
     def u2(self) -> u2.Device:
+        """获取 uiautomator2 设备实例。
+
+        根据连接类型选择不同的连接方式：
+        - HTTP 设备使用 u2.connect()
+        - 本地模拟器（emulator- 或 127.0.0.1:）使用 u2.connect_usb()
+        - 其他设备使用 u2.connect()
+
+        设置命令超时为 7 天（604800 秒）以保持长连接。
+
+        Returns:
+            u2.Device: uiautomator2 设备对象。
+        """
         if self.is_over_http:
             # Using uiautomator2_http
             device = u2.connect(self.serial)

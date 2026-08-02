@@ -1,3 +1,9 @@
+"""正则过滤系统模块。
+
+提供基于正则表达式的 Filter 类，用于解析和匹配游戏物品（舰船、装备等）的过滤规则。
+支持预设字符串和 ">" 分隔的优先级排序语法。
+"""
+
 from functools import reduce
 import re
 
@@ -131,7 +137,7 @@ class Filter:
         if result and len(string) and result.span()[1]:
             return [result.group(index + 1) for index, attr in enumerate(self.attr)]
         else:
-            logger.warning(f'Invalid filter: "{string}". This selector does not match the regex, nor a preset.')
+            logger.warning(f'[过滤器] 无效的过滤器: "{string}"。此选择器不匹配正则表达式，也不是预设。')
             # 无效的过滤条件将被忽略
             # 返回不可能匹配的值以确保被跳过
             return ['1nVa1d'] + [None] * (len(self.attr) - 1)

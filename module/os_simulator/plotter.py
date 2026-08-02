@@ -1,3 +1,9 @@
+"""大世界模拟器可视化模块。
+
+提供大世界模拟器的图表绘制功能，包括单样本轨迹图、
+多轮模拟的行动力/代币/完成海域数分布直方图以及
+综合报告图，使用 matplotlib 生成并保存为 PNG 图像。
+"""
 import os
 import numpy as np
 import matplotlib

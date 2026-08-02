@@ -1,3 +1,6 @@
+"""Windows 模拟器管理。通过 Windows 注册表和文件系统扫描
+检测夜神、蓝叠、雷电、MuMu、MEmu 等模拟器安装路径和实例。"""
+
 import codecs
 import os
 import re

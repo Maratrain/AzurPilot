@@ -1,3 +1,6 @@
+"""OCR 文字识别模块。提供 Ocr、Digit、DigitCounter、Duration 等识别器类，
+支持多种 OCR 后端（ONNX/NCNN/远程服务器），用于识别游戏中的文字和数字。"""
+
 import time
 from datetime import timedelta
 from typing import TYPE_CHECKING
@@ -161,7 +164,7 @@ class Digit(Ocr):
         result = int(result) if result else 0
         if self.SHOW_REVISE_WARNING:
             if str(result) != prev:
-                logger.warning(f'OCR {self.name}: Result "{prev}" is revised to "{result}"')
+                logger.warning(f'[OCR] {self.name}: 结果 "{prev}" 修正为 "{result}"')
 
         return result
 
@@ -203,7 +206,7 @@ class DigitCounter(Ocr):
             current = min(current, total)
             return current, total - current, total
         else:
-            logger.warning(f'Unexpected ocr result: {result_list}')
+            logger.warning(f'[OCR] 意外的OCR结果: {result_list}')
             return 0, 0, 0
 
 
@@ -255,7 +258,7 @@ class Duration(Ocr):
             result = [int(s) for s in result.groups()]
             return timedelta(hours=result[0], minutes=result[1], seconds=result[2])
         else:
-            logger.warning(f'Invalid duration: {string}')
+            logger.warning(f'[OCR] 无效的时长: {string}')
             return timedelta(hours=0, minutes=0, seconds=0)
 
 

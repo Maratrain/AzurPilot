@@ -1,3 +1,11 @@
+"""
+DroidCast 截图方法。
+
+通过 DroidCast 投屏服务执行设备截图，适用于 ADB screencap 不可用的场景。
+DroidCast 是一个运行在 Android 设备上的截图服务，通过 HTTP 接口提供屏幕图像。
+支持 DroidCast 和 DroidCast_raw 两种模式：前者返回 PNG/JPEG 图像，
+后者直接返回原始像素数据以获得更高性能。需要先在设备上安装并启动 DroidCast APK。
+"""
 import time
 import typing as t
 from functools import wraps
@@ -92,9 +100,9 @@ def retry(func):
                     pass
 
         if func.__name__ in ['screenshot_droidcast', 'screenshot_droidcast_raw']:
-            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+            logger.critical(f'[设备-DroidCast] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
-        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+        logger.critical(f'[设备-DroidCast] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -154,14 +162,14 @@ class DroidCast(Uiautomator2):
         return f'http://127.0.0.1:{self._droidcast_port}{url}'
 
     def droidcast_init(self):
-        logger.hr('DroidCast init')
+        logger.hr('[设备-DroidCast] DroidCast初始化')
         self.droidcast_stop()
         self._droidcast_update_resolution()
 
-        logger.info('Pushing DroidCast apk')
+        logger.info('[设备-DroidCast] 推送DroidCast APK')
         self.adb_push(self.config.DROIDCAST_FILEPATH_LOCAL, self.config.DROIDCAST_FILEPATH_REMOTE)
 
-        logger.info('Starting DroidCast apk')
+        logger.info('[设备-DroidCast] 启动DroidCast APK')
         # DroidCast_raw-release-1.1.apk
         # CLASSPATH=/data/local/tmp/DroidCast_raw.apk app_process / ink.mol.droidcast_raw.Main > /dev/null
         # adb shell CLASSPATH=/data/local/tmp/DroidCast_raw.apk app_process / ink.mol.droidcast_raw.Main
@@ -178,23 +186,23 @@ class DroidCast(Uiautomator2):
         _ = self.droidcast_session
 
         if self.config.DROIDCAST_VERSION == 'DroidCast':
-            logger.attr('DroidCast', self.droidcast_url())
+            logger.attr('DroidCast地址', self.droidcast_url())
             self.droidcast_wait_startup()
         elif self.config.DROIDCAST_VERSION == 'DroidCast_raw':
-            logger.attr('DroidCast_raw', self.droidcast_raw_url())
+            logger.attr('DroidCast原始地址', self.droidcast_raw_url())
             self.droidcast_wait_startup()
         else:
-            logger.error(f'Unknown DROIDCAST_VERSION: {self.config.DROIDCAST_VERSION}')
+            logger.error(f'未知的DROIDCAST版本: {self.config.DROIDCAST_VERSION}')
 
     def _droidcast_update_resolution(self):
         if self.is_mumu_over_version_356:
-            logger.info('Update droidcast resolution')
+            logger.info('[设备-DroidCast] 更新DroidCast分辨率')
             w, h = self.resolution_uiautomator2(cal_rotation=False)
             self.get_orientation()
             # 720, 1280
             # mumu12 > 3.5.6 始终为竖屏设备
             self.droidcast_width, self.droidcast_height = w, h
-            logger.info(f'Droicast resolution: {(w, h)}')
+            logger.info(f'DroidCast分辨率: {(w, h)}')
 
     @retry
     def screenshot_droidcast(self):
@@ -214,7 +222,7 @@ class DroidCast(Uiautomator2):
         if image.shape == (1843200,):
             raise DroidCastVersionIncompatible('Requesting screenshots from `DroidCast` but server is `DroidCast_raw`')
         if image.size < 500:
-            logger.warning(f'Unexpected screenshot: {resp.content}')
+            logger.warning(f'[设备-DroidCast] 异常截图: {resp.content}')
 
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
         if image is None:
@@ -254,7 +262,7 @@ class DroidCast(Uiautomator2):
         # 例如 b':(  Failed to generate the screenshot on device / emulator: ...'
         # 抛出 ConnectionError 以在重试处理器中立即触发 droidcast_init
         if len(image) < 500:
-            logger.warning(f'Unexpected screenshot: {image}')
+            logger.warning(f'[设备-DroidCast] 异常截图: {image}')
             raise requests.exceptions.ConnectionError(f'DroidCast service error: {image!r}')
 
         try:
@@ -319,12 +327,12 @@ class DroidCast(Uiautomator2):
                 resp = self.droidcast_session.get(self.droidcast_url('/'), timeout=3)
                 # 路由 `/` 不可用，但 404 表示启动已完成
                 if resp.status_code == 404:
-                    logger.attr('DroidCast', 'online')
+                    logger.attr('DroidCast状态', '在线')
                     return True
             except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-                logger.attr('DroidCast', 'offline')
+                logger.attr('DroidCast状态', '离线')
 
-        logger.warning('Wait DroidCast startup timeout, assume started')
+        logger.warning('[设备-DroidCast] DroidCast启动超时，假定已启动')
         return False
 
     def droidcast_uninstall(self):
@@ -333,7 +341,7 @@ class DroidCast(Uiautomator2):
         DroidCast 并非真正安装，而是通过 JAVA 类调用，卸载即删除文件。
         """
         self.droidcast_stop()
-        logger.info('Removing DroidCast')
+        logger.info('[设备-DroidCast] 移除DroidCast')
         self.adb_shell(["rm", self.config.DROIDCAST_FILEPATH_REMOTE])
 
     def _iter_droidcast_proc(self) -> t.Iterable[ProcessInfo]:
@@ -349,7 +357,7 @@ class DroidCast(Uiautomator2):
 
     def droidcast_stop(self):
         """停止 DroidCast 进程。"""
-        logger.info('Stopping DroidCast')
+        logger.info('[设备-DroidCast] 停止DroidCast')
         for proc in self._iter_droidcast_proc():
-            logger.info(f'Kill pid={proc.pid}')
+            logger.info(f'[设备-DroidCast] 终止进程PID={proc.pid}')
             self.adb_shell(['kill', '-s', 9, proc.pid])

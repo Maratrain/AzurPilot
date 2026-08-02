@@ -23,7 +23,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 base.py（462 行）
+### 2.1 base.py（468 行）
 
 **导出类型**：类 `ModuleBase`
 
@@ -48,7 +48,7 @@ alwaysApply: true
 - `L388-429`：间隔计时器管理 — `get_interval_timer()`、`interval_reset()`、`interval_clear()`。
 - `L431-462`：`image_file` 属性（开发调试用）、`set_server()` 方法。
 
-### 2.2 button.py（490 行）
+### 2.2 button.py（482 行）
 
 **导出类型**：类 `Button`、`ButtonGrid`
 
@@ -69,7 +69,7 @@ alwaysApply: true
 - `L394-410`：`split_server()` — 按服务器拆分为 4 个 Button。
 - `L413-490`：`ButtonGrid` — 网格按钮生成器。`__getitem__` 按索引生成 Button。`generate()` 迭代器。`crop()`/`move()` 相对变换。
 
-### 2.3 template.py（298 行）
+### 2.3 template.py（307 行）
 
 **导出类型**：类 `Template`
 
@@ -88,7 +88,7 @@ alwaysApply: true
 - `L250-284`：`match_multi()` — 多目标匹配，使用 `Points.group()` 聚类去重。
 - `L286-298`：`split_server()` — 按服务器拆分。
 
-### 2.4 resource.py（144 行）
+### 2.4 resource.py（253 行）
 
 **导出类型**：类 `Resource`、`PreservedAssets`，函数 `release_resources()`
 
@@ -103,7 +103,7 @@ alwaysApply: true
 - `L41-86`：`Resource` — 基类。`instances` 类级字典跟踪所有实例。`resource_add()` 注册，`resource_release()` 释放缓存。`parse_property()` 根据服务器选择属性值。
 - `L89-144`：`release_resources()` — 全局资源释放函数。按策略释放 OCR 模型（20-40MB）、UI 资源缓存（3MB+）、地图检测缓存。保留 `PreservedAssets` 中的 UI 资源。
 
-### 2.5 utils.py（1289 行）
+### 2.5 utils.py（1288 行）
 
 **导出类型**：大量工具函数和全局变量
 
@@ -124,7 +124,7 @@ alwaysApply: true
 - `L502-600`：模板匹配辅助 — `TEMPLATE_MATCH_NON_NATIVE_720P` 全局标志、`set_template_match_non_native_720p()`、`lower_template_match_similarity()`
 - `L602-700`：`crop_to_text()` — 文本区域裁剪
 
-### 2.6 timer.py（206 行）
+### 2.6 timer.py（242 行）
 
 **导出类型**：类 `Timer`，函数 `future_time()`、`past_time()`、`future_time_range()`、`time_range_active()`
 
@@ -134,7 +134,7 @@ alwaysApply: true
 
 - `L75-206`：`Timer` — 双重计时器。`limit`（时间限制）和 `count`（访问次数）。`reached()` 需要同时满足 `_access > count` 和 `time() - _start > limit`。`from_seconds()` 工厂方法按截图耗时估算 count。`start()`/`reset()`/`clear()` 控制状态。未启动时 `reached()` 返回 `True`（快速首次尝试）。
 
-### 2.7 decorator.py（208 行）
+### 2.7 decorator.py（211 行）
 
 **导出类型**：类 `Config`、`cached_property`，函数 `del_cached_property()`、`has_cached_property()`、`set_cached_property()`、`function_drop()`、`run_once()`
 
@@ -148,7 +148,7 @@ alwaysApply: true
 - `L138-178`：`function_drop()` — 随机丢弃函数调用，模拟卡顿，用于测试。
 - `L181-208`：`run_once()` — 函数只执行一次。
 
-### 2.8 filter.py（139 行）
+### 2.8 filter.py（143 行）
 
 **导出类型**：类 `Filter`
 
@@ -158,7 +158,7 @@ alwaysApply: true
 
 - `L1-139`：`Filter` — 正则过滤系统。`parse_filter()` 解析过滤字符串（支持 `>` 优先级分隔符和 Unicode 全角 `>`）。`apply()` 匹配对象属性。支持预设（`preset`）。
 
-### 2.9 mask.py（56 行）
+### 2.9 mask.py（64 行）
 
 **导出类型**：类 `Mask`
 
@@ -168,7 +168,7 @@ alwaysApply: true
 
 - `L1-56`：`Mask` — 继承 `Template`，加载灰度遮罩图像。`apply()` 使用 `cv2.bitwise_and` 应用遮罩。
 
-### 2.10 retry.py（123 行）
+### 2.10 retry.py（139 行）
 
 **导出类型**：函数 `retry()`
 
@@ -178,7 +178,7 @@ alwaysApply: true
 
 - `L1-123`：`retry()` 装饰器 — 指数退避 + 抖动。支持 `exceptions`（可重试异常类型）、`tries`、`delay`、`backoff`、`jitter`、`logger`。
 
-### 2.11 async_executor.py（69 行）
+### 2.11 async_executor.py（75 行）
 
 **导出类型**：类 `AsyncExecutor`
 
@@ -188,7 +188,7 @@ alwaysApply: true
 
 - `L1-69`：`AsyncExecutor` — 单例异步执行器。后台线程运行 `asyncio` 事件循环。`submit()` 提交同步/异步函数。`flush()` 等待所有任务完成。`atexit` 注册清理。
 
-### 2.12 api_client.py（269 行）
+### 2.12 api_client.py（270 行）
 
 **导出类型**：类 `ApiClient`
 
@@ -198,7 +198,7 @@ alwaysApply: true
 
 - `L1-269`：`ApiClient` — HTTP 客户端。双域名故障转移（`cloudflare` + `aliyun`）。端点：bug 日志、CL1 遥测、公告。通过 `AsyncExecutor` 异步提交。
 
-### 2.13 device_id.py（166 行）
+### 2.13 device_id.py（169 行）
 
 **导出类型**：类 `DeviceId`
 
@@ -207,6 +207,17 @@ alwaysApply: true
 **逐段分析**：
 
 - `L1-166`：`DeviceId` — 设备指纹生成。通过 WMIC 查询硬件信息（CPU、主板、磁盘、MAC），SHA256 哈希生成唯一 ID。5 分钟刷新计时器。硬件变更自动检测用于数据库迁移。
+
+### 2.14 ssh.py（86 行）
+
+**导出类型**：SSH 客户端工具函数
+
+**导入依赖**：内部 `logger`、`utils.*`
+
+**逐段分析**：
+
+- SSH 连接与远程命令执行工具。供 `alas.py` 的 `emulator_manager()` 等远程模拟器管理场景使用。`_get_known_hosts_files()` 处理 known_hosts 文件定位。
+- **注意**：SSH 工具位于 `module/base/ssh.py`，不在 `module/device/platform/` 下（部分旧文档误标位置）。
 
 ## 3. 内部调用关系
 
@@ -295,14 +306,14 @@ graph TD
 - 装饰器系统强大，支持配置分发和缓存
 
 **问题**：
-- `utils.py` 过于庞大（1289 行），应拆分为 `color_utils.py`、`image_utils.py`、`area_utils.py` 等
+- `utils.py` 过于庞大（1288 行），应拆分为 `color_utils.py`、`image_utils.py`、`area_utils.py` 等
 - `ModuleBase.__init__()` 接受多种类型参数，类型检查不够严格
 - `Button` 构造函数参数过多，应考虑使用 Builder 模式
 - `filter.py` 的 `parse_filter()` 方法正则表达式复杂，可读性差
 
 ## 10. 潜在问题与改进建议
 
-1. **utils.py 拆分**：将 1289 行拆分为多个子模块（`color.py`、`image.py`、`area.py`、`random.py`）
+1. **utils.py 拆分**：将 1288 行拆分为多个子模块（`color.py`、`image.py`、`area.py`、`random.py`）
 2. **Button 构造优化**：引入 Builder 模式或配置对象，减少参数数量
 3. **类型注解增强**：为 `appear()`、`appear_then_click()` 等方法添加更精确的类型注解
 4. **资源释放策略**：`release_resources()` 中的 OCR 模型释放逻辑过于复杂，应抽象为策略类

@@ -1,3 +1,14 @@
+"""活动 SP 关卡执行模块。
+
+执行活动的 SP（Special）关卡，每日限定 1 次。
+SP 关卡通常需要完成所有前置关卡后才可解锁，难度较高但奖励丰厚。
+
+流程简单：检查 sp.py 地图文件是否存在 → 执行 1 次 → 延迟到次日。
+如果活动没有 SP 关卡或已执行过，自动延迟到次日服务器刷新。
+
+配置路径: Campaign.Name (战役名称)
+"""
+
 import os
 
 from module.config.config import TaskEnd
@@ -23,8 +34,8 @@ class CampaignSP(EventBase):
         """
         # 检查当前活动是否包含 SP 关卡
         if not os.path.exists(f'./campaign/{self.config.Campaign_Event}/sp.py'):
-            logger.info(f'./campaign/{self.config.Campaign_Event}/sp.py not exists')
-            logger.info(f'This event do not have SP, skip')
+            logger.info(f'[活动-SP] ./campaign/{self.config.Campaign_Event}/sp.py 不存在')
+            logger.info(f'此活动无SP，跳过')
             self.config.Scheduler_Enable = False
             self.config.task_stop()
 
@@ -35,18 +46,18 @@ class CampaignSP(EventBase):
             pass
         except RequestHumanTakeover:
             # 每日 SP 已完成或无法进入，延迟到次日
-            logger.info('Daily SP already completed or unable to enter')
-            logger.info('Delaying task to next day')
+            logger.info('每日SP已完成或无法进入')
+            logger.info('延迟任务到明天')
             self.config.task_delay(server_update=True)
             return
 
         # 根据执行结果决定后续调度
         if self.run_count > 0:
             # SP 执行成功，延迟到次日服务器刷新
-            logger.info(f'SP completed successfully, run_count={self.run_count}')
+            logger.info(f'已完成, run_count={self.run_count}')
             self.config.task_delay(server_update=True)
         else:
             # SP 未成功执行（可能今日已完成），延迟到次日而非停止
-            logger.info('SP failed to execute, possibly already completed today')
-            logger.info('Delaying task to next day')
+            logger.info('执行失败，可能今天已完成')
+            logger.info('延迟任务到明天')
             self.config.task_delay(server_update=True)

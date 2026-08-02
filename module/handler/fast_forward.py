@@ -1,3 +1,6 @@
+"""战斗快进处理器模块。定义 FastForwardHandler，管理战斗中的快进开关、舰队锁定、
+自动搜索等开关控件，以及地图文件加载和自动搜索设置。"""
+
 import os
 import re
 
@@ -38,7 +41,7 @@ def map_files(event):
     folder = f'./campaign/{event}'
 
     if not os.path.exists(folder):
-        logger.warning(f'Map file folder: {folder} does not exist, can not get map files')
+        logger.warning(f'地图文件夹: {folder} 不存在，无法获取地图文件')
         return []
 
     files = []
@@ -171,7 +174,7 @@ class FastForwardHandler(AutoSearchHandler):
 
     def map_show_info(self):
         # 记录日志
-        logger.attr('MAP_CLEAR_ALL_THIS_TIME', self.config.MAP_CLEAR_ALL_THIS_TIME)
+        logger.attr('本次全图清除', self.config.MAP_CLEAR_ALL_THIS_TIME)
         names = ['map_achieved_star_1', 'map_achieved_star_2', 'map_achieved_star_3',
                  'map_is_100_percent_clear', 'map_is_3_stars',
                  'map_is_threat_safe', 'map_has_clear_mode']
@@ -179,8 +182,8 @@ class FastForwardHandler(AutoSearchHandler):
         log_names = ['_'.join([x for x in name.split('_') if x not in strip]) for name in names]
         text = ', '.join([l for l, n in zip(log_names, names) if self.__getattribute__(n)])
         text = f'{int(self.map_clear_percentage * 100)}%, ' + text
-        logger.attr('Map_info', text)
-        logger.attr('StopCondition_MapAchievement', self.config.StopCondition_MapAchievement)
+        logger.attr('地图信息', text)
+        logger.attr('地图成就条件', self.config.StopCondition_MapAchievement)
 
     def handle_fast_forward(self):
         if not self.map_has_clear_mode:
@@ -202,7 +205,7 @@ class FastForwardHandler(AutoSearchHandler):
             self.config.MAP_HAS_DECOY_ENEMY = False
             self.map_is_clear_mode = True
             if self.config.MAP_CLEAR_ALL_THIS_TIME:
-                logger.info('MAP_CLEAR_ALL_THIS_TIME does not work with auto search, disable auto search temporarily')
+                logger.info('本次全图清除不兼容自动搜索，临时禁用')
                 self.map_is_auto_search = False
             else:
                 self.map_is_auto_search = self.config.Campaign_UseAutoSearch
@@ -237,7 +240,7 @@ class FastForwardHandler(AutoSearchHandler):
         # 舰队锁定取决于地图上是否显示该选项，而非地图状态
         # 因为如果已在地图中，则没有地图状态
         if not FLEET_LOCK.appear(main=self):
-            logger.info('No fleet lock option.')
+            logger.info('无舰队锁定选项')
             return False
 
         if enable is None:
@@ -258,12 +261,12 @@ class FastForwardHandler(AutoSearchHandler):
         timeout = Timer(1, count=3).start()
         for _ in self.loop():
             state = AUTO_SEARCH.get(main=self)
-            logger.attr('AUTO_SEARCH', state)
+            logger.attr('自动搜索', state)
             if state != 'unknown':
                 return True
             if timeout.reached():
                 # 部分地图有通关模式但没有自动搜索
-                logger.info('map wait auto search timeout')
+                logger.info('等待自动搜索超时')
                 return False
 
     def handle_auto_search(self):
@@ -280,13 +283,13 @@ class FastForwardHandler(AutoSearchHandler):
         #     return False
 
         current = AUTO_SEARCH.get(main=self)
-        logger.attr('Auto_Search', current)
+        logger.attr('自动搜索', current)
         if current == 'unknown':
-            logger.info('No auto search option.')
+            logger.info('无自动搜索选项')
             return False
 
         if self.config.Campaign_UseAutoSearch and not self.map_is_auto_search:
-            logger.warning('Auto search is enabled but clear mode state was not confirmed, keep auto search enabled')
+            logger.warning('自动搜索已启用但清除模式未确认，保持启用')
             self.map_is_auto_search = True
 
         state = 'on' if self.map_is_auto_search else 'off'
@@ -302,7 +305,7 @@ class FastForwardHandler(AutoSearchHandler):
         如果开关已开启但模板匹配暂时返回 ``unknown``，
         点击目标 ON 区域实际上会将其关闭。
         """
-        logger.info(f'Auto_Search set to {state}')
+        logger.info(f'[处理器-快进] 自动搜索设置为 {state}')
         timeout = Timer(2, count=4).start()
         click_timer = Timer(1, count=2).clear()
         changed = False
@@ -315,14 +318,14 @@ class FastForwardHandler(AutoSearchHandler):
                     self.device.screenshot()
                 current = AUTO_SEARCH.get(main=self)
 
-            logger.attr('Auto_Search', current)
+            logger.attr('自动搜索', current)
 
             if current == state:
                 return changed
 
             if current == 'unknown':
                 if timeout.reached():
-                    logger.warning('Auto search switch state unknown, keep current state')
+                    logger.warning('自动搜索开关状态未知，保持当前')
                     return changed
                 continue
             else:
@@ -349,7 +352,7 @@ class FastForwardHandler(AutoSearchHandler):
         if not self.map_is_auto_search:
             return False
 
-        logger.info('Auto search setting')
+        logger.info('自动搜索设置')
         self.fleet_preparation_sidebar_ensure(3)
         if not self.auto_search_setting_ensure(self.config.Fleet_FleetOrder) \
                 and self.config.task.command == 'GemsFarming':
@@ -390,13 +393,13 @@ class FastForwardHandler(AutoSearchHandler):
             return False
         # 2025.09.22 修正：舰队角色设置在通关模式后才解锁
         if not self.map_is_clear_mode:
-            logger.warning('Can not set submarine call because auto search not available, assuming disabled')
-            logger.warning('Please do the followings: '
-                           'goto any stage -> auto search role -> set submarine role to standby')
-            logger.warning('If you already did, ignore this warning')
+            logger.warning('[处理器-快进] 无法设置潜艇呼叫，自动搜索不可用')
+            logger.warning('[处理器-快进] 请执行以下操作：'
+                           '前往任意关卡 -> 自动搜索角色 -> 设置潜艇角色为待命')
+            logger.warning('[处理器-快进] 如果已设置，请忽略此警告')
             return False
 
-        logger.info('Disable auto submarine call')
+        logger.info('禁用自动潜艇呼叫')
         self.fleet_preparation_sidebar_ensure(3)
         self.auto_search_setting_ensure('sub_standby')
         return True
@@ -470,14 +473,14 @@ class FastForwardHandler(AutoSearchHandler):
                         return new
                     # 检查地图文件是否存在
                     existing = map_files(self.config.Campaign_Event)
-                    logger.info(f'Existing files: {existing}')
+                    logger.info(f'现有文件: {existing}')
                     if new.lower() in existing:
                         return new
                     else:
-                        logger.info(f'Stage increase reach end, new map {new} does not exist')
+                        logger.info(f'关卡递增到达终点，新地图 {new} 不存在')
                         return name
                 else:
-                    logger.info('Stage increase reach end')
+                    logger.info('关卡递增到达终点')
                     return name
 
         return name
@@ -516,10 +519,10 @@ class FastForwardHandler(AutoSearchHandler):
             prev_stage = to_map_input_name(self.config.Campaign_Name)
             next_stage = self.campaign_name_increase(prev_stage)
             if next_stage != prev_stage:
-                logger.info(f'Stage {prev_stage} increases to {next_stage}')
+                logger.info(f'[处理器-快进] 关卡 {prev_stage} 推进到 {next_stage}')
                 self.config.Campaign_Name = next_stage
             else:
-                logger.info(f'Stage {prev_stage} cannot increase, stop at current stage')
+                logger.info(f'[处理器-快进] 关卡 {prev_stage} 无法推进，停在当前关卡')
                 self.config.Scheduler_Enable = False
         else:
             self.config.Scheduler_Enable = False
@@ -561,10 +564,10 @@ class FastForwardHandler(AutoSearchHandler):
                 clicked_threshold += 1
 
             if not clicked_threshold and confirm_timer.reached():
-                logger.info('Map do not have 2x book setting')
+                logger.info('地图无2倍经验书设置')
                 return False
 
-        logger.warning(f'Wait time has expired; Cannot set 2x book setting')
+        logger.warning(f'等待时间已过，无法设置2倍经验书')
         return False
 
     def handle_2x_book_setting(self, mode='prep'):
@@ -580,10 +583,10 @@ class FastForwardHandler(AutoSearchHandler):
         if not self.map_is_clear_mode:
             return False
         if not hasattr(self, 'emotion'):
-            logger.info('Emotion instance not loaded, cannot handle 2x book setting')
+            logger.info('情绪实例未加载，无法处理2倍经验书')
             return False
 
-        logger.info(f'Handling 2x book setting, mode={mode}.')
+        logger.info(f'[处理器-快进] 处理2倍经验书设置，模式={mode}')
         if mode == 'prep':
             book_check = BOOK_CHECK_PREP
             book_box = BOOK_BOX_PREP
@@ -630,10 +633,10 @@ class FastForwardHandler(AutoSearchHandler):
                 self.device.screenshot()
 
             if self.image_color_count(MAP_WALK_SPEEDUP, color=(132, 255, 148), threshold=180, count=50):
-                logger.attr('Walk_Speedup', 'on')
+                logger.attr('行走加速', '开启')
                 return True
             if timeout.reached():
-                logger.warning(f'Wait time has expired; Cannot set map walk speedup')
+                logger.warning(f'等待时间已过，无法设置地图移动加速')
                 return False
 
             if interval.reached():

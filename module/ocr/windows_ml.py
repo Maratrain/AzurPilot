@@ -1,3 +1,24 @@
+"""Windows ML ONNX Runtime 设备选择模块。
+
+在 Windows 平台上为 ONNX Runtime 推理会话选择最优的执行提供程序 (Execution Provider)。
+支持的 EP 优先级（从高到低）：
+
+1. DirectML (DmlExecutionProvider): 通用 GPU 加速，支持所有 Windows GPU
+2. QNN (QNNExecutionProvider): 高通 NPU 加速（特定硬件）
+3. OpenVINO (OpenVINOExecutionProvider): Intel 硬件加速
+4. CUDA (CUDAExecutionProvider): NVIDIA GPU 加速
+5. CPU (CPUExecutionProvider): 兜底方案
+
+设备选择逻辑：
+- 根据用户配置的设备偏好（'gpu'、'cpu'、'npu'）选择 EP
+- 自动检测 AMD 集成显卡并排除不兼容的 EP
+- 通过 GPU 显存大小区分独显和集显
+- 使用线程锁确保 EP 初始化的线程安全性
+
+核心函数 create_onnx_session() 被 al_ocr.py 调用，
+为 OCR 模型创建优化的推理会话。
+"""
+
 import os
 import re
 import threading
@@ -5,6 +26,7 @@ import threading
 from module.logger import logger
 
 
+# 执行提供程序常量
 QNN_EP = "QNNExecutionProvider"
 OPENVINO_EP = "OpenVINOExecutionProvider"
 DML_EP = "DmlExecutionProvider"

@@ -1,3 +1,24 @@
+"""AzurPilot 日志（Logger）系统模块。
+
+基于 Rich 库构建的多目标日志系统，支持控制台彩色输出、文件轮转记录
+和 WebUI 流式渲染。全局 logger 实例（alas）被整个框架共享使用。
+
+主要组件：
+    - RichFileHandler: 文件日志处理器（基于 Rich 格式化）。
+    - RichRenderableHandler: 将日志渲染为可渲染对象传递给回调，用于 WebUI 实时展示。
+    - RichTimedRotatingHandler: 按时间轮转的文件日志处理器，支持跨平台多进程。
+    - HTMLConsole: 输出 HTML 格式的 Rich Console，用于 WebUI 渲染。
+    - Highlighter: 自定义正则高亮器，高亮路径、URL、Python 布尔值/None 等。
+
+提供的辅助函数：
+    - hr(): 分节标题输出（支持 4 级标题）。
+    - attr() / attr_align(): 属性对齐输出。
+    - error_context() / exception_context(): 结构化错误信息输出。
+
+全局 logger 实例通过 monkey-patch 方式扩展了上述方法，作为整个框架的
+统一日志入口。
+"""
+
 import datetime
 import io
 import json
@@ -552,7 +573,7 @@ def show():
     logger.hr('hr1', 1)
     logger.hr('hr2', 2)
     logger.hr('hr3', 3)
-    logger.info(r'Brace { [ ( ) ] }')
+    logger.info(r'大括号 { [ ( ) ] }')
     logger.info(r'True, False, None')
     logger.info(r'E:/path\\to/alas/alas.exe, /root/alas/, ./relative/path/log.txt')
     local_var1 = 'This is local variable'
@@ -603,4 +624,4 @@ logger.print = print
 logger.log_file: str
 
 logger.set_file_logger()
-logger.hr('Start', level=0)
+logger.hr('启动', level=0)

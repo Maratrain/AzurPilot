@@ -1,3 +1,9 @@
+"""大世界战略搜索处理器。
+
+管理大世界战略搜索（Strategic Search）功能的交互流程。
+提供战略搜索面板的进入、标签页切换（已净化/未净化）、
+搜索选项勾选、确认弹窗处理以及滚动条控制等操作。
+"""
 from module.base.utils import get_color
 from module.logger import logger
 from module.os_handler.assets import *
@@ -9,7 +15,7 @@ STRATEGIC_SEARCH_SCROLL = Scroll(STRATEGIC_SEARCH_SCROLL_AREA, color=(247, 211, 
 
 class StrategicSearchHandler(MapEventHandler):
     def strategy_search_enter(self):
-        logger.info('Strategic search enter')
+        logger.info('[大世界-策略] 进入策略搜索')
         self.interval_clear(STRATEGIC_SEARCH_MAP_OPTION_OFF)
         for _ in self.loop():
             # End
@@ -24,7 +30,7 @@ class StrategicSearchHandler(MapEventHandler):
                 continue
 
     def strategic_search_set_tab(self):
-        logger.info('Strategic search set tab')
+        logger.info('[大世界-策略] 设置策略搜索标签')
         for _ in self.loop():
             if get_color(self.device.image, STRATEGIC_SEARCH_TAB_SECURED.area)[2] <= 150:
                 self.device.click(STRATEGIC_SEARCH_TAB_SECURED)
@@ -41,9 +47,9 @@ class StrategicSearchHandler(MapEventHandler):
             if STRATEGIC_SEARCH_SCROLL.appear(main=self):
                 return True
             else:
-                logger.warning('STRATEGIC_SEARCH_SCROLL disappeared')
+                logger.warning('[大世界-策略] 策略搜索滚动条消失')
         else:
-            logger.warning('STRATEGIC_SEARCH_SCROLL disappeared confirm')
+            logger.warning('[大世界-策略] 策略搜索滚动条消失确认')
             return False
 
     def _strategy_option_selected(self, button):
@@ -57,19 +63,19 @@ class StrategicSearchHandler(MapEventHandler):
         Returns:
             If success. False if strategic settings closed for unknown reason.
         """
-        logger.info('Strategic search set option')
+        logger.info('[大世界-策略] 设置策略搜索选项')
         for _ in self.loop():
             if self._strategy_option_selected(STRATEGIC_SEARCH_ZONEMODE_REPEAT) \
                     and self._strategy_option_selected(STRATEGIC_SEARCH_MERCHANT_STOP):
-                logger.attr('zone_mode', 'repeat')
-                logger.attr('encounter_merchant', 'stop')
+                logger.attr('区域模式', '重复')
+                logger.attr('遭遇商人', '停止')
                 break
             if self._strategy_option_selected(STRATEGIC_SEARCH_ZONEMODE_RANDOM):
-                logger.attr('zone_mode', 'random')
+                logger.attr('区域模式', '随机')
                 self.device.click(STRATEGIC_SEARCH_ZONEMODE_REPEAT)
                 continue
             if self._strategy_option_selected(STRATEGIC_SEARCH_MERCHANT_CONTINUE):
-                logger.attr('encounter_merchant', 'continue')
+                logger.attr('遭遇商人', '继续')
                 self.device.click(STRATEGIC_SEARCH_MERCHANT_STOP)
                 continue
 
@@ -84,10 +90,10 @@ class StrategicSearchHandler(MapEventHandler):
             STRATEGIC_SEARCH_DEVICE_CONTINUE.load_offset(STRATEGIC_SEARCH_DEVICE_CHECK)
 
             if self._strategy_option_selected(STRATEGIC_SEARCH_DEVICE_STOP):
-                logger.attr('encounter_device', 'stop')
+                logger.attr('遭遇装置', '停止')
                 break
             if self._strategy_option_selected(STRATEGIC_SEARCH_DEVICE_CONTINUE):
-                logger.attr('encounter_device', 'continue')
+                logger.attr('遭遇装置', '继续')
                 self.device.click(STRATEGIC_SEARCH_DEVICE_STOP)
                 continue
 
@@ -103,17 +109,17 @@ class StrategicSearchHandler(MapEventHandler):
             STRATEGIC_SEARCH_SUBMIT_ON.load_offset(STRATEGIC_SEARCH_SUBMIT_CHECK)
 
             if self._strategy_option_selected(STRATEGIC_SEARCH_SUBMIT_ON):
-                logger.attr('auto_submit', 'on')
+                logger.attr('自动提交', '开启')
                 break
             if self._strategy_option_selected(STRATEGIC_SEARCH_SUBMIT_OFF):
-                logger.attr('auto_submit', 'off')
+                logger.attr('自动提交', '关闭')
                 self.device.click(STRATEGIC_SEARCH_SUBMIT_ON)
                 continue
 
         return True
 
     def strategic_search_confirm(self):
-        logger.info('Strategic search confirm')
+        logger.info('[大世界-策略] 策略搜索确认')
         for _ in self.loop():
             if self.appear(STRATEGIC_SEARCH_POPUP_CHECK, offset=(20, 20)) \
                     and self.handle_popup_confirm(offset=(30, 30), name='STRATEGIC_SEARCH'):
@@ -133,7 +139,7 @@ class StrategicSearchHandler(MapEventHandler):
             in: IN_MAP
             out: IN_MAP, with strategic search running
         """
-        logger.hr('Strategic search start')
+        logger.hr('策略搜索开始')
         for _ in range(3):
             self.strategy_search_enter()
             self.strategic_search_set_tab()
@@ -143,5 +149,5 @@ class StrategicSearchHandler(MapEventHandler):
             self.strategic_search_confirm()
             return True
 
-        logger.warning('Failed to start strategic search')
+        logger.warning('[大世界-策略] 策略搜索启动失败')
         return False

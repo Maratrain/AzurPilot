@@ -1,3 +1,15 @@
+"""大世界港口商店模块。
+
+执行大世界港口商店的补给物资购买，包括：
+- 遍历所有友方港口购买补给
+- 黄币和紫币余额检查
+- 月度购买限制日期配置
+- 港口间的自动导航和购买执行
+
+继承自 OSMap，提供港口导航和商店购买的完整操作链路，
+是大世界代币消耗的重要途径之一。
+"""
+
 from datetime import datetime, timedelta
 
 from module.config.time_source import now as current_time
@@ -26,6 +38,32 @@ class OpsiShop(OSMap):
             self.config.task_delay(server_update=True)
             self.config.task_stop()
 
+        not_empty = self.perform_port_shop_purchase()
+
+        next_reset = self._os_shop_delay(not_empty)
+        if not_empty:
+            logger.info('大世界商店+已完成，延迟到下次重置')
+        else:
+            logger.warning('[大世界-商店] 港口中没有商店，跳到下个月')
+        logger.attr('大世界商店下次重置', next_reset)
+
+        self.config.task_delay(target=next_reset)
+        self.config.task_stop()
+
+    def perform_port_shop_purchase(self):
+        """
+        执行一次港口商店购买流程，不包含任务延迟和停止逻辑。
+
+        供 os_shop 和智能调度+月末清理共用。前往最近友方港口，
+        进入商店购买所有补给，购买完成后退出港口。
+
+        Returns:
+            bool: True 表示商店非空且已尝试购买，False 表示商店为空。
+
+        Pages:
+            in: page_os, 大世界地图
+            out: page_os, 大世界地图
+        """
         if not self.zone.is_azur_port:
             self.globe_goto(self.zone_nearest_azur_port(self.zone))
 
@@ -34,19 +72,13 @@ class OpsiShop(OSMap):
 
         if self.appear(OS_SHOP_CHECK):
             not_empty = self.handle_port_supply_buy()
-            next_reset = self._os_shop_delay(not_empty)
-            logger.info('大世界商店+已完成，延迟到下次重置')
-            logger.attr('OpsiShopNextReset', next_reset)
         else:
-            next_reset = get_os_next_reset()
-            logger.warning('There is no shop in the port, skip to the next month.')
-            logger.attr('OpsiShopNextReset', next_reset)
+            not_empty = False
+            logger.warning('[大世界-商店] 港口中没有商店')
 
         self.port_shop_quit()
         self.port_quit()
-
-        self.config.task_delay(target=next_reset)
-        self.config.task_stop()
+        return not_empty
 
     def _os_shop_delay(self, not_empty) -> datetime:
         """

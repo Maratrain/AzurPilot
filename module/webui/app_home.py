@@ -134,12 +134,14 @@ class HomeMixin(WebUIMixinBase):
             from module.base.api_client import ApiClient
 
             data = ApiClient.get_announcement(timeout=10)
-            self._announcement_result = (data, force)
+            self._announcement_result = {"data": data, "force": force}
         except Exception as e:
-            logger.error(f"Announcement fetch failed: {e}")
-            self._announcement_result = (None, force, str(e))
+            logger.error(f"[WebUI-主页] 获取公告失败: {e}")
+            self._announcement_result = {"data": None, "force": force, "error": str(e)}
         finally:
             self._announcement_fetching = False
+            # 后台请求完成后立即唤醒会话调度器，无需依靠高频轮询收结果。
+            self.task_handler.wake_task("announcement_checker")
 
     def _start_announcement_fetch(self, force=False):
         """
@@ -148,7 +150,6 @@ class HomeMixin(WebUIMixinBase):
         if self._announcement_fetching:
             return
         self._announcement_fetching = True
-        self._announcement_force = force
         self._announcement_result = None
         threading.Thread(
             target=self._fetch_announcement_thread, args=(force,), daemon=True
@@ -167,15 +168,15 @@ class HomeMixin(WebUIMixinBase):
         result = self._announcement_result
         self._announcement_result = None
 
-        # 解包结果
-        if len(result) == 3:
-            # 有错误
-            _, force, error = result
+        # 请求结果与请求发起时的 force 一起打包，避免读到旧请求的过期状态
+        data = result.get("data")
+        force = result.get("force", False)
+        error = result.get("error")
+
+        if error:
             if force:
                 toast(f"Check failed: {error}", color="error")
             return True
-
-        data, force = result
 
         if data:
             announcement_id = data.get("announcementId")
@@ -203,7 +204,7 @@ class HomeMixin(WebUIMixinBase):
             url_json = json.dumps(data.get("url", ""))
             force_json = "true" if force else "false"
 
-            logger.info(f"Pushing announcement: {data.get('title')}")
+            logger.info(f"[WebUI-主页] 推送公告: {data.get('title')}")
             run_js(
                 f"window.alasShowAnnouncement({title_json}, {content_json}, {announcement_id_json}, {url_json}, {force_json});"
             )
@@ -232,6 +233,14 @@ class HomeMixin(WebUIMixinBase):
         Args:
             force (bool): If True, show announcement even if already shown.
         """
+        if force:
+            if self._announcement_fetching:
+                # 已有请求在途：记下 force 意图并丢弃旧结果，
+                # 请求完成后 checker 会立即按新的 force 重新拉取。
+                self._announcement_force = force
+                self._announcement_result = None
+            else:
+                self._announcement_force = False
         self._start_announcement_fetch(force=force)
         if force:
             toast("正在获取公告... / Fetching announcement...", color="info")
@@ -251,13 +260,13 @@ class HomeMixin(WebUIMixinBase):
             "}"
             "if (!document.querySelector('link[rel=\"manifest\"]')) {"
             "var manifest=document.createElement('link');"
-            "manifest.rel='manifest';manifest.href='/static/assets/spa/manifest.json';"
+            "manifest.rel='manifest';manifest.href='static/assets/spa/manifest.json';"
             "document.head.appendChild(manifest);"
             "}"
             "if (!document.getElementById('alas-utils-script')) {"
             "var script=document.createElement('script');"
             "script.id='alas-utils-script';script.async=true;"
-            "script.src='/static/assets/gui/js/alas-utils.js';"
+            "script.src='static/assets/gui/js/alas-utils.js';"
             "document.head.appendChild(script);"
             "}"
             "}"
@@ -364,11 +373,19 @@ class HomeMixin(WebUIMixinBase):
             # 首次检查：触发异步获取
             self._start_announcement_fetch(force=False)
             next_periodic_check = time.time() + ApiClient.ANNOUNCEMENT_CHECK_INTERVAL
-            th._task.delay = 0.1  # 始终保持短间隔轮询
-            yield
             while True:
                 # 处理已有结果（来自定期检查或手动点击）
                 self._process_announcement_result()
+                # 手动点击强制查看且请求已结束时，立即发起强制拉取。
+                # 标记仅在“已有请求在途、需要延迟重拉”时由 ui_check_announcement 置位，
+                # 发起的强制请求完成后会再次进入这里，此时标记已清除，不会重复拉取。
+                if (
+                    self._announcement_force
+                    and not self._announcement_fetching
+                    and self._announcement_result is None
+                ):
+                    self._start_announcement_fetch(force=True)
+                    self._announcement_force = False
                 # 定期触发新的异步获取
                 if (
                     not self._announcement_fetching
@@ -378,9 +395,16 @@ class HomeMixin(WebUIMixinBase):
                     next_periodic_check = (
                         time.time() + ApiClient.ANNOUNCEMENT_CHECK_INTERVAL
                     )
+                # 后台线程会在完成时主动唤醒；1 秒仅作为请求中的兜底。
+                # 空闲时直接睡到下次周期检查，避免每个会话持续轮询。
+                if self._announcement_fetching:
+                    th._task.delay = 1
+                else:
+                    remaining = max(0.25, next_periodic_check - time.time())
+                    th._task.delay = remaining
                 yield
 
-        # 添加公告检查任务（初始延迟5秒）
+        # 首次立即执行，后续间隔由任务自身根据请求状态动态调整。
         self.task_handler.add(announcement_checker(), delay=5)
 
         if restore_instance:

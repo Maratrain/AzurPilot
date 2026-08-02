@@ -1,3 +1,6 @@
+"""游戏开关控件模块。定义 Switch 类，封装游戏中开关/选择器的状态切换逻辑，
+支持带重试机制的多状态切换。"""
+
 from module.base.base import ModuleBase
 from module.base.timer import Timer
 from module.exception import ScriptError
@@ -176,8 +179,8 @@ class Switch:
             # 未知状态警告
             if current == 'unknown':
                 if unknown_timer.reached():
-                    logger.warning(f'Switch {self.name} has states evaluated to unknown, '
-                                   f'asset should be re-verified')
+                    logger.warning(f'[UI-开关] 开关 {self.name} 状态评估为未知，'
+                                   f'资源应重新验证')
                     has_unknown = True
                     unknown_timer.reset()
                 # 如果 unknown_timer 从未触发，不点击未知状态（可能是切换动画）。

@@ -1,3 +1,10 @@
+"""
+截图场景分析基类。
+
+提供 SceneBase 基类，将截图文件加载、随机 ID 生成和批量处理
+抽象为统一接口。是所有场景级截图分析器的父类。
+"""
+
 import os
 import random
 import typing as t

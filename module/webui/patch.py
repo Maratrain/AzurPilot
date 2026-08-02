@@ -20,7 +20,7 @@ class CachedThreadPoolExecutor:
     def executor(cls):
         from concurrent.futures.thread import ThreadPoolExecutor
         pool = ThreadPoolExecutor(max_workers=5)
-        logger.info('Patched ThreadPoolExecutor created')
+        logger.info('[WebUI-补丁] 已创建补丁线程池')
         return pool
 
 

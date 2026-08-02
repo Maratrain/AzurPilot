@@ -1,3 +1,19 @@
+"""
+科研队列管理。
+
+本模块管理科研系统的队列功能，包括：
+- 将已启动的科研项目添加到队列
+- 检测队列中各槽位的状态（已完成/运行中/等待中/空）
+- 领取队列中已完成项目的奖励
+- 获取队列中第一个项目的剩余时间和预计完成时间
+
+科研队列最多容纳 5 个项目，采用 FIFO 顺序运行。
+队列中第一个项目运行完成后，等待中的项目自动开始。
+
+术语对照：
+    科研队列(Research Queue): 最多容纳 5 个排队项目的队列
+    槽位(Slot): 队列中的位置，从下到上编号 0-4
+"""
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property, Config
 from module.base.utils import get_color
@@ -12,6 +28,16 @@ OCR_QUEUE_REMAIN = Duration(QUEUE_REMAIN, letter=(255, 255, 255), threshold=128,
 
 
 class ResearchQueue(ResearchUI):
+    """
+    科研队列管理器，负责队列操作和状态检测。
+
+    提供队列项目的添加、状态检测、奖励领取和时间查询等功能。
+    通过颜色检测识别队列左侧的状态图标来判断各槽位状态。
+
+    Attributes:
+        queue_status_grids (ButtonGrid): 队列状态图标的按钮网格，
+            因各服务器 UI 布局差异，通过 @Config.when 按服务器分别定义。
+    """
     def research_queue_add(self, skip_first_screenshot=True):
         """
         Returns:
@@ -22,7 +48,7 @@ class ResearchQueue(ResearchUI):
             in: RESEARCH_QUEUE_ADD (is_in_research, DETAIL_NEXT)
             out: is_in_research and stabled
         """
-        logger.hr('Research queue add')
+        logger.hr('加入科研队列')
         # POPUP_CONFIRM has just been clicked in research_project_start()
         self.popup_interval_clear()
         self.interval_clear([RESEARCH_QUEUE_ADD])
@@ -41,7 +67,7 @@ class ResearchQueue(ResearchUI):
                     self.device.click(RESEARCH_QUEUE_ADD)
                     continue
                 else:
-                    logger.info('Project requirements not satisfied, cancel it')
+                    logger.info('[科研-队列] 项目条件未满足，取消')
                     self.research_detail_cancel()
                     return False
 
@@ -127,7 +153,7 @@ class ResearchQueue(ResearchUI):
                 return 'running'
             else:
                 return 'empty'
-        logger.warning(f'Unknown queue status from {button}, assume running')
+        logger.warning(f'[科研-队列] 未知的队列状态，来自 {button}，假设为运行中')
         return 'running'
 
     def get_queue_slot(self):
@@ -139,14 +165,14 @@ class ResearchQueue(ResearchUI):
             in: is_in_queue
         """
         status = [self._queue_status_detect(button) for button in self.queue_status_grids.buttons]
-        logger.info(f'Research queue: {status}')
+        logger.info(f'[科研-队列] 科研队列: {status}')
         status = status[::-1]
         for index, s in enumerate(status):
             if s != 'empty':
-                logger.attr('Research queue slot', index)
+                logger.attr('科研队列槽位', index)
                 return index
         index = len(status)
-        logger.attr('Research queue slot', index)
+        logger.attr('科研队列槽位', index)
         return index
 
     def get_research_ended(self):
@@ -161,14 +187,14 @@ class ResearchQueue(ResearchUI):
             GameBugError:
         """
         if self.image_color_count(QUEUE_REMAIN, color=(123, 125, 123), threshold=235, count=100):
-            logger.error('The first research of queue is not running,'
-                         'probably a game bug from AL,'
-                         'restart the game should fix it.')
+            logger.error('[科研-队列] 队列中第一个科研未运行，'
+                         '可能是游戏bug，'
+                         '重启游戏应该能修复。')
             raise GameBugError
         if not self.image_color_count(QUEUE_REMAIN, color=(255, 255, 255), threshold=221, count=100):
-            logger.info('Research queue empty')
+            logger.info('[科研-队列] 科研队列为空')
             return current_time()
 
         end_time = current_time() + OCR_QUEUE_REMAIN.ocr(self.device.image)
-        logger.info(f'The first research ended at: {end_time}')
+        logger.info(f'[科研-队列] 第一个科研结束时间: {end_time}')
         return end_time

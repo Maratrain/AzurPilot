@@ -1,3 +1,16 @@
+"""舰船经验识别模块。
+
+通过 OCR 识别舰船的等级和经验值，用于大世界中的经验监控。
+
+ShipLevel: 识别舰船等级（1-125），超出范围时返回 0。
+ShipExp: 识别舰船经验值，格式为 "当前经验/升级所需经验"。
+
+OCR 修正规则：
+- I -> 1, D -> 0, S -> 5, B -> 8（常见 OCR 误识别）
+
+继承自 Digit/Ocr，复用 OCR 基础设施。
+"""
+
 import re
 
 from module.awaken.assets import OCR_SHIP_LEVEL, OCR_SHIP_EXP
@@ -7,15 +20,25 @@ from module.ocr.ocr import Ocr, Digit
 
 
 class ShipLevel(Digit):
+    """舰船等级 OCR 识别器。
+
+    识别舰船等级，范围为 1-125。
+    """
+
     def after_process(self, result):
         result = super().after_process(result)
         if result < 1 or result > 125:
-            logger.warning('Unexpected ship level')
+            logger.warning('[大世界-经验] 意外的舰船等级')
             result = 0
         return result
 
 
 class ShipExp(Ocr):
+    """舰船经验值 OCR 识别器。
+
+    识别舰船经验值，格式为 "当前/所需"。
+    """
+
     def __init__(self, buttons, lang='azur_lane', letter=(255, 255, 255), threshold=64, alphabet='0123456789IDSBM/',
                  name=None):
         super().__init__(buttons, lang=lang, letter=letter, threshold=threshold, alphabet=alphabet, name=name)
@@ -46,7 +69,7 @@ class ShipExp(Ocr):
             current = int(result[0])
             return current
         else:
-            logger.warning(f'Unexpected ocr result: {result_list}')
+            logger.warning(f'[大世界-经验] 意外的OCR结果: {result_list}')
             return 0
 
 def ship_info_get_level_exp(main, skip_first_screenshot=True):

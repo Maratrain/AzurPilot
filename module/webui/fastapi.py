@@ -5,6 +5,8 @@ Copy from pywebio.platform.fastapi
 import asyncio
 import logging
 import os
+from collections import deque
+from collections.abc import Mapping
 from typing import Any, cast
 
 import uvicorn
@@ -34,10 +36,11 @@ Disallow: /
 
 logger = logging.getLogger(__name__)
 
-STATIC_ASSET_CACHE_CONTROL = "public, max-age=86400, must-revalidate"
+STATIC_ASSET_CACHE_CONTROL = "no-cache"
 NO_CACHE_CONTROL = "no-cache"
 HTTP_GZIP_MINIMUM_SIZE = 1024
 HTTP_GZIP_COMPRESS_LEVEL = 5
+WEBSOCKET_MAX_PENDING_MESSAGES = 2048
 
 
 class HeaderMiddleware(BaseHTTPMiddleware):
@@ -51,7 +54,7 @@ class HeaderMiddleware(BaseHTTPMiddleware):
             200 <= response.status_code < 300 or response.status_code == 304
         )
         if request.method in {"GET", "HEAD"} and is_static_asset and is_cacheable_response:
-            # 静态资源路径未使用内容哈希，缓存一天后仍通过 ETag 重新验证。
+            # 部分静态资源没有内容哈希，必须在每次使用前重新验证。
             response.headers["Cache-Control"] = STATIC_ASSET_CACHE_CONTROL
         else:
             response.headers["Cache-Control"] = NO_CACHE_CONTROL
@@ -71,43 +74,92 @@ class SafeWebSocketConnection(pywebio_fastapi.WebSocketConnection):
     """
     Starlette/websockets 不允许同一连接并发 send。
 
-    PyWebIO 默认实现会为每条消息创建独立 task，页面一次触发多条输出时，
-    底层 drain 可能断言失败并打印 "Task exception was never retrieved"。
+    使用单一发送协程保持消息顺序，避免为每条 PyWebIO 指令创建一个异步任务。
+    慢客户端积压超过上限时主动断开，防止一个浏览器拖垮整个事件循环。
     """
 
     def __init__(self, websocket, ioloop):
         super().__init__(websocket, ioloop)
-        self._send_lock = asyncio.Lock()
+        self._pending_messages = deque()
+        self._sender_task = None
+        self._close_requested = False
 
-    async def _safe_send_json(self, message):
-        async with self._send_lock:
-            if self.closed():
-                return
-            try:
-                await self.ws.send_json(message)
-            except TypeError:
-                logger.exception("PyWebIO 消息序列化失败，消息内容: %s", message)
-            except AssertionError, RuntimeError, WebSocketDisconnect:
-                logger.debug("WebSocket 已断开，跳过 PyWebIO 消息发送")
-            except Exception as e:
-                logger.debug("PyWebIO WebSocket 消息发送失败: %s", e)
+    def _transport_closed(self) -> bool:
+        return super().closed()
 
-    async def _safe_close(self):
-        async with self._send_lock:
-            if self.closed():
-                return
+    def closed(self) -> bool:
+        return self._close_requested or self._transport_closed()
+
+    def _ensure_sender(self) -> None:
+        if self._sender_task is None or self._sender_task.done():
+            self._sender_task = self.ioloop.create_task(self._drain_messages())
+
+    async def _drain_messages(self) -> None:
+        current_task = asyncio.current_task()
+        try:
+            while self._pending_messages and not self._transport_closed():
+                message = self._pending_messages.popleft()
+                try:
+                    await self.ws.send_json(message)
+                except TypeError:
+                    logger.exception("PyWebIO 消息序列化失败，消息内容: %s", message)
+                except (AssertionError, RuntimeError, WebSocketDisconnect):
+                    logger.debug("WebSocket 已断开，跳过 PyWebIO 消息发送")
+                    self._pending_messages.clear()
+                    return
+                except Exception as e:
+                    logger.debug("PyWebIO WebSocket 消息发送失败: %s", e)
+                    self._pending_messages.clear()
+                    return
+
+            if self._close_requested and not self._transport_closed():
+                await self._close_transport()
+        finally:
+            if self._sender_task is current_task:
+                self._sender_task = None
+
+    async def _close_transport(self) -> None:
+        if self._transport_closed():
+            return
+        try:
+            await self.ws.close()
+        except (AssertionError, RuntimeError, WebSocketDisconnect):
+            logger.debug("WebSocket 已断开，跳过 PyWebIO 连接关闭")
+        except Exception as e:
+            logger.debug("PyWebIO WebSocket 连接关闭失败: %s", e)
+
+    async def _abort_slow_client(self, sender_task) -> None:
+        if sender_task is not None and not sender_task.done():
+            sender_task.cancel()
             try:
-                await self.ws.close()
-            except AssertionError, RuntimeError, WebSocketDisconnect:
-                logger.debug("WebSocket 已断开，跳过 PyWebIO 连接关闭")
-            except Exception as e:
-                logger.debug("PyWebIO WebSocket 连接关闭失败: %s", e)
+                await sender_task
+            except asyncio.CancelledError:
+                pass
+        await self._close_transport()
 
     def write_message(self, message: dict):
-        self.ioloop.create_task(self._safe_send_json(message))
+        if self.closed():
+            return
+        if len(self._pending_messages) >= WEBSOCKET_MAX_PENDING_MESSAGES:
+            logger.warning(
+                "PyWebIO 客户端发送积压超过 %d 条，主动断开慢连接",
+                WEBSOCKET_MAX_PENDING_MESSAGES,
+            )
+            self._pending_messages.clear()
+            self._close_requested = True
+            sender_task = self._sender_task
+            self._sender_task = self.ioloop.create_task(
+                self._abort_slow_client(sender_task)
+            )
+            return
+        self._pending_messages.append(message)
+        self._ensure_sender()
 
     def close(self):
-        self.ioloop.create_task(self._safe_close())
+        if self._close_requested:
+            return
+        self._close_requested = True
+        self._ensure_sender()
 
 
 def patch_pywebio_websocket_connection():
@@ -116,11 +168,12 @@ def patch_pywebio_websocket_connection():
 
 def asgi_app(
     applications,
-    cdn: str | bool = True,
+    cdn: str | bool = False,
     static_dir=None,
     debug: bool = False,
     allowed_origins=None,
     check_origin=None,
+    static_mounts: Mapping[str, str] | None = None,
     **starlette_settings,
 ):
     debug = bool(os.environ.get("PYWEBIO_DEBUG", debug))
@@ -137,6 +190,9 @@ def asgi_app(
         check_origin=check_origin,
     )
     routes.insert(0, Route("/robots.txt", robots_txt, methods=["GET", "HEAD"]))
+    if static_mounts:
+        for mount_path, directory in static_mounts.items():
+            routes.append(Mount(mount_path, app=StaticFiles(directory=directory)))
     if static_dir:
         routes.append(
             Mount("/static", app=StaticFiles(directory=static_dir), name="static")
@@ -176,13 +232,14 @@ def start_server(
     applications,
     port=0,
     host="",
-    cdn: str | bool = True,
+    cdn: str | bool = False,
     static_dir=None,
     remote_access=False,
     debug=False,
     allowed_origins=None,
     check_origin=None,
     auto_open_webbrowser=False,
+    static_mounts: Mapping[str, str] | None = None,
     **uvicorn_settings,
 ):
 
@@ -190,6 +247,7 @@ def start_server(
         applications,
         cdn=cdn,
         static_dir=static_dir,
+        static_mounts=static_mounts,
         debug=debug,
         allowed_origins=allowed_origins,
         check_origin=check_origin,

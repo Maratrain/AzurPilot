@@ -1,3 +1,7 @@
+"""商店 UI 导航处理，管理商店页面的标签切换和导航栏。
+支持 2025-08-14 新 UI 的底部导航栏和标签页切换。
+"""
+
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.handler.assets import POPUP_CONFIRM
@@ -99,7 +103,7 @@ class ShopUI(UI):
         Returns:
             bool: 是否刷新成功
         """
-        logger.info('Shop refresh')
+        logger.info('[商店-UI] 刷新商店')
         refreshed = False
 
         # 点击刷新按钮，等待确认弹窗出现
@@ -117,7 +121,7 @@ class ShopUI(UI):
                     self.device.click(SHOP_REFRESH)
                     continue
                 if self.image_color_count(SHOP_REFRESH.button, color=(52, 74, 94), threshold=221, count=50):
-                    logger.info('Refresh not available')
+                    logger.info('[商店-UI] 刷新不可用')
                     break
                 # 不使用 continue，当作 SHOP_REFRESH 未匹配处理
                 self.interval_clear(SHOP_REFRESH)
@@ -127,7 +131,7 @@ class ShopUI(UI):
             if self.appear(SHOP_BACK_ARROW, offset=(30, 30)):
                 break
             if self.appear(SHOP_BUY_CONFIRM_MISTAKE, interval=3, offset=(200, 200)):
-                logger.warning('SHOP_BUY_CONFIRM_MISTAKE')
+                logger.warning('[商店-UI] 刷新确认错误')
                 self.ui_click(SHOP_CLICK_SAFE_AREA, appear_button=POPUP_CONFIRM, check_button=SHOP_BACK_ARROW,
                               offset=(20, 30), skip_first_screenshot=True)
                 refreshed = False
@@ -149,7 +153,7 @@ class ShopUI(UI):
             out: page_munitions
         """
         if self.ui_get_current_page() == page_munitions:
-            logger.info(f'Already at {page_munitions}')
+            logger.info(f'[商店-UI] 已在 {page_munitions}')
             return
 
         self.ui_ensure(page_academy)

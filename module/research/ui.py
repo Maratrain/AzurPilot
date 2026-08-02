@@ -1,3 +1,22 @@
+"""
+科研系统 UI 操作基类。
+
+本模块提供科研系统的底层 UI 操作，包括：
+- 页面检测：判断当前是否在科研主页或队列页面
+- 页面稳定性等待：等待科研卡片动画完成
+- 队列页面的进入和退出导航
+- 奖励物品的获取和掉落记录
+- 科研项目状态检测：通过模板匹配识别 waiting/running/detail 状态
+- 科研详情页的退出和取消操作
+
+本模块作为 ResearchSelector、ResearchQueue 和 RewardResearch
+的共同基类，提供统一的 UI 操作接口。
+
+术语对照：
+    科研队列(Research Queue): 科研页面中可容纳 5 个排队项目的区域
+    详情页(Detail): 点击科研项目后展开的详细信息页面
+    获取物品界面(Get Items): 领取科研奖励后弹出的物品展示界面
+"""
 from module.base.timer import Timer
 from module.base.utils import crop, rgb2gray
 from module.combat.assets import GET_ITEMS_1, GET_ITEMS_2, GET_ITEMS_3, GET_ITEMS_3_CHECK
@@ -10,16 +29,54 @@ from module.ui.ui import UI
 
 
 class ResearchUI(UI):
+    """
+    科研系统 UI 操作基类，提供科研页面的底层交互方法。
+
+    所有科研相关的 UI 操作（页面检测、稳定性等待、队列导航、
+    奖励领取、状态检测等）封装在此类中，供上层模块组合使用。
+
+    继承自 UI 基类，获得页面导航和通用 UI 操作能力。
+    """
     def is_in_research(self, interval=0):
+        """
+        检测当前是否在科研主页（项目列表页面）。
+
+        Args:
+            interval (int): 按钮检测的时间间隔，0 表示每次都检测。
+
+        Returns:
+            bool: 是否在科研主页。
+        """
         return self.appear(RESEARCH_CHECK, offset=(20, 20), interval=interval)
 
     def is_in_queue(self, interval=0):
+        """
+        检测当前是否在科研队列页面。
+
+        Args:
+            interval (int): 按钮检测的时间间隔，0 表示每次都检测。
+
+        Returns:
+            bool: 是否在科研队列页面。
+        """
         return self.appear(QUEUE_CHECK, offset=(20, 20), interval=interval)
 
     def ensure_research_stable(self):
+        """
+        等待科研项目列表页面的动画稳定。
+
+        确保科研卡片的切换/加载动画完成后才进行后续操作，
+        避免因动画未完成导致的误检测。
+        """
         self.wait_until_stable(STABLE_CHECKER)
 
     def ensure_research_center_stable(self):
+        """
+        等待科研项目列表中心区域的动画稳定。
+
+        与 ensure_research_stable 类似，但使用中心区域的检测器，
+        适用于从队列页面返回等场景。
+        """
         self.wait_until_stable(STABLE_CHECKER_CENTER)
 
     def queue_enter(self, skip_first_screenshot=True):
@@ -37,7 +94,7 @@ class ResearchUI(UI):
             in: is_in_queue
             out: is_in_research, project stabled
         """
-        logger.info('Queue quit')
+        logger.info('[科研-队列] 退出队列')
         for _ in self.loop():
             if self.is_in_research():
                 break
@@ -47,11 +104,11 @@ class ResearchUI(UI):
             # handle get_items
             # get_items should be handled when receiving, but sometimes just slow network
             if self.appear(GET_ITEMS_1, offset=(20, 20), interval=3):
-                logger.info(f'{GET_ITEMS_1} -> {GET_ITEMS_RESEARCH_SAVE}')
+                logger.info(f'[科研-队列] {GET_ITEMS_1} -> {GET_ITEMS_RESEARCH_SAVE}')
                 self.device.click(GET_ITEMS_RESEARCH_SAVE)
                 continue
             if self.appear(GET_ITEMS_2, offset=(20, 20), interval=3):
-                logger.info(f'{GET_ITEMS_1} -> {GET_ITEMS_RESEARCH_SAVE}')
+                logger.info(f'[科研-队列] {GET_ITEMS_1} -> {GET_ITEMS_RESEARCH_SAVE}')
                 self.device.click(GET_ITEMS_RESEARCH_SAVE)
                 continue
 
@@ -112,14 +169,31 @@ class ResearchUI(UI):
             else:
                 out.append('unknown')
 
-        logger.info(f'Research status: {out}')
+        logger.info(f'[科研-状态] 科研状态: {out}')
         return out
 
     def is_research_stabled(self):
+        """
+        检测科研主页是否已稳定（无动画进行中）。
+
+        通过检测是否存在 'detail' 状态的项目来判断页面是否已加载完成。
+
+        Returns:
+            bool: 科研主页是否已稳定。
+        """
         return self.is_in_research() and 'detail' in self.get_research_status(self.device.image)
 
     def research_detail_quit(self, skip_first_screenshot=True):
-        logger.info('Research detail quit')
+        """
+        从科研详情页退回科研主页。
+
+        点击详情页的退出按钮，等待回到稳定的项目列表页面。
+        不取消正在进行的科研项目。
+
+        Args:
+            skip_first_screenshot (bool): 是否跳过首次截图。
+        """
+        logger.info('[科研-详情] 退出科研详情')
         click_timer = Timer(10)
         while 1:
             if skip_first_screenshot:
@@ -138,7 +212,16 @@ class ResearchUI(UI):
                     click_timer.reset()
 
     def research_detail_cancel(self, skip_first_screenshot=True):
-        logger.info('Research detail cancel')
+        """
+        取消正在进行的科研项目并退回科研主页。
+
+        点击停止按钮取消当前项目，确认弹窗后等待回到稳定的项目列表页面。
+        与 research_detail_quit 不同，此方法会取消正在运行的科研。
+
+        Args:
+            skip_first_screenshot (bool): 是否跳过首次截图。
+        """
+        logger.info('[科研-详情] 取消科研项目')
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False

@@ -1,3 +1,10 @@
+"""海上护卫活动执行模块。
+
+实现海上护卫活动的自动化执行。进入关卡后立即撤退，
+以较低消耗获取约 70% 的最大奖励。使用 OCR 识别剩余
+挑战次数，每日自动执行直至次数耗尽。
+"""
+
 from module.campaign.campaign_event import CampaignEvent
 from module.event.assets import *
 from module.exception import CampaignEnd
@@ -45,14 +52,14 @@ class MaritimeEscort(MapOperation, CampaignEvent):
             in: ESCORT_CHECK
             out: ESCORT_CHECK
         """
-        logger.hr('Maritime escort', level=1)
+        logger.hr('海上护卫', level=1)
         try:
             self.enter_map(ESCORT_HARD_ENTRANCE, mode='escort')
             self.withdraw()
         except CampaignEnd:
             pass
 
-        logger.info('Maritime escort finished')
+        logger.info('[活动-护航] 海上护卫完成')
 
     def run(self):
         """执行海上护卫主流程。
@@ -72,6 +79,6 @@ class MaritimeEscort(MapOperation, CampaignEvent):
         if current > 0:
             self.run_escort()
         else:
-            logger.info('Maritime escort already finished')
+            logger.info('[活动-护航] 海上护卫今日已完成')
 
         self.config.task_delay(server_update=True)

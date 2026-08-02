@@ -1,3 +1,31 @@
+"""
+小游戏自动化模块。
+
+管理学院游戏室（Game Room）中的小游戏自动化流程。
+负责游戏券/代币的收集、小游戏选择、游玩和退出。
+
+主要功能：
+    - OCR 识别当前代币数量
+    - 自动收集游戏代币
+    - 导航至游戏室主页
+    - 选择并游玩特定小游戏（如新年挑战）
+    - 处理弹窗（代币已满、游戏券不足等）
+
+代币机制：
+    - 最大代币上限为 40，OCR 超过 40 时截断
+    - 代币数量 <= 30 时尝试自动收集
+    - 代币为 0 时结束游玩循环
+    - 每局游玩后根据配置决定下次游玩时间
+
+依赖关系：
+    - MinigameRun: 小游戏运行基类，定义选择/游玩/退出模板方法
+    - Minigame: 主任务类，组合代币管理、游戏室导航和游玩循环
+
+Pages:
+    游戏室页面：page_game_room
+    学院页面：page_academy
+"""
+
 import module.config.server as server
 from module.combat.assets import GET_ITEMS_1
 from module.logger import logger
@@ -21,6 +49,22 @@ else:
 MINIGAME_SCROLL = Scroll(MINIGAME_SCROLL_AREA, color=(247, 247, 247), name='MINIGAME_SCROLL')
 
 class MinigameRun(UI):
+    """
+    小游戏运行基类。
+
+    定义小游戏的通用运行流程模板：导航至游戏列表、选择游戏、
+    投入代币、游玩、退出。具体游戏逻辑由子类实现。
+
+    子类需要重写以下方法：
+        - choose_game(): 从游戏列表中选择目标游戏
+        - use_coin(): 投入代币并准备游玩
+        - play_game(): 执行游戏的具体操作
+        - exit_game(): 退出当前游戏
+        - deal_specific_popup(): 处理特定游戏的弹窗
+
+    属性:
+        无额外属性，所有状态通过方法参数传递
+    """
 
     def minigame_run(self, skip_first_screenshot=True):
         """
@@ -30,10 +74,10 @@ class MinigameRun(UI):
         Return:
             False if unable or unnecessary to play
         """
-        logger.hr('Minigame run', level=1)
+        logger.hr('[小游戏] 运行', level=1)
 
         # page_game_room main_page -> MINIGAME_SCROLL
-        logger.info("Enter minigame")
+        logger.info("[小游戏] 进入小游戏")
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -52,14 +96,14 @@ class MinigameRun(UI):
                 # that won't enter any minigame on the minigame list page
                 continue
 
-        logger.info("Choose minigame")
+        logger.info("[小游戏] 选择小游戏")
         self.choose_game()
         # try to add coins, if failed, skip play
         add_coin_result = self.use_coin()
         if add_coin_result:
-            logger.hr("Play minigame", level=2)
+            logger.hr("[小游戏] 游玩", level=2)
             self.play_game()
-        logger.info("Exit minigame")
+        logger.info("[小游戏] 退出小游戏")
         self.exit_game()
         return add_coin_result
 
@@ -109,6 +153,26 @@ class MinigameRun(UI):
 
 
 class Minigame(UI):
+    """
+    小游戏主任务类。
+
+    管理小游戏任务的完整生命周期：从学院页面导航到游戏室，
+    收集代币，选择并游玩小游戏，直到代币耗尽或达到游玩上限。
+
+    流程概要：
+        1. 从任意页面导航至学院 -> 游戏室主页
+        2. OCR 读取代币数量
+        3. 代币 <= 30 时尝试自动收集
+        4. 代币 > 0 时选择小游戏并游玩（最多 10 次）
+        5. 代币耗尽后调度下次运行
+
+    配置项:
+        通过 self.config.task_delay(server_update=True) 调度下次运行
+
+    Pages:
+        任务入口页面：任意页面
+        任务结束页面：page_game_room
+    """
 
     def get_coin_amount(self, skip_first_screenshot=True):
         """
@@ -131,7 +195,7 @@ class Minigame(UI):
             in: page_game_room main_page/choose_game_page
             out: page_game_room main_page
         """
-        logger.info('minigame go_to_main_page')
+        logger.info('[小游戏] 前往主页')
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -219,7 +283,7 @@ class Minigame(UI):
                 break
             # ocr to get coin count and ticket count
             coin_count = self.get_coin_amount()
-            logger.info(f"coin count : {coin_count}")
+            logger.info(f"[小游戏] 硬币数量: {coin_count}")
             # collect coins
             if coin_count <= 30 and not coin_collected:
                 coin_collected = True
@@ -227,15 +291,15 @@ class Minigame(UI):
                     continue
             # no coin left
             if coin_count == 0:
-                logger.info(f"coin count : {coin_count}, finished")
+                logger.info(f"[小游戏] 硬币数量: {coin_count}, 游玩结束")
                 break
-            logger.info(f"coin count > 0, spend")
+            logger.info("[小游戏] 硬币数量 > 0，消费")
             # specific game logic
             if minigame_instance is not None and minigame_instance.minigame_run():
                 play_count += 1
                 continue
             elif minigame_instance is None:
-                logger.error(f"unknown game name {specific_game_name}")
+                logger.error(f"[小游戏] 未知的游戏名称 {specific_game_name}")
                 break
             else:
                 break

@@ -1,3 +1,13 @@
+"""地图检测工具函数。
+
+提供地图网格检测中使用的几何计算工具，包括：
+- Points 类：二维点集的操作（排序、变换、拟合）
+- 坐标转换：梯形区域到矩形区域的转换
+- 矩形操作：区域填充、裁剪等
+
+这些工具被透视检测（Perspective）和网格检测（Grid）模块广泛使用。
+"""
+
 import numpy as np
 from scipy import optimize
 
@@ -5,6 +15,16 @@ from module.base.utils import area_pad
 
 
 class Points:
+    """二维点集操作类。
+
+    封装 numpy 数组，提供点集的便捷操作方法。
+    支持迭代、索引、长度查询等基本操作。
+
+    Attributes:
+        points (np.ndarray): 形状为 (N, 2) 的点集数组。
+        x (np.ndarray): 所有点的 x 坐标数组。
+        y (np.ndarray): 所有点的 y 坐标数组。
+    """
     def __init__(self, points):
         if points is None or len(points) == 0:
             self._bool = False

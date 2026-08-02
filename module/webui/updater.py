@@ -1,3 +1,10 @@
+"""
+Web界面更新管理器。
+
+继承 DeployConfig 和 GitManager，提供 Alas 的自动更新、Git 操作、
+依赖同步和版本检查功能。通过后台线程执行更新任务。
+"""
+
 import datetime
 import subprocess
 import threading
@@ -83,16 +90,16 @@ class Updater(DeployConfig, GitManager):
             self.cloud_update_access_failed(fatal=False)
             return False
         if not cloud_update:
-            logger.info("Cloud update flag is false, skip update check")
+            logger.info("云更新标志为false，跳过更新检查")
             return False
 
         if State.deploy_config.GitOverCdn:
             status = self.goc_client.get_status()
             if status == "uptodate":
-                logger.info(f"No update")
+                logger.info(f"无更新")
                 return False
             elif status == "behind":
-                logger.info(f"New update available")
+                logger.info(f"有新更新可用")
                 return True
             else:
                 # failed, should fallback to `git pull`
@@ -105,7 +112,7 @@ class Updater(DeployConfig, GitManager):
             ):
                 break
         else:
-            logger.warning("Git fetch failed")
+            logger.warning("Git获取失败")
             return False
 
         log = self.execute_output(
@@ -113,18 +120,18 @@ class Updater(DeployConfig, GitManager):
         )
         if log:
             logger.info(
-                f"Cannot find local commit {log.split()[0]} in upstream, skip update"
+                f"[WebUI-更新] 无法在上游找到本地提交 {log.split()[0]}，跳过更新"
             )
             return False
 
         sha1, _, _, message = self.get_commit(f"..{source}/{self.Branch}")
 
         if sha1:
-            logger.info(f"New update available")
+            logger.info(f"有新更新可用")
             logger.info(f"{sha1[:8]} - {message}")
             return True
         else:
-            logger.info(f"No update")
+            logger.info(f"无更新")
             return False
 
     def _check_update_(self) -> bool:
@@ -158,23 +165,23 @@ class Updater(DeployConfig, GitManager):
             )
         except Exception as e:
             logger.exception(e)
-            logger.warning("Check update failed")
+            logger.warning("检查更新失败")
             return 0
 
         if list_commit.status_code != 200:
-            logger.warning(f"Check update failed, code {list_commit.status_code}")
+            logger.warning(f"检查更新失败，状态码 {list_commit.status_code}")
             return 0
         try:
             sha = list_commit.json()["commit"]["sha"]
         except Exception as e:
             logger.exception(e)
-            logger.warning("Check update failed when parsing return json")
+            logger.warning("解析返回JSON时检查更新失败")
             return 0
 
         local_sha, _, _, _ = self._get_local_commit()
 
         if sha == local_sha:
-            logger.info("No update")
+            logger.info("无更新")
             return 0
 
         try:
@@ -186,17 +193,17 @@ class Updater(DeployConfig, GitManager):
             )
         except Exception as e:
             logger.exception(e)
-            logger.warning("Check update failed")
+            logger.warning("检查更新失败")
             return 0
 
         if get_commit.status_code != 200:
             # for develops
             logger.info(
-                f"Cannot find local commit {local_sha[:8]} in upstream, skip update"
+                f"[WebUI-更新] 无法在上游找到本地提交 {local_sha[:8]}，跳过更新"
             )
             return 0
 
-        logger.info(f"Update {sha[:8]} available")
+        logger.info(f"更新 {sha[:8]} 可用")
         return 1
 
     def _check_update_thread(self):
@@ -221,7 +228,7 @@ class Updater(DeployConfig, GitManager):
         return super().git_install()
 
     def update(self):
-        logger.hr("Run update")
+        logger.hr("[WebUI-更新] 执行更新")
         try:
             self.git_install()
         except ExecutionError:
@@ -265,7 +272,7 @@ class Updater(DeployConfig, GitManager):
         for alas in instances:
             names.append(alas.config_name + "\n")
 
-        logger.info("Waiting all running alas finish.")
+        logger.info("[WebUI-更新] 等待所有运行中的 Alas 完成")
         return self._wait_update(instances, names)
 
     def _wait_update(self, instances: List[ProcessManager], names) -> bool:
@@ -280,8 +287,8 @@ class Updater(DeployConfig, GitManager):
             for alas in _instances:
                 if not alas.alive:
                     _instances.remove(alas)
-                    logger.info(f"Alas [{alas.config_name}] stopped")
-                    logger.info(f"Remains: {[alas.config_name for alas in _instances]}")
+                    logger.info(f"[WebUI-更新] Alas [{alas.config_name}] 已停止")
+                    logger.info(f"[WebUI-更新] 剩余: {[alas.config_name for alas in _instances]}")
             if self.state == "cancel":
                 self.state = 1
                 self.event.clear()
@@ -289,7 +296,7 @@ class Updater(DeployConfig, GitManager):
                 return True
             time.sleep(0.25)
             if time.time() - start_time > 60 * 10:
-                logger.warning("Waiting alas shutdown timeout, force kill")
+                logger.warning("[WebUI-更新] 等待 Alas 关闭超时，强制终止")
                 failed = []
                 for alas in _instances:
                     stopped = alas.stop()
@@ -322,7 +329,7 @@ class Updater(DeployConfig, GitManager):
                 return False
 
             self.state = "run update"
-            logger.info("All alas stopped, start updating")
+            logger.info("[WebUI-更新] 所有 Alas 已停止，开始更新")
 
             # 更新前先持久化恢复计划。Git 的 reset/pull 即使报错也可能已修改源码，
             # 因而一旦开始更新，worker 只能由父进程完成依赖同步后恢复。
@@ -350,7 +357,7 @@ class Updater(DeployConfig, GitManager):
                 # Git 更新失败时不能假定工作树保持旧版本：git reset/pull 可能已部分完成。
                 # 保留已写入的同步和恢复计划，交由父进程以一致环境重启。
                 self.state = "failed"
-                logger.warning("更新失败，将由父进程完成依赖同步后重启")
+                logger.warning("[WebUI-更新] 更新失败，将由父进程完成依赖同步后重启")
 
             try:
                 State._restart_requested = True
@@ -369,7 +376,7 @@ class Updater(DeployConfig, GitManager):
 
                 cleaned = clearup()
                 if cleaned is False:
-                    logger.warning("WebUI 清理未完成，将由父进程终止完整进程树后再重启")
+                    logger.warning("[WebUI-更新] WebUI 清理未完成，将由父进程终止完整进程树后再重启")
             except Exception as exc:
                 logger.exception_context(
                     title='WebUI 清理失败，继续重启',

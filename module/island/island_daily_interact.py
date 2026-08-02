@@ -1,3 +1,8 @@
+"""岛屿每日互动任务模块。
+
+处理岛屿低频互动任务的自动化执行，包括摸猫、JUU 速运、商区外送服务和每周照相。
+结合开发计划任务列表区域检测，按顺序执行所有已启用的互动任务。
+"""
 from datetime import timedelta
 
 from module.config.time_source import now as current_time
@@ -21,7 +26,7 @@ class IslandDailyInteract(Island):
 
     def run(self):
         """执行启用的岛屿低频互动任务。"""
-        logger.hr('Island Daily Interact Run', level=1)
+        logger.hr('岛屿每日互动运行', level=1)
         self.ui_ensure(page_island)
 
         all_done = True
@@ -48,7 +53,7 @@ class IslandDailyInteract(Island):
         """
         from module.island_daily_interact.assets import PET_CAT_FARM_INTERACT
 
-        logger.hr('Pet Cat', level=2)
+        logger.hr('撸猫', level=2)
         if not self.island_map_goto('farm'):
             logger.warning('[岛屿-每日周任务] 前往晨露农场失败，跳过摸猫任务')
             return False
@@ -75,7 +80,7 @@ class IslandDailyInteract(Island):
             TEMPLATE_JUU_EXPRESS_TASK_ICON,
         )
 
-        logger.hr('JUU Express', level=2)
+        logger.hr('JUU快递', level=2)
         if not self._detect_development_plan_template_task(
                 task_template=TEMPLATE_JUU_EXPRESS_TASK_ICON,
                 tab_button=DEVELOPMENT_PLAN_DAILY_TAB,
@@ -119,7 +124,7 @@ class IslandDailyInteract(Island):
             TEMPLATE_BUSINESS_DELIVERY_TASK_ICON,
         )
 
-        logger.hr('Business Delivery', level=2)
+        logger.hr('商业配送', level=2)
         if not self._detect_development_plan_template_task(
                 task_template=TEMPLATE_BUSINESS_DELIVERY_TASK_ICON,
                 tab_button=DEVELOPMENT_PLAN_DAILY_TAB,
@@ -165,7 +170,7 @@ class IslandDailyInteract(Island):
             WEEKLY_PHOTO_TASK_CHECK,
         )
 
-        logger.hr('Weekly Photo', level=2)
+        logger.hr('每周拍照', level=2)
         completed = True
         while 1:
             if not self._start_development_plan_template_task(

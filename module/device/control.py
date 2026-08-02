@@ -1,3 +1,9 @@
+"""设备输入控制模块。
+
+统一管理所有触控操作（点击、长按、滑动、拖拽），根据配置的控制方法
+（ADB、uiautomator2、minitouch、Hermit、MaaTouch、scrcpy、nemu_ipc）
+自动分发到对应的底层实现。
+"""
 from module.base.button import Button
 from module.base.decorator import cached_property
 from module.base.timer import Timer
@@ -11,12 +17,24 @@ from module.logger import logger
 
 
 class Control(Hermit, Minitouch, Scrcpy, MaaTouch, NemuIpc):
+    """设备触控控制调度器。
+
+    通过多重继承组合所有控制后端（Hermit、Minitouch、Scrcpy、MaaTouch、NemuIpc），
+    根据用户配置的 Emulator_ControlMethod 自动分发到对应后端实现。
+    提供统一的点击、长按、滑动、拖拽接口。
+    """
     def handle_control_check(self, button):
         # 将在 Device 中被重写
         pass
 
     @cached_property
     def click_methods(self):
+        """返回控制方法名到点击实现的映射字典。
+
+        Returns:
+            dict[str, Callable]: 键为控制方法名（如 'ADB'、'minitouch'），
+                值为对应的点击方法。
+        """
         return {
             'ADB': self.click_adb,
             'uiautomator2': self.click_uiautomator2,
@@ -38,7 +56,7 @@ class Control(Hermit, Minitouch, Scrcpy, MaaTouch, NemuIpc):
         x, y = random_rectangle_point(button.button)
         x, y = ensure_int(x, y)
         logger.info(
-            'Click %s @ %s' % (point2str(x, y), button)
+            '[设备-控制] 点击 %s @ %s' % (point2str(x, y), button)
         )
         method = self.click_methods.get(
             self.config.Emulator_ControlMethod,
@@ -47,6 +65,13 @@ class Control(Hermit, Minitouch, Scrcpy, MaaTouch, NemuIpc):
         method(x, y)
 
     def multi_click(self, button, n, interval=(0.1, 0.2)):
+        """对按钮执行多次连续点击。
+
+        Args:
+            button (button.Button): 碧蓝航线按钮实例。
+            n (int): 点击次数。
+            interval (tuple): 两次点击之间的间隔范围（秒），格式为 (最小值, 最大值)。
+        """
         self.handle_control_check(button)
         click_timer = Timer(0.1)
         for _ in range(n):
@@ -69,7 +94,7 @@ class Control(Hermit, Minitouch, Scrcpy, MaaTouch, NemuIpc):
         x, y = ensure_int(x, y)
         duration = ensure_time(duration)
         logger.info(
-            'Click %s @ %s, %s' % (point2str(x, y), button, duration)
+            '[设备-控制] 长按 %s @ %s, %s' % (point2str(x, y), button, duration)
         )
         method = self.config.Emulator_ControlMethod
         if method == 'minitouch':
@@ -86,24 +111,36 @@ class Control(Hermit, Minitouch, Scrcpy, MaaTouch, NemuIpc):
             self.swipe_adb((x, y), (x, y), duration)
 
     def swipe(self, p1, p2, duration=(0.1, 0.2), name='SWIPE', distance_check=True):
+        """在两点之间执行滑动操作。
+
+        ADB 方式的滑动持续时间会自动乘以 2.5 以保证有效性。
+        距离检查会丢弃小于 10 像素的滑动（碧蓝航线会将其视为点击）。
+
+        Args:
+            p1 (tuple): 起始坐标 (x, y)。
+            p2 (tuple): 终点坐标 (x, y)。
+            duration (int, float, tuple): 滑动持续时间（秒）。
+            name (str): 滑动操作名称，用于日志输出。
+            distance_check (bool): 是否检查滑动距离，距离过小时跳过操作。
+        """
         self.handle_control_check(name)
         p1, p2 = ensure_int(p1, p2)
         duration = ensure_time(duration)
         method = self.config.Emulator_ControlMethod
         if method == 'uiautomator2':
-            logger.info('Swipe %s -> %s, %s' % (point2str(*p1), point2str(*p2), duration))
+            logger.info('[设备-控制] 滑动 %s -> %s, %s' % (point2str(*p1), point2str(*p2), duration))
         elif method in ['minitouch', 'MaaTouch', 'scrcpy', 'nemu_ipc']:
-            logger.info('Swipe %s -> %s' % (point2str(*p1), point2str(*p2)))
+            logger.info('[设备-控制] 滑动 %s -> %s' % (point2str(*p1), point2str(*p2)))
         else:
             # ADB 需要更慢的速度，否则滑动可能无效
             duration *= 2.5
-            logger.info('Swipe %s -> %s, %s' % (point2str(*p1), point2str(*p2), duration))
+            logger.info('[设备-控制] 滑动 %s -> %s, %s' % (point2str(*p1), point2str(*p2), duration))
 
         if distance_check:
             if np.linalg.norm(np.subtract(p1, p2)) < 10:
                 # 需要滑动一定距离，否则碧蓝航线会将其视为点击
                 # uiautomator2 需要 >= 6px，minitouch 需要 >= 5px
-                logger.info('Swipe distance < 10px, dropped')
+                logger.info('[设备-控制] 滑动 距离 < 10px，丢弃')
                 return
 
         if method == 'minitouch':
@@ -147,10 +184,26 @@ class Control(Hermit, Minitouch, Scrcpy, MaaTouch, NemuIpc):
 
     def drag(self, p1, p2, segments=1, shake=(0, 15), point_random=(-10, -10, 10, 10), shake_random=(-5, -5, 5, 5),
              swipe_duration=0.25, shake_duration=0.1, name='DRAG'):
+        """执行拖拽操作，支持分段滑动和松手后的抖动模拟。
+
+        用于碧蓝航线中需要精确拖拽的场景（如装备拖放、编队调整）。
+        不支持拖拽的后端会回退到 ADB 滑动 + 点击。
+
+        Args:
+            p1 (tuple): 起始坐标 (x, y)。
+            p2 (tuple): 终点坐标 (x, y)。
+            segments (int): 滑动分段数。
+            shake (tuple): 松手后的抖动偏移量 (x, y)。
+            point_random (tuple): 起点随机偏移范围 (x_min, y_min, x_max, y_max)。
+            shake_random (tuple): 抖动的随机偏移范围 (x_min, y_min, x_max, y_max)。
+            swipe_duration (float): 滑动持续时间（秒）。
+            shake_duration (float): 抖动持续时间（秒）。
+            name (str): 拖拽操作名称，用于日志输出。
+        """
         self.handle_control_check(name)
         p1, p2 = ensure_int(p1, p2)
         logger.info(
-            'Drag %s -> %s' % (point2str(*p1), point2str(*p2))
+            '[设备-控制] 拖拽 %s -> %s' % (point2str(*p1), point2str(*p2))
         )
         method = self.config.Emulator_ControlMethod
         if method == 'minitouch':
@@ -166,12 +219,21 @@ class Control(Hermit, Minitouch, Scrcpy, MaaTouch, NemuIpc):
         elif method == 'nemu_ipc':
             self.drag_nemu_ipc(p1, p2, point_random=point_random)
         else:
-            logger.warning(f'Control method {method} does not support drag well, '
-                           f'falling back to ADB swipe may cause unexpected behaviour')
+            logger.warning(f'[设备-控制] 控制方式 {method} 不支持拖拽，'
+                           f'回退到 ADB 滑动可能导致意外行为')
             self.swipe_adb(p1, p2, duration=ensure_time(swipe_duration * 2))
             self.click(Button(area=(), color=(), button=area_offset(point_random, p2), name=name), False)
 
     def island_swipe_hold(self, p1, p2, hold_time):
+        """岛屿系统专用的滑动并保持操作。
+
+        在两点之间滑动并在终点保持一段时间，用于岛屿内的交互操作。
+
+        Args:
+            p1 (tuple): 起始坐标 (x, y)。
+            p2 (tuple): 终点坐标 (x, y)。
+            hold_time (int, float, tuple): 在终点保持的时间（秒）。
+        """
         p1, p2 = ensure_int(p1, p2)
         hold_time = ensure_time(hold_time)
         method = self.config.Emulator_ControlMethod

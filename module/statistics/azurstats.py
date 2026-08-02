@@ -1,3 +1,14 @@
+"""AzurStats 本地统计与掉落截图管理模块。
+
+提供掉落记录（Drop Record）的截图保存、本地解析和数据存储功能。
+支持将战斗掉落截图保存到本地文件系统，并通过 OCR 解析截图中的物品信息
+存入 SQLite 数据库，用于大世界指挥喵 farming 等场景的统计分析。
+
+主要组件：
+    - DropImage: 掉落截图的上下文管理器，用于收集截图并在退出时提交。
+    - AzurStats: 统计管理核心类，负责截图保存、本地数据解析和数据库操作。
+"""
+
 import threading
 import os
 import sqlite3
@@ -15,13 +26,34 @@ from module.base.device_id import get_device_id
 
 
 class DropImage:
+    """掉落截图上下文管理器，用于收集截图并在退出时统一提交。
+
+    作为上下文管理器使用（with 语句），在退出时自动调用 AzurStats.commit()
+    将收集到的截图进行保存和/或本地解析。
+
+    Attributes:
+        stat (AzurStats): 关联的 AzurStats 实例。
+        genre (str): 掉落记录的分类标识（如 'opsi_meowfficer_farming'）。
+        save (bool): 是否保存截图到本地文件系统。
+        local (bool): 是否解析截图并存入本地数据库。
+        info (str): 附加信息，会追加到保存的文件名中。
+        images (list[np.ndarray]): 已收集的截图列表。
+        combat_count (int): 战斗记录轮数，用于统计计算。
+
+    Examples:
+        >>> with azur_stats.new('opsi_meowfficer_farming') as drop:
+        ...     drop.add(screenshot)
+        # 退出 with 块时自动提交截图
+    """
+
     def __init__(self, stat, genre, save, local, info=''):
         """
         Args:
-            stat (AzurStats):
-            genre:
-            save:
-            local:
+            stat (AzurStats): 关联的 AzurStats 实例。
+            genre (str): 掉落记录的分类标识。
+            save (bool): 是否保存截图到本地文件系统。
+            local (bool): 是否解析截图并存入本地数据库。
+            info (str): 附加信息，追加到文件名。
         """
         self.stat = stat
         self.genre = str(genre)
@@ -81,6 +113,30 @@ class DropImage:
 
 
 class AzurStats:
+    """AzurStats 统计管理核心类，负责掉落截图的保存、解析和数据存储。
+
+    提供两种数据处理路径：
+        - 远程上传（已废弃）：将截图提交到远程 AzurStats 服务。
+        - 本地处理：将截图中的物品信息解析后存入 SQLite 数据库，
+          并生成统计汇总 CSV 文件（如指挥喵 farming 统计）。
+
+    线程安全：
+        使用 _local_lock 和 _record_lock 两个线程锁保护数据库写入操作，
+        支持多线程并发调用。
+
+    类属性:
+        TIMEOUT (int): 请求超时时间（秒）。
+        LOCAL_DB (str): 本地 SQLite 数据库路径。
+        LOCAL_MEOW_CSV (str): 指挥喵 farming 统计 CSV 路径。
+        LOCAL_GENRES (set): 需要本地处理的记录分类集合。
+
+    Examples:
+        >>> stats = AzurStats(config)
+        >>> with stats.new('opsi_meowfficer_farming') as drop:
+        ...     drop.handle_add(main)
+        # 退出 with 块时自动提交并解析
+    """
+
     TIMEOUT = 20
     LOCAL_DB = './config/azurstats_local.db'
     LOCAL_MEOW_CSV = './log/azurstat_meowofficer_farming.csv'
@@ -284,14 +340,14 @@ class AzurStats:
         try:
             rows = self._parse_local_opsi_items(image, imgid, genre, combat_count)
             if not rows:
-                logger.warning('Local AzurStats parse skipped, no opsi item rows extracted')
+                logger.warning('本地碧蓝统计解析跳过, no opsi item rows extracted')
                 return False
             inserted = self._insert_local_opsi_items(rows)
             self.get_meowofficer_farming()
-            logger.info(f'Local AzurStats parse success, rows={inserted}')
+            logger.info(f'本地碧蓝统计解析成功，行数={inserted}')
             return True
         except Exception as e:
-            logger.warning(f'Local AzurStats parse failed, {e}')
+            logger.warning(f'本地碧蓝统计解析失败, {e}')
             return False
 
     def _save(self, image, genre, filename):
@@ -310,7 +366,7 @@ class AzurStats:
             os.makedirs(folder, exist_ok=True)
             file = os.path.join(folder, filename)
             save_image(image, file)
-            logger.info(f'Image save success, file: {file}')
+            logger.info(f'图片保存成功，文件: {file}')
             return True
         except Exception as e:
             logger.exception(e)
@@ -349,7 +405,7 @@ class AzurStats:
             save_thread.start()
 
         if local:
-            logger.info(f'Local AzurStats parse start, genre={genre}')
+            logger.info(f'本地碧蓝统计解析开始，类型={genre}')
             with self._record_lock:
                 self._record_local(image, genre, filename, combat_count)
 

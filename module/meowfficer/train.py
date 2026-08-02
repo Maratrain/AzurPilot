@@ -1,3 +1,22 @@
+"""指挥喵训练模块。
+
+处理指挥喵训练相关的所有操作，包括：
+- 训练队列管理：自动将指挥喵猫箱排队进行训练
+- 收集已训练完成的指挥喵
+- 根据库存情况选择升序或降序排队策略
+
+排队策略说明：
+- 升序排队（ascending=True）：优先使用普通猫箱（蓝/紫），保留金色猫箱
+  - 当普通猫箱库存 > 20 时使用，避免金色猫箱被优先消耗
+- 降序排队（ascending=False）：优先使用稀有猫箱（金/紫/蓝），系统自动分配
+
+训练模式（`MeowfficerTrain_Mode`）：
+- `seamlessly`（无缝模式）：训练与强化无缝衔接，使用降序排队
+- 默认模式：周日收集全部，工作日收集单个
+
+配置项前缀：`MeowfficerTrain_*`
+"""
+
 from copy import deepcopy
 
 from module.base.button import ButtonGrid
@@ -22,6 +41,19 @@ MEOWFFICER_BOX_COUNT = Digit(MEOWFFICER_BOX_COUNT_GRID.buttons,
 
 
 class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
+    """指挥喵训练处理器。
+
+    管理指挥喵的训练流程，包括猫箱排队、训练队列管理和已训练指挥喵的收集。
+    支持两种排队模式：系统自动排队（降序）和手动排队（升序）。
+
+    继承关系：
+        MeowfficerCollect: 指挥喵收集功能（收集已训练的指挥喵）
+        MeowfficerEnhance: 指挥喵强化功能（消耗多余指挥喵提供经验）
+
+    Attributes:
+        _box_count (list[int]): 三种猫箱（蓝/紫/金）的数量列表，
+            在 `meow_train()` 中通过 OCR 读取。
+    """
     _box_count = [0, 0, 0]
 
     def _meow_queue_enter(self, skip_first_screenshot=True):
@@ -58,7 +90,7 @@ class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
             if self.appear(MEOWFFICER_TRAIN_FILL_QUEUE, offset=(20, 20)):
                 return True
             if self.info_bar_count():
-                logger.info('No more slots to train, exit')
+                logger.info('[指挥喵-训练] 没有更多训练栏位，退出')
                 return False
 
     def _meow_nqueue(self, skip_first_screenshot=True):
@@ -121,7 +153,7 @@ class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
 
             # Loop as needed to queue boxes appropriately
             for i, j in ((0, 2), (1, 1)):
-                logger.attr(f'Meowfficer_box_count_rqueue_during (index {i})', local_count)
+                logger.attr(f'训练中猫箱数量 (索引 {i})', local_count)
                 count = local_count[i] - remain
                 if count < 0:
                     self.device.multi_click(buttons[j], remain + count)
@@ -132,7 +164,7 @@ class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
                     local_count[i] -= remain
                     break
 
-            logger.attr('Meowfficer_box_count_rqueue_done', local_count)
+            logger.attr('训练完成猫箱数量', local_count)
             self.device.sleep((0.3, 0.5))
             self.device.screenshot()
 
@@ -154,7 +186,7 @@ class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
             in: MEOWFFICER_TRAIN
             out: MEOWFFICER_TRAIN
         """
-        logger.hr('Meowfficer queue', level=1)
+        logger.hr('指挥喵队列', level=1)
         # Either can remain in same window or
         # enter the queuing window
         if not self._meow_queue_enter():
@@ -166,7 +198,7 @@ class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
 
         # Check remains
         if sum(self._box_count) <= 0:
-            logger.info('No more meowfficer boxes to train')
+            logger.info('[指挥喵-训练] 没有更多猫箱可训练')
             return
 
         # Choose appropriate queue func based on
@@ -175,14 +207,14 @@ class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
         # - > 20, high stock; queue common boxes first
         if ascending:
             if common_sum > 20:
-                logger.info('Queue in ascending order (Blue > Purple > Gold)')
+                logger.info('[指挥喵-训练] 升序队列 (蓝 > 紫 > 金)')
                 self._meow_rqueue()
             else:
-                logger.info('Low stock of common cat boxes')
-                logger.info('Queue in descending order (Gold > Purple > Blue)')
+                logger.info('[指挥喵-训练] 普通猫箱库存不足')
+                logger.info('[指挥喵-训练] 降序队列 (金 > 紫 > 蓝)')
                 self._meow_nqueue()
         else:
-            logger.info('Queue in descending order (Gold > Purple > Blue)')
+            logger.info('[指挥喵-训练] 降序队列 (金 > 紫 > 蓝)')
             self._meow_nqueue()
 
     def meow_train(self):
@@ -194,16 +226,16 @@ class MeowfficerTrain(MeowfficerCollect, MeowfficerEnhance):
             in: page_meowfficer
             out: page_meowfficer
         """
-        logger.hr('Meowfficer train', level=1)
+        logger.hr('指挥喵训练', level=1)
 
         # Retrieve capacity to determine whether able to collect
         current, remain, total = MEOWFFICER_CAPACITY.ocr(self.device.image)
-        logger.attr('Meowfficer_capacity_remain', remain)
+        logger.attr('剩余容量', remain)
 
         # Read box count, utilized in other helper funcs
         self._box_count = MEOWFFICER_BOX_COUNT.ocr(self.device.image)
 
-        logger.attr('MeowfficerTrain_Mode', self.config.MeowfficerTrain_Mode)
+        logger.attr('训练模式', self.config.MeowfficerTrain_Mode)
         collected = False
         if self.config.MeowfficerTrain_Mode == 'seamlessly':
             # Enter

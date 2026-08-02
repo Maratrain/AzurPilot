@@ -1,3 +1,7 @@
+"""装备码（配装码）解析与应用模块。
+支持从游戏内读取 Base64 编码的装备方案码，
+并通过 UI 自动化将方案中指定的装备应用到舰船上。"""
+
 import re
 
 import yaml
@@ -50,7 +54,7 @@ class EquipmentCodeHandler(StorageHandler):
                 if item:
                     config.update(item)
         except Exception:
-            logger.error("Fail to load equipment code config")
+            logger.error("加载装备码配置失败")
         return config
 
     def _code_config_save(self, config):
@@ -61,7 +65,7 @@ class EquipmentCodeHandler(StorageHandler):
         elif hasattr(self.config, 'EquipmentCode_Config'):
             self.config.EquipmentCode_Config = value
         else:
-            logger.warning("No equipment code config target, skip saving")
+            logger.warning("无装备码配置目标，跳过保存")
 
     def equipment_code_supported(self):
         method = self.config.Emulator_ControlMethod
@@ -78,7 +82,7 @@ class EquipmentCodeHandler(StorageHandler):
         config = self._code_config_load()
         code = config.get(name)
         if code is None:
-            logger.error(f"Config does not contain equipment code for {name}")
+            logger.error(f"[装备-代码] 配置不包含 {name} 的装备代码")
         return code
 
     def set_code(self, name, code):
@@ -87,7 +91,7 @@ class EquipmentCodeHandler(StorageHandler):
             config.update({name: code})
             self._code_config_save(config)
         except Exception:
-            logger.error("Fail to set equipment code config")
+            logger.error("设置装备码配置失败")
 
     def current_ship(self):
         """
@@ -100,19 +104,19 @@ class EquipmentCodeHandler(StorageHandler):
             if not self.appear(EMPTY_SHIP_R):
                 break
         if TEMPLATE_BOGUE.match(self.device.image, scaling=1.46):  # image has rotation
-            logger.info("Bogue detected")
+            logger.info("检测到博格")
             return 'bogue'
         elif TEMPLATE_HERMES.match(self.device.image, scaling=124 / 89):
-            logger.info("Hermes detected")
+            logger.info("检测到竞技神")
             return 'hermes'
         elif TEMPLATE_RANGER.match(self.device.image, scaling=4 / 3):
-            logger.info("Ranger detected")
+            logger.info("检测到突击者")
             return 'ranger'
         elif TEMPLATE_LANGLEY.match(self.device.image, scaling=25 / 21):
-            logger.info("Langley detected")
+            logger.info("检测到兰利")
             return 'langley'
         else:
-            logger.warning("Unknown ship detected, assuming DD")
+            logger.warning("检测到未知舰船，假设为驱逐舰")
             return 'DD'
 
     def _code_enter(self):
@@ -162,7 +166,7 @@ class EquipmentCodeHandler(StorageHandler):
         timeout = Timer(10).start()
         while 1:
             if timeout.reached():
-                logger.warning("Enable FastInputIME timeout")
+                logger.warning("启用FastInputIME超时")
                 break
 
             h = self.device.dump_hierarchy_adb()
@@ -196,7 +200,7 @@ class EquipmentCodeHandler(StorageHandler):
         try:
             d.set_fastinput_ime(True)
         except Exception:
-            logger.warning("FastInputIME not enabled, trying to enable it")
+            logger.warning("[装备-代码] FastInputIME未启用，尝试启用")
             self.fastinput_ime_enable()
 
     @staticmethod
@@ -233,7 +237,7 @@ class EquipmentCodeHandler(StorageHandler):
             return False
 
     def _code_input(self, code):
-        logger.info(f"Code input: {code}")
+        logger.info(f"代码输入: {code}")
         for _ in range(2):
             click_timer = Timer(1, count=3)
             textbox_clicked = False
@@ -259,11 +263,11 @@ class EquipmentCodeHandler(StorageHandler):
                 if self.appear_then_click(EQUIPMENT_CODE_ENTER, offset=(5, 5), interval=3):
                     continue
 
-        logger.warning("Equipment code load failed")
+        logger.warning("装备码加载失败")
         return False
 
     def _code_confirm(self):
-        logger.info("Code apply")
+        logger.info("代码应用")
         for _ in self.loop(timeout=10):
             if self.appear(EQUIPMENT_CODE_ENTRANCE, offset=(5, 5)):
                 return True
@@ -285,7 +289,7 @@ class EquipmentCodeHandler(StorageHandler):
                     continue
             success = self._code_confirm()
             if success:
-                logger.info("Equipment code apply complete.")
+                logger.info("装备码应用完成")
                 return True
             else:
                 self.handle_storage_full()

@@ -1,3 +1,6 @@
+"""WSA（Windows Subsystem for Android）截图和控制后端。
+继承 Connection，通过 ADB 连接 WSA 实例进行截图和操作。"""
+
 import re
 import time
 from functools import wraps
@@ -58,7 +61,7 @@ def retry(func):
                 def init():
                     pass
 
-        logger.critical(f'Retry {func.__name__}() failed')
+        logger.critical(f'[设备-WSA] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper

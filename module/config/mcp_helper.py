@@ -1,9 +1,37 @@
+"""MCP 配置辅助模块。
+
+为 MCP (Model Context Protocol) 服务器提供配置数据的结构化访问。
+MCP 服务器通过此模块获取任务列表、任务详情和配置信息，
+供外部 AI 助手查询和修改 AzurPilot 的配置。
+
+主要功能：
+- get_tasks(): 获取所有可调度任务的名称列表
+- get_task_details(): 获取指定任务的详细参数定义（含国际化）
+- get_dashboard_resources(): 获取仪表盘资源列表
+
+配置数据来源：
+- args.json: 合并后的完整参数定义
+- i18n/{lang}.json: 国际化翻译文件
+"""
+
 import json
 import os
 from typing import Dict, Any, List, Optional
 from module.config.utils import read_file, filepath_args, filepath_i18n
 
+
 class McpConfigHelper:
+    """MCP 配置数据访问助手。
+
+    从 args.json 和 i18n 文件中读取配置元数据，
+    提供结构化的任务和参数信息供 MCP 服务器使用。
+
+    Attributes:
+        lang (str): 当前语言代码，如 'zh-CN'、'en-US'。
+        args_data (dict): 从 args.json 加载的参数定义数据。
+        i18n_data (dict): 从 i18n 文件加载的国际化数据。
+    """
+
     def __init__(self, lang="zh-CN"):
         self.lang = lang
         self.args_data = read_file(filepath_args("args"))

@@ -1,3 +1,5 @@
+"""岛屿货物准备模块的 UI 资源定义。"""
+
 from module.base.button import Button
 from module.base.template import Template
 

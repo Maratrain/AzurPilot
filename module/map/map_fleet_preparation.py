@@ -1,3 +1,18 @@
+"""舰队准备界面管理模块。
+
+管理战役关卡进入前的舰队准备界面操作，包括：
+- 舰队选择和切换（通过下拉菜单）
+- 舰队推荐按钮
+- 舰队清空操作
+- 困难模式限制条件检测
+- 自动搜索设置（舰队角色分配）
+
+FleetOperator 类封装了单个舰队槽位的操作逻辑，
+支持舰队的激活、停用和状态检测。
+
+继承自 InfoHandler，可处理准备界面中的弹窗。
+"""
+
 import numpy as np
 from scipy import signal
 
@@ -14,6 +29,16 @@ from module.map.assets import *
 
 
 class FleetOperator:
+    """单个舰队槽位的操作器。
+
+    管理舰队准备界面中单个舰队槽位的选择、推荐和状态检测。
+
+    Attributes:
+        FLEET_BAR_SHAPE_Y (int): 舰队选择条的高度像素。
+        FLEET_BAR_MARGIN_Y (int): 舰队选择条的间距像素。
+        FLEET_BAR_ACTIVE_STD (int): 活跃状态的标准差阈值（活跃: 67, 非活跃: 12）。
+        FLEET_IN_USE_STD (int): 使用中状态的标准差阈值（使用中: 52, 未使用: 3-6）。
+    """
     FLEET_BAR_SHAPE_Y = 33
     FLEET_BAR_MARGIN_Y = 9
     FLEET_BAR_ACTIVE_STD = 45  # Active: 67, inactive: 12.
@@ -64,7 +89,7 @@ class FleetOperator:
             mean = get_color(image, area)
             if np.std(mean, ddof=1) > self.FLEET_BAR_ACTIVE_STD:
                 result.append(index + 1)
-        logger.info('Current selected: %s' % str(result))
+        logger.info('[地图-编队] 当前选择: %s' % str(result))
         return result
 
     def get_button(self, index):
@@ -313,14 +338,14 @@ class FleetPreparation(InfoHandler):
         Returns:
             bool: 是否进行了更换。
         """
-        logger.info(f'Using fleet: {[self.config.Fleet_Fleet1, self.config.Fleet_Fleet2, self.config.Submarine_Fleet]}')
+        logger.info(f'[地图-编队] 使用舰队: {[self.config.Fleet_Fleet1, self.config.Fleet_Fleet2, self.config.Submarine_Fleet]}')
         if self.map_fleet_checked:
             return False
 
         # 跳过编队检测：信任游戏内当前预选的舰队，不操作下拉菜单
         # 适用于舰队槽位未完全解锁的账号，避免下拉菜单检测卡死
         if self.config.Fleet_SkipPreparation:
-            logger.info('Skip fleet preparation (Fleet_SkipPreparation=True), '
+            logger.info('[地图-编队] 跳过舰队准备 (Fleet_SkipPreparation=True), '
                         'use current pre-selected fleet in game')
             return True
 
@@ -338,7 +363,7 @@ class FleetPreparation(InfoHandler):
             in_use=FLEET_1_IN_USE, hard_satisfied=FLEET_1_HARD_SATIESFIED, main=self)
         y = FLEET_1_CLEAR.button[1] - FLEET_1_CLEAR.area[1]
         if y < -10:
-            logger.info('FLEET_1_CLEAR moves up, load W15 assets')
+            logger.info('[地图-编队] FLEET_1_CLEAR上移，加载W15资源')
             in_use = FLEET_2_IN_USE_W15
         else:
             in_use = FLEET_2_IN_USE
@@ -351,7 +376,7 @@ class FleetPreparation(InfoHandler):
 
         # Check if ship is prepared in hard mode
         h1, h2, h3 = fleet_1.is_hard_satisfied(), fleet_2.is_hard_satisfied(), submarine.is_hard_satisfied()
-        logger.info(f'Hard satisfied: Fleet_1: {h1}, Fleet_2: {h2}, Submarine: {h3}')
+        logger.info(f'[地图-编队] 困难满足: 舰队1: {h1}, 舰队2: {h2}, 潜艇: {h3}')
         if self.config.SERVER in ['cn', 'en', 'jp']:
             if self.config.Fleet_Fleet1:
                 fleet_1.raise_hard_not_satisfied()
@@ -363,7 +388,7 @@ class FleetPreparation(InfoHandler):
         # Skip fleet preparation in hard mode
         self.map_is_hard_mode = h1 is not None or h2 is not None or h3 is not None
         if self.map_is_hard_mode:
-            logger.info('Hard Campaign. No fleet preparation')
+            logger.info('[地图-编队] 困难战役，无需舰队准备')
             # Clear submarine if user did not set a submarine fleet
             if submarine.allow():
                 if self.config.Submarine_Fleet:
@@ -378,7 +403,7 @@ class FleetPreparation(InfoHandler):
         # cache submarine.allow() to avoid inconsistency after setting fleet_2
         # because the expanded fleet_2 may cover submarine buttons
         map_allow_submarine = submarine.allow()
-        logger.attr('map_allow_submarine', map_allow_submarine)
+        logger.attr('允许潜艇', map_allow_submarine)
         if map_allow_submarine:
             if self.config.Submarine_Fleet:
                 if fleet_2.allow():

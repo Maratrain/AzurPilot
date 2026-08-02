@@ -115,7 +115,7 @@
       "help": "Task.CoalitionScuttle.help"
     },
     "MaritimeEscort": {
-      "name": "商船护航护送喵",
+      "name": "商路护航喵",
       "help": "保护商船，正义的雪风大人登场！ᕦ(ò_óˇ)ᕤ"
     },
     "EventShop": {
@@ -417,6 +417,18 @@
     "EmulatorManager": {
       "name": "模拟器管理器",
       "help": "提供手动重启模拟器的入口喵~ (=^･ω･^=)"
+    },
+    "BattlePass": {
+      "name": "大月卡喵",
+      "help": "领取大月卡奖励喵~ (´・ω・`)"
+    },
+    "CoreShop": {
+      "name": "核心兑换喵",
+      "help": "到核心商店兑换需要的物品喵~ (・ω・)"
+    },
+    "MeowfficerTrain": {
+      "name": "指挥喵训练喵",
+      "help": "安排指挥喵训练，别让小猫偷懒喵~ (=^･ω･^=)"
     }
   },
   "Scheduler": {
@@ -1866,11 +1878,11 @@
   },
   "MaritimeEscort": {
     "_info": {
-      "name": "商船护航",
+      "name": "商路护航",
       "help": "进去就撤退，约70%奖励喵。 (´・ω・`)"
     },
     "Enable": {
-      "name": "启用商船护航喵",
+      "name": "启用商路护航喵",
       "help": ""
     }
   },
@@ -2798,7 +2810,7 @@
       "help": "每日S胜解锁扫荡，未解锁回退传统出击喵。 (´・ω・`)"
     },
     "EscortMission": {
-      "name": "商船护送",
+      "name": "商路护航",
       "help": "",
       "skip": "不打喵",
       "first": "第一个喵",
@@ -2806,7 +2818,7 @@
       "third": "第三个喵"
     },
     "EscortMissionFleet": {
-      "name": "商船护送出击舰队",
+      "name": "商路护航出击舰队",
       "help": "",
       "1": "1喵",
       "2": "2喵",
@@ -3318,10 +3330,6 @@
     "StayInZone": {
       "name": "循环出击指定海域",
       "help": "开启后按“指定海域”配置运行。指定单个海域时一直留在该海域；指定多个海域时按填写顺序循环。仅在指定海域不为0时生效喵。"
-    },
-    "APPreserveUntilReset": {
-      "name": "月底重置强制消耗行动力",
-      "help": "重置前自动将保留行动力设为0，确保积余被消耗。建议配合侵蚀1练级喵。"
     }
   },
   "OpsiTarget": {
@@ -3524,6 +3532,26 @@
     "TaskPriority": {
       "name": "补充黄币任务优先级喵~",
       "help": "黄币不足时，执行补充黄币任务的优先级顺序喵~。使用 > 分隔。"
+    },
+    "MonthEndActionPointCleanupEnable": {
+      "name": "OpsiScheduling.MonthEndActionPointCleanupEnable.name",
+      "help": "OpsiScheduling.MonthEndActionPointCleanupEnable.help",
+      "True": "True",
+      "False": "False"
+    },
+    "MonthEndActionPointCleanupDays": {
+      "name": "OpsiScheduling.MonthEndActionPointCleanupDays.name",
+      "help": "OpsiScheduling.MonthEndActionPointCleanupDays.help"
+    },
+    "MonthEndActionPointPreserve": {
+      "name": "OpsiScheduling.MonthEndActionPointPreserve.name",
+      "help": "OpsiScheduling.MonthEndActionPointPreserve.help"
+    },
+    "MonthEndShopPurchase": {
+      "name": "OpsiScheduling.MonthEndShopPurchase.name",
+      "help": "OpsiScheduling.MonthEndShopPurchase.help",
+      "True": "True",
+      "False": "False"
     }
   },
   "OpsiPreventActionPointOverflow": {

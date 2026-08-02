@@ -1,3 +1,24 @@
+"""
+大世界全球地图检测模块。
+
+负责全球地图 (Globe Map) 的图像检测和定位，通过单应性变换和
+模板匹配确定当前摄像机在全球地图中的位置。
+
+主要类:
+    GlobeDetection: 全球地图检测器，通过模板匹配定位当前摄像机位置。
+
+检测流程:
+    1. 加载预处理好的全球地图边界图像 (GLOBE_MAP)。
+    2. 对游戏截图进行透视变换和边界提取。
+    3. 将提取的边界与全球地图进行模板匹配 (cv2.matchTemplate)。
+    4. 根据匹配结果计算摄像机在全球地图坐标系中的位置。
+
+坐标系:
+    globe 坐标系: 全球地图的二维坐标系，原点为地图左上角，
+        范围约为 (0, 0) 到 GLOBE_MAP_SHAPE (2570, 1696)。
+    screen 坐标系: 1280x720 的屏幕像素坐标系。
+    homo_center: 单应性变换后的屏幕中心在全球地图坐标系中的位置。
+"""
 import time
 
 from module.base.utils import *
@@ -12,8 +33,10 @@ GLOBE_MAP_SHAPE = (2570, 1696)
 
 
 class GlobeDetection:
-    """
-    Detect globe map in Operation Siren.
+    """全球地图检测器。
+
+    通过单应性变换和模板匹配，在大世界模式下确定当前摄像机
+    在全球地图中的位置。支持屏幕坐标与全球地图坐标的双向转换。
 
     Examples:
         globe = GlobeDetection(AzurLaneConfig('template'))
@@ -22,15 +45,24 @@ class GlobeDetection:
     Logs:
                   globe_center: (1305, 325)
         0.062s      similarity: 0.354
+
+    Attributes:
+        globe (np.ndarray): 预处理后的全球地图边界图像。
+        homo_center (tuple[int, int]): 屏幕中心在全球地图坐标系中的位置。
+        center_loca (tuple[float, float]): 当前摄像机在全球地图坐标系中的位置。
+        config (AzurLaneConfig): 配置对象。
+        perspective (Perspective): 透视检测器。
+        homography (Homography): 单应性变换器。
     """
     globe = None
     homo_center: tuple
     center_loca: tuple
 
     def __init__(self, config):
-        """
+        """初始化全球地图检测器。
+
         Args:
-            config (AzurLaneConfig):
+            config (AzurLaneConfig): 配置对象，包含全球地图检测相关参数。
         """
         self.config = config
         self.perspective = Perspective(config)
@@ -38,13 +70,18 @@ class GlobeDetection:
         self._globe_map_loaded = False
 
     def load_globe_map(self):
-        """
-        Call this method before doing anything.
+        """加载全球地图资源和单应性变换矩阵。
+
+        必须在进行任何全球地图操作前调用。仅首次调用时实际加载，
+        后续调用直接返回 False。
+
+        Returns:
+            bool: 首次加载成功返回 True，已加载返回 False。
         """
         if self._globe_map_loaded:
             return False
 
-        logger.info('Loading OS globe map')
+        logger.info('[大世界-检测] 加载全球地图')
 
         # Load GLOBE_MAP
         image = load_image(GLOBE_MAP)
@@ -66,9 +103,25 @@ class GlobeDetection:
         return True
 
     def screen2globe(self, points):
+        """将屏幕坐标转换为全球地图坐标。
+
+        Args:
+            points (np.ndarray): 屏幕坐标点数组。
+
+        Returns:
+            np.ndarray: 对应的全球地图坐标点数组。
+        """
         return perspective_transform(points, data=self.homography.homo_data)
 
     def globe2screen(self, points):
+        """将全球地图坐标转换为屏幕坐标。
+
+        Args:
+            points (np.ndarray): 全球地图坐标点数组。
+
+        Returns:
+            np.ndarray: 对应的屏幕坐标点数组。
+        """
         return perspective_transform(points, data=self.homography.homo_invt)
 
     def find_peaks(self, image, para):
@@ -110,9 +163,17 @@ class GlobeDetection:
         return image
 
     def load(self, image):
-        """
+        """从截图中检测当前摄像机在全球地图中的位置。
+
+        对截图进行透视变换和边界提取后，与预加载的全球地图进行模板匹配，
+        计算当前摄像机位置并存储到 self.center_loca。
+
         Args:
-            image (np.ndarray):
+            image (np.ndarray): 当前游戏截图（1280x720）。
+
+        Logs:
+            globe_center: 摄像机在全球地图坐标系中的位置。
+            similarity: 模板匹配相似度（低于 0.1 时发出警告）。
         """
         self.load_globe_map()
         start_time = time.time()
@@ -128,7 +189,7 @@ class GlobeDetection:
         self.center_loca = loca
 
         time_cost = round(time.time() - start_time, 3)
-        logger.attr_align('globe_center', loca)
-        logger.attr_align('similarity', float2str(similarity), front=float2str(time_cost) + 's')
+        logger.attr_align('全球地图中心', loca)
+        logger.attr_align('相似度', float2str(similarity), front=float2str(time_cost) + 's')
         if similarity < 0.1:
-            logger.warning('Low similarity when matching OS globe')
+            logger.warning('[大世界-检测] 匹配全球地图时相似度过低')

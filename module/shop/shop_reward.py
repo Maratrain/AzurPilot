@@ -1,3 +1,7 @@
+"""奖励商店调度器，统一调度各类型商店的购买任务。
+包含高频购买和完整购买两种运行模式。
+"""
+
 from module.shop.assets import *
 from module.shop.shop_core import CoreShop_250814
 from module.shop.shop_general import GeneralShop_250814
@@ -28,7 +32,7 @@ class RewardShop(ShopUI):
         if self.config.GeneralShop_Enable:
             GeneralShop_250814(self.config, self.device).run()
         else:
-            logger.info('General shop disabled, skip')
+            logger.info('[商店-通用] 通用商店已禁用，跳过')
 
         self.config.task_delay(server_update=True)
 
@@ -47,7 +51,7 @@ class RewardShop(ShopUI):
         if self.config.MeritShop_Enable:
             MeritShop_250814(self.config, self.device).run()
         else:
-            logger.info('Merit shop disabled, skip')
+            logger.info('[商店-军需] 军需商店已禁用，跳过')
 
         self.device.click_record_clear()
         self.shop_nav_250814.set(NAV_GENERAL, main=self)
@@ -55,7 +59,7 @@ class RewardShop(ShopUI):
         if self.config.GuildShop_Enable:
             GuildShop_250814(self.config, self.device).run()
         else:
-            logger.info('Guild shop disabled, skip')
+            logger.info('[商店-舰队] 舰队商店已禁用，跳过')
 
         # 核心限定、核心月度、勋章、原型
         self.device.click_record_clear()
@@ -64,7 +68,7 @@ class RewardShop(ShopUI):
         if self.config.CoreShop_Enable:
             CoreShop_250814(self.config, self.device).run()
         else:
-            logger.info('Core shop disabled, skip')
+            logger.info('[商店-核心] 核心商店已禁用，跳过')
 
         self.device.click_record_clear()
         self.shop_nav_250814.set(NAV_MONTHLY, main=self)
@@ -72,7 +76,7 @@ class RewardShop(ShopUI):
         if self.config.MedalShop2_Enable:
             MedalShop2_250814(self.config, self.device).run()
         else:
-            logger.info('Medal shop disabled, skip')
+            logger.info('[商店-勋章] 勋章商店已禁用，跳过')
 
         self.config.task_delay(server_update=True)
 

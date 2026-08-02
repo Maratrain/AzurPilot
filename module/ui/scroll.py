@@ -1,3 +1,6 @@
+"""游戏滚动条控制模块。定义 Scroll 类，通过颜色识别滚动条位置，
+支持拖拽滚动、翻页和基于百分比的精确定位。"""
+
 import numpy as np
 from scipy import signal
 

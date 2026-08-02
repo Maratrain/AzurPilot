@@ -16,17 +16,17 @@ alwaysApply: true
 - **输出**：`Button` 对象，包含区域坐标、颜色特征、点击区域和模板图像路径
 
 **核心职责**：
-1. 定义战斗界面暂停按钮（支持 20+ 种主题变体）
-2. 定义战斗界面退出按钮（支持 15+ 种主题变体）
+1. 定义战斗界面暂停按钮（支持 22 种主题变体）
+2. 定义战斗界面退出按钮（支持 13 种主题变体）
 3. 为战斗系统提供统一的 UI 元素访问接口
 
 ---
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 assets.py (39 行)
+### 2.1 assets.py (41 行)
 
-**导出类型**：按钮常量定义
+**导出类型**：35 个按钮常量（22 个暂停按钮主题变体 + 13 个退出按钮变体）
 
 **导入依赖**：
 - `module.base.button.Button`：按钮基类
@@ -46,6 +46,7 @@ alwaysApply: true
 
 **L8-26**：暂停按钮的主题变体：
 - `PAUSE_Ancient`：古风主题
+- `PAUSE_AzureCore`：蔚蓝核心主题（AzureCore）
 - `PAUSE_Christmas`：圣诞节主题
 - `PAUSE_Cyber`：赛博朋克主题
 - `PAUSE_DOUBLE_CHECK`：双检暂停（用于 JP 服务器）
@@ -57,6 +58,7 @@ alwaysApply: true
 - `PAUSE_MaidCafe`：女仆咖啡厅主题
 - `PAUSE_Neon`：霓虹主题
 - `PAUSE_New`：新版暂停按钮
+- `PAUSE_Nier`：尼尔（Nier）主题
 - `PAUSE_Ninja`：忍者主题
 - `PAUSE_Nurse`：护士主题
 - `PAUSE_Pharaoh`：法老主题
@@ -73,6 +75,7 @@ alwaysApply: true
 - `QUIT_Iridescent_Fantasy`：彩虹幻想主题
 - `QUIT_MaidCafe`：女仆咖啡厅主题
 - `QUIT_New`：新版退出按钮
+- `QUIT_Nier`：尼尔（Nier）主题
 - `QUIT_Ninja`：忍者主题
 - `QUIT_Nurse`：护士主题
 - `QUIT_Pharaoh`：法老主题

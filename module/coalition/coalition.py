@@ -1,3 +1,22 @@
+"""联动活动（Coalition Event）执行模块。
+
+自动执行碧蓝航线的联动活动战斗。联动活动是一种特殊的限时活动，
+通常分为多个难度（Easy/Normal/Hard 或 TC1/TC2/TC3），部分活动有 SP 关卡。
+
+本模块的核心功能：
+- 活动 PT（点数）识别：不同活动使用不同的 OCR 策略和参数
+- 燃油检查：部分活动 UI 不显示燃油图标，需跳过检查
+- 关卡标准化：兼容旧配置中的 TC-1/2/3 难度名
+- 停止条件管理：运行次数、燃油、PT、金币、任务均衡器
+- 情绪管理：单舰队模式下强制防止黄脸
+
+支持的联动活动包括霜落（Frostfall）、学园、约会大作战（DAL）、
+霓虹都市、时尚、恐怖故事等。
+
+配置路径: Campaign.Event (活动名称), Coalition.Mode (关卡难度),
+         Coalition.Fleet (舰队模式)
+"""
+
 import re
 
 from module.base.timer import Timer
@@ -53,6 +72,21 @@ class DALPtOcr(Digit):
 
 
 class Coalition(CoalitionCombat, CampaignEvent):
+    """联动活动战役执行器。
+
+    继承自 CoalitionCombat（联动战斗逻辑）和 CampaignEvent（活动战役基础），
+    负责联动活动的完整自动化流程：
+    1. 从配置读取活动名称、关卡难度和舰队模式
+    2. 标准化关卡名称（兼容旧配置格式）
+    3. 循环执行战斗，每次检查停止条件
+    4. 识别活动 PT 值用于进度追踪
+    5. 处理无燃油图标的特殊活动 UI
+
+    Attributes:
+        run_count: 当前已执行的战斗次数。
+        run_limit: 配置的运行次数上限。
+    """
+
     run_count: int
     run_limit: int
 
@@ -80,7 +114,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
         elif event == 'coalition_20260723':
             ocr = Digit(HORROR_PT_OCR, name='OCR_PT', lang='cnocr', letter=(228, 230, 237), threshold=256)
         else:
-            logger.error(f'ocr object is not defined in event {event}')
+            logger.error(f'[联动] 活动 {event} 未定义OCR对象')
             raise ScriptError
 
         pt = 0
@@ -90,7 +124,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
             if pt not in [999999]:
                 break
         else:
-            logger.warning('Wait PT timeout, assume it is')
+            logger.warning('等待PT超时，假设已达到')
         LogRes(self.config).Pt = pt
         self.config.update()
         return pt
@@ -106,7 +140,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
         """
         # 无燃油图标的联动活动跳过检查
         if not self._coalition_has_oil_icon:
-            logger.info('Coalition event has no oil icon, skip oil check')
+            logger.info('联动活动无石油图标，跳过石油检查')
             return False
 
         limit = max(500, self.config.StopCondition_OilLimit)
@@ -120,7 +154,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
             if self.appear(BACK_ARROW, offset=(5, 2)):
                 break
             if timeout.reached():
-                logger.warning('Assumes that OCR_OIL is stable')
+                logger.warning('假设OCR_OIL稳定')
                 break
         if self.get_oil() < limit:
             return True
@@ -157,7 +191,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
         """
         # 运行次数上限
         if self.run_limit and self.config.StopCondition_RunCount <= 0:
-            logger.hr('Triggered stop condition: Run count')
+            logger.hr('触发停止条件: 运行次数')
             self.config.StopCondition_RunCount = 0
             self.config.Scheduler_Enable = False
             return True
@@ -166,22 +200,22 @@ class Coalition(CoalitionCombat, CampaignEvent):
             # 检查 ui_current 是否存在，避免属性异常
             ui_is_campaign_menu = hasattr(self, 'ui_current') and self.ui_current == page_campaign_menu
             if (self._coalition_has_oil_icon or ui_is_campaign_menu) and self.check_oil():
-                logger.hr('Triggered stop condition: Oil limit')
+                logger.hr('触发停止条件: 石油上限')
                 self.config.task_delay(minute=(120, 240))
                 return True
         # 活动 PT 限制
         if pt_check:
             if self.event_pt_limit_triggered():
-                logger.hr('Triggered stop condition: Event PT limit')
+                logger.hr('触发停止条件: 活动PT上限')
                 return True
         # 金币限制
         if coin_check and self.coin_limit_triggered():
-            logger.hr('Triggered stop condition: Coin limit')
+            logger.hr('触发停止条件: 物资上限')
             return True
         # 任务均衡器
         if self.run_count >= 1:
             if self.config.TaskBalancer_Enable and self.triggered_task_balancer():
-                logger.hr('Triggered stop condition: Coin limit')
+                logger.hr('触发停止条件: 物资上限')
                 self.handle_task_balancer()
                 return True
 
@@ -208,8 +242,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
             Fleet_FleetOrder='fleet1_all_fleet2_standby',
         )
         if self.config.Coalition_Fleet == 'single' and self.config.Emotion_Fleet1Control == 'prevent_red_face':
-            logger.warning('AL does not allow single coalition with emotion < 30, '
-                           'emotion control is forced to prevent_yellow_face')
+            logger.warning('[联动] 不允许单舰队联动心情低于30，强制切换为防止黄脸模式')
             self.config.override(Emotion_Fleet1Control='prevent_yellow_face')
         if stage == 'sp':
             # SP 关卡需要多舰队
@@ -258,7 +291,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
                 'tc3': 'hard',
             }.get(stage.replace('-', ''), stage)
             if converted != stage:
-                logger.warning(f'Convert legacy Coalition stage: {stage} -> {converted}')
+                logger.warning(f'转换旧版联动关卡: {stage} -> {converted}')
                 stage = converted
 
         return event, stage
@@ -298,9 +331,9 @@ class Coalition(CoalitionCombat, CampaignEvent):
             # 日志输出当前关卡和剩余次数
             logger.hr(f'{event}_{mode}', level=2)
             if self.config.StopCondition_RunCount > 0:
-                logger.info(f'Count remain: {self.config.StopCondition_RunCount}')
+                logger.info(f'剩余次数: {self.config.StopCondition_RunCount}')
             else:
-                logger.info(f'Count: {self.run_count}')
+                logger.info(f'计数: {self.run_count}')
 
             # 无燃油图标时，先在战役菜单检查停止条件
             if not self._coalition_has_oil_icon:
@@ -323,7 +356,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
             try:
                 self.coalition_execute_once(event=event, stage=mode, fleet=fleet)
             except ScriptEnd as e:
-                logger.hr('Script end')
+                logger.hr('脚本结束')
                 logger.info(str(e))
                 break
 

@@ -1,3 +1,9 @@
+"""遮罩模板模块。
+
+定义 Mask 类，继承自 Template，扩展用于灰度遮罩图像的匹配。
+支持自动将 RGB 图像转换为灰度通道，用于游戏 UI 的区域遮罩检测。
+"""
+
 import cv2
 import numpy as np
 

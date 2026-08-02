@@ -1,3 +1,8 @@
+"""岛屿 JUU 餐厅模块。
+
+继承 IslandShopBase，配置餐厅的商品列表与岗位参数。
+包含苹果派、玉米杯、橙子派、香蕉可丽饼等餐品的模板、选择与制作流程定义。
+"""
 from module.island_juu_eatery.assets import *
 from module.island.island_shop_base import IslandShopBase
 from module.island.assets import *

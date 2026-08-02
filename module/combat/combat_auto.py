@@ -1,3 +1,17 @@
+"""自动战斗模式管理模块。
+
+管理战斗中的自动/手动模式切换。
+
+碧蓝航线的战斗支持两种模式：
+- 自动模式（Auto）：舰船自动移动和攻击，玩家无需操作
+- 手动模式（Manual）：玩家控制舰船移动和攻击时机
+
+自动模式通过战斗画面中的 Auto 按钮切换。
+不同情绪值下 Auto 按钮的位置可能不同（133/150 偏移量）。
+
+继承自 ModuleBase，被 Combat 组合使用。
+"""
+
 from module.base.base import ModuleBase
 from module.base.timer import Timer
 from module.combat.assets import COMBAT_AUTO, COMBAT_AUTO_133, COMBAT_AUTO_150, COMBAT_AUTO_SWITCH
@@ -5,6 +19,17 @@ from module.logger import logger
 
 
 class CombatAuto(ModuleBase):
+    """自动战斗模式管理器。
+
+    检测和切换战斗中的自动/手动模式。
+
+    Attributes:
+        auto_skip_timer (Timer): 自动跳过检测计时器。
+        auto_click_interval_timer (Timer): 自动点击间隔计时器。
+        auto_mode_checked (bool): 自动模式是否已检查。
+        auto_mode_switched (bool): 自动模式是否已切换。
+        auto_mode_click_timer (Timer): 自动模式点击计时器。
+    """
     auto_skip_timer = Timer(1)
     auto_click_interval_timer = Timer(1)
     auto_mode_checked = False
@@ -39,7 +64,7 @@ class CombatAuto(ModuleBase):
         if self.auto_mode_checked:
             return False
         if self.auto_mode_click_timer.reached():
-            logger.info('Combat auto check timer reached')
+            logger.info('[战斗-自动] 自动模式检查计时器到达')
             self.auto_mode_checked = True
             return False
         if not self.auto_skip_timer.reached():

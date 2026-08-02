@@ -1,3 +1,15 @@
+"""活动剧情模块。
+
+提供碧蓝航线活动剧情的自动化推进功能，包括：
+- 活动剧情入口导航（常规活动页面 / SP 活动页面）
+- 剧情状态检测（未完成 / 已完成 / 未知）
+- 剧情推进的截图-检查循环（首段 / 末段 / 中段 / 战斗中段）
+- 剧情跳过与奖励领取处理
+- 战斗场景的自动重启跳过（比等待战斗结束更快）
+- 特殊活动剧情按钮的模板匹配（如炼金术士联动活动）
+
+活动结束后自动返回主界面以清理残留弹窗。
+"""
 from module.base.timer import Timer
 from module.base.utils import rgb2gray, lower_template_match_similarity
 from module.campaign.campaign_ui import CampaignUI
@@ -9,6 +21,24 @@ from module.ui.page import page_event, page_sp
 
 
 class EventStory(CampaignUI, Combat, LoginHandler):
+    """活动剧情自动化控制器。
+
+    组合战役 UI 导航、战斗处理和登录处理能力，实现活动剧情的自动推进。
+
+    工作流程：
+    1. 导航至活动剧情入口页面
+    2. 检测剧情状态（完成 / 可进入 / 未知）
+    3. 循环执行截图-检查循环推进剧情
+    4. 遇到战斗场景时重启游戏跳过（比等待战斗结束更快）
+    5. 剧情完成后返回主界面清理残留弹窗
+
+    支持的剧情阶段：
+    - STORY_FIRST：首段剧情入口
+    - STORY_LAST：末段剧情
+    - STORY_MIDDLE：中段剧情
+    - BATTLE_MIDDLE：战斗中段剧情
+    - 特殊活动按钮（如炼金术士联动活动的弹出式剧情按钮）
+    """
     def ui_goto_event_story(self):
         """
         导航至活动剧情入口并获取当前剧情状态。
@@ -37,11 +67,11 @@ class EventStory(CampaignUI, Combat, LoginHandler):
             timeout = Timer(2, count=6).start()
             for _ in self.loop():
                 state = self.get_event_story_state()
-                logger.attr('EventStoryState', state)
+                logger.attr('活动剧情状态', state)
                 if state != 'unknown':
                     break
                 if timeout.reached():
-                    logger.warning('Wait EventStoryState timeout')
+                    logger.warning('等待活动剧情状态超时')
                     break
             if state == 'unknown':
                 # 剧情页面被滑动过，找不到剧情入口
@@ -125,7 +155,7 @@ class EventStory(CampaignUI, Combat, LoginHandler):
         Returns:
             str: 'battle'（进入战斗）或 'finish'（剧情结束）
         """
-        logger.hr('Event story', level=1)
+        logger.hr('活动剧情', level=1)
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -134,13 +164,13 @@ class EventStory(CampaignUI, Combat, LoginHandler):
 
             # 结束条件检测
             if self.is_combat_executing() or self.is_combat_loading():
-                logger.info('run_story end at battle')
+                logger.info('[活动剧情] 剧情结束于战斗')
                 return 'battle'
             if self.match_template_color(STORY_FINISHED, offset=(20, 20), interval=3):
-                logger.info('run_story end at STORY_FINISHED')
+                logger.info('[活动剧情] 剧情结束于 STORY_FINISHED')
                 return 'finish'
             if self.appear(REWARD_GOT, offset=(50, 30)):
-                logger.info('run_story end at REWARD_GOT')
+                logger.info('[活动剧情] 剧情结束于 REWARD_GOT')
                 return 'finish'
 
             # 剧情跳过处理
@@ -200,7 +230,7 @@ class EventStory(CampaignUI, Combat, LoginHandler):
             result = self.event_story()
             if result == 'battle':
                 # 通过重启游戏跳过活动战斗，比等待战斗结束快得多
-                logger.hr('Event Story Battle', level=2)
+                logger.hr('活动剧情战斗', level=2)
                 self.config.override(Error_HandleError=True)
                 self.app_stop()
                 self.device.sleep(2)
@@ -208,7 +238,7 @@ class EventStory(CampaignUI, Combat, LoginHandler):
                 continue
             if result == 'finish':
                 # 剧情结束后返回主界面再进入，以关闭可能残留的 GET_ITEMS 弹窗
-                logger.hr('Event story finish', level=2)
+                logger.hr('活动剧情 finish', level=2)
                 self.ui_goto_main()
                 self.ui_goto_event_story()
 
@@ -260,11 +290,11 @@ class EventStory(CampaignUI, Combat, LoginHandler):
             # 该活动的剧情入口在活动小游戏内，不在常规剧情页面
             'event_20260226_cn',
         ]:
-            logger.info(f'Current event ({event}) does not have event story, stopped')
+            logger.info(f'[活动剧情] 当前活动 ({event}) 没有活动剧情，停止')
             return
 
         if not self.device.app_is_running():
-            logger.warning('Game is not running, start it')
+            logger.warning('游戏未运行，启动中')
             self.app_start()
 
         self.run_event_story()

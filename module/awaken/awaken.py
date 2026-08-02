@@ -1,3 +1,33 @@
+"""
+觉醒（Awaken）模块。
+
+自动化舰船觉醒流程，将舰船等级从 100 级提升至 120 级或 125 级。
+
+主要功能：
+    - 检测舰船当前等级（100~125）
+    - 判断觉醒所需资源（金币、心智芯片、心智阵列）是否充足
+    - 执行单次觉醒操作，包括确认、等待动画完成
+    - 对单艘舰船循环觉醒直到等级上限或资源不足
+    - 遍历船坞中所有可觉醒舰船，直到资源耗尽
+
+觉醒等级机制：
+    - 普通觉醒：消耗金币 + 心智芯片，等级上限 120
+    - 觉醒+（觉醒拟合）：额外消耗心智阵列，等级上限 125
+    - 优先执行觉醒+（使用心智阵列），再执行普通觉醒（使用心智芯片）
+
+资源判断逻辑：
+    - 通过按钮匹配和红字颜色检测判断资源是否充足
+    - COST_ARRAY 不存在时，COST_COIN 和 COST_CHIP 按钮会右移 54px
+    - 需要根据按钮位移情况验证结果有效性
+
+继承关系：
+    继承自 Dock（船坞操作），使用船坞过滤器筛选可觉醒舰船。
+
+Pages:
+    觉醒页面：is_in_awaken
+    船坞页面：page_dock
+"""
+
 from module.awaken.assets import *
 from module.base.timer import Timer
 from module.exception import ScriptError
@@ -9,15 +39,40 @@ from module.ui.page import page_dock, page_main
 
 
 class ShipLevel(Digit):
+    """
+    舰船等级 OCR 识别器。
+
+    对标准 Digit OCR 进行后处理，只接受 100~125 范围内的等级值。
+    超出范围的识别结果被视为无效并返回 0。
+    """
     def after_process(self, result):
         result = super().after_process(result)
         if result < 100 or result > 125:
-            logger.warning('Unexpected ship level')
+            logger.warning('[觉醒] 异常的舰船等级')
             result = 0
         return result
 
 
 class Awaken(Dock):
+    """
+    觉醒任务处理器。
+
+    管理舰船觉醒的完整流程，包括资源检测、觉醒执行和船坞遍历。
+    继承自 Dock 以使用船坞过滤、排序和舰船选择功能。
+
+    核心流程：
+        1. 导航至船坞，按收藏和等级过滤可觉醒舰船
+        2. 进入舰船详情，执行觉醒直到等级上限或资源不足
+        3. 退出舰船详情，继续下一艘
+        4. 无可觉醒舰船或资源耗尽时结束
+
+    属性:
+        无额外实例属性，所有状态通过方法参数和返回值传递
+
+    配置项:
+        Awaken_LevelCap: 觉醒等级上限，'level120' 或 'level125'
+        Awaken_Favourite: 是否仅觉醒收藏舰船
+    """
     def _get_button_state(self, button: Button):
         """
         获取指定资源按钮的状态。
@@ -58,7 +113,7 @@ class Awaken(Dock):
         chip = self._get_button_state(COST_CHIP)
         array = self._get_button_state(COST_ARRAY)
 
-        logger.attr('AwakenCost', {'coin': coin, 'chip': chip, 'array': array})
+        logger.attr('觉醒消耗', {'coin': coin, 'chip': chip, 'array': array})
 
         def is_right_moved(button):
             # 如果 COST_ARRAY 不存在，COST_COIN 和 COST_CHIP 会右移 54px
@@ -67,23 +122,23 @@ class Awaken(Dock):
         # 检查结果是否有效
         if array is not None:
             if not use_array:
-                logger.warning('Not going to use array but array presents')
+                logger.warning('[觉醒] 不使用阵列但阵列存在')
                 return 'unexpected_array'
             # 如果需要阵列，金币和芯片应该同时存在
             if coin is not None and not is_right_moved(COST_COIN) \
                     and chip is not None and not is_right_moved(COST_CHIP):
                 result = coin and chip and array
-                logger.attr('AwakenSufficient', result)
+                logger.attr('觉醒资源充足', result)
                 return result
         else:
             # 如果不需要阵列，金币和芯片应该同时存在且右移
             if coin is not None and is_right_moved(COST_COIN) \
                     and chip is not None and is_right_moved(COST_CHIP):
                 result = coin and chip
-                logger.attr('AwakenSufficient', result)
+                logger.attr('觉醒资源充足', result)
                 return result
 
-        logger.warning('Invalid awaken cost')
+        logger.warning('[觉醒] 无效的觉醒消耗')
         return 'invalid'
 
     def handle_awaken_finish(self):
@@ -93,7 +148,7 @@ class Awaken(Dock):
         return SHIP_LEVEL_CHECK.match_luma(self.device.image, similarity=0.7)
 
     def awaken_popup_close(self, skip_first_screenshot=True):
-        logger.info('Awaken popup close')
+        logger.info('[觉醒] 觉醒弹窗关闭')
         self.interval_clear(AWAKEN_CANCEL)
         while 1:
             if skip_first_screenshot:
@@ -123,7 +178,7 @@ class Awaken(Dock):
             in: is_in_awaken
             out: is_in_awaken
         """
-        logger.hr('Awaken once', level=2)
+        logger.hr('觉醒一次', level=2)
         interval = Timer(3, count=6)
         while 1:
             if skip_first_screenshot:
@@ -134,7 +189,7 @@ class Awaken(Dock):
             if self.appear(AWAKEN_CONFIRM):
                 break
             if LEVEL_UP.match_luma(self.device.image):
-                logger.info(f'awaken_once ended at {LEVEL_UP}')
+                logger.info(f'[觉醒] 觉醒一次在 {LEVEL_UP} 结束')
                 return 'no_exp'
             # 由于随机背景，降低相似度阈值
             if interval.reached() and AWAKENING.match_luma(self.device.image, similarity=0.7):
@@ -142,7 +197,7 @@ class Awaken(Dock):
                 interval.reset()
                 continue
 
-        logger.info('Get awaken cost')
+        logger.info('[觉醒] 获取觉醒消耗')
         timeout = Timer(2, count=6).start()
         skip_first_screenshot = True
         while 1:
@@ -157,7 +212,7 @@ class Awaken(Dock):
                 self.awaken_popup_close()
                 return result
             elif result is False:
-                logger.info('Insufficient resources to awaken')
+                logger.info('[觉醒] 资源不足无法觉醒')
                 self.awaken_popup_close()
                 return 'insufficient'
             elif result is True:
@@ -169,12 +224,12 @@ class Awaken(Dock):
             else:
                 raise ScriptError(f'Unexpected _get_awaken_cost result: {result}')
             if timeout.reached():
-                logger.warning('Get awaken cost timeout')
+                logger.warning('[觉醒] 获取觉醒消耗超时')
                 self.awaken_popup_close()
                 return 'timeout'
 
         # 资源充足，确认觉醒
-        logger.info('Awaken confirm')
+        logger.info('[觉醒] 觉醒确认')
         self.interval_clear(AWAKEN_CONFIRM)
         # 觉醒弹窗在经验足够时需要 10 秒才出现，点击关闭需要 2 秒
         # 因此此处超时设置较长
@@ -189,11 +244,11 @@ class Awaken(Dock):
 
             # 结束条件
             if timeout.reached():
-                logger.warning('Awaken confirm timeout')
+                logger.warning('[觉醒] 觉醒确认超时')
                 self.awaken_popup_close()
                 break
             if finished and self.is_in_awaken():
-                logger.info('Awaken finished')
+                logger.info('[觉醒] 觉醒完成')
                 break
             # 点击操作
             if self.appear_then_click(AWAKEN_CONFIRM, offset=(20, 20), interval=3):
@@ -231,7 +286,7 @@ class Awaken(Dock):
                 if level > 0:
                     return level
             if timeout.reached():
-                logger.warning('get_ship_level timeout')
+                logger.warning('[觉醒] 获取舰船等级超时')
                 return level
 
     def awaken_ship(self, use_array=False, skip_first_screenshot=True):
@@ -249,8 +304,8 @@ class Awaken(Dock):
             in: is_in_awaken
             out: is_in_awaken
         """
-        logger.hr('Awaken ship', level=1)
-        logger.info(f'Awaken ship, use_array={use_array}')
+        logger.hr('觉醒舰船', level=1)
+        logger.info(f'[觉醒] 觉醒舰船, 使用阵列={use_array}')
 
         if use_array:
             stop_level = 125
@@ -264,7 +319,7 @@ class Awaken(Dock):
             level = self.get_ship_level()
             if level > 0:
                 if level >= stop_level:
-                    logger.info(f'Awaken ship ended at stop_level')
+                    logger.info(f'[觉醒] 觉醒舰船在停止等级结束')
                     return 'level_max'
                 else:
                     result = self.awaken_once(use_array)
@@ -286,7 +341,7 @@ class Awaken(Dock):
                 return 'timeout'
 
         # 错误，请求退出
-        logger.warning('Too many awaken trial on one ship')
+        logger.warning('[觉醒] 单艘舰船觉醒尝试过多')
         return 'timeout'
 
     def awaken_exit(self, skip_first_screenshot=True):
@@ -297,7 +352,7 @@ class Awaken(Dock):
             in: is_in_awaken
             out: DOCK_CHECK
         """
-        logger.info('Awaken exit')
+        logger.info('[觉醒] 觉醒退出')
         interval = Timer(3)
         while 1:
             if skip_first_screenshot:
@@ -306,10 +361,10 @@ class Awaken(Dock):
                 self.device.screenshot()
 
             if self.ui_page_appear(page_dock):
-                logger.info(f'Awaken exit at {page_dock}')
+                logger.info(f'[觉醒] 觉醒退出在 {page_dock}')
                 break
             if interval.reached() and self.is_in_awaken():
-                logger.info(f'is_in_awaken -> {BACK_ARROW}')
+                logger.info(f'[觉醒] 在觉醒中 -> {BACK_ARROW}')
                 self.device.click(BACK_ARROW)
                 interval.reset()
                 continue
@@ -336,7 +391,7 @@ class Awaken(Dock):
             in: Any
             out: page_dock
         """
-        logger.hr('Awaken run', level=1)
+        logger.hr('觉醒运行', level=1)
         self.ui_ensure(page_dock)
         self.dock_favourite_set(enable=favourite, wait_loading=False)
         self.dock_sort_method_dsc_set(wait_loading=False)
@@ -349,14 +404,14 @@ class Awaken(Dock):
         while 1:
             # 在 page_dock 页面
             if self.appear(DOCK_EMPTY, offset=(20, 20)):
-                logger.info('awaken_run finished, no ships to awaken')
+                logger.info('[觉醒] 觉醒运行完成，无舰船可觉醒')
                 result = 'finish'
                 break
 
             # page_dock -> SHIP_DETAIL_CHECK
             entered = self.dock_enter_first()
             if not entered:
-                logger.info('awaken_run finished, no ships to awaken')
+                logger.info('[觉醒] 觉醒运行完成，无舰船可觉醒')
                 result = 'finish'
                 break
 
@@ -368,10 +423,10 @@ class Awaken(Dock):
                 # Awaken next ship
                 continue
             if result == 'insufficient':
-                logger.info('awaken_run finished, resources exhausted')
+                logger.info('[觉醒] 觉醒运行完成，资源耗尽')
                 break
             if result == 'timeout':
-                logger.info(f'awaken_run finished, result={result}')
+                logger.info(f'[觉醒] 觉醒运行完成, 结果={result}')
                 break
             raise ScriptError(f'Unexpected awaken_ship result: {result}')
 
@@ -393,7 +448,7 @@ class Awaken(Dock):
             raise ScriptError(f'Unknown Awaken_LevelCap={self.config.Awaken_LevelCap}')
 
         # 重置船坞筛选器
-        logger.hr('Awaken run exit', level=1)
+        logger.hr('觉醒运行退出', level=1)
         if favourite:
             self.dock_favourite_set(wait_loading=False)
         self.dock_filter_set(wait_loading=False)

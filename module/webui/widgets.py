@@ -1,3 +1,7 @@
+"""WebUI 自定义交互组件库，定义各种高度定制化的可视化控件。
+包括彩色实时日志渲染器（RichLog）、状态感知切换按钮、
+图标按钮组和任务队列编辑器等组件。"""
+
 import copy
 # 此文件定义了 WebUI 中使用的各种自定义交互图形组件（Widgets）。
 # 包含彩色实时日志渲染器（RichLog）、状态感知切换按钮以及图标按钮组等高度定制化的可视化组件。
@@ -122,8 +126,17 @@ class RichLog:
             self.terminal_theme = LIGHT_TERMINAL_THEME
 
     def render(self, renderable: ConsoleRenderable) -> str:
+        return self.render_many((renderable,))
+
+    def render_many(self, renderables) -> str:
+        """一次性把一批 Rich 日志转换为 HTML，减少重复导出开销。"""
+        renderables = list(renderables)
+        if not renderables:
+            return ""
+
         with self.console.capture():
-            self.console.print(renderable)
+            for renderable in renderables:
+                self.console.print(renderable)
 
         html = self.console.export_html(
             theme=self.terminal_theme,
@@ -225,7 +238,7 @@ class RichLog:
         try:
             while True:
                 last_idx = len(pm.renderables)
-                html = "".join(map(self.render, pm.renderables[:]))
+                html = self.render_many(pm.renderables[:])
                 self.reset()
                 self.extend(html)
                 counter = last_idx
@@ -235,7 +248,7 @@ class RichLog:
                     if idx < last_idx:
                         last_idx -= pm.renderables_reduce_length
                     if idx != last_idx:
-                        html = "".join(map(self.render, pm.renderables[last_idx:idx]))
+                        html = self.render_many(pm.renderables[last_idx:idx])
                         self.extend(html)
                         counter += idx - last_idx
                         last_idx = idx

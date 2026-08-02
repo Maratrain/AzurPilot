@@ -1,3 +1,12 @@
+"""
+私人休息室舰船互动逻辑。
+
+管理私人宿舍中与舰船角色的互动流程，包括目标房间导航、
+对话事件处理、互动按钮点击和完成状态检测。
+支持多目标舰船（安克雷奇、能代、天狼星等）的互动编排。
+
+页面s: in: PRIVATE_QUARTERS
+"""
 from module.base.timer import Timer
 from module.base.utils import random_rectangle_vector
 from module.handler.assets import POPUP_CANCEL
@@ -10,7 +19,7 @@ from module.ui.ui import UI
 class PQInteract(UI):
     # Key: str, target ship name
     # Value: list[Button], button instances
-    #        (Room_Entrance, Page_Locale)
+    #        (房间_Entrance, 页面_Locale)
     available_targets = {
         'anchorage': (PRIVATE_QUARTERS_SHIP_ANCHORAGE, PRIVATE_QUARTERS_PAGE_LOCALE_BEACH),
         'noshiro': (PRIVATE_QUARTERS_SHIP_NOSHIRO, PRIVATE_QUARTERS_PAGE_LOCALE_BEACH),
@@ -105,17 +114,14 @@ class PQInteract(UI):
         """
         target_title = target_ship.title().replace('_', ' ')
         if target_ship not in self.available_targets:
-            logger.error(f'Unsupported target ship: {target_title}, '
-                         'cannot continue subtask')
+            logger.error(f'[私人休息室-互动] 不支持的目标舰娘: {target_title}，无法继续子任务')
             return False
         elif len(self.available_targets[target_ship]) < 2:
-            logger.error('Missing tuple info page locale for '
-                         f'target ship: {target_title}, cannot '
-                         'continue subtask')
+            logger.error(f'[私人休息室-互动] 目标舰娘 {target_title} 缺少页面位置信息，无法继续子任务')
             return False
 
         page_btn = self.available_targets[target_ship][1]
-        logger.hr(f'Seek {target_title}\'s Page', level=2)
+        logger.hr(f'[私人休息室-互动] 寻找 {target_title} 页面', level=2)
 
         # Depending on current page position
         # Search left then right or reverse order
@@ -136,7 +142,7 @@ class PQInteract(UI):
 
                 # End, success
                 if self.appear(page_btn, offset=(20, 20)):
-                    logger.info(f'Reached {target_title}\'s page')
+                    logger.info(f'[私人休息室-互动] 已到达 {target_title} 页面')
                     return True
 
                 # Enable interval delay to confirm page after click
@@ -149,7 +155,7 @@ class PQInteract(UI):
                 if settle_timer.reached():
                     break
 
-        logger.warning(f'{target_title}\'s page cannot be found')
+        logger.warning(f'[私人休息室-互动] 未找到 {target_title} 页面')
         return False
 
     def _pq_goto_room_check(self):
@@ -177,13 +183,10 @@ class PQInteract(UI):
         # prompt appears after click
         target_title = target_ship.title().replace('_', ' ')
         if target_ship not in self.available_targets:
-            logger.error(f'Unsupported target ship: {target_title}, '
-                         'cannot continue subtask')
+            logger.error(f'[私人休息室-互动] 不支持的目标舰娘: {target_title}，无法继续子任务')
             return False
         elif len(self.available_targets[target_ship]) < 1:
-            logger.error('Missing tuple info room entrance for '
-                         f'target ship: {target_title}, cannot '
-                         'continue subtask')
+            logger.error(f'[私人休息室-互动] 目标舰娘 {target_title} 缺少房间入口信息，无法继续子任务')
             return False
 
         target_btn = self.available_targets[target_ship][0]
@@ -197,7 +200,7 @@ class PQInteract(UI):
         # If was download asset popup
         # Terminate the run
         if self.handle_popup_cancel('PRIVATE_QUARTERS_DOWNLOAD_ASSET', offset=(20, 20)):
-            logger.error(f'Cannot enter {target_title}\'s room, please download the necessary assets first')
+            logger.error(f'[私人休息室-互动] 无法进入 {target_title} 的房间，请先下载所需资源')
             return False
 
         # Fully enter into target's room
@@ -208,7 +211,7 @@ class PQInteract(UI):
         # Terminate the run
         if self.appear(PRIVATE_QUARTERS_ROOM_TARGET_INTIMACY_MAX, offset=(20, 20)):
             logger.warning(
-                f'{target_title}\'s intimacy is maxed, configure to new target or turn off subtask altogether')
+                f'[私人休息室-互动] {target_title} 好感度已满，请更换目标或关闭子任务')
             return False
 
         return True
@@ -242,7 +245,7 @@ class PQInteract(UI):
         Parameters identified as stable and server transparent
         """
         # Click target ship girl for 1st stage sequence
-        logger.hr(f'Interact Start', level=2)
+        logger.hr(f'[私人休息室-互动] 互动开始', level=2)
         interact_offset = (-10, 0, 0, 65)
         click_timer = Timer(1.5, count=3).start()
         skip_first_screenshot = True
@@ -262,7 +265,7 @@ class PQInteract(UI):
 
         # Repeat 2nd and 3rd stage sequence 3 times
         for i in range(1, 4):
-            logger.hr(f'Interact Loop {i}/3', level=3)
+            logger.hr(f'[私人休息室-互动] 互动循环 {i}/3', level=3)
             self.interval_clear([PRIVATE_QUARTERS_INTERACT_CHECK,
                                  PRIVATE_QUARTERS_INTERACT])
             skip_first_screenshot = True
@@ -294,7 +297,7 @@ class PQInteract(UI):
                     self.device.click(PRIVATE_QUARTERS_ROOM_BACK)
                     continue
 
-        logger.hr(f'Interact End', level=2)
+        logger.hr(f'[私人休息室-互动] 互动结束', level=2)
         self._pq_goto_room_exit()
 
     def pq_goto_room(self, target_ship, retry=3):
@@ -312,7 +315,7 @@ class PQInteract(UI):
         """
         success = False
         target_title = target_ship.title().replace('_', ' ')
-        logger.hr(f'Enter {target_title}\'s Room', level=1)
+        logger.hr(f'[私人休息室-互动] 进入 {target_title} 房间', level=1)
 
         if not self._pq_goto_room_seek(target_ship):
             return success
@@ -322,10 +325,10 @@ class PQInteract(UI):
                 break
 
             if self._pq_target_appear():
-                logger.info(f'{target_title} is waiting and excited for your arrival!')
+                logger.info(f'[私人休息室-互动] {target_title} 正在等待你的到来！')
                 success = True
                 break
-            logger.warning(f'{target_title} is not ready, exit and try again; retry={retry - (_ + 1)}')
+            logger.warning(f'[私人休息室-互动] {target_title} 未就绪，退出重试; 剩余次数={retry - (_ + 1)}')
 
             self._pq_goto_room_exit()
 

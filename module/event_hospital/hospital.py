@@ -1,3 +1,17 @@
+"""医院活动模块。
+
+提供碧蓝航线医院活动的自动化处理功能，包括：
+- 每日奖励的红点检测与自动领取
+- 线索系统的标签页切换（地点 / 角色）
+- 旁白（aside）列表的遍历与选择
+- 调查（invest）入口的进入与战斗执行
+- 调查奖励的自动领取
+- 旁白列表的滑动翻页处理
+- 体力不足时的优雅退出与延迟重试
+
+医院活动是一个探索型活动，玩家通过选择不同地点和角色的旁白展开调查，
+每个调查包含线索收集和战斗环节。
+"""
 from module.base.timer import Timer
 from module.base.utils import random_rectangle_vector
 from module.config.config import TaskEnd
@@ -37,7 +51,21 @@ HOSPITAL_TAB.add_state('CHARACTER', check_button=TAB_CHARACTER)
 
 
 class Hospital(HospitalClue, HospitalCombat):
-    """医院活动主控制器，组合线索和战斗逻辑。"""
+    """医院活动主控制器。
+
+    组合线索处理（HospitalClue）和战斗处理（HospitalCombat）能力，
+    实现医院活动的完整自动化流程。
+
+    工作流程：
+    1. 检查活动可用性，导航至活动页面
+    2. 领取每日奖励（检测红点 -> 进入奖励界面 -> 领取 -> 退出）
+    3. 进入线索系统，遍历地点和角色标签页的所有旁白
+    4. 对每个旁白执行调查（进入 -> 战斗 -> 领取奖励）
+    5. 角色标签页支持滑动翻页以访问更多旁白
+
+    Attributes:
+        HOSPITAL_TAB (HospitalSwitch): 标签页切换器，支持 LOCATION 和 CHARACTER 两种状态。
+    """
 
     def daily_red_dot_appear(self):
         """检测每日奖励红点是否出现。"""
@@ -63,14 +91,14 @@ class Hospital(HospitalClue, HospitalCombat):
             in: page_hospital
         """
         if self.daily_red_dot_appear():
-            logger.info('Daily red dot appear')
+            logger.info('每日红点出现')
         else:
-            logger.info('No daily red dot')
+            logger.info('无每日红点')
             return False
 
-        logger.hr('Daily reward receive', level=2)
+        logger.hr('领取每日奖励', level=2)
         # 进入奖励界面
-        logger.info('Daily reward enter')
+        logger.info('进入每日奖励')
         skip_first_screenshot = True
         self.interval_clear(page_hospital.check_button)
         while 1:
@@ -86,7 +114,7 @@ class Hospital(HospitalClue, HospitalCombat):
                 continue
 
         # 领取奖励
-        logger.info('Daily reward receive')
+        logger.info('领取每日奖励')
         skip_first_screenshot = True
         self.interval_clear(HOSIPITAL_CLUE_CHECK)
         timeout = Timer(1.5, count=6).start()
@@ -97,7 +125,7 @@ class Hospital(HospitalClue, HospitalCombat):
             else:
                 self.device.screenshot()
             if timeout.reached():
-                logger.warning('Daily reward receive timeout')
+                logger.warning('每日奖励领取超时')
                 break
             if clicked and self.is_in_daily_reward():
                 if not self.daily_reward_receive_appear():
@@ -112,7 +140,7 @@ class Hospital(HospitalClue, HospitalCombat):
                 continue
 
         # 退出奖励界面
-        logger.info('Daily reward exit')
+        logger.info('退出每日奖励')
         skip_first_screenshot = True
         self.interval_clear(HOSIPITAL_CLUE_CHECK)
         while 1:
@@ -137,7 +165,7 @@ class Hospital(HospitalClue, HospitalCombat):
         """
         self.config.override(Fleet_FleetOrder='fleet1_all_fleet2_standby')
         while 1:
-            logger.hr('Loop hospital invest', level=2)
+            logger.hr('循环医院投资', level=2)
             # 调度器检查，可能抛出 ScriptEnd
             self.emotion.check_reduce(battle=1)
 
@@ -154,7 +182,7 @@ class Hospital(HospitalClue, HospitalCombat):
             break
 
         self.claim_invest_reward()
-        logger.info('Loop hospital invest end')
+        logger.info('循环医院投资 end')
 
     def invest_reward_appear(self) -> bool:
         """检测调查奖励领取按钮是否出现。"""
@@ -163,9 +191,9 @@ class Hospital(HospitalClue, HospitalCombat):
     def claim_invest_reward(self):
         """领取调查奖励。"""
         if self.invest_reward_appear():
-            logger.info('Invest reward appear')
+            logger.info('投资奖励出现')
         else:
-            logger.info('No invest reward')
+            logger.info('无投资奖励')
             return False
         # 领取奖励
         skip_first_screenshot = True
@@ -191,7 +219,7 @@ class Hospital(HospitalClue, HospitalCombat):
     def loop_aside(self):
         """遍历所有标签页的旁白并执行调查。"""
         while 1:
-            logger.hr('Loop hospital aside', level=1)
+            logger.hr('循环医院旁白', level=1)
             HOSPITAL_TAB.set('LOCATION', main=self)
             selected = self.select_aside()
             if not selected:
@@ -199,7 +227,7 @@ class Hospital(HospitalClue, HospitalCombat):
             self.loop_invest()
 
         while 1:
-            logger.hr('Loop hospital aside', level=1)
+            logger.hr('循环医院旁白', level=1)
             HOSPITAL_TAB.set('CHARACTER', main=self)
             selected = self.select_aside()
             if not selected:
@@ -207,7 +235,7 @@ class Hospital(HospitalClue, HospitalCombat):
             self.loop_invest()
 
         while 1:
-            logger.hr('Loop hospital aside', level=1)
+            logger.hr('循环医院旁白', level=1)
             HOSPITAL_TAB.set('CHARACTER', main=self)
             self.aside_swipe_down()
             selected = self.select_aside()
@@ -215,11 +243,11 @@ class Hospital(HospitalClue, HospitalCombat):
                 break
             self.loop_invest()
 
-        logger.info('Loop hospital aside end')
+        logger.info('循环医院旁白 end')
 
     def aside_swipe_down(self, skip_first_screenshot=True):
         """向下滑动旁白列表直到没有翻页标识。"""
-        logger.info('Aside swipe down')
+        logger.info('旁白下滑')
         swiped = False
         interval = Timer(2, count=6)
         while 1:
@@ -229,7 +257,7 @@ class Hospital(HospitalClue, HospitalCombat):
                 self.device.screenshot()
 
             if swiped and not self.appear(ASIDE_NEXT_PAGE, offset=(20, 20)):
-                logger.info('Aside reached end')
+                logger.info('旁白到达终点')
                 break
             if interval.reached():
                 p1, p2 = random_rectangle_vector(
@@ -259,10 +287,10 @@ class Hospital(HospitalClue, HospitalCombat):
             self.config.task_delay(server_update=True)
         except OilExhausted:
             self.clue_exit()
-            logger.hr('Triggered stop condition: Oil limit')
+            logger.hr('触发停止条件: 石油上限')
             self.config.task_delay(minute=(120, 240))
         except ScriptEnd as e:
-            logger.hr('Script end')
+            logger.hr('脚本结束')
             logger.info(str(e))
             self.clue_exit()
         except TaskEnd:

@@ -1,3 +1,11 @@
+"""
+MuMu 模拟器 IPC 通信方法。
+
+通过进程间通信 (IPC) 直接与 MuMu 模拟器交互，实现高性能截图和触控操作。
+使用 ctypes 加载 MuMu 的 nemu_ipc DLL，绕过 ADB 层直接调用模拟器内部接口，
+截图延迟极低且无需网络传输。支持截图、点击、滑动和按键操作。
+仅限 Windows 平台使用，需要 MuMu 模拟器支持 IPC 接口。
+"""
 import ctypes
 import json
 import os
@@ -128,12 +136,12 @@ class CaptureNemuIpc(CaptureStd):
     def check_stdout(self):
         if not self.stdout:
             return
-        logger.info(f'NemuIpc stdout: {self.stdout}')
+        logger.info(f'[设备-NemuIpc] NemuIpc标准输出: {self.stdout}')
 
     def check_stderr(self):
         if not self.stderr:
             return
-        logger.error(f'NemuIpc stderr: {self.stderr}')
+        logger.error(f'[设备-NemuIpc] NemuIpc标准错误: {self.stderr}')
 
         # 调用了旧版本的 MuMu12
         # 在 3.4.0 上测试
@@ -184,7 +192,7 @@ def retry(func):
                 break
             # 函数调用超时
             except JobTimeout:
-                logger.warning(f'Func {func.__name__}() call timeout, retrying: {_}')
+                logger.warning(f'Func {func.__name__}() 调用超时，重试: {_}')
 
                 def init():
                     pass
@@ -205,10 +213,10 @@ def retry(func):
                     pass
 
         if func.__name__ in ['connect_with_retry', 'screenshot', 'down', 'up']:
-            logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+            logger.critical(f'[设备-NemuIpc] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
 
-        logger.critical(f'[Device] 重试 {func.__name__}() 失败')
+        logger.critical(f'[设备-NemuIpc] 重试 {func.__name__}() 失败')
         raise RequestHumanTakeover
 
     return retry_wrapper
@@ -244,7 +252,7 @@ class NemuIpcImpl:
                 break
             except OSError as e:
                 logger.error(e)
-                logger.error(f'ipc_dll={ipc_dll} exists, but cannot be loaded')
+                logger.error(f'ipc_dll={ipc_dll} 存在，但无法加载')
                 continue
         if self.lib is None:
             # 未找到
@@ -253,7 +261,7 @@ class NemuIpcImpl:
                 f'None of the following path exists: {list_dll}')
         # 成功
         logger.info(
-            f'NemuIpcImpl init, '
+            f'[设备-NemuIpc] NemuIpcImpl init, '
             f'nemu_folder={nemu_folder}, '
             f'ipc_dll={ipc_dll}, '
             f'instance_id={instance_id}, '
@@ -341,7 +349,7 @@ class NemuIpcImpl:
                 err = True
         # 获取标准输出中实际的错误信息
         if err:
-            logger.warning(f'Failed to call {func.__name__}, result={result}')
+            logger.warning(f'调用失败 {func.__name__}, result={result}')
             with CaptureNemuIpc():
                 func(*args)
 
@@ -498,16 +506,16 @@ class NemuIpc(Platform):
                     ).__enter__()
                 except (NemuIpcIncompatible, NemuIpcError, JobTimeout) as e:
                     logger.error(e)
-                    logger.error('Emulator info incorrect')
+                    logger.error('[设备-NemuIpc] 模拟器信息不正确')
 
         # 搜索模拟器实例
         # 例如 E:\ProgramFiles\MuMuPlayer-12.0\shell\MuMuPlayer.exe
         # 安装路径为 E:\ProgramFiles\MuMuPlayer-12.0
         if self.emulator_instance is None:
-            logger.error('[Device] 无法使用 NemuIpc，因为未找到模拟器实例')
+            logger.error('[设备-NemuIpc] 无法使用 NemuIpc，因为未找到模拟器实例')
             raise RequestHumanTakeover
         if 'MuMuPlayerGlobal' in self.emulator_instance.path:
-            logger.info(f'[Device] nemu_ipc 在 MuMuPlayerGlobal 上不可用, {self.emulator_instance.path}')
+            logger.info(f'[设备-NemuIpc] nemu_ipc 在 MuMuPlayerGlobal 上不可用, {self.emulator_instance.path}')
             raise RequestHumanTakeover
         try:
             impl = NemuIpcImpl(
@@ -519,7 +527,7 @@ class NemuIpc(Platform):
             return impl
         except (NemuIpcIncompatible, NemuIpcError, JobTimeout) as e:
             logger.error(e)
-            logger.error('Unable to initialize NemuIpc')
+            logger.error('[设备-NemuIpc] 无法初始化NemuIpc')
             raise RequestHumanTakeover
 
     def nemu_ipc_available(self) -> bool:
@@ -560,14 +568,13 @@ class NemuIpc(Platform):
                 s = f.read()
                 data = json.loads(s)
         except FileNotFoundError:
-            logger.warning(f'Failed to check check_mumu_app_keep_alive, file {file} not exists')
+            logger.warning(f'[设备-NemuIpc] 检查 check_mumu_app_keep_alive 失败，文件 {file} 不存在')
             return False
         value = deep_get(data, keys='customer.app_keptlive', default=None)
         logger.attr('customer.app_keptlive', value)
         if str(value).lower() == 'true':
             # https://mumu.163.com/help/20230802/35047_1102450.html
-            logger.critical('Please turn off "Keep alive in the background" in the settings or MuMuPlayer')
-            logger.critical('[Device] 请在MuMu模拟器设置内关闭 "后台挂机时保活运行"')
+            logger.critical('[设备-NemuIpc] 请在MuMu模拟器设置内关闭 "后台挂机时保活运行"')
             raise RequestHumanTakeover
         return True
 
@@ -586,7 +593,7 @@ class NemuIpc(Platform):
 
         # 搜索模拟器实例
         if self.emulator_instance is None:
-            logger.warning('[Device] 检查 check_mumu_app_keep_alive 失败，因为 emulator_instance 为 None')
+            logger.warning('[设备-NemuIpc] 检查 check_mumu_app_keep_alive 失败，因为 emulator_instance 为 None')
             return False
         name = self.emulator_instance.name
         file = self.emulator_instance.mumu_vms_config('customer_config.json')
@@ -599,7 +606,7 @@ class NemuIpc(Platform):
         if has_cached_property(self, 'nemu_ipc'):
             self.nemu_ipc.disconnect()
         del_cached_property(self, 'nemu_ipc')
-        logger.info('nemu_ipc released')
+        logger.info('[设备-NemuIpc] nemu_ipc已释放')
 
     def screenshot_nemu_ipc(self):
         image = self.nemu_ipc.screenshot()

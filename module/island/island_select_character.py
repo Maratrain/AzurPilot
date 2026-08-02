@@ -1,3 +1,8 @@
+"""岛屿角色选择模块。
+
+提供岛屿岗位派遣时的角色选择功能，基于角色网格布局进行状态检测与智能筛选。
+通过颜色识别判断角色工作状态、体力值与选中状态，支持 OCR 读取体力数值。
+"""
 from module.island_select_character.assets import *
 from module.base.button import *
 from module.base.utils import color_similar, color_similarity_2d, crop, get_color

@@ -1,3 +1,8 @@
+"""岛屿珍珠售卖模块。
+
+管理每周珍珠的采购与售卖流程，根据交易周期和每日刷新时间自动执行。
+支持价格 OCR 识别与重试机制，处理岛屿珍珠交易的定时调度逻辑。
+"""
 import re
 from datetime import timedelta
 
@@ -48,7 +53,7 @@ class IslandPearlSell(Island):
     PHASE_DELAYED = "delayed"
 
     def run(self):
-        logger.hr("Island Pearl Sell Run", level=1)
+        logger.hr("岛屿珍珠出售运行", level=1)
         now = current_time().replace(microsecond=0)
 
         pearl_trade_time = self._get_next_pearl_trade_time(now=now)
@@ -56,10 +61,10 @@ class IslandPearlSell(Island):
         # 判断当前触发类型
         trade_due = self._trade_due(now=now, next_time=pearl_trade_time)
         refresh_due = False if trade_due else self._refresh_due(now=now)
-        logger.attr("SchedulerNextRun", self.config.Scheduler_NextRun)
-        logger.attr("PearlTradeTime", pearl_trade_time)
-        logger.attr("PearlTradeDue", trade_due)
-        logger.attr("PearlRefreshDue", refresh_due)
+        logger.attr("下次调度运行", self.config.Scheduler_NextRun)
+        logger.attr("珍珠交易时间", pearl_trade_time)
+        logger.attr("珍珠交易到期", trade_due)
+        logger.attr("珍珠刷新到期", refresh_due)
 
         if not trade_due and not refresh_due:
             target = self._next_run(now=now)
@@ -107,7 +112,7 @@ class IslandPearlSell(Island):
 
     def run_buy_phase(self):
         """执行采购阶段。"""
-        logger.hr("Pearl buy phase", level=2)
+        logger.hr("珍珠购买阶段", level=2)
         self._purchase_quota_exhausted = False
 
         # 检查购买延时——如果还没到购买时间则跳过采购，让售卖正常执行
@@ -214,7 +219,7 @@ class IslandPearlSell(Island):
 
     def run_sell_phase(self):
         """执行售卖阶段。"""
-        logger.hr("Pearl sell phase", level=2)
+        logger.hr("珍珠出售阶段", level=2)
         sell_price_limit = int(self.config.IslandPearlSell_SellPrice)
 
         if not self._enter_home_pearl_shop("assembly"):
@@ -775,7 +780,7 @@ class IslandPearlSell(Island):
 
     def run_price_refresh(self):
         """每日 03:00 进入珍珠售卖商店后立即退出，刷新价格显示。"""
-        logger.hr("Pearl price refresh", level=2)
+        logger.hr("珍珠价格刷新", level=2)
         if not self._enter_home_pearl_shop("assembly"):
             logger.warning("[岛屿-珍珠采购] 价格刷新：进入珍珠商店失败")
             return False

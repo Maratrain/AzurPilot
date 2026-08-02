@@ -32,7 +32,7 @@ alwaysApply: true
 
 | 目录 | 文件数 | 总行数 | 最大文件 |
 |------|--------|--------|---------|
-| `module/os/` | 33 | 11,387 | `map.py` (2225行), `fleet.py` (997行), `tasks/scheduling.py` (1271行) |
+| `module/os/` | 33 | 11,387 | `map.py` (2162行), `fleet.py` (1151行), `tasks/scheduling.py` (1484行) |
 | `module/os_combat/` | 2 | 406 | `combat.py` (398行) |
 | `module/os_handler/` | 10 | 2,447 | `action_point.py` (568行), `storage.py` (420行) |
 | `module/os_ash/` | 3 | 823 | `meta.py` (634行) |
@@ -236,12 +236,13 @@ alwaysApply: true
 
 | 文件 | 行数 | 导出类 | 核心职责 |
 |------|------|--------|---------|
-| `scheduling.py` | 1271 | `OpsiScheduling`, `CoinTaskMixin` | 智能调度引擎：黄币/行动力阈值、任务切换、虚拟资产计算、推送通知、短猫提前开始算法 |
-| `hazard_leveling.py` | 1052 | `OpsiHazard1Leveling` | 侵蚀1练级：CL1 战斗循环、黄币检查、舰船经验检测、海里数记录、遥测提交 |
+| `scheduling.py` | 1484 | `OpsiScheduling`, `CoinTaskMixin` | 智能调度引擎：黄币/行动力阈值、任务切换、虚拟资产计算、推送通知、短猫提前开始算法（原 `smart_scheduling_utils.py` 已并入本文件） |
+| `hazard_leveling.py` | 856 | `OpsiHazard1Leveling` | 侵蚀1练级：CL1 战斗循环、黄币检查、舰船经验检测、海里数记录、遥测提交 |
 | `fleet_auto_change.py` | 605 | `OpsiFleetAutoChange` | 自动配队：满经验检测、船坞选船、舰队部署、冷却管理 |
-| `meowfficer_farming.py` | 268 | `OpsiMeowfficerFarming` | 短猫相接：传统/StayInZone/普通搜索三种模式、行动力管理 |
+| `meowfficer_farming.py` | 379 | `OpsiMeowfficerFarming` | 短猫相接：传统/StayInZone/普通搜索三种模式、行动力管理 |
 | `daily.py` | 221 | `OpsiDaily` | 每日任务：港口任务、任务完成、调谐样本使用 |
 | `cross_month.py` | 173 | `OpsiCrossMonth` | 月末行动力清理 |
+| `prevent_action_point_overflow.py` | 231 | `OpsiPreventActionPointOverflow` | 月末自动清理行动力（2026-07 新增，可配置触发天数与保留值，自动执行短猫相接、商店采购、隐秘海域和深渊坐标任务消耗） |
 | `abyssal.py` | 174 | `OpsiAbyssal` | 深渊海域 |
 | `stronghold.py` | 165 | `OpsiStronghold` | 塞壬要塞 |
 | `explore.py` | 134 | `OpsiExplore` | 大世界探索 |
@@ -250,14 +251,13 @@ alwaysApply: true
 | `shop.py` | 71 | `OpsiShop` | 大世界商店任务 |
 | `voucher.py` | 29 | `OpsiVoucher` | 凭证兑换 |
 | `archive.py` | 42 | `OpsiArchive` | 作战档案 |
-| `smart_scheduling_utils.py` | 22 | - | 智能调度工具函数 |
 | `coin_task_mixin.py` | 3 | - | 黄币任务 Mixin 占位 |
 
 ---
 
 ### 2.2 `module/os_combat/` — 大世界战斗
 
-#### 2.2.1 `combat.py`（398 行）
+#### 2.2.1 `combat.py`（569 行）
 
 **导出类型**：类 `Combat`、异常 `ContinuousCombat`
 **继承链**：`Combat(Combat_, MapEventHandler)`

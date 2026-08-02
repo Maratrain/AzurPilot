@@ -1,3 +1,17 @@
+"""网络时间源模块。
+
+通过 NTP 服务器校准本地时间，确保任务调度的时间准确性。
+在长时间运行场景下，系统时钟可能存在漂移，
+NTP 校时可以保证委托、科研等定时任务的精确触发。
+
+特性：
+- 启动时自动校准，后续读取使用缓存的偏移量
+- 支持多个 NTP 服务器，自动故障转移
+- 校时失败时回退到本机时间，不影响运行
+- 可通过环境变量 AZURPILOT_NTP_DISABLE 禁用
+- 可通过环境变量 AZURPILOT_NTP_SERVERS 自定义服务器
+"""
+
 import os
 import socket
 import struct
@@ -6,11 +20,13 @@ import time as time_
 from datetime import datetime, timezone
 
 
-NTP_EPOCH_DELTA = 2208988800
+# NTP 协议常量
+NTP_EPOCH_DELTA = 2208988800  # NTP 时间纪元与 Unix 时间纪元的差值（秒）
 NTP_PORT = 123
 NTP_PACKET = b'\x1b' + b'\0' * 47
 NTP_SERVERS_ENV = 'AZURPILOT_NTP_SERVERS'
 NTP_DISABLE_ENV = 'AZURPILOT_NTP_DISABLE'
+# 默认 NTP 服务器列表（中国优先）
 DEFAULT_NTP_SERVERS = (
     'ntp.ntsc.ac.cn',
     'ntp.aliyun.com',

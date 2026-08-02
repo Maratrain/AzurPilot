@@ -1,3 +1,7 @@
+"""商店选择界面的全局常量定义，包含网格布局和商品选择映射。
+定义了舰队商店和勋章商店的商品类型、子选项和选择顺序。
+"""
+
 from module.base.button import ButtonGrid
 
 # Known Secondary Grid Sizes

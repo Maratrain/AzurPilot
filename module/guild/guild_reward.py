@@ -1,3 +1,7 @@
+"""大舰队奖励任务入口，统一调度大厅、后勤和作战三个子任务。
+从主页面进入大舰队，依次执行各子任务后返回。
+"""
+
 from module.guild.lobby import GuildLobby
 from module.guild.logistics import GuildLogistics
 from module.guild.operations import GuildOperations

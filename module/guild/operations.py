@@ -1,3 +1,7 @@
+"""大舰队作战处理器，管理作战进入、派遣舰队和进度检测。
+使用 OCR 识别作战进度，支持自动选择新作战。
+"""
+
 from module.base.button import ButtonGrid
 from module.base.timer import Timer
 from module.base.utils import *
@@ -22,7 +26,7 @@ class GuildOperations(GuildBase):
         Returns:
             bool: True 表示成功进入作战，False 表示资金不足。
         """
-        logger.attr('Guild master/official', self.config.GuildOperation_SelectNewOperation)
+        logger.attr('大舰队指挥官/官员', self.config.GuildOperation_SelectNewOperation)
         confirm_timer = Timer(1.5, count=3).start()
         click_count = 0
         while 1:
@@ -37,9 +41,9 @@ class GuildOperations(GuildBase):
                 # 可能是因为大舰队作战已被其他军官开启。
                 # 重新进入大舰队页面应该可以修复此问题。
                 logger.warning(
-                    'Unable to start/join guild operation, '
-                    'probably because guild operation has been started by another guild officer already')
-                raise GameBugError('Unable to start/join guild operation')
+                    '[大舰队-作战] 无法启动/加入大舰队作战，'
+                    '可能是因为大舰队作战已被其他军官开启')
+                raise GameBugError('[大舰队-作战] 无法启动/加入大舰队作战')
 
             if self._guild_operation_fund_insufficient():
                 return False
@@ -48,18 +52,18 @@ class GuildOperations(GuildBase):
                 continue
             if self.appear(GUILD_OPERATIONS_JOIN, interval=3):
                 if self.image_color_count(GUILD_OPERATIONS_MONTHLY_COUNT, color=(255, 93, 90), threshold=221, count=20):
-                    logger.info('Unable to join operation, no more monthly attempts left')
+                    logger.info('[大舰队-作战] 无法加入作战，本月尝试次数已用完')
                     self.device.click(GUILD_OPERATIONS_CLICK_SAFE_AREA)
                 else:
                     current, remain, total = GUILD_OPERATIONS_PROGRESS.ocr(self.device.image)
                     threshold = total * self.config.GuildOperation_JoinThreshold
                     if current <= threshold:
-                        logger.info('Joining Operation, current progress less than '
-                                    f'threshold ({threshold:.2f})')
+                        logger.info('[大舰队-作战] 加入作战，当前进度低于'
+                                    f'阈值 ({threshold:.2f})')
                         self.device.click(GUILD_OPERATIONS_JOIN)
                     else:
-                        logger.info('Refrain from joining operation, current progress exceeds '
-                                    f'threshold ({threshold:.2f})')
+                        logger.info('[大舰队-作战] 不加入作战，当前进度超过'
+                                    f'阈值 ({threshold:.2f})')
                         self.device.click(GUILD_OPERATIONS_CLICK_SAFE_AREA)
                 confirm_timer.reset()
                 continue
@@ -68,9 +72,9 @@ class GuildOperations(GuildBase):
                 confirm_timer.reset()
                 continue
             if self.handle_popup_single('FLEET_UPDATED'):
-                logger.info('Fleet composition altered, may still be dispatch-able. However '
-                            'fellow guild members have updated their support line up. '
-                            'Suggestion: Enable Boss Recommend')
+                logger.info('[大舰队-作战] 舰队编成已变更，可能仍可派遣。'
+                            '但是大舰队成员已更新了他们的支援阵容。'
+                            '建议：启用Boss推荐')
                 confirm_timer.reset()
                 continue
 
@@ -96,7 +100,7 @@ class GuildOperations(GuildBase):
         today = get_server_monthday()
         limit = self.config.GuildOperation_NewOperationMaxDate
         if today >= limit:
-            logger.info(f'No new guild operations because, today\'s date {today} >= limit {limit}')
+            logger.info(f'[大舰队-作战] 今日日期 {today} >= 限制 {limit}，不开启新作战')
             return False
 
         # 硬编码选择奖励最丰厚的作战：所罗门海空战
@@ -127,7 +131,7 @@ class GuildOperations(GuildBase):
         if not self.appear(GUILD_OPERATIONS_NEW, offset=(20, 20)):
             return False
         if self.image_color_count(GUILD_OPERATION_FUND_CHECK, color=(255, 93, 91), threshold=180, count=30):
-            logger.warning('Insufficient guild fund to start new operation')
+            logger.warning('[大舰队-作战] 大舰队资金不足，无法开始新作战')
             return True
         return False
 
@@ -152,16 +156,16 @@ class GuildOperations(GuildBase):
                 'an operation difficulty')
             return 0
         elif self.appear(GUILD_OPERATIONS_ACTIVE_CHECK):
-            logger.info('Mode: Operations Active, may proceed to scan and dispatch fleets')
+            logger.info('[大舰队-作战] 模式: 作战进行中，可扫描和派遣舰队')
             return 1
         elif self.appear(GUILD_BOSS_ENTER):
-            logger.info('Mode: Guild Raid Boss (GUILD_BOSS_ENTER)')
+            logger.info('[大舰队-作战] 模式: 大舰队突袭Boss (GUILD_BOSS_ENTER)')
             return 2
         elif self.appear(GUILD_OPERATIONS_NEW, offset=(20, 20)):
-            logger.info('Mode: Guild Raid Boss (GUILD_OPERATIONS_NEW)')
+            logger.info('[大舰队-作战] 模式: 大舰队突袭Boss (GUILD_OPERATIONS_NEW)')
             return 2
         else:
-            logger.warning('Operations interface is unrecognized')
+            logger.warning('[大舰队-作战] 作战界面无法识别')
             return None
 
     def _guild_operations_get_entrance(self):
@@ -185,7 +189,7 @@ class GuildOperations(GuildBase):
         list_expand = []
         list_enter = []
         dots = TEMPLATE_OPERATIONS_RED_DOT.match_multi(self.image_crop(detection_area, copy=False), threshold=5)
-        logger.info(f'Active operations found: {len(dots)}')
+        logger.info(f'[大舰队-作战] 找到进行中的作战: {len(dots)}')
         for button in dots:
             button = button.move(vector=detection_area[:2])
             expand = button.crop(area=(-257, 14, 12, 51), name='DISPATCH_ENTRANCE_1')
@@ -231,7 +235,7 @@ class GuildOperations(GuildBase):
             self.device.drag(p1, p2, segments=2, shake=(0, 25), point_random=(0, 0, 0, 0), shake_random=(0, -5, 0, 5))
             # self.device.sleep(0.3)
 
-        logger.warning('Failed to find active operation dispatch')
+        logger.warning('[大舰队-作战] 未找到进行中的作战派遣')
         return False
 
     def _guild_operations_dispatch_enter(self, skip_first_screenshot=True):
@@ -323,9 +327,9 @@ class GuildOperations(GuildBase):
 
         # 日志示例：| 1 | | 2 | [ 3 ]
         text = ' '.join(text)
-        logger.attr('Dispatch_fleet', text)
+        logger.attr('派遣舰队', text)
         if text.endswith(']'):
-            logger.info('Already at the most right fleet')
+            logger.info('[大舰队-作战] 已在最右侧舰队')
             return None
         else:
             return button
@@ -348,7 +352,7 @@ class GuildOperations(GuildBase):
             if button is None:
                 break
             elif point_in_area((640, 393), button.area):
-                logger.info('Dispatching the first fleet, skip switching')
+                logger.info('[大舰队-作战] 派遣第一支舰队，跳过切换')
             else:
                 self.device.click(button)
                 # 等待点击动画完成，否则会干扰 _guild_operations_get_dispatch() 的检测
@@ -391,7 +395,7 @@ class GuildOperations(GuildBase):
             # 结束
             if self.appear(GUILD_DISPATCH_IN_PROGRESS):
                 # 首次派遣时，会显示 GUILD_DISPATCH_IN_PROGRESS
-                logger.info('Fleet dispatched, dispatch in progress')
+                logger.info('[大舰队-作战] 舰队已派遣，派遣进行中')
                 break
             if dispatched and self.appear(GUILD_DISPATCH_FLEET, offset=(20, 20), interval=3):
                 # GUILD_DISPATCH_FLEET 和 GUILD_DISPATCH_FLEET_UNFILLED 特征相同但颜色不同
@@ -401,7 +405,7 @@ class GuildOperations(GuildBase):
                     # 无法确认舰队是否已派遣，
                     # 因为点击推荐后派遣前也会显示 GUILD_DISPATCH_FLEET
                     # _guild_operations_dispatch() 会在未派遣时重试
-                    logger.info('Fleet dispatched')
+                    logger.info('[大舰队-作战] 舰队已派遣')
                     break
 
     def _guild_operations_dispatch_exit(self, skip_first_screenshot=True):
@@ -441,7 +445,7 @@ class GuildOperations(GuildBase):
             in: page_guild, guild operation, operation map (GUILD_OPERATIONS_ACTIVE_CHECK)
             out: page_guild, guild operation, operation map (GUILD_OPERATIONS_ACTIVE_CHECK)
         """
-        logger.hr('Guild dispatch')
+        logger.hr('大舰队派遣')
         success = False
         for _ in reversed(range(2)):
             if self._guild_operations_dispatch_swipe(forward=_):
@@ -462,7 +466,7 @@ class GuildOperations(GuildBase):
             else:
                 return True
 
-        logger.warning('Too many trials on guild operation dispatch')
+        logger.warning('[大舰队-作战] 大舰队作战派遣尝试过多')
         return False
 
     def _guild_operations_boss_preparation(self, az, skip_first_screenshot=True):
@@ -493,8 +497,8 @@ class GuildOperations(GuildBase):
                     self.device.click(GUILD_DISPATCH_FLEET)
                     dispatch_count += 1
                 else:
-                    logger.warning('Fleet composition error. Preloaded guild support selection may be '
-                                   'preventing dispatch. Suggestion: Enable Boss Recommend')
+                    logger.warning('[大舰队-作战] 舰队编成错误。预加载的大舰队支援选择可能'
+                                   '正在阻止派遣。建议：启用Boss推荐')
                     return False
                 continue
 
@@ -515,7 +519,7 @@ class GuildOperations(GuildBase):
             # 结束
             pause = az.is_combat_executing()
             if pause:
-                logger.attr('BattleUI', pause)
+                logger.attr('战斗UI', pause)
                 return True
 
     def _guild_operations_boss_combat(self):
@@ -533,7 +537,7 @@ class GuildOperations(GuildBase):
             return False
         az.combat_execute(auto='combat_auto', submarine='every_combat')
         az.combat_status(expected_end='in_ui')
-        logger.info('Guild Raid Boss has been repelled')
+        logger.info('[大舰队-作战] 大舰队突袭Boss已被击退')
         return True
 
     def _guild_operations_boss_available(self):
@@ -545,17 +549,17 @@ class GuildOperations(GuildBase):
         """
         appear = self.image_color_count(GUILD_BOSS_AVAILABLE, color=(140, 243, 99), threshold=221, count=10)
         if appear:
-            logger.info('Guild boss available')
+            logger.info('[大舰队-作战] 大舰队Boss可用')
         else:
-            logger.info('Guild boss not available')
+            logger.info('[大舰队-作战] 大舰队Boss不可用')
         return appear
 
     def guild_operations(self):
-        logger.hr('Guild operations', level=1)
+        logger.hr('大舰队作战', level=1)
         self.guild_side_navbar_ensure(bottom=1)
         entered = self._guild_operations_ensure()
         if not entered:
-            logger.info(f'Guild operation run success: {entered}')
+            logger.info(f'[大舰队-作战] 大舰队作战运行成功: {entered}')
             return False
         # 判断作战模式，目前有 3 种
         operations_mode = self._guild_operations_get_mode()
@@ -571,9 +575,9 @@ class GuildOperations(GuildBase):
                 if self.config.GuildOperation_AttackBoss:
                     result = self._guild_operations_boss_combat()
                 else:
-                    logger.info('Auto-battle disabled, play manually to complete this Guild Task')
+                    logger.info('[大舰队-作战] 自动战斗已禁用，需手动完成此大舰队任务')
         else:
             result = False
 
-        logger.info(f'Guild operation run success: {result}')
+        logger.info(f'[大舰队-作战] 大舰队作战运行成功: {result}')
         return result

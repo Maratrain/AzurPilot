@@ -1,3 +1,10 @@
+"""
+Web界面多语言支持。
+
+管理 WebUI 的语言切换和翻译文本加载。从 i18n JSON 文件读取翻译，
+通过 t() 函数获取当前语言的翻译文本，支持 zh-CN/en-US/ja-JP/zh-TW。
+"""
+
 from typing import Dict
 
 from module.config.deep import deep_iter

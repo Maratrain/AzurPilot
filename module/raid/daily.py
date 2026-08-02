@@ -1,3 +1,13 @@
+"""
+突袭每日（Daily Raid）任务模块。
+
+负责按配置依次刷完各难度（easy、normal、hard）的每日突袭次数。
+支持以下功能：
+- 通过 StageFilter 过滤器选择要刷的难度
+- 自动检测剩余次数并循环执行
+- EX 难度始终最后执行，并在执行前领取通关奖励
+- RPG 类型突袭无每日模式，自动禁用调度器
+"""
 import re
 
 from module.base.filter import Filter
@@ -8,6 +18,15 @@ from module.ui.page import page_raid
 
 
 class RaidStage:
+    """
+    突袭难度阶段数据类。
+
+    用于在 StageFilter 过滤器中表示一个突袭难度选项。
+
+    Attributes:
+        name (str): 难度名称，如 'easy'、'normal'、'hard'。
+    """
+
     def __init__(self, name):
         self.name = name
 
@@ -20,6 +39,17 @@ STAGE_FILTER = Filter(regex=re.compile('(\w+)'), attr=['name'])
 
 
 class RaidDaily(RaidRun):
+    """
+    突袭每日任务执行器。
+
+    按配置依次执行各难度的突袭每日任务。执行流程：
+    1. 检查是否为 RPG 类型（RPG 无每日模式，直接禁用）
+    2. 使用 StageFilter 过滤要刷的难度（默认 easy > normal > hard）
+    3. 按顺序刷完每个难度的 15 次每日次数
+    4. 如果配置了 EX 难度，先领取通关奖励再执行 EX
+
+    继承自 RaidRun，使用其战斗执行和停止条件检查逻辑。
+    """
     def run(self, name=''):
         """
         运行突袭每日任务，依次刷完各难度次数。
@@ -28,7 +58,7 @@ class RaidDaily(RaidRun):
             name (str): 突袭活动名称，如 'raid_20200624'。
         """
         if self.is_raid_rpg():
-            logger.info('RPG raid has no dailies')
+            logger.info('[突袭-日常] RPG突袭没有每日任务')
             self.config.Scheduler_Enable = False
             self.config.task_stop()
 

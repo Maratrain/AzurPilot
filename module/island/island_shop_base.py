@@ -1,3 +1,8 @@
+"""岛屿店铺基类模块。
+
+为烧烤店、茶馆、餐厅、制造工坊等所有岛屿店铺提供通用的岗位管理与商品生产框架。
+包含产品选择、厨师筛选、岗位填充循环、季节性商品处理等核心逻辑，是所有店铺模块的父类。
+"""
 from module.island.island import *
 from collections import Counter
 from datetime import timedelta

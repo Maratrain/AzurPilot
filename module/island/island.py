@@ -1,3 +1,9 @@
+"""岛屿系统基类模块。
+
+提供岛屿自动化操作的核心基础功能，包括岛屿导航、岗位管理、产品选择与派遣。
+继承自 InfoHandler 和 LoginHandler，组合仓库 OCR 与角色选择能力。
+定义岛屿地图确认等待时间、产品选择安全区域及材料数量 OCR 区域等公共常量。
+"""
 from module.island.assets import *
 from module.ui.page import *
 from module.base.timer import Timer
@@ -297,7 +303,7 @@ class Island(SelectCharacter):
         }
 
     def goto_island_map(self):
-        logger.hr("Island goto map", level=2)
+        logger.hr("岛屿-前往地图", level=2)
         expect_friend = bool(getattr(self, "_island_expect_friend", False))
         status = self._wait_island_map_entry(timeout=10 if expect_friend else 3)
         in_map = status["in_map"]

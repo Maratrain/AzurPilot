@@ -1,3 +1,7 @@
+"""联盟活动沉船刷分模块，专门处理联盟沉船战斗的结算逻辑。
+针对 D 评价沉船场景进行优化，控制心情扣减和战斗结束判定，
+并处理沉船专用的结算弹窗与确认操作。"""
+
 from module.combat.assets import (
     BATTLE_STATUS_D, BATTLE_STATUS_A, BATTLE_STATUS_B, BATTLE_STATUS_S,
     OPTS_INFO_D,
@@ -141,7 +145,7 @@ class CoalitionScuttleCombat(CoalitionCombat):
                 self.coalition_combat_re_enter()
                 self.battle_count += 1
         except CampaignEnd:
-            logger.info('Coalition combat end.')
+            logger.info('联动战斗结束。')
 
     def handle_battle_status(self, drop=None):
         """
@@ -176,7 +180,7 @@ class CoalitionScuttleCombat(CoalitionCombat):
         if self.appear_then_click(SCUTTLE_CONFIRM, offset=(20, 20), interval=2):
             return True
         if super().handle_battle_status(drop=drop):
-            logger.warning("Triggered normal end")
+            logger.warning("触发正常结束")
             self.triggered_normal_end = True
             return True
 
@@ -210,7 +214,7 @@ class CoalitionScuttleCombat(CoalitionCombat):
         from module.base.timer import Timer
         from module.os_ash.assets import BATTLE_STATUS
 
-        logger.info('Coalition scuttle combat re-enter')
+        logger.info('[联动-扫荡] 联动自沉战斗重新进入')
         status_clicked = False
         click_timer = Timer(0.3)
         click_last = Timer(2)
@@ -346,9 +350,9 @@ class CoalitionScuttleRun(Coalition, CoalitionScuttleCombat):
             # 日志输出
             logger.hr(f'{event}_{mode}', level=2)
             if self.config.StopCondition_RunCount > 0:
-                logger.info(f'Count remain: {self.config.StopCondition_RunCount}')
+                logger.info(f'剩余次数: {self.config.StopCondition_RunCount}')
             else:
-                logger.info(f'Count: {self.run_count}')
+                logger.info(f'计数: {self.run_count}')
 
             # 无燃油图标时，先在战役菜单检查停止条件
             if not self._coalition_has_oil_icon:
@@ -374,7 +378,7 @@ class CoalitionScuttleRun(Coalition, CoalitionScuttleCombat):
             try:
                 self.coalition_execute_once(event=event, stage=mode, fleet=fleet)
             except ScriptEnd as e:
-                logger.hr('Script end')
+                logger.hr('脚本结束')
                 logger.info(str(e))
                 break
 

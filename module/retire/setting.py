@@ -1,3 +1,14 @@
+"""退役设置管理模块。
+
+管理快速退役的设置界面操作，包括进入/退出设置页面、
+切换退役选项（如退役稀有度范围、保留规则等）。
+
+QuickRetireSetting 扩展 Setting 类，适配退役设置的 UI 样式。
+QuickRetireSettingHandler 提供设置页面的导航操作。
+
+继承自 UI，利用页面导航能力。
+"""
+
 from module.base.decorator import cached_property
 from module.retire.assets import *
 from module.ui.setting import Setting
@@ -5,11 +16,20 @@ from module.ui.ui import UI
 
 
 class QuickRetireSetting(Setting):
+    """快速退役设置项。
+
+    检测退役设置选项的激活状态。
+    """
+
     def is_option_active(self, option: Button) -> bool:
         return self.main.image_color_count(option, color=(255, 255, 255), threshold=221, count=50)
 
 
 class QuickRetireSettingHandler(UI):
+    """退役设置页面导航处理器。
+
+    提供退役设置页面的进入和退出操作。
+    """
     def _retire_setting_enter(self):
         """
         Pages:

@@ -1,3 +1,9 @@
+"""基准测试模块。
+
+用于评估设备性能，包括截图速度、图像处理速度和战斗效率。
+使用 Rich 表格输出测试结果，帮助用户选择最佳的截图后端配置。
+"""
+
 import time
 import typing as t
 
@@ -50,8 +56,8 @@ class Benchmark(DaemonBase, CampaignUI):
         Raises:
             RequestHumanTakeover: 不捕获此异常，直接向上抛出。
         """
-        logger.hr(f'Benchmark test', level=2)
-        logger.info(f'Testing function: {func.__name__}')
+        logger.hr(f'基准测试', level=2)
+        logger.info(f'测试函数: {func.__name__}')
         record = []
 
         for n in range(1, self.TEST_TOTAL + 1):
@@ -75,9 +81,9 @@ class Benchmark(DaemonBase, CampaignUI):
             )
             record.append(cost)
 
-        logger.info('Benchmark tests done')
+        logger.info('基准测试完成')
         average = float(np.mean(np.sort(record)[:self.TEST_BEST]))
-        logger.info(f'Time cost {float2str(average)} ({self.TEST_BEST} best results out of {self.TEST_TOTAL} tests)')
+        logger.info(f'[守护-基准测试] 耗时 {float2str(average)} (最优 {self.TEST_BEST} 次，共 {self.TEST_TOTAL} 次测试)')
         return average
 
     @staticmethod
@@ -172,9 +178,9 @@ class Benchmark(DaemonBase, CampaignUI):
         Returns:
             tuple: (最快截图方法, 最快点击方法)。
         """
-        logger.hr('Benchmark', level=1)
-        logger.info(f'Testing screenshot methods: {screenshot}')
-        logger.info(f'Testing click methods: {click}')
+        logger.hr('基准测试', level=1)
+        logger.info(f'测试截图方式: {screenshot}')
+        logger.info(f'测试点击方式: {click}')
 
         screenshot_result = []
         for method in screenshot:
@@ -195,13 +201,13 @@ class Benchmark(DaemonBase, CampaignUI):
             else:
                 return res
 
-        logger.hr('Benchmark Results', level=1)
+        logger.hr('基准测试结果', level=1)
         fastest_screenshot = 'ADB_nc'
         fastest_click = 'minitouch'
         if screenshot_result:
             self.show(test='Screenshot', data=screenshot_result, evaluate_func=self.evaluate_screenshot)
             fastest = sorted(screenshot_result, key=lambda item: compare(item))[0]
-            logger.info(f'Recommend screenshot method: {fastest[0]} ({float2str(fastest[1])})')
+            logger.info(f'推荐截图方式: {fastest[0]} ({float2str(fastest[1])})')
             fastest_screenshot = fastest[0]
         if click_result:
             self.show(test='Control', data=click_result, evaluate_func=self.evaluate_click)
@@ -209,7 +215,7 @@ class Benchmark(DaemonBase, CampaignUI):
             # 如果 minitouch 和 MaaTouch 都是最快的，优先选择 MaaTouch
             if 'MaaTouch' in click and fastest[0] == 'minitouch':
                 fastest[0] = 'MaaTouch'
-            logger.info(f'Recommend control method: {fastest[0]} ({float2str(fastest[1])})')
+            logger.info(f'推荐控制方式: {fastest[0]} ({float2str(fastest[1])})')
             fastest_click = fastest[0]
 
         return fastest_screenshot, fastest_click
@@ -263,8 +269,8 @@ class Benchmark(DaemonBase, CampaignUI):
         self.device.uninstall_minicap()
         self.ensure_campaign_ui('7-2', mode='normal')
 
-        logger.attr('DeviceType', self.config.Benchmark_DeviceType)
-        logger.attr('TestScene', self.config.Benchmark_TestScene)
+        logger.attr('设备类型', self.config.Benchmark_DeviceType)
+        logger.attr('测试场景', self.config.Benchmark_TestScene)
         screenshot, click = self.get_test_methods()
         self.benchmark(screenshot, click)
 

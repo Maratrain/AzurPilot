@@ -1,3 +1,13 @@
+"""大舰队基础模块。
+
+提供大舰队系统的通用 UI 操作，包括侧边栏导航。
+作为 `GuildLogistics` 等具体功能模块的基类，负责大舰队页面间的导航切换。
+
+主要功能：
+- 侧边栏导航栏的初始化与状态管理
+- 导航到大舰队指定子页面（大厅、成员、后勤、科技、作战等）
+"""
+
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.logger import logger
@@ -6,6 +16,15 @@ from module.ui.ui import UI
 
 
 class GuildBase(UI):
+    """大舰队基础操作类。
+
+    提供大舰队系统中侧边栏导航的通用功能。
+    根据用户身份（司令/普通成员），侧边栏包含不同数量的选项。
+
+    Attributes:
+        _guild_side_navbar (Navbar): 大舰队侧边导航栏实例，
+            支持 6 个选项（司令）或 5 个选项（普通成员）。
+    """
     @cached_property
     def _guild_side_navbar(self):
         """
@@ -60,7 +79,7 @@ class GuildBase(UI):
         """
         if self._guild_side_navbar.get_total(main=self) == 6:
             if upper == 3 or bottom == 4:
-                logger.warning('Transitions to "apply" is not supported')
+                logger.warning('[大舰队-导航] 不支持切换到"申请"页面')
                 return False
 
         if self._guild_side_navbar.set(self, upper=upper, bottom=bottom):

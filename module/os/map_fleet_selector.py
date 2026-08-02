@@ -1,3 +1,12 @@
+"""大世界舰队选择器模块。
+
+管理大世界地图中的舰队选择操作。
+大世界支持 4 支舰队（而非主线的 2 支），
+通过下拉菜单在舰队间切换。
+
+FleetOperator 的大世界版本，适配大世界特有的 UI 布局。
+"""
+
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.base.utils import *
@@ -8,8 +17,15 @@ from module.os_handler.map_event import MapEventHandler
 
 
 class FleetSelector:
-    """
-    Similar to FleetOperator.
+    """大世界舰队选择器。
+
+    管理大世界地图中的舰队切换操作。
+
+    Attributes:
+        FLEET_BAR_SHAPE_Y (int): 舰队选择条的高度像素。
+        FLEET_BAR_MARGIN_Y (int): 舰队选择条的间距像素。
+        FLEET_BAR_ACTIVE_STD (int): 活跃状态的标准差阈值。
+        FLEET_LIST (list): 可选舰队列表（FLEET_1 到 FLEET_4）。
     """
     FLEET_BAR_SHAPE_Y = 42
     FLEET_BAR_MARGIN_Y = 11
@@ -34,7 +50,7 @@ class FleetSelector:
             if self.main.appear(button, offset=(20, 20), similarity=0.75):
                 return index + 1
 
-        logger.info('Unknown OpSi fleet')
+        logger.info('[大世界-舰队选择] 未知的大世界舰队')
         return 0
 
     def bar_opened(self):
@@ -61,7 +77,7 @@ class FleetSelector:
             if np.std(mean, ddof=1) > self.FLEET_BAR_ACTIVE_STD:
                 result.append(4 - index)
 
-        logger.info(f'Current selected: {result}')
+        logger.info(f'[大世界-舰队选择] 当前选择: {result}')
         return result
 
     def selected(self):
@@ -179,15 +195,15 @@ class FleetSelector:
 
             current = self.get()
             if current == index:
-                logger.info(f'It is fleet {index} already')
+                logger.info(f'[大世界-舰队选择] 当前已是舰队 {index}')
                 return False
             elif current > 0:
-                logger.info(f'Ensure fleet to be {index}')
+                logger.info(f'[大世界-舰队选择] 切换到舰队 {index}')
                 self.open()
                 self.click(index)
                 return True
 
-        logger.warning('Unknown OpSi fleet, use current fleet instead')
+        logger.warning('[大世界-舰队选择] 未知的大世界舰队, 使用当前舰队')
         return False
 
 class StorageFleetSelector(FleetSelector):

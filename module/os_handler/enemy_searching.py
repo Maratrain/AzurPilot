@@ -1,3 +1,9 @@
+"""大世界敌人搜索处理器。
+
+继承标准敌人搜索处理器，针对大世界地图场景进行适配。
+提供大世界地图内状态检测（含雾天地图识别）以及地图按钮
+滑入动画的等待逻辑，确保 UI 元素就绪后再进行后续操作。
+"""
 from module.handler.enemy_searching import EnemySearchingHandler as EnemySearchingHandler_
 from module.logger import logger
 from module.os.assets import MAP_GOTO_GLOBE_FOG
@@ -25,4 +31,4 @@ class EnemySearchingHandler(EnemySearchingHandler_):
             if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
                 continue
         else:
-            logger.warning('wait_os_map_buttons timeout, assume waited')
+            logger.warning('[大世界处理-搜索] 大世界地图按钮等待超时，假设已等待完成')

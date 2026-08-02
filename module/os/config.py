@@ -1,6 +1,32 @@
+"""大世界（Operation Siren）配置类。
+
+定义大世界地图操作所需的配置参数，包括：
+- 地图检测参数（透视检测、网格识别）
+- 滑动参数（滑动倍率、最小距离）
+- 战斗相关配置（塞壬检测、情绪管理等）
+- 故事选项配置
+
+大世界的配置参数与主线战役不同，需要单独定义。
+OSConfig 被 OperationSiren 等大世界模块使用。
+"""
+
+
 class OSConfig:
-    """
-    Configs for Operation Siren
+    """大世界配置参数类。
+
+    定义大世界地图操作所需的所有配置参数。
+    这些参数覆盖了地图检测、滑动控制和战斗管理的默认值。
+
+    Attributes:
+        STORY_OPTION (int): 剧情选项，-2 表示自动选择。
+        MAP_FOCUS_ENEMY_AFTER_BATTLE (bool): 战斗后是否聚焦到敌人位置。
+        MAP_HAS_SIREN (bool): 地图是否有塞壬敌人。
+        MAP_HAS_FLEET_STEP (bool): 地图是否有步数限制。
+        IGNORE_LOW_EMOTION_WARN (bool): 是否忽略低情绪警告。
+        MAP_GRID_CENTER_TOLERANCE (float): 网格中心对齐容差。
+        MAP_SWIPE_DROP (float): 最小滑动距离阈值。
+        MAP_SWIPE_MULTIPLY (tuple): 滑动距离倍率。
+        DETECTION_BACKEND (str): 检测后端（'perspective' 或 'homography'）。
     """
     STORY_OPTION = -2
 

@@ -1,5 +1,5 @@
 """
-Device ID 管理模块
+设备ID 管理模块
 """
 import hashlib
 import json
@@ -127,13 +127,13 @@ def _init_device_id() -> str:
                 stored_id = old_data.get('device_id')
                 if stored_id and stored_id != device_id:
                     _old_device_id = stored_id
-                    logger.info(f'Device ID change detected for migration! Old: {stored_id[:8]}, New: {device_id[:8]}')
+                    logger.info(f'设备ID change detected for migration! Old: {stored_id[:8]}, New: {device_id[:8]}')
         except Exception:
             pass
 
     # 立即覆写新 ID
     _overwrite_device_id(device_id, device_id_file)
-    logger.info(f'Device ID initialized: {device_id[:8]}...')
+    logger.info(f'设备ID initialized: {device_id[:8]}...')
     
     _start_refresh_timer(device_id, device_id_file)
     
@@ -152,7 +152,7 @@ def _overwrite_device_id(device_id: str, file_path: Path):
         with file_path.open('w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        logger.warning(f'Failed to overwrite device ID file: {e}')
+        logger.warning(f'[设备-ID] 覆盖设备ID文件失败: {e}')
 
 
 def _refresh_callback(device_id: str, file_path: Path):

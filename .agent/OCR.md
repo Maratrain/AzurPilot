@@ -24,7 +24,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 ocr.py（260 行）
+### 2.1 ocr.py（266 行）
 
 **导出类型**：类 `Ocr`、`OcrYuv`、`Digit`、`DigitYuv`、`DigitCounter`、`DigitCounterYuv`、`Duration`、`DurationYuv`
 
@@ -43,12 +43,12 @@ alwaysApply: true
 - `L211-256`：`Duration` — 时长识别（如 `01:30:00`）。`parse_time()` 正则解析。返回 `timedelta`。
 - `L259-260`：`DurationYuv` — YUV 时长识别。
 
-### 2.2 al_ocr.py（557 行）
+### 2.2 al_ocr.py（970 行）
 
 **导出类型**：类 `AlOcr`、`RecOnlyOCR`、`DetOnlyOCR`，函数 `reset_ocr_model()`
 
 **导入依赖**：
-- 内部：`exception.RequestHumanTakeover`、`logger`、`config.AzurLaneConfig`、`ocr.ncnn_ocr`
+- 内部：`exception.RequestHumanTakeover`、`logger`、`config.AzurLaneConfig`、`ocr.ncnn_ocr`、`ocr.windows_ml`
 - 外部：`os`、`queue`、`threading`、`numpy`、`cv2`、`PIL.Image`、`rapidocr`
 
 **逐段分析**：
@@ -61,9 +61,9 @@ alwaysApply: true
 - `L189-213`：`_get_model()` — 惰性加载模型。全局变量 `_cn_model`/`_en_model`/`_jp_model`/`_tw_model`。
 - `L216-293`：检测模型 — `DetOnlyOCR`（仅检测）、`_create_det_ocr_for_onnx()`（ONNX 全流程）、`_create_det_ocr_for_ncnn()`（ncnn 检测）。`_get_det_model()` 惰性加载。
 - `L296-310`：`reset_ocr_model()` — 重置所有 OCR 模型，释放内存。
-- `L313-557`：`AlOcr` 类 — `__init__()` 惰性初始化。`init()` 加载模型。`ocr()` 文本识别。`det()` 检测+识别，返回 `(text, box, score)` 列表。`ocr_for_single_lines()` 批量识别。`atomic_ocr()` 带字母白名单过滤。`_save_debug_image()`/`_save_det_debug()` 调试图保存。
+- `L313-970`：`AlOcr` 类 — `__init__()` 惰性初始化。`init()` 加载模型。`ocr()` 文本识别。`det()` 检测+识别，返回 `(text, box, score)` 列表。`ocr_for_single_lines()` 批量识别。`atomic_ocr()` 带字母白名单过滤。`_save_debug_image()`/`_save_det_debug()` 调试图保存。集成 `windows_ml.create_onnx_session()` 设备选择。
 
-### 2.3 ncnn_ocr.py（350 行）
+### 2.3 ncnn_ocr.py（393 行）
 
 **导出类型**：类 `NcnnRecOCR`、`RecPreprocessor`，函数 `has_ncnn_vulkan_gpu()`、`get_ncnn_vulkan_gpu_count()`
 
@@ -88,9 +88,19 @@ alwaysApply: true
 
 **逐段分析**：
 
-- `L5-26`：`OcrModel` — 5 个缓存属性：`azur_lane`（EN）、`azur_lane_jp`（JP）、`cnocr`（CN）、`jp`（JP）、`tw`（TW）。惰性创建 `AlOcr` 实例。
+- `L5-26`：`OcrModel` — **6 个**缓存属性：`azur_lane`（EN）、`azur_lane_jp`（JP）、`ppocr_v6`、`cnocr`（CN）、`jp`（JP）、`tw`（TW）。惰性创建 `AlOcr` 实例。
 
-### 2.5 rpc.py（276 行）
+### 2.6 windows_ml.py（新增）
+
+**导出类型**：函数 `create_onnx_session()`
+
+**导入依赖**：外部 `onnxruntime`（Windows ML EP）
+
+**逐段分析**：
+
+- ONNX Runtime 设备选择模块。根据系统能力选择 QNN / OpenVINO / CUDA / DirectML 执行提供程序（EP）。被 `al_ocr.py` 调用创建 ONNX 会话，支持 Windows 上 DirectML GPU 加速。
+
+### 2.5 rpc.py（424 行）
 
 **导出类型**：类 `ModelProxy`、`ModelProxyFactory`、`OCRServer`，函数 `start_ocr_server()`
 
@@ -194,7 +204,7 @@ graph TD
 - 多语言支持完善
 
 **问题**：
-- `al_ocr.py` 过于庞大（557 行），应拆分
+- `al_ocr.py` 过于庞大（970 行），应拆分
 - OCR 工作队列使用全局变量，测试困难
 - `models.py` 的语言映射硬编码
 - RPC 模式缺少认证机制

@@ -1,3 +1,9 @@
+"""代码生成器模块。
+
+提供带缩进管理的代码生成器 CodeGenerator 和上下文管理器 TabWrapper，
+用于自动生成 Python 配置代码（如 config_generated.py）。
+"""
+
 import typing as t
 
 

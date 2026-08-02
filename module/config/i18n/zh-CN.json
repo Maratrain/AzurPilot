@@ -115,7 +115,7 @@
       "help": "联盟活动中舰船被击沉后刷取好感度，建议多队出击，第一队就沉，建议看相关教程"
     },
     "MaritimeEscort": {
-      "name": "商船护航",
+      "name": "商路护航",
       "help": ""
     },
     "EventShop": {
@@ -417,6 +417,18 @@
     "EmulatorManager": {
       "name": "模拟器管理器",
       "help": "提供手动重启模拟器的入口"
+    },
+    "BattlePass": {
+      "name": "大月卡Plus",
+      "help": ""
+    },
+    "CoreShop": {
+      "name": "核心兑换Plus",
+      "help": ""
+    },
+    "MeowfficerTrain": {
+      "name": "指挥喵训练Plus",
+      "help": ""
     }
   },
   "Scheduler": {
@@ -1866,11 +1878,11 @@
   },
   "MaritimeEscort": {
     "_info": {
-      "name": "商船护航",
+      "name": "商路护航",
       "help": "进一下就撤退，能拿约70%的奖励"
     },
     "Enable": {
-      "name": "启用商船护航",
+      "name": "启用商路护航",
       "help": ""
     }
   },
@@ -2798,7 +2810,7 @@
       "help": "每日关卡S胜后，解锁扫荡，未解锁时，自动回退至传统出击"
     },
     "EscortMission": {
-      "name": "商船护送（部件本，鱼雷本）",
+      "name": "商路护航（部件本，鱼雷本）",
       "help": "",
       "skip": "不打",
       "first": "第一个",
@@ -2806,7 +2818,7 @@
       "third": "第三个"
     },
     "EscortMissionFleet": {
-      "name": "商船护送出击舰队",
+      "name": "商路护航出击舰队",
       "help": "",
       "1": "1",
       "2": "2",
@@ -3318,10 +3330,6 @@
     "StayInZone": {
       "name": "循环出击指定海域",
       "help": "开启后，将按“指定海域”配置运行。指定单个海域时一直停留在该海域；指定多个海域时按填写顺序循环。仅在指定海域不为0时生效。"
-    },
-    "APPreserveUntilReset": {
-      "name": "月底重置强制消耗行动力",
-      "help": "在大世界重置前，自动将保留行动力设为0，以确保存余行动力被消耗。建议配合侵蚀1练级使用。"
     }
   },
   "OpsiTarget": {
@@ -3524,6 +3532,26 @@
     "TaskPriority": {
       "name": "补充黄币任务优先级",
       "help": "黄币不足时，执行补充黄币任务的优先级顺序。使用 > 分隔。"
+    },
+    "MonthEndActionPointCleanupEnable": {
+      "name": "启用月末清理行动力",
+      "help": "是否启用月末清理行动力功能。开启后，当距大世界重置剩余天数小于等于\"月末清理行动力天数\"时，启动月末清理模式消耗行动力。",
+      "True": "True",
+      "False": "False"
+    },
+    "MonthEndActionPointCleanupDays": {
+      "name": "月末清理行动力天数",
+      "help": "距大世界重置剩余天数小于等于此值时，启动月末清理行动力模式。0 表示禁用。启用后会循环执行短猫相接、商店购买、隐秘海域、深渊坐标消耗行动力，首次运行时还会调出塞壬要塞。"
+    },
+    "MonthEndActionPointPreserve": {
+      "name": "月末清理行动力保留",
+      "help": "月末清理行动力模式下的行动力保留值。如果启用跨月每日任务，最低预留 200 行动力。当此值大于最低预留时使用此值。"
+    },
+    "MonthEndShopPurchase": {
+      "name": "月末清理商店购买",
+      "help": "月末清理行动力时是否执行大世界商店购买。关闭后月末清理循环将跳过商店购买步骤。",
+      "True": "True",
+      "False": "False"
     }
   },
   "OpsiPreventActionPointOverflow": {

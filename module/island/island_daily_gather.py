@@ -1,3 +1,8 @@
+"""岛屿每日采集模块。
+
+管理岛屿资源采集的自动化流程，包括采集奖励领取、目标选择与角色派遣。
+根据角色体力阈值和工作状态进行智能选择，按生活等级排序优先派遣空闲角色。
+"""
 from module.island.island import *
 from datetime import timedelta
 

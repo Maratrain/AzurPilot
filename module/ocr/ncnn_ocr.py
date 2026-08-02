@@ -1,3 +1,24 @@
+"""NCNN OCR 识别后端。
+
+基于 NCNN 推理框架的文本识别模型，比 ONNX 后端推理速度更快。
+NCNN 是一个为移动端优化的高性能神经网络推理框架，
+特别适合 CPU 推理场景。
+
+模型规格：
+- 输入：3 通道 48x320 的 RGB 图像
+- 输出：CTC 解码的文本序列
+- 模型文件：.param（网络结构）+ .bin（权重数据）+ 字典文件
+
+支持的模型：
+- azur_lane: 英文数字识别（碧蓝航线专用）
+- azur_lane_jp: 日文服务器专用
+- cn: 中文识别
+- jp: 日文识别
+- tw: 繁体中文识别
+
+注意：ncnn 后端不支持文本检测，需要配合 ONNX 检测模型使用。
+"""
+
 import atexit
 import math
 import threading
@@ -15,8 +36,10 @@ from rapidocr.utils.process_img import resize_image_within_bounds
 from module.logger import logger
 
 
+# 项目根目录和 NCNN 模型目录
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODEL_ROOT = REPO_ROOT / "bin/ocr_models/ncnn"
+# 模型输入尺寸：3 通道 x 48 高 x 320 宽
 REC_IMAGE_SHAPE = (3, 48, 320)
 INPUT_NAME = "in0"
 OUTPUT_NAME = "out0"
@@ -291,7 +314,7 @@ class NcnnRecOCR:
                 backend = f"{backend} ({gpu_name})"
         else:
             backend = "CPU"
-        logger.info(f"Loaded ncnn OCR model '{self.spec.name}' on {backend}")
+        logger.info(f"[OCR-NCNN] 已加载ncnnOCR模型 '{self.spec.name}' 在 {backend}")
 
     @staticmethod
     def _check_return(value, op: str, path: Path) -> None:

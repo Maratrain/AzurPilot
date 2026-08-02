@@ -1,3 +1,21 @@
+"""全球地图海域数据管理模块。
+
+定义海域（Zone）数据结构和海域管理器（ZoneManager）。
+
+海域是大世界全球地图上的可进入区域，每个海域有：
+- zone_id: 海域编号
+- shape: 地图形状（如 J10、P16）
+- hazard_level: 侵蚀等级（1-7）
+- cn/en/jp/tw: 各服务器的名称
+- area_pos: 信息栏固定位置
+- offset_pos: 任务固定位置偏移
+- region: 所在区域（1-5，对应全球地图的象限）
+- is_port: 是否为港口
+- is_azur_port: 是否为碧蓝航线港口
+
+ZoneManager 管理所有海域实例，提供按类型、区域、状态的查询接口。
+"""
+
 import numpy as np
 
 from module.base.decorator import cached_property
@@ -8,6 +26,21 @@ from module.os.map_data import DIC_OS_MAP
 
 
 class Zone:
+    """海域数据类。
+
+    存储单个海域的所有属性信息。
+
+    Attributes:
+        zone_id (int): 海域编号。
+        shape (str): 地图形状，如 'J10'。
+        hazard_level (int): 侵蚀等级，1-7。
+        cn/en/jp/tw (str): 各服务器的海域名称。
+        area_pos (tuple): 信息栏固定位置。
+        offset_pos (tuple): 任务固定位置偏移。
+        region (int): 所在区域（1=左上, 2=右上, 3=左下, 4=右下, 5=中心）。
+        is_port (bool): 是否为港口。
+        is_azur_port (bool): 是否为碧蓝航线港口。
+    """
     zone_id: int
     # Map shape, such as J10
     shape: str

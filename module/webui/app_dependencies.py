@@ -19,7 +19,6 @@ from typing import Any, Callable, Dict, List, Optional, cast
 # 在导入 pywebio 之前导入伪造模块，避免加载不必要的 PIL 模块
 from module.webui.fake_pil_module import import_fake_pil_module
 from module.config.time_source import now as current_time, status as time_source_status
-from module.statistics.azurstats import AzurStats
 
 import_fake_pil_module()
 

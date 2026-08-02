@@ -1,3 +1,12 @@
+"""
+MaaTouch 触控输入方法。
+
+基于 MaaTouch 工具实现高性能的设备触控操作。
+MaaTouch 是 minitouch 的增强替代方案，通过 WebSocket 协议与设备通信，
+支持更高的触控采样率和更稳定的连接。提供点击、长按、滑动等触控操作，
+滑动使用贝塞尔曲线插值生成自然轨迹。兼容 minitouch 的命令格式，
+通过 ADB 端口转发建立 WebSocket 连接。
+"""
 import socket
 import threading
 import time
@@ -190,12 +199,12 @@ class MaaTouch(Connection):
         if self.orientation == self._maatouch_orientation:
             return
 
-        logger.info(f'Orientation changed {self._maatouch_orientation} => {self.orientation}, re-init MaaTouch')
+        logger.info(f'方向已变更 {self._maatouch_orientation} => {self.orientation}, re-init MaaTouch')
         del_cached_property(self, '_maatouch_builder')
         self.early_maatouch_init()
 
     def maatouch_init(self):
-        logger.hr('MaaTouch init')
+        logger.hr('[设备-MaaTouch] 初始化')
         max_x, max_y = 1280, 720
         max_contacts = 2
         max_pressure = 50
@@ -334,11 +343,11 @@ class MaaTouch(Connection):
         builder.clear()
 
     def maatouch_install(self):
-        logger.hr('MaaTouch install')
+        logger.hr('[设备-MaaTouch] 安装')
         self.adb_push(self.config.MAATOUCH_FILEPATH_LOCAL, self.config.MAATOUCH_FILEPATH_REMOTE)
 
     def maatouch_uninstall(self):
-        logger.hr('MaaTouch uninstall')
+        logger.hr('[设备-MaaTouch] 卸载')
         self.adb_shell(["rm", self.config.MAATOUCH_FILEPATH_REMOTE])
 
     @retry

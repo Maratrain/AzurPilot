@@ -23,7 +23,7 @@ alwaysApply: true
 
 ## 2. 文件清单与逐文件分析
 
-### 2.1 ui.py（651 行）
+### 2.1 ui.py（733 行）
 
 **导出类型**：类 `UI`
 
@@ -45,7 +45,7 @@ alwaysApply: true
 - `L597-620`：`handle_idle_page()` — 闲置页面检测（`IDLE`/`IDLE_2`/`IDLE_3`）。
 - `L622-651`：`ui_button_interval_reset()` — 按钮间隔重置，防止误触。
 
-### 2.2 page.py（369 行）
+### 2.2 page.py（426 行）
 
 **导出类型**：类 `Page`，35+ 页面实例
 
@@ -67,7 +67,7 @@ alwaysApply: true
   - 科研：`page_reshmenu`、`page_research`、`page_shipyard`、`page_meta`
   - 其他：`page_dock`、`page_guild`、`page_build`、`page_island` 等
 
-### 2.3 switch.py（231 行）
+### 2.3 switch.py（247 行）
 
 **导出类型**：类 `Switch`
 
@@ -81,7 +81,7 @@ alwaysApply: true
 - `L91-198`：`set()` — 状态设置。循环检测当前状态，点击目标状态。`unknown_timer` 处理未知状态（可能是切换动画）。`click_timer` 防止快速重复点击。
 - `L200-231`：`wait()` — 等待任意状态激活。
 
-### 2.4 scroll.py（245 行）
+### 2.4 scroll.py（255 行）
 
 **导出类型**：类 `Scroll`、`AdaptiveScroll`
 
@@ -94,7 +94,7 @@ alwaysApply: true
 - `L11-199`：`Scroll` — 滚动条处理。`match_color()` 颜色匹配检测滚动条位置。`cal_position()` 计算 0-1 位置。`set()` 拖拽到目标位置。`drag_page()`/`next_page()`/`prev_page()` 翻页。
 - `L202-245`：`AdaptiveScroll` — 自适应滚动条。使用 `scipy.signal.find_peaks` 峰值检测，适用于没有固定颜色的滚动条。
 
-### 2.5 navbar.py（207 行）
+### 2.5 navbar.py（218 行）
 
 **导出类型**：类 `Navbar`
 
@@ -107,6 +107,16 @@ alwaysApply: true
 - `L32-89`：`get_info()` — 获取活跃标签索引和可见范围。颜色计数检测。
 - `L114-141`：`_shop_obstruct_handle()` — 商店遮挡处理（GET_SHIP、GET_ITEMS 弹窗）。
 - `L143-207`：`set()` — 设置标签。支持 `left`/`right`/`upper`/`bottom` 四个方向。10 秒超时。
+
+### 2.6 setting.py（179 行）
+
+**导出类型**：类 `Setting`
+
+**导入依赖**：内部 `base.base`、`base.button`、`base.switch`、`base.timer`、`config.utils`、`logger`
+
+**逐段分析**：
+
+- 游戏设置面板选项切换工具。提供 `get_setting()`/`set_setting()` 等方法，通过 `Switch` 切换游戏内设置项（如帧数、画质、省电模式等）。供 `game_setting` 模块与登录流程使用。
 
 ## 3. 内部调用关系
 

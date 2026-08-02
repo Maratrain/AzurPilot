@@ -1,3 +1,7 @@
+"""新年挑战小游戏自动化模块。
+通过颜色识别按钮状态和 OCR 读取得分与消耗，
+自动完成小游戏的循环战斗操作。"""
+
 from module.base.timer import Timer
 from module.logger import logger
 from module.minigame.assets import *

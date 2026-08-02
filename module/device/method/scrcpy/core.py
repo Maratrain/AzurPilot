@@ -1,3 +1,6 @@
+"""Scrcpy 核心连接层。管理与设备端 scrcpy 服务的 Socket 连接，
+处理视频流解码、控制通道建立和连接生命周期。"""
+
 import socket
 import struct
 import threading
@@ -47,8 +50,8 @@ class ScrcpyCore(Connection):
     def scrcpy_init(self):
         self._scrcpy_server_stop()
 
-        logger.hr('Scrcpy init')
-        logger.info(f'pushing {self.config.SCRCPY_FILEPATH_LOCAL}')
+        logger.hr('[设备-Scrcpy] Scrcpy初始化')
+        logger.info(f'[设备-Scrcpy] 推送中 {self.config.SCRCPY_FILEPATH_LOCAL}')
         self.adb_push(self.config.SCRCPY_FILEPATH_LOCAL, self.config.SCRCPY_FILEPATH_REMOTE)
 
         self._scrcpy_alive = False
@@ -68,7 +71,7 @@ class ScrcpyCore(Connection):
             adbutils.AdbTimeout:
             socket.timeout:
         """
-        logger.hr('Scrcpy server start')
+        logger.hr('[设备-Scrcpy] Scrcpy服务器启动')
         commands = ScrcpyOptions.command_v120(jar_path=self.config.SCRCPY_FILEPATH_REMOTE)
         self._scrcpy_server_stream: AdbConnection = self.adb.shell(
             commands,
@@ -76,7 +79,7 @@ class ScrcpyCore(Connection):
         )
         self._scrcpy_server_stream.conn.settimeout(3)
 
-        logger.info('Create server stream')
+        logger.info('[设备-Scrcpy] 创建服务器流')
         ret = self._scrcpy_server_stream.read(10)
         # b'Aborted \r\n'
         # Probably because file not exists
@@ -97,7 +100,7 @@ class ScrcpyCore(Connection):
             logger.info(ret)
             pass
 
-        logger.info('Create video socket')
+        logger.info('[设备-Scrcpy] 创建视频Socket')
         timeout = Timer(3).start()
         while 1:
             if timeout.reached():
@@ -115,26 +118,26 @@ class ScrcpyCore(Connection):
         if not len(dummy_byte) or dummy_byte != b"\x00":
             raise ScrcpyError('Did not receive Dummy Byte from video stream')
 
-        logger.info('Create control socket')
+        logger.info('[设备-Scrcpy] 创建控制Socket')
         self._scrcpy_control_socket = self.adb.create_connection(
             Network.LOCAL_ABSTRACT, "scrcpy"
         )
         self._scrcpy_control_socket.settimeout(3)
 
-        logger.info('Fetch device info')
+        logger.info('[设备-Scrcpy] 获取设备信息')
         device_name = self._scrcpy_video_socket.recv(64).decode("utf-8").rstrip("\x00")
         if len(device_name):
-            logger.attr('Scrcpy Device', device_name)
+            logger.attr('[设备-Scrcpy] 设备名称', device_name)
         else:
             raise ScrcpyError('Did not receive Device Name')
         ret = self._scrcpy_video_socket.recv(4)
         self._scrcpy_resolution = struct.unpack(">HH", ret)
-        logger.attr('Scrcpy Resolution', self._scrcpy_resolution)
+        logger.attr('[设备-Scrcpy] 分辨率', self._scrcpy_resolution)
 
         self._scrcpy_video_socket.setblocking(False)
         self._scrcpy_alive = True
 
-        logger.info('Start video stream loop thread')
+        logger.info('[设备-Scrcpy] 启动视频流循环线程')
         self._scrcpy_stream_loop_thread = threading.Thread(
             target=self._scrcpy_stream_loop, daemon=True
         )
@@ -144,13 +147,13 @@ class ScrcpyCore(Connection):
                 break
             self.sleep(0.001)
 
-        logger.info('Scrcpy server is up')
+        logger.info('[设备-Scrcpy] Scrcpy服务器已启动')
 
     def _scrcpy_server_stop(self):
         """
         Stop listening (both threaded and blocked)
         """
-        logger.hr('Scrcpy server stop')
+        logger.hr('[设备-Scrcpy] Scrcpy服务器停止')
         # err = self._scrcpy_receive_from_server_stream()
         # if err:
         #     logger.error(err)
@@ -186,7 +189,7 @@ class ScrcpyCore(Connection):
             del self._scrcpy_server_stream
             self._scrcpy_server_stream = None
 
-        logger.info('Scrcpy server stopped')
+        logger.info('[设备-Scrcpy] Scrcpy服务器已停止')
 
     def _scrcpy_receive_from_server_stream(self):
         if self._scrcpy_server_stream is not None:
@@ -204,7 +207,7 @@ class ScrcpyCore(Connection):
             from av.error import InvalidDataError
         except ImportError as e:
             logger.error(e)
-            logger.error('You must have `av` installed to use scrcpy screenshot, please update dependencies')
+            logger.error('[设备-Scrcpy] 您必须安装 `av` 才能使用scrcpy截图，请更新依赖')
             raise RequestHumanTakeover
 
         codec = CodecContext.create("h264", "r")

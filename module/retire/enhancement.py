@@ -1,3 +1,14 @@
+"""
+舰船强化系统。
+
+提供船坞中舰船装备强化的完整流程，包括按舰船类型分类强化、
+推荐材料选择、强化确认、失败重试等操作。通过 DFA（确定性有限自动机）
+状态机模式驱动强化流程，自动处理战斗中、无材料等异常情况。
+
+当退役模式为 enhance 时，优先执行强化；强化完成或失败后
+可回退到退役流程。
+"""
+
 from random import choice
 
 import module.config.server as server
@@ -19,6 +30,15 @@ else:
 
 
 class Enhancement(Dock):
+    """舰船强化处理器。
+
+    继承 Dock 类，在船坞页面中执行装备强化操作。
+    使用 DFA 状态机模式管理强化流程，支持按舰船类型
+    分类处理、推荐材料自动选择、强化失败后的自动翻页重试。
+
+    Attributes:
+        _retire_amount (property): 根据退役模式配置计算的退役数量上限。
+    """
     @property
     def _retire_amount(self):
         if self.config.Retirement_RetireMode == 'one_click_retire':
@@ -128,7 +148,7 @@ class Enhancement(Dock):
             need_to_skip = False
             if ship_count <= 0:
                 logger.info(
-                    'Reached maximum number to check, exiting current category')
+                    '[退役-强化] 已达到最大检查次数，退出当前分类')
                 return "state_enhance_exit"
             if not self.equip_side_navbar_ensure(bottom=4):
                 return "state_enhance_check"
@@ -140,7 +160,7 @@ class Enhancement(Dock):
         def state_enhance_ready():
             # Wait until ENHANCE_RECOMMEND appears
             if self.appear_then_click(ENHANCE_RECOMMEND, offset=(5, 5), interval=0.3):
-                logger.info('Set enhancement material by recommendation.')
+                logger.info('按推荐设置强化材料')
                 return "state_enhance_recommend"
 
             return "state_enhance_ready"
@@ -148,12 +168,12 @@ class Enhancement(Dock):
         def state_enhance_recommend():
             # Judge if enhance material appeared
             if not EMPTY_ENHANCE_SLOT_PLUS.match(self.device.image):
-                logger.info('Material found. Try enhancing...')
+                logger.info('找到材料，尝试强化...')
                 return "state_enhance_attempt"
             elif self.info_bar_count():
-                logger.info('No material found for enhancement.')
+                logger.info('未找到强化材料')
                 logger.info(
-                    'Enhancement failed. Swiping to next ship if feasible')
+                    '[退役-强化] 强化失败，滑动到下一艘舰船（如可行）')
                 return "state_enhance_fail"
 
             return "state_enhance_ready"
@@ -171,17 +191,17 @@ class Enhancement(Dock):
         def state_enhance_confirm():
             # Succeeded if EQUIP_CONFIRM appeared, otherwise failed
             if self.appear(EQUIP_CONFIRM, offset=(30, 30)):
-                logger.info('Enhancement Successful')
+                logger.info('强化成功')
                 self._enhance_confirm()
                 return "state_enhance_success"
             elif self.info_bar_count():
                 logger.info(
-                    'Enhancement impossible, ship currently in battle. Swiping to next ship if feasible')
+                    '[退役-强化] 强化不可行，舰船当前在战斗中，滑动到下一艘舰船（如可行）')
                 nonlocal need_to_skip
                 need_to_skip = True
                 return "state_enhance_fail"
             elif self.handle_popup_confirm('ENHANCE'):
-                logger.info('Trying a temporary ship')
+                logger.info('尝试临时舰船')
                 return "state_enhance_confirm"
 
             return "state_enhance_attempt"
@@ -202,7 +222,7 @@ class Enhancement(Dock):
                 if self.appear(EQUIP_CONFIRM, offset=(30, 30)):
                     return "state_enhance_confirm"
                 else:
-                    logger.info('Swiped failed, exiting current category')
+                    logger.info('滑动失败，退出当前分类')
                     return "state_enhance_exit"
 
         def state_enhance_success():
@@ -218,7 +238,7 @@ class Enhancement(Dock):
                 skip_first_screenshot = False
             else:
                 self.device.screenshot()
-            logger.info(f'Call state function: {state}')
+            logger.info(f'调用状态函数: {state}')
 
             if state == "state_enhance_check":
                 # Avoid too_many_click exception caused by multiple tries without material
@@ -238,8 +258,8 @@ class Enhancement(Dock):
             try:
                 state = locals()[state]()
             except KeyError as e:
-                logger.warning(f'Unknown state function: {state}')
-                raise ScriptError(f'Unknown state function: {state}')
+                logger.warning(f'未知的状态函数: {state}')
+                raise ScriptError(f'未知的状态函数: {state}')
 
         return state, ship_count
 
@@ -264,7 +284,7 @@ class Enhancement(Dock):
         if favourite is None:
             favourite = self.config.Enhance_ShipToEnhance == 'favourite'
 
-        logger.hr('Enhancement by type')
+        logger.hr('按类型强化')
         total = 0
 
         # Process ENHANCE_ORDER_STRING if any into ship_types
@@ -276,7 +296,7 @@ class Enhancement(Dock):
                 ship_types = [None]
         else:
             ship_types = [None]
-        logger.attr('Enhance Order', ship_types)
+        logger.attr('强化顺序', ship_types)
 
         # Process available ship types for choice randomization
         # Removing types that have already been specified by
@@ -292,17 +312,17 @@ class Enhancement(Dock):
             if ship_type is not None and ship_type not in VALID_SHIP_TYPES:
                 if len(available_ship_types) == 0:
                     logger.info(
-                        'No more ship types for AzurPilot to choose from, skipping iteration')
+                        '[退役-强化] 无可选舰船类型，跳过本次迭代')
                     continue
                 ship_type = choice(available_ship_types)
                 available_ship_types.remove(ship_type)
 
-            logger.info(f'Favourite={favourite}, Ship Type={ship_type}')
+            logger.info(f'收藏={favourite}, 舰船类型={ship_type}')
 
             # Continue if at least 1 CARD_GRID is selectable
             # otherwise skip to next ship type
             if not self._enhance_enter(favourite=favourite, ship_type=ship_type):
-                logger.hr(f'Dock Empty by ship type {ship_type}')
+                logger.hr(f'[退役-强化] 船坞为空，舰船类型: {ship_type}')
                 continue
 
             current_count = self.config.Enhance_CheckPerCategory

@@ -1,3 +1,10 @@
+"""
+截图识别基类。
+
+提供 ImageBase 基类用于单张截图的检测分析。包含服务器分类、
+按钮缓存和通用图像处理方法，是所有截图识别器的父类。
+"""
+
 import typing as t
 
 import numpy as np

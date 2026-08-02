@@ -1,3 +1,7 @@
+"""存储箱操作模块，处理装备箱的使用和装备拆解功能。
+支持按稀有度筛选装备箱、设置使用数量，
+以及仓库已满时的自动拆解清理。"""
+
 from module.base.timer import Timer
 from module.base.utils import rgb2gray
 from module.logger import logger
@@ -26,7 +30,7 @@ class StorageBox(StorageHandler):
         Pages:
             in: SHOP_BUY_CONFIRM_AMOUNT
         """
-        logger.info(f'Set box amount')
+        logger.info(f'[存储-拆箱] 设置箱子数量')
 
         # 与商店店员逻辑相同的数量输入处理
         ocr = Digit(BOX_AMOUNT_OCR, letter=(239, 239, 239), name='OCR_SHOP_AMOUNT')
@@ -40,7 +44,7 @@ class StorageBox(StorageHandler):
                     self.appear(AMOUNT_MAX, offset=index_offset):
                 break
             if timeout.reached():
-                logger.warning('Wait AMOUNT_MINUS AMOUNT_PLUS AMOUNT_MAX timeout')
+                logger.warning('[存储-拆箱] 等待数量按钮超时')
                 break
 
         # 等待 OCR 识别到正常数字
@@ -51,11 +55,11 @@ class StorageBox(StorageHandler):
             if 1 <= current <= amount + 10:
                 break
             if timeout.reached():
-                logger.warning('Wait box amount timeout')
+                logger.warning('[存储-拆箱] 等待箱子数量超时')
                 break
 
         # 设置数量，类似 ui_ensure_index 的逻辑
-        logger.info(f'Set box amount: {amount}')
+        logger.info(f'[存储-拆箱] 设置箱子数量: {amount}')
         skip_first = True
         retry = Timer(1, count=2)
         for _ in self.loop():
@@ -90,7 +94,7 @@ class StorageBox(StorageHandler):
             in: MATERIAL_CHECK
             out: BOX_USE
         """
-        logger.hr('Check box amount')
+        logger.hr('[存储-拆箱] 检查箱子数量')
         amount = 0
         ocr = Digit(BOX_REMAIN_AMOUNT_OCR, letter=(229, 227, 3), name='OCR_BOX_REAMIN_AMOUNT')
         self.interval_clear(MATERIAL_CHECK)
@@ -107,7 +111,7 @@ class StorageBox(StorageHandler):
             if amount > 0:
                 break
             if timeout.reached():
-                logger.warning('Wait check box amount timeout')
+                logger.warning('[存储-拆箱] 等待检查箱子数量超时')
                 break
         return amount
 
@@ -124,7 +128,7 @@ class StorageBox(StorageHandler):
             in: MATERIAL_CHECK
             out: MATERIAL_CHECK
         """
-        logger.hr('Use multi boxes')
+        logger.hr('[存储-拆箱] 使用多个箱子')
         used = 0
         end = True
         for box_button in buttons:
@@ -159,12 +163,12 @@ class StorageBox(StorageHandler):
         used = 0
         timeout = Timer(1.5, count=3).start()
         while 1:
-            logger.attr('Used', f'{used}')
+            logger.attr('[存储-拆箱] 已使用', f'{used}')
             if used >= amount:
-                logger.info('Reached target amount, stop')
+                logger.info('[存储-拆箱] 达到目标数量，停止')
                 break
             if timeout.reached():
-                logger.info('No more boxes on this page, stop')
+                logger.info('[存储-拆箱] 此页面没有更多箱子，停止')
                 break
 
             if skip_first_screenshot:
@@ -184,7 +188,7 @@ class StorageBox(StorageHandler):
                 timeout.reset()
                 continue
             else:
-                logger.info('No boxes found')
+                logger.info('[存储-拆箱] 未找到箱子')
                 continue
 
         return used
@@ -200,7 +204,7 @@ class StorageBox(StorageHandler):
             in: Any
             out: page_main
         """
-        logger.hr(f'Disassemble T{rarity} box', level=2)
+        logger.hr(f'[存储-拆箱] 拆解T{rarity}箱子', level=2)
         self.box_preserve_amount = preserve
         self.storage_disassemble_equipment(rarity=rarity, amount=1000000)
         self.ui_goto_main()
@@ -212,7 +216,7 @@ class StorageBox(StorageHandler):
             in: Any page
             out: page_main
         """
-        logger.hr('Box disassemble', level=1)
+        logger.hr('[存储-拆箱] 箱子拆解', level=1)
         for rarity, box_color in BOX_DISASSEMBLE_DICT.items():
             if self.config.__getattribute__(f'BoxDisassemble_Use{box_color}Box'):
                 self.box_disassemble(
