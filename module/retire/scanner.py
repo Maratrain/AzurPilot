@@ -14,7 +14,7 @@ DHash 感知哈希用于跨页去重判断。
 import os
 import time
 from abc import ABCMeta, abstractmethod
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Tuple, Union
 
@@ -29,7 +29,7 @@ from module.base.utils import (color_similar, crop, extract_letters, get_color,
                                random_rectangle_point)
 from module.combat.level import LevelOcr
 from module.logger import logger
-from module.ocr.ocr import Digit
+from module.ocr.ocr import Digit, Ocr
 from module.retire.assets import (DOCK_CHECK, SHIP_DETAIL_CHECK,
                                   TEMPLATE_FLEET_1, TEMPLATE_FLEET_2,
                                   TEMPLATE_FLEET_3, TEMPLATE_FLEET_4,
@@ -467,7 +467,11 @@ class FleetScanner(Scanner):
 
     def _scan(self, image) -> List:
         image = self.pre_process(image)
-        image_list = [crop(image, button.area) for button in self.grids.buttons]
+        image_list = [
+            crop(image, button.area)
+            for x, y, button in self.grids.generate()
+            if (x, y) not in self.excluded_positions
+        ]
 
         return [self._match(image) for image in image_list]
 
