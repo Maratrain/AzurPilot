@@ -545,7 +545,7 @@ class ProcessManager:
             s = rendered_tail[-1] if rendered_tail else ""
             tail_text = "\n".join(rendered_tail)
 
-            if ("Reason: Manual stop" in s) or ("原因: 手动停止" in s):
+            if ("Reason: Manual stop" in s) or ("原因: 手动停止" in s) or ("原因：手动停止" in s):
                 return 2
 
             update_marker_hit = (
