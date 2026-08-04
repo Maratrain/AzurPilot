@@ -1962,10 +1962,6 @@
       "oil": "鑽石>石油>魔方",
       "custom": "自定義"
     },
-    "AddShortest": {
-      "name": "自動接取耗時最短的每日委託",
-      "help": "當設定的自定義委託過濾器沒有可選委託時，系統會自動接取耗時最短的每日委託。此設定不會影響任何內建的委託策略。"
-    },
     "CustomFilter": {
       "name": "自定義委託過濾器",
       "help": "使用自定義過濾器需將 \"委託過濾器\" 設定為 \"自定義\"，並閱讀 https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"

@@ -1962,10 +1962,6 @@
       "oil": "ダイヤ>燃料>キューブ",
       "custom": "カスタム"
     },
-    "AddShortest": {
-      "name": "最短デイリー委託を自動的に選択する",
-      "help": "設定されたカスタム委託フィルターに選択可能な委託が存在しない場合、最も短い処理時間のデイリー委託を自動的に取得します。"
-    },
     "CustomFilter": {
       "name": "カスタム委託フィルター",
       "help": "カスタムフィルターを使用するには、「委託フィルター」を「カスタム」に設定し、https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn を読む必要があります。"
