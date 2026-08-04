@@ -1950,10 +1950,6 @@
       "oil": "Diamond>Oil>Cubes",
       "custom": "Customize"
     },
-    "AddShortest": {
-      "name": "Automatically choose the shortest daily commission",
-      "help": "Choose the shortest daily commission when there are not enough commissions in your custom delegate filter."
-    },
     "CustomFilter": {
       "name": "Custom delegate filter",
       "help": "To use a custom filter, you need to set \"Delegated Filter\" to \"Custom\" and read https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"

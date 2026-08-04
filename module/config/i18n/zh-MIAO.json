@@ -1962,10 +1962,6 @@
       "oil": "钻石>石油>魔方喵",
       "custom": "自定义喵"
     },
-    "AddShortest": {
-      "name": "自动接取耗时最短的委托",
-      "help": "当配置的自定义委托过滤器无委托可选时，自动接取耗时最短的委托。该设置不会影响任何内置的委托策略。 (´・ω・`)"
-    },
     "CustomFilter": {
       "name": "自定义委托过滤器",
       "help": "需将过滤器设自定义并阅读文档。乱设漏委托别叫喵→ https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"

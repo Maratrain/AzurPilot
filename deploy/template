@@ -146,7 +146,7 @@ Deploy:
     # ! You need to set Password below to enable remote access since everyone can access to your ap if they have your url.
     # 详情请参阅 https://app.azurlane.cloud/
     # See here (http://app.azurlane.cloud/en.html) for more infomation.
-    EnableRemoteAccess: true
+    EnableRemoteAccess: false
     # 远程访问模式
     # Remote access mode
     # [自动] auto（优先 P2P/TURN，失败回退 SSH 转发）
