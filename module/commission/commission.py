@@ -21,20 +21,17 @@
 """
 
 import copy
-from datetime import timedelta
 
 from scipy import signal
 
 from module.base.timer import Timer
-import time
 from module.base.utils import *
 from module.combat.assets import *
 from module.commission.assets import *
 from module.commission.preset import DICT_FILTER_PRESET, SHORTEST_FILTER
 from module.commission.project import COMMISSION_FILTER, Commission
 from module.config.config_generated import GeneratedConfig
-from module.config.time_source import now as current_time
-from module.config.utils import get_server_last_update, get_server_next_update, nearest_future
+from module.config.utils import get_server_last_update, nearest_future
 from module.dorm.dorm import RewardDorm
 from module.exception import GameStuckError, OilMaxed, RequestHumanTakeover
 from module.handler.info_handler import InfoHandler
@@ -49,7 +46,6 @@ from module.ui.scroll import Scroll
 from module.ui.switch import Switch
 from module.ui.ui import UI
 from module.ui_white.assets import REWARD_1_WHITE, REWARD_GOTO_COMMISSION_WHITE
-from datetime import timedelta
 
 
 COMMISSION_SWITCH = Switch('Commission_switch', is_selector=True)
@@ -177,8 +173,7 @@ class RewardCommission(UI, InfoHandler):
         for comm in total:
             if comm.genre == 'daily_event':
                 self.max_commission = 5
-        running_list = [c for c in total if c.status == 'running']
-        running_count = len(running_list)
+        running_count = len([c for c in total if c.status == 'running'])
         logger.attr('运行中', f'{running_count}/{self.max_commission}')
 
         # 加载过滤器字符串
@@ -203,44 +198,19 @@ class RewardCommission(UI, InfoHandler):
         logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
         run = SelectedGrids(run)
 
-        # 添加最短时间委托
-        if self.config.Commission_AddShortest == False and preset == 'custom':
-            logger.info('[委托-选择] 没有足够的委托可运行')
-        else:
-            no_shortest = run.delete(SelectedGrids(['shortest']))
-            if no_shortest.count + running_count < self.max_commission:
-                if daily.count:
-                    logger.info('[委托-选择] 没有足够的委托可运行，添加最短时间的每日委托')
-                    COMMISSION_FILTER.load(SHORTEST_FILTER)
-                    shortest = COMMISSION_FILTER.apply(daily[::-1], func=self._commission_check)
-                    # 反转每日委托列表以选择更好的委托
-                    run = no_shortest.add_by_eq(SelectedGrids(shortest))
-                    logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
-                else:
-                    logger.info('[委托-选择] 没有足够的委托可运行')
-
-        # 优先处理快过期重要委托
-        if 'expire' in run:
-            logger.info('[委托] 尝试提前快过期委托')
-
-            valid_runs = [c for c in run if isinstance(c, Commission)]
-            queue = running_list + valid_runs[:self.max_commission - running_count]
-
-            if queue:
-                min_duration_time = queue[0].duration
-                for c in queue:
-                    if c.duration < min_duration_time:
-                        min_duration_time = c.duration
+        # 添加耗时最短的每日委托
+        # 过滤结果中的 'shortest' 是预设关键字，先移除再判断是否补充
+        no_shortest = run.delete(SelectedGrids(['shortest']))
+        if no_shortest.count + running_count < self.max_commission:
+            if daily.count:
+                logger.info('[委托-选择] 委托数量不足，添加耗时最短的每日委托')
+                COMMISSION_FILTER.load(SHORTEST_FILTER)
+                shortest = COMMISSION_FILTER.apply(daily[::-1], func=self._commission_check)
+                # 反转每日委托列表以优先选择更优的委托
+                run = no_shortest.add_by_eq(SelectedGrids(shortest))
+                logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
             else:
-                min_duration_time = timedelta(seconds=0)
-            logger.attr('最短时长', min_duration_time)
-
-            expire_index = run.grids.index('expire')
-            important = run[:expire_index].filter(lambda c: isinstance(c, Commission) and c.expire)
-            priority = [c for c in important if c.expire < min_duration_time]
-            run = run.delete(SelectedGrids(['expire']))
-            run = SelectedGrids(priority).add_by_eq(run)
-            logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
+                logger.info('[委托-选择] 委托数量不足，无每日委托可选')
 
         self.comm_choose = run
         if running_count >= self.max_commission:
@@ -394,30 +364,12 @@ class RewardCommission(UI, InfoHandler):
         self._commission_swipe_to_top()
         daily = self._commission_scan_list()
 
-        urgent = SelectedGrids([])
-        for _ in range(2):
-            logger.hr('扫描紧急委托', level=2)
-            self._commission_ensure_mode('urgent')
-            self._commission_swipe_to_top()
-            urgent = self._commission_scan_list()
-            # 将额外委托转换为夜间委托
-            urgent.call('convert_to_night')
-
-            # 不在 21:00~03:00 时间段，但扫描到了夜间委托
-            # 可能是过期委托，刷新即可解决
-            if current_time() - get_server_next_update('21:00') > timedelta(hours=6):
-                night = urgent.select(category_str='night')
-                if night:
-                    logger.warning('[委托-扫描] 不在21:00~03:00时间段，但扫描到夜间委托')
-                    for comm in night:
-                        logger.attr('委托', comm)
-                    logger.info('[委托-扫描] 重新扫描紧急委托列表')
-                    # 虽然不是最佳方式，但在罕见情况下可以接受
-                    self.device.sleep(2)
-                    self._commission_ensure_mode('daily')
-                    continue
-
-            break
+        logger.hr('扫描紧急委托', level=2)
+        self._commission_ensure_mode('urgent')
+        self._commission_swipe_to_top()
+        urgent = self._commission_scan_list()
+        # 将额外委托转换为夜间委托
+        urgent.call('convert_to_night')
 
         logger.hr('显示委托', level=2)
         logger.info('[委托-显示] 每日委托')

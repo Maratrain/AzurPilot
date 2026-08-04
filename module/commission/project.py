@@ -36,7 +36,7 @@ COMMISSION_FILTER = Filter(
         '(\d\d?.\d\d?|\d\d?)?'
     ),
     attr=('category_str', 'genre_str', 'duration_hm', 'duration_hour'),
-    preset=('shortest', 'expire')
+    preset=('shortest',)
 )
 
 
@@ -117,8 +117,6 @@ class Commission:
     status: str
     # 委托执行时长
     duration: timedelta
-    # 过期时间，仅紧急委托有值，其他委托为 None
-    expire: timedelta
     # 过滤器用分类
     # 值: major|daily|extra|urgent|night
     category_str: str
@@ -198,18 +196,6 @@ class Commission:
         ocr = Duration(button)
         self.duration = ocr.ocr(self.image)
 
-        # 过期时间——仅紧急委托有
-        area = area_offset((-49, 68, -45, 84), self.area[0:2])
-        button = Button(area=area, color=(189, 65, 66),
-                        button=area, name='IS_URGENT')
-        if button.appear_on(self.image, threshold=30):
-            area = area_offset((-49, 67, 45, 94), self.area[0:2])
-            button = Button(area=area, color=(), button=area, name='EXPIRE')
-            ocr = Duration(button)
-            self.expire = ocr.ocr(self.image)
-        else:
-            self.expire = timedelta(seconds=0)
-
         # 状态识别——通过 RGB 颜色通道判断
         area = area_offset((179, 71, 187, 93), self.area[0:2])
         dic = {
@@ -249,18 +235,6 @@ class Commission:
         button = Button(area=area, color=(), button=area, name='DURATION')
         ocr = Duration(button)
         self.duration = ocr.ocr(self.image)
-
-        # 过期时间——仅紧急委托有
-        area = area_offset((-49, 68, -45, 84), self.area[0:2])
-        button = Button(area=area, color=(189, 65, 66),
-                        button=area, name='IS_URGENT')
-        if button.appear_on(self.image, threshold=30):
-            area = area_offset((-49, 67, 45, 94), self.area[0:2])
-            button = Button(area=area, color=(), button=area, name='EXPIRE')
-            ocr = Duration(button)
-            self.expire = ocr.ocr(self.image)
-        else:
-            self.expire = timedelta(seconds=0)
 
         # 状态识别——通过 RGB 颜色通道判断
         area = area_offset((179, 71, 187, 93), self.area[0:2])
@@ -306,18 +280,6 @@ class Commission:
         ocr = Duration(button)
         self.duration = ocr.ocr(self.image)
 
-        # 过期时间——仅紧急委托有
-        area = area_offset((-49, 68, -45, 84), self.area[0:2])
-        button = Button(area=area, color=(189, 65, 66),
-                        button=area, name='IS_URGENT')
-        if button.appear_on(self.image, threshold=30):
-            area = area_offset((-49, 67, 45, 94), self.area[0:2])
-            button = Button(area=area, color=(), button=area, name='EXPIRE')
-            ocr = Duration(button)
-            self.expire = ocr.ocr(self.image)
-        else:
-            self.expire = timedelta(seconds=0)
-
         # 状态识别——通过 RGB 颜色通道判断
         area = area_offset((179, 71, 187, 93), self.area[0:2])
         dic = {
@@ -358,18 +320,6 @@ class Commission:
         ocr = Duration(button)
         self.duration = ocr.ocr(self.image)
 
-        # 过期时间——仅紧急委托有
-        area = area_offset((-49, 68, -45, 84), self.area[0:2])
-        button = Button(area=area, color=(189, 65, 66),
-                        button=area, name='IS_URGENT')
-        if button.appear_on(self.image, threshold=30):
-            area = area_offset((-49, 67, 45, 94), self.area[0:2])
-            button = Button(area=area, color=(), button=area, name='EXPIRE')
-            ocr = Duration(button)
-            self.expire = ocr.ocr(self.image)
-        else:
-            self.expire = timedelta(seconds=0)
-
         # 状态识别——通过 RGB 颜色通道判断
         area = area_offset((179, 71, 187, 93), self.area[0:2])
         dic = {
@@ -388,8 +338,6 @@ class Commission:
         if not self.valid:
             return f'{name} (Invalid)'
         info = {'Genre': self.genre, 'Status': self.status, 'Duration': self.duration}
-        if self.expire:
-            info['Expire'] = self.expire
         if self.repeat_count > 1:
             info['Repeat'] = self.repeat_count
         info = ', '.join([f'{k}: {v}' for k, v in info.items()])
@@ -398,7 +346,7 @@ class Commission:
     def __eq__(self, other):
         """判断两个委托是否为同一委托。
 
-        通过类型、状态、后缀、时长（允许 120 秒误差）、过期时间和重复次数
+        通过类型、状态、后缀、时长（允许 120 秒误差）和重复次数
         进行综合比较。紧急物资委托还需匹配阵营标签（NYB/BIW）。
 
         Args:
@@ -425,11 +373,6 @@ class Commission:
                     return False
         if (other.duration < self.duration - threshold) or (other.duration > self.duration + threshold):
             return False
-        if (not self.expire and other.expire) or (self.expire and not other.expire):
-            return False
-        if self.expire and other.expire:
-            if (other.expire < self.expire - threshold) or (other.expire > self.expire + threshold):
-                return False
         if self.repeat_count != other.repeat_count:
             return False
         if self.genre in ['extra_oil', 'night_oil'] and not self.suffix_match(other):
