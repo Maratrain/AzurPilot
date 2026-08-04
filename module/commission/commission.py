@@ -198,19 +198,27 @@ class RewardCommission(UI, InfoHandler):
         logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
         run = SelectedGrids(run)
 
-        # 添加耗时最短的每日委托
-        # 过滤结果中的 'shortest' 是预设关键字，先移除再判断是否补充
+        # 添加耗时最短的委托（从每日和紧急中合并查找最短的追加）
+        # 过滤结果中的 'shortest' 是预设关键字字符串，必须先移除，否则会占据 run[:N] 的位置
+        # 导致实际可选委托数量减少（bug 修复：原先仅在追加分支内更新 run，满额时 shortest 残留）
         no_shortest = run.delete(SelectedGrids(['shortest']))
-        if no_shortest.count + running_count < self.max_commission:
+        run = no_shortest
+        if run.count + running_count < self.max_commission:
+            # 合并每日和紧急委托，从中挑选耗时最短的（不区分优先级）
+            candidate = SelectedGrids([])
             if daily.count:
-                logger.info('[委托-选择] 委托数量不足，添加耗时最短的每日委托')
+                candidate = candidate.add_by_eq(daily)
+            if urgent.count:
+                candidate = candidate.add_by_eq(urgent)
+            if candidate.count:
+                logger.info('[委托-选择] 委托数量不足，添加耗时最短的委托（每日和紧急）')
                 COMMISSION_FILTER.load(SHORTEST_FILTER)
-                shortest = COMMISSION_FILTER.apply(daily[::-1], func=self._commission_check)
-                # 反转每日委托列表以优先选择更优的委托
+                # 反转列表以优先选择后缀编号较大的委托
+                shortest = COMMISSION_FILTER.apply(candidate[::-1], func=self._commission_check)
                 run = no_shortest.add_by_eq(SelectedGrids(shortest))
                 logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
             else:
-                logger.info('[委托-选择] 委托数量不足，无每日委托可选')
+                logger.info('[委托-选择] 委托数量不足，无每日和紧急委托可选')
 
         self.comm_choose = run
         if running_count >= self.max_commission:
