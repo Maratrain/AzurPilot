@@ -715,19 +715,21 @@ class RewardCommission(UI, InfoHandler):
                 # ===============================
                 # 推送开关
                 # ===============================
-                if self.config.Commission_CommissionNotifyReward:
+                notify_gem = self.config.Commission_CommissionNotifyReward
+                notify_cube = self.config.Commission_CommissionNotifyRewardCube
+
+                if notify_gem or notify_cube:
                     reward_stats = None
                     if self.config.Commission_CommissionNotifyRewardStatistics:
                         reward_stats = cl1_db.get_commission_reward_stats(instance)
 
                     gem_count = merged_items.get("Gem", 0)
                     cube_count = merged_items.get("Cube", 0)
-                    tracked = []
 
                     # ===============================
-                    # 💎 Gem 内容
+                    # 💎 Gem 推送（由 Commission_CommissionNotifyReward 控制）
                     # ===============================
-                    if gem_count > 0:
+                    if notify_gem and gem_count > 0:
                         text = f'💎钻石 * {gem_count}'
                         if reward_stats:
                             text += (
@@ -735,12 +737,30 @@ class RewardCommission(UI, InfoHandler):
                                 f'\n本周累计获取💎钻石 * {reward_stats["week"].get("Gem", 0)}'
                                 f'\n本月累计获取💎钻石 * {reward_stats["month"].get("Gem", 0)}'
                             )
-                        tracked.append(text)
+
+                        # 分级标题
+                        if gem_count >= 50:
+                            title = f"AzurPilot <{instance}> 大成功！！！委托获得顶级奖励喵！"
+                            webui_title = f"{instance}  大成功！！！委托获得顶级奖励喵！"
+                        else:
+                            title = f"AzurPilot <{instance}> 委托获得顶级奖励喵！"
+                            webui_title = f"{instance}  委托获得顶级奖励喵！"
+
+                        handle_notify(
+                            self.config.Error_OnePushConfig,
+                            title=title,
+                            content=text,
+                        )
+                        notify_webui(
+                            instance,
+                            title=webui_title,
+                            content=text,
+                        )
 
                     # ===============================
-                    # 🧊 Cube 内容（保留结构，防炸）
+                    # 🧊 Cube 推送（由 Commission_CommissionNotifyRewardCube 控制）
                     # ===============================
-                    if cube_count > 0:
+                    if notify_cube and cube_count > 0:
                         text = f'🧊魔方 * {cube_count}'
                         if reward_stats:
                             text += (
@@ -748,54 +768,20 @@ class RewardCommission(UI, InfoHandler):
                                 f'\n本周累计获取🧊魔方 * {reward_stats["week"].get("Cube", 0)}'
                                 f'\n本月累计获取🧊魔方 * {reward_stats["month"].get("Cube", 0)}'
                             )
-                        tracked.append(text)
 
-                    # ===============================
-                    # 推送主逻辑
-                    # ===============================
-                    if tracked:
+                        title = f"AzurPilot <{instance}> 委托获得高级奖励喵！"
+                        webui_title = f"{instance}  委托获得高级奖励喵！"
 
-                        msg = '\n'.join(tracked)
-                        webui_msg = msg.replace('\n\n', '\n')
-
-                        # ===============================
-                        # ⭐ 默认值
-                        # ===============================
-                        title = f"AzurPilot <{instance}> 委托获得奖励喵！"
-                        webui_title = f"AzurPilot <{instance}> 委托获得奖励喵！"
-
-                        # ===============================
-                        # 分级标题（只覆盖，不控制流程）
-                        # ===============================
-                        if gem_count >= 50:
-                            title = f"AzurPilot <{instance}> 大成功！！！委托获得顶级奖励喵！"
-                            webui_title = f"{instance}  大成功！！！委托获得顶级奖励喵！"
-
-                        elif gem_count > 0:
-                            title = f"AzurPilot <{instance}> 委托获得顶级奖励喵！"
-                            webui_title = f"{instance}  委托获得顶级奖励喵！"
-
-                        elif cube_count > 0:
-                            title = f"AzurPilot <{instance}> 委托获得高级奖励喵！"
-                            webui_title = f"{instance}  委托获得高级奖励喵！"
-
-                        # ===============================
-                        # 推送
-                        # ===============================
                         handle_notify(
                             self.config.Error_OnePushConfig,
                             title=title,
-                            content=msg,
+                            content=text,
                         )
-
                         notify_webui(
                             instance,
                             title=webui_title,
-                            content=webui_msg,
+                            content=text,
                         )
-
-            else:
-                logger.info('[委托-收入] 所有截图都没有识别到已知物品')
 
         except Exception as e:
             logger.warning(f'[委托-收入] 委托收入记录失败: {e}')

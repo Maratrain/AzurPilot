@@ -1985,6 +1985,10 @@
     "CommissionNotifyRewardStatistics": {
       "name": "钻石推送详情",
       "help": "开启后，AzurPilot在推送本次委托获取钻石数量的同时推送当日/本周/本月的钻石获取数量"
+    },
+    "CommissionNotifyRewardCube": {
+      "name": "委托成功获取魔方推送",
+      "help": "开启后，获得魔方奖励时单独推送通知；关闭则不推送魔方（钻石推送不受影响）"
     }
   },
   "Tactical": {
