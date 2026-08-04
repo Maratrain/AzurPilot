@@ -10444,6 +10444,10 @@
       "CommissionNotifyRewardStatistics": {
         "type": "checkbox",
         "value": true
+      },
+      "CommissionNotifyRewardCube": {
+        "type": "checkbox",
+        "value": false
       }
     },
     "Storage": {

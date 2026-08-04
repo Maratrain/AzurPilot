@@ -662,6 +662,9 @@ Commission:
   CommissionNotifyRewardStatistics:
     type: checkbox
     value: true
+  CommissionNotifyRewardCube:
+    type: checkbox
+    value: false
 Tactical:
   TacticalFilter: |-
     SameT4 > SameT3 > SameT2 > SameT1

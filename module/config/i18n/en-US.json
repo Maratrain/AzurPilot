@@ -1973,6 +1973,10 @@
     "CommissionNotifyRewardStatistics": {
       "name": "Gem Notification Details",
       "help": "After enabling, AzurPilot will notify the number of diamonds obtained from the current commission, as well as the total diamonds obtained for the day/week/month."
+    },
+    "CommissionNotifyRewardCube": {
+      "name": "Successful Commission Cube Notification",
+      "help": "When enabled, send separate notification for Cube rewards; when disabled, Cube rewards won't trigger notifications (Gem notifications unaffected)."
     }
   },
   "Tactical": {
