@@ -66,7 +66,7 @@ SHOP_INDEX_MAP = {
     5: '啾咖啡',
 }
 
-# ==================== 季节限定餐品配置（有鱼餐馆专用） ====================
+# ==================== 季节限定餐品配置（有鱼餐馆） ====================
 SEASONAL_FOOD_MAP = {
     'spring': {
         'product_name': 'double_bamboo_shoots',
@@ -75,6 +75,26 @@ SEASONAL_FOOD_MAP = {
     'summer': {
         'product_name': 'amaranth_rice_ball',
         'display': '苋菜饭团',
+    },
+    'autumn': {
+        'product_name': 'matsutake_chicken_soup',
+        'display': '松茸鸡汤',
+    },
+}
+
+# ==================== 季节限定饮品配置（白熊饮品） ====================
+SEASONAL_DRINK_MAP = {
+    'spring': {
+        'product_name': 'spring_flower_tea',
+        'display': '迎春花茶',
+    },
+    'summer': {
+        'product_name': 'watermelon_juice',
+        'display': '西瓜汁',
+    },
+    'autumn': {
+        'product_name': 'chrysanthemum_tea',
+        'display': '菊花茶',
     },
 }
 
@@ -102,6 +122,8 @@ class IslandBusiness(Island):
                 {'name': 'hearty_meal', 'button': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_HEARTY_MEAL},
                 {'name': 'fo_tiao', 'button': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_FO_TIAO},
                 {'name': 'amaranth_rice_ball', 'button': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_AMARANTH_RICE_BALL},
+                {'name': 'matsutake_chicken_soup', 'button': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_MATSUTAKE_CHICKEN_SOUP},
+                {'name': 'persimmon_cake', 'button': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_PERSIMMON_CAKE},
             ],
             '白熊饮品': [
                 {'name': 'spring_flower_tea', 'button': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_SPRING_FLOWER_TEA},
@@ -112,6 +134,8 @@ class IslandBusiness(Island):
                 {'name': 'lavender_tea', 'button': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_LAVENDER_TEA},
                 {'name': 'sunny_honey', 'button': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_SUNNY_HONEY},
                 {'name': 'watermelon_juice', 'button': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_WATERMELON_JUICE},
+                {'name': 'chrysanthemum_tea', 'button': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_CHRYSANTHEMUM_TEA},
+                {'name': 'carrot_pear_juice', 'button': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_CARROT_PEAR_JUICE},
             ],
             '乌鱼烤肉': [
                 {'name': 'roasted_skewer', 'button': TEMPLATE_BUSINESS_PRODUCT_GRILL_ROASTED_SKEWER},
@@ -145,6 +169,8 @@ class IslandBusiness(Island):
                 {'name': 'hearty_meal', 'template': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_HEARTY_MEAL_CROPPED},
                 {'name': 'fo_tiao', 'template': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_FO_TIAO_CROPPED},
                 {'name': 'amaranth_rice_ball', 'template': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_AMARANTH_RICE_BALL_CROPPED},
+                {'name': 'matsutake_chicken_soup', 'template': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_MATSUTAKE_CHICKEN_SOUP_CROPPED},
+                {'name': 'persimmon_cake', 'template': TEMPLATE_BUSINESS_PRODUCT_RESTAURANT_PERSIMMON_CAKE_CROPPED},
             ],
             '白熊饮品': [
                 {'name': 'spring_flower_tea', 'template': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_SPRING_FLOWER_TEA_CROPPED},
@@ -155,6 +181,8 @@ class IslandBusiness(Island):
                 {'name': 'lavender_tea', 'template': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_LAVENDER_TEA_CROPPED},
                 {'name': 'sunny_honey', 'template': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_SUNNY_HONEY_CROPPED},
                 {'name': 'watermelon_juice', 'template': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_WATERMELON_JUICE_CROPPED},
+                {'name': 'chrysanthemum_tea', 'template': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_CHRYSANTHEMUM_TEA_CROPPED},
+                {'name': 'carrot_pear_juice', 'template': TEMPLATE_BUSINESS_PRODUCT_TEAHOUSE_CARROT_PEAR_JUICE_CROPPED},
             ],
             '乌鱼烤肉': [
                 {'name': 'roasted_skewer', 'template': TEMPLATE_BUSINESS_PRODUCT_GRILL_ROASTED_SKEWER_CROPPED},
@@ -234,11 +262,15 @@ class IslandBusiness(Island):
     # 季节限定餐品检测替换
     # ===================================================================
 
-    def _check_seasonal_dish_quantity_and_replace(self):
+    def _check_seasonal_product_quantity_and_replace(self, shop_name, seasonal_map,
+                                                     fallback_config_key,
+                                                     warehouse_product_filter='product',
+                                                     warehouse_from_filter='restaurant'):
         """
-        检查有鱼餐馆的季节限定餐品库存，如果 < 阈值则替换为备用餐品。
+        检查指定商店的季节限定商品库存，如果 < 阈值则替换为备用商品。
 
-        只处理有鱼餐馆。仅在 Product1~5 中选择了当前季节餐品时检查仓库库存。
+        支持有鱼餐馆（SEASONAL_FOOD_MAP）与白熊饮品（SEASONAL_DRINK_MAP）。
+        仅在 Product1~5 中选择了当前季节商品时检查仓库库存。
 
         Returns:
             bool: True 表示进行了替换
@@ -246,43 +278,46 @@ class IslandBusiness(Island):
         if not self.seasonal_replace_enabled:
             return False
 
-        seasonal_info = SEASONAL_FOOD_MAP.get(self.season)
+        seasonal_info = seasonal_map.get(self.season)
         if not seasonal_info:
             return False
 
         seasonal_product_name = seasonal_info['product_name']
-        shop_name = '有鱼餐馆'
 
-        # 检查有鱼餐馆的配置中是否包含了当前季节餐品
+        # 检查该商店的配置中是否包含了当前季节商品
         selected_products = self.active_products.get(shop_name, [])
         selected_names = [p['name'] for p in selected_products]
         if seasonal_product_name not in selected_names:
-            logger.info(f"[岛屿-经营] 有鱼餐馆未配置季节餐品 {seasonal_info['display']}，跳过季节检查")
+            logger.info(f"[岛屿-经营] {shop_name}未配置季节商品 {seasonal_info['display']}，跳过季节检查")
             return False
 
-        logger.info(f"[岛屿-经营] 检测有鱼餐馆季节餐品 '{seasonal_info['display']}' 库存")
+        logger.info(f"[岛屿-经营] 检测{shop_name}季节商品 '{seasonal_info['display']}' 库存")
         # 前往仓库检查库存
-        self.goto_warehouse_within_postmanage()
+        self.goto_warehouse_within_postmanage(warehouse_product_filter, warehouse_from_filter)
         self.device.screenshot()
 
-        # 使用 WarehouseOCR 检查季节餐品库存
+        # 使用 WarehouseOCR 检查季节商品库存
         from module.island.warehouse import WarehouseOCR
         warehouse = WarehouseOCR()
-        count = warehouse.ocr_item_quantity(self.device.image, self._get_seasonal_warehouse_template(seasonal_product_name))
+        seasonal_template = self._get_seasonal_warehouse_template(seasonal_product_name)
+        if seasonal_template is None:
+            logger.warning(f"[岛屿-经营] 季节商品 '{seasonal_info['display']}' 缺少仓库识别模板，跳过检查")
+            return False
+        count = warehouse.ocr_item_quantity(self.device.image, seasonal_template)
 
-        logger.info(f"[岛屿-经营] 季节餐品 '{seasonal_info['display']}' 当前库存: {count}")
+        logger.info(f"[岛屿-经营] 季节商品 '{seasonal_info['display']}' 当前库存: {count}")
         if count >= self.seasonal_threshold:
-            logger.info(f"[岛屿-经营] 季节餐品库存充足 ({count} >= {self.seasonal_threshold})，无需替换")
+            logger.info(f"[岛屿-经营] 季节商品库存充足 ({count} >= {self.seasonal_threshold})，无需替换")
             return False
 
-        # 库存不足，获取备用餐品
-        fallback_name = getattr(self.config, 'IslandBusinessShop1_SeasonalFallback', 'hearty_meal')
+        # 库存不足，获取备用商品
+        fallback_name = getattr(self.config, fallback_config_key, None)
         fallback_product = self._find_product_by_name(shop_name, fallback_name)
         if not fallback_product:
-            logger.warning(f"[岛屿-经营] 备用餐品 '{fallback_name}' 未找到，无法替换")
+            logger.warning(f"[岛屿-经营] 备用商品 '{fallback_name}' 未找到，无法替换")
             return False
 
-        logger.info(f"[岛屿-经营] 季节餐品 '{seasonal_info['display']}' 库存不足 ({count} < {self.seasonal_threshold})，"
+        logger.info(f"[岛屿-经营] 季节商品 '{seasonal_info['display']}' 库存不足 ({count} < {self.seasonal_threshold})，"
                      f"替换为 '{fallback_name}'")
 
         # 在 active_products 中替换
@@ -297,19 +332,20 @@ class IslandBusiness(Island):
 
         if replaced:
             self.active_products[shop_name] = new_products
-            logger.info(f"[岛屿-经营] 有鱼餐馆餐品已替换: {seasonal_product_name} → {fallback_name}")
+            logger.info(f"[岛屿-经营] {shop_name}商品已替换: {seasonal_product_name} → {fallback_name}")
             return True
 
         return False
 
     def _get_seasonal_warehouse_template(self, product_name):
         """
-        获取季节餐品在仓库中的识别模板。
-        直接复用已有餐品模板（在有鱼餐馆/餐厅模块中已定义）。
+        获取季节商品在仓库中的识别模板。
+        直接复用已有餐品/饮品模板（在有鱼餐馆/白熊饮品模块中已定义）。
         """
         # 仓库专用模板映射，直接使用已有模板文件路径
         # 使用 Template 直接引用文件，避免循环导入
         warehouse_files = {
+            # 有鱼餐馆
             'double_bamboo_shoots': Template(file={
                 'cn': './assets/cn/island_restaurant/TEMPLATE_DOUBLE_BAMBOO_SHOOTS.png',
                 'en': './assets/cn/island_restaurant/TEMPLATE_DOUBLE_BAMBOO_SHOOTS.png',
@@ -322,6 +358,25 @@ class IslandBusiness(Island):
                 'jp': './assets/cn/island_restaurant/TEMPLATE_AMARANTH_RICE_BALL.png',
                 'tw': './assets/cn/island_restaurant/TEMPLATE_AMARANTH_RICE_BALL.png',
             }),
+            'matsutake_chicken_soup': Template(file={
+                'cn': './assets/cn/island_restaurant/TEMPLATE_MATSUTAKE_CHICKEN_SOUP.png',
+                'en': './assets/cn/island_restaurant/TEMPLATE_MATSUTAKE_CHICKEN_SOUP.png',
+                'jp': './assets/cn/island_restaurant/TEMPLATE_MATSUTAKE_CHICKEN_SOUP.png',
+                'tw': './assets/cn/island_restaurant/TEMPLATE_MATSUTAKE_CHICKEN_SOUP.png',
+            }),
+            # 白熊饮品
+            'watermelon_juice': Template(file={
+                'cn': './assets/cn/island_teahouse/TEMPLATE_WATERMELON_JUICE.png',
+                'en': './assets/cn/island_teahouse/TEMPLATE_WATERMELON_JUICE.png',
+                'jp': './assets/cn/island_teahouse/TEMPLATE_WATERMELON_JUICE.png',
+                'tw': './assets/cn/island_teahouse/TEMPLATE_WATERMELON_JUICE.png',
+            }),
+            'chrysanthemum_tea': Template(file={
+                'cn': './assets/cn/island_teahouse/TEMPLATE_CHRYSANTHEMUM_TEA.png',
+                'en': './assets/cn/island_teahouse/TEMPLATE_CHRYSANTHEMUM_TEA.png',
+                'jp': './assets/cn/island_teahouse/TEMPLATE_CHRYSANTHEMUM_TEA.png',
+                'tw': './assets/cn/island_teahouse/TEMPLATE_CHRYSANTHEMUM_TEA.png',
+            }),
         }
         return warehouse_files.get(product_name)
 
@@ -332,18 +387,21 @@ class IslandBusiness(Island):
                 return p
         return None
 
-    def goto_warehouse_within_postmanage(self):
+    def goto_warehouse_within_postmanage(self, product_filter='product', from_filter='restaurant'):
         """
-        从经营页签导航到仓库页面，并筛选有鱼餐馆的餐品。
+        从经营页签导航到仓库页面，并筛选指定商店的商品。
         使用已有的 warehouse_filter 能力进入仓库并设置分类筛选。
+
+        Args:
+            product_filter: 仓库种类筛选（如 product）。
+            from_filter: 仓库来源筛选（如 restaurant / teahouse）。
         """
         self.ui_goto(page_island_postmanage, get_ship=False)
         self.device.sleep(1)
         self.device.screenshot()
 
-        # 使用 warehouse_filter 进入仓库并筛选有鱼餐馆产品
-        # product = 餐品分类, restaurant = 有鱼餐馆来源
-        self.warehouse_filter('product', 'restaurant')
+        # 使用 warehouse_filter 进入仓库并筛选对应商店产品
+        self.warehouse_filter(product_filter, from_filter)
         self.device.sleep(1)
 
     def goto_warehouse(self):
@@ -1011,7 +1069,19 @@ class IslandBusiness(Island):
             logger.info(f"[岛屿-经营] === 第一批经营: {[s['name'] for s in batch1_shops]} ===")
             # 季节限定餐品检测替换（仅在第一批中有鱼餐馆存在时执行）
             if any(s['name'] == '有鱼餐馆' for s in batch1_shops):
-                self._check_seasonal_dish_quantity_and_replace()
+                self._check_seasonal_product_quantity_and_replace(
+                    '有鱼餐馆', SEASONAL_FOOD_MAP, 'IslandBusinessShop1_SeasonalFallback',
+                    'product', 'restaurant')
+                # 重新导航回经营页面
+                self.goto_postmanage()
+                self._switch_to_business_tab()
+                self._handle_food_review()
+
+            # 季节限定饮品检测替换（仅在第一批中有白熊饮品存在时执行）
+            if any(s['name'] == '白熊饮品' for s in batch1_shops):
+                self._check_seasonal_product_quantity_and_replace(
+                    '白熊饮品', SEASONAL_DRINK_MAP, 'IslandBusinessShop2_SeasonalFallback',
+                    'product', 'teahouse')
                 # 重新导航回经营页面
                 self.goto_postmanage()
                 self._switch_to_business_tab()

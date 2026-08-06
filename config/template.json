@@ -2891,6 +2891,7 @@
       "Product3": "None",
       "Product4": "None",
       "Product5": "None",
+      "SeasonalFallback": "sunny_honey",
       "BoostReplaceFilter": "30 > 20 > strawberry_honey > fruit_paradise > 10"
     },
     "IslandBusinessShop3": {

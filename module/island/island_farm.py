@@ -12,6 +12,7 @@
 管理的生产区域：
 - 农场（farm）：小麦、玉米、水稻、白菜、土豆、大豆、牧草、咖啡豆
 - 果园（orchard）：苹果、柑橘、香蕉、芒果、柠檬、牛油果、橡胶
+  （秋季限定：秋月梨、柿子，4x1 种植——每次派遣只消耗 4 颗种子）
 - 苗圃（nursery）：胡萝卜、洋葱、亚麻、草莓、棉花、茶叶、薰衣草、菠萝、芦笋
 """
 from module.island_farm.assets import *
@@ -166,6 +167,16 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                      'selection': SELECT_RUBBER, 'selection_check': SELECT_RUBBER_CHECK,
                      'post_action': POST_RUBBER, 'category': 'orchard', 'seed_number': 16,
                      'shop': SHOP_SEED_RUBBER},
+                    # 秋季限定（坠香果园）：秋月梨、柿子
+                    # 4x1 种植：每次派遣只消耗 4 颗种子（果园其他作物每单至少 4x4=16 颗）
+                    {'name': 'pear', 'template': TEMPLATE_PEAR, 'var_name': 'pear',
+                     'selection': SELECT_PEAR, 'selection_check': SELECT_PEAR_CHECK,
+                     'post_action': POST_PEAR, 'category': 'orchard', 'seed_number': 4,
+                     'batch_4x1': True, 'shop': SHOP_SEED_PEAR},
+                    {'name': 'persimmon', 'template': TEMPLATE_PERSIMMON, 'var_name': 'persimmon',
+                     'selection': SELECT_PERSIMMON, 'selection_check': SELECT_PERSIMMON_CHECK,
+                     'post_action': POST_PERSIMMON, 'category': 'orchard', 'seed_number': 4,
+                     'batch_4x1': True, 'shop': SHOP_SEED_PERSIMMON},
                 ]
             },
             'nursery': {
@@ -255,6 +266,11 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                     continue
                 if category == 'nursery' and item_name == 'pineapple' and self.ignore_pineapple:
                     continue
+                # === 季节限定：不在当季的果园作物（如秋季的秋月梨/柿子）不列入补种计划 ===
+                if category == 'orchard' and hasattr(self, 'season_config'):
+                    if not self._is_orchard_crop_in_season(item_name):
+                        logger.info(f"[岛屿-农田] 跳过非当季果园作物: {item_name}")
+                        continue
                 # === 季节限定：不在当季的作物不列入补种计划 ===
                 if category == 'nursery' and hasattr(self, 'season_config'):
                     if not self._is_nursery_crop_in_season(item_name):
@@ -262,6 +278,27 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                         continue
                 if count < threshold:
                     self.to_plant_lists[category].append(item_name)
+
+    def _is_orchard_crop_in_season(self, crop_name):
+        """
+        检查果园作物是否在当季（按季节配置）。
+
+        秋季的秋月梨/柿子属于果园季节限定作物（坠香果园），只在秋季补种；
+        非季节限定的果园作物（苹果、橡胶等）始终返回 True。
+        """
+        if not hasattr(self, 'season_config') or not self.season_config.is_seasonal_enabled:
+            return True
+        # 获取当前季节的 orchard 限定作物列表
+        seasonal_items = self.season_config.get_seasonal_items('orchard')
+        # 检查该作物是否是任何季节的限定品
+        from module.island.island_season import SEASONAL_ITEMS
+        for season_key in ['spring', 'summer', 'autumn', 'winter']:
+            other_items = SEASONAL_ITEMS.get(season_key, {}).get('orchard', [])
+            if crop_name in other_items:
+                # 该作物是季节限定品，检查是否在当季
+                return crop_name in seasonal_items
+        # 非季节限定作物，始终可用
+        return True
 
     def _is_nursery_crop_in_season(self, crop_name):
         """
@@ -399,6 +436,14 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         time_work = Duration(ISLAND_WORKING_TIME)
         selection = self.name_to_config[product]['selection']
         selection_check = self.name_to_config[product]['selection_check']
+        seed_config = self.name_to_config[product]
+        # 4x1 作物（秋月梨/柿子）：每次派遣只消耗 4 颗种子，与果园其他作物每单
+        # 至少 4x4=16 颗不同，种子补货目标按 4 颗/单计算
+        if seed_config.get('batch_4x1'):
+            logger.info(
+                f"[岛屿-农田] {product} 为 4x1 作物：每次派遣仅消耗 "
+                f"{seed_config['seed_number']} 颗种子（果园其他作物每单至少 16 颗）"
+            )
         for _ in self.loop(timeout=120, skip_first=False):
             if self.appear_then_click(ISLAND_POST_SELECT, offset=1):
                 self.device.sleep(0.5)
@@ -418,7 +463,6 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 continue
             if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                 if self.select_product(selection, selection_check):
-                    seed_config = self.name_to_config[product]
                     if self.ensure_select_product_material(
                             item_button=seed_config['shop'],
                             required_quantity=seed_config['seed_number'],

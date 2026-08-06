@@ -22,6 +22,31 @@ FIXED_SELECT_SHEPHERD_PURSE = Button(
 )
 
 
+# 季节限定手工产品配置（按 SEASONAL_ITEMS['handmade'] 的键引用）
+SEASONAL_HANDMADE_ITEMS = {
+    'shepherd_purse': {
+        'name': 'shepherd_purse', 'template': TEMPLATE_SHEPHERD_PURSE,
+        'var_name': 'shepherd_purse', 'selection': FIXED_SELECT_SHEPHERD_PURSE,
+        'selection_check': FIXED_SELECT_SHEPHERD_PURSE, 'post_action': POST_SHEPHERD_PURSE,
+    },
+    'jasmine_oil': {
+        'name': 'jasmine_oil', 'template': TEMPLATE_JASMINE_OIL,
+        'var_name': 'jasmine_oil', 'selection': SELECT_JASMINE_OIL,
+        'selection_check': SELECT_JASMINE_OIL_CHECK, 'post_action': POST_JASMINE_OIL,
+    },
+    'summer_bouquet': {
+        'name': 'summer_bouquet', 'template': TEMPLATE_SUMMER_BOUQUET,
+        'var_name': 'summer_bouquet', 'selection': SELECT_SUMMER_BOUQUET,
+        'selection_check': SELECT_SUMMER_BOUQUET_CHECK, 'post_action': POST_SUMMER_BOUQUET,
+    },
+    'autumn_bouquet': {
+        'name': 'autumn_bouquet', 'template': TEMPLATE_AUTUMN_BOUQUET,
+        'var_name': 'autumn_bouquet', 'selection': SELECT_AUTUMN_BOUQUET,
+        'selection_check': SELECT_AUTUMN_BOUQUET_CHECK, 'post_action': POST_AUTUMN_BOUQUET,
+    },
+}
+
+
 class IslandManufacture(IslandShopBase):
     def __init__(self, *args, **kwargs):
         # 先初始化基类
@@ -81,14 +106,17 @@ class IslandManufacture(IslandShopBase):
                 ]
             }
         }
-        # 季节限定：手工类产品（荠菜干等）
-        if self.is_seasonal_item_enabled('shepherd_purse'):
-            self.manufacture['handmade']['items'].append(
-                {'name': 'shepherd_purse', 'template': TEMPLATE_SHEPHERD_PURSE,
-                 'var_name': 'shepherd_purse', 'selection': FIXED_SELECT_SHEPHERD_PURSE,
-                 'selection_check': FIXED_SELECT_SHEPHERD_PURSE, 'post_action': POST_SHEPHERD_PURSE}
-            )
-            logger.info("[岛屿-制造业] 季节限定：荠菜干已添加到手工产品列表")
+        # 季节限定：手工类产品（荠菜干、秋季花束等，按当前季节配置）
+        if hasattr(self, 'season_config') and self.season_config.is_seasonal_enabled:
+            for item_name in (self.season_config.get_seasonal_items('handmade') or []):
+                item_config = SEASONAL_HANDMADE_ITEMS.get(item_name)
+                if not item_config:
+                    continue
+                if any(it['name'] == item_name for it in self.manufacture['handmade']['items']):
+                    # 花生油等基础产品已常驻，无需重复添加
+                    continue
+                self.manufacture['handmade']['items'].append(item_config.copy())
+                logger.info(f"[岛屿-制造业] 季节限定：{item_name} 已添加到手工产品列表")
 
         # 根据配置初始化岗位按钮
         self.post_buttons = self._init_post_buttons()
@@ -338,10 +366,13 @@ class IslandManufacture(IslandShopBase):
         leather_stock = self.warehouse_counts.get('leather', 0)
         # 构建产品选择列表（按优先级）
         product_list = []
-        # 优先生产shepherd_purse
-        shepherd_purse_item = [item for item in self.manufacture['handmade']['items']
-                           if item['name'] == 'shepherd_purse'][0]
-        product_list.append(shepherd_purse_item)
+        # 优先生产当前季节的限定手工品（荠菜干、秋季花束等）
+        seasonal_names = []
+        if hasattr(self, 'season_config') and self.season_config.is_seasonal_enabled:
+            seasonal_names = self.season_config.get_seasonal_items('handmade') or []
+        for item in self.manufacture['handmade']['items']:
+            if item['name'] in seasonal_names:
+                product_list.append(item)
 
         # 如果leather库存>=10，则生产boot
         if leather_stock >= 10:

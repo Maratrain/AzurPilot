@@ -61,6 +61,12 @@ class SelectCharacter(UI):
             "OceanCrosser": TEMPLATE_OCEAN_CROSSER,
             "FeiYun": TEMPLATE_FEI_YUN,
             "Takao": TEMPLATE_TAKAO,
+            # ---- 岛屿新增可派遣角色 ----
+            "Anchorage": TEMPLATE_ANCHORAGE,
+            "Belfast": TEMPLATE_BELFAST,
+            "ChangFeng": TEMPLATE_CHANG_FENG,
+            "Mogador": TEMPLATE_MOGADOR,
+            "RoyalFortune": TEMPLATE_ROYAL_FORTUNE,
         }
 
     def recognize_all_characters(self, screenshot):
