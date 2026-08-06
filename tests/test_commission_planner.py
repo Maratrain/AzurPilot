@@ -1,6 +1,7 @@
 import random
 import unittest
 from datetime import datetime, timedelta
+from itertools import product
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -66,7 +67,7 @@ def brute_force_plan(jobs, slot_available, horizon):
     best_by_selection = {}
 
     def search(selected_mask, current_slots, actions, source_order, makespan, completion_sum):
-        key = (makespan, source_order, completion_sum, tuple(action[0] for action in actions))
+        key = (source_order, makespan, completion_sum, tuple(action[0] for action in actions))
         current = best_by_selection.get(selected_mask)
         if current is None or key < current[0]:
             best_by_selection[selected_mask] = (
@@ -387,20 +388,21 @@ class TestCommissionDynamicPlanner(unittest.TestCase):
 
     def test_matches_complete_enumeration_on_random_extreme_cases(self):
         rng = random.Random(20260806)
-        for case_index in range(500):
+        for case_index in range(1000):
             job_count = rng.randint(1, 7)
             horizon = rng.randint(1, 8)
+            source_indices = rng.sample(range(job_count * 3 + 5), job_count)
             jobs = [
                 CommissionPlanJob(
-                    source_index=index,
-                    tier=rng.randint(0, 2),
+                    source_index=source_indices[index],
+                    tier=rng.choice([0, 0, 1, 2, 4]),
                     duration=rng.randint(1, 6),
-                    deadline=rng.choice([None, *range(1, horizon + 3)]),
+                    deadline=rng.choice([None, 0, *range(1, horizon + 3)]),
                     commission=index,
                 )
                 for index in range(job_count)
             ]
-            slots = [rng.randint(0, horizon + 2) for _ in range(rng.randint(1, 3))]
+            slots = [rng.randint(0, horizon + 2) for _ in range(rng.randint(1, 4))]
 
             expected, expected_jobs = brute_force_plan(jobs, slots, horizon)
             plan, planned_jobs = optimize_commission_plan(jobs, slots, horizon)
@@ -419,6 +421,36 @@ class TestCommissionDynamicPlanner(unittest.TestCase):
                     [job.source_index for job in planned_jobs],
                     [job.source_index for job in expected_jobs],
                 )
+
+    def test_matches_complete_enumeration_on_systematic_boundaries(self):
+        deadline_cases = (None, 0, 1, 3)
+        slot_cases = ((0,), (0, 0), (0, 2))
+        for durations in product(range(1, 4), repeat=3):
+            for deadlines in product(deadline_cases, repeat=3):
+                jobs = [
+                    CommissionPlanJob(
+                        source_index=(0, 2, 5)[index],
+                        tier=(0, 1, 1)[index],
+                        duration=durations[index],
+                        deadline=deadlines[index],
+                        commission=index,
+                    )
+                    for index in range(3)
+                ]
+                for slots in slot_cases:
+                    expected, _ = brute_force_plan(jobs, slots, horizon=3)
+                    plan, _ = optimize_commission_plan(jobs, slots, horizon=3)
+                    actual = (
+                        tuple(
+                            (action.job_index, action.start, action.finish)
+                            for action in plan.actions
+                        ),
+                        plan.score,
+                        plan.priority_sums,
+                        plan.makespan,
+                        plan.completion_sum,
+                    )
+                    self.assertEqual(actual, expected)
 
     def test_regular_twenty_job_case_keeps_state_space_small(self):
         jobs = [
@@ -506,22 +538,24 @@ class TestCommissionDynamicPlanner(unittest.TestCase):
         self.assertEqual(plan.priority_sums, (0,))
         self.assertEqual(selected, [preferred])
 
-    def test_same_selection_and_makespan_uses_filter_order_before_completion_sum(self):
+    def test_same_selection_uses_filter_order_before_makespan(self):
         first_in_filter = object()
         second_in_filter = object()
+        last_in_filter = object()
         jobs = [
-            CommissionPlanJob(0, tier=0, duration=2, deadline=None, commission=first_in_filter),
+            CommissionPlanJob(0, tier=0, duration=1, deadline=None, commission=first_in_filter),
             CommissionPlanJob(1, tier=0, duration=1, deadline=None, commission=second_in_filter),
+            CommissionPlanJob(2, tier=0, duration=10, deadline=None, commission=last_in_filter),
         ]
 
-        plan, planned_jobs = optimize_commission_plan(jobs, slot_available=[0], horizon=10)
+        plan, planned_jobs = optimize_commission_plan(jobs, slot_available=[0, 0], horizon=20)
         selected = [planned_jobs[action.job_index].commission for action in plan.actions]
 
-        # 短委托优先的完成时间总和是 4，但同集合去重先使用过滤器顺序，结果为 5。
-        self.assertEqual(plan.score, (2,))
-        self.assertEqual(plan.makespan, 3)
-        self.assertEqual(plan.completion_sum, 5)
-        self.assertEqual(selected, [first_in_filter, second_in_filter])
+        # 长委托先启动可在 T+10 完成；过滤器顺序优先后，规范计划在 T+11 完成。
+        self.assertEqual(plan.score, (3,))
+        self.assertEqual(plan.makespan, 11)
+        self.assertEqual(plan.completion_sum, 13)
+        self.assertEqual(selected, [first_in_filter, second_in_filter, last_in_filter])
 
     def test_priority_sums_are_compared_by_tier(self):
         durations = [3, 4, 3, 4, 4, 3, 1, 5]
@@ -555,6 +589,16 @@ class TestCommissionDynamicPlanner(unittest.TestCase):
 
         self.assertEqual(plan.score, (0, 0))
         self.assertEqual(plan.priority_sums, (0, 0))
+
+    def test_rejects_invalid_job_domain_instead_of_pruning_unsafely(self):
+        invalid_cases = [
+            CommissionPlanJob(0, tier=0, duration=0, deadline=None, commission=object()),
+            CommissionPlanJob(0, tier=-1, duration=1, deadline=None, commission=object()),
+        ]
+
+        for job in invalid_cases:
+            with self.subTest(job=job), self.assertRaises(ValueError):
+                optimize_commission_plan([job], slot_available=[0], horizon=10)
 
     def test_log_contains_current_and_future_timeline_nodes(self):
         now = datetime(2026, 8, 5, 10, 0, 0)

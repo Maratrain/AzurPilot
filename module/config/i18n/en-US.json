@@ -1952,7 +1952,7 @@
     },
     "DynamicProgramming": {
       "name": "Global optimal strategy (Experimental)",
-      "help": "This experimental option is disabled by default. Dynamic programming compares the value vector, per-tier index sums, and latest finish time. Plans selecting the same commissions in a different order are deduplicated by filter order before later tie-breakers such as total completion time."
+      "help": "This experimental option is disabled by default. Dynamic programming compares the value vector, per-tier index sums, and deduplicates plans selecting the same commissions by filter order before comparing latest finish time and total completion time."
     },
     "CustomFilter": {
       "name": "Custom Commission Filter",
