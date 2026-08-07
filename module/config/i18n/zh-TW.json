@@ -1962,9 +1962,13 @@
       "oil": "鑽石>石油>魔方",
       "custom": "自定義"
     },
+    "DynamicProgramming": {
+      "name": "選擇全域最佳策略（實驗性）",
+      "help": "此實驗功能預設關閉。開啟後依次比較價值向量、各層編號總和與最晚結束時間；同一委託集合若僅順序不同，會按篩選器順序去重，再比較完成時間總和。"
+    },
     "CustomFilter": {
       "name": "自定義委託過濾器",
-      "help": "使用自定義過濾器需將 \"委託過濾器\" 設定為 \"自定義\"，並閱讀 https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
+      "help": "請將委託篩選器設為自訂。tier 僅在開啟實驗性動態規劃時使用；關閉時會忽略 tier 並沿用傳統篩選順序。"
     },
     "DoMajorCommission": {
       "name": "做主要委託（1200油/1000油委託）",

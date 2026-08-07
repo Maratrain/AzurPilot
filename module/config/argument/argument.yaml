@@ -633,6 +633,7 @@ Commission:
       - chip_24h
       - oil
       - custom
+  DynamicProgramming: false
   CustomFilter: |-
     DailyEvent > Gem-4 > Gem-2 > Gem-8 > ExtraCube-0:30
     > UrgentCube-1:30 > UrgentCube-1:45 > UrgentCube-3

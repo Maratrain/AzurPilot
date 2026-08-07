@@ -205,13 +205,13 @@ def _commission_detect(self, image):
     return SelectedGrids(commission)
 ```
 
-**2. 委托选择 (`commission.py:L116-L217`)**
+**2. 委托选择 (`commission.py`)**
 ```python
 def _commission_choose(self, daily, urgent):
-    """根据过滤器选择最优委托"""
-    COMMISSION_FILTER.load(string)
-    run = COMMISSION_FILTER.apply(total.grids, func=self._commission_check)
-    return daily_choose, urgent_choose
+    """默认使用传统过滤排序，按实验开关分派动态规划"""
+    if self.config.Commission_DynamicProgramming:
+        return self._commission_choose_dynamic(daily, urgent)
+    return self._commission_choose_legacy(daily, urgent)
 ```
 
 **3. 委托执行 (`commission.py:L356-L436`)**
@@ -228,7 +228,9 @@ def _commission_start_click(self, comm, is_urgent=False):
 
 #### 特殊处理
 - **夜间委托转换**: 自动将紧急委托转换为夜间委托格式
-- **过期委托优先**: 优先处理即将过期的重要委托
+- **传统选择（默认）**: 严格沿用过滤器顺序，不足时补入最短委托；忽略 `tier` 控制标记
+- **层级价值规划（实验性）**: 开启 `Commission.DynamicProgramming` 后，`tier` 分隔价值层级；依次比较价值向量、各层编号和、最晚结束时间。同一委托集合若只有执行顺序不同，按过滤器顺序去重，再比较完成时间总和等后续规则
+- **精确动态规划调度（实验性）**: 综合运行槽位、委托时长、可启动截止时间和服务器刷新边界；先用完成截止时间规范化、状态支配与严格上下界求全局最优主目标，再在最优切面恢复原平局规则并输出完整事件时间线，不采用近似剪枝
 - **委托收入记录**: 记录委托奖励到数据库
 
 ---

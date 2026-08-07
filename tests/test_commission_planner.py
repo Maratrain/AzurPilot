@@ -1,0 +1,409 @@
+import random
+import unittest
+from datetime import datetime, timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from module.commission.commission import RewardCommission
+from module.commission.planner import (
+    CommissionPlan,
+    CommissionPlanAction,
+    CommissionPlanJob,
+    optimize_commission_plan,
+)
+from module.commission.preset import DICT_FILTER_PRESET
+from module.commission.project import COMMISSION_FILTER, Commission
+from module.config.config_generated import GeneratedConfig
+from module.map.map_grids import SelectedGrids
+
+
+def commission(name, genre, duration=1):
+    category, sub_genre = genre.split('_', 1)
+    return SimpleNamespace(
+        name=name,
+        genre=genre,
+        category_str=category,
+        genre_str=sub_genre,
+        duration=timedelta(hours=duration),
+        duration_hm=f'{duration}:00',
+        duration_hour=str(duration),
+        repeat_count=1,
+    )
+
+
+def brute_force_plan(jobs, slot_available, horizon):
+    """用完整排列穷举生成小规模实例的精确对照结果。"""
+    jobs = sorted(
+        jobs,
+        key=lambda job: (
+            job.tier,
+            job.deadline if job.deadline is not None else horizon,
+            job.duration,
+            job.source_index,
+        ),
+    )
+    tier_count = max(job.tier for job in jobs) + 1
+    slots = tuple(sorted(slot_available))
+    best_by_selection = {}
+
+    def search(selected_mask, current_slots, actions, source_order, makespan, completion_sum):
+        key = (makespan, source_order, completion_sum, tuple(action[0] for action in actions))
+        current = best_by_selection.get(selected_mask)
+        if current is None or key < current[0]:
+            best_by_selection[selected_mask] = (
+                key,
+                actions,
+                makespan,
+                completion_sum,
+            )
+
+        start = current_slots[0]
+        if start >= horizon:
+            return
+        for job_index, job in enumerate(jobs):
+            bit = 1 << job_index
+            if selected_mask & bit or job.deadline is not None and start >= job.deadline:
+                continue
+            finish = start + job.duration
+            search(
+                selected_mask | bit,
+                tuple(sorted((finish, *current_slots[1:]))),
+                (*actions, (job_index, start, finish)),
+                (*source_order, job.source_index),
+                max(makespan, finish),
+                completion_sum + finish,
+            )
+
+    search(0, slots, (), (), 0, 0)
+    best = None
+    for selected_mask, (_, actions, makespan, completion_sum) in best_by_selection.items():
+        score = [0] * tier_count
+        priority_sums = [0] * tier_count
+        for job_index, job in enumerate(jobs):
+            if selected_mask & (1 << job_index):
+                score[job.tier] += 1
+                priority_sums[job.tier] += job.source_index
+        rank = (
+            tuple(score),
+            tuple(-value for value in priority_sums),
+            -makespan,
+            -completion_sum,
+            tuple(-action[0] for action in actions),
+        )
+        if best is None or rank > best[0]:
+            best = (rank, actions, tuple(score), tuple(priority_sums), makespan, completion_sum)
+    return best[1:], jobs
+
+
+class TestCommissionAlgorithmSwitch(unittest.TestCase):
+    def test_dynamic_programming_is_disabled_by_default(self):
+        self.assertIs(GeneratedConfig.Commission_DynamicProgramming, False)
+
+    def test_dispatches_to_legacy_algorithm_when_disabled(self):
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(Commission_DynamicProgramming=False)
+
+        with (
+            patch.object(worker, '_commission_choose_legacy', return_value='legacy') as legacy,
+            patch.object(worker, '_commission_choose_dynamic', return_value='dynamic') as dynamic,
+        ):
+            result = worker._commission_choose('daily', 'urgent')
+
+        self.assertEqual(result, 'legacy')
+        legacy.assert_called_once_with('daily', 'urgent')
+        dynamic.assert_not_called()
+
+    def test_dispatches_to_dynamic_algorithm_only_when_enabled(self):
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(Commission_DynamicProgramming=True)
+
+        with (
+            patch.object(worker, '_commission_choose_legacy', return_value='legacy') as legacy,
+            patch.object(worker, '_commission_choose_dynamic', return_value='dynamic') as dynamic,
+        ):
+            result = worker._commission_choose('daily', 'urgent')
+
+        self.assertEqual(result, 'dynamic')
+        dynamic.assert_called_once_with('daily', 'urgent')
+        legacy.assert_not_called()
+
+    def test_legacy_algorithm_ignores_dynamic_control_tokens(self):
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(
+            Commission_PresetFilter='custom',
+            Commission_CustomFilter='DailyResource > tier > shortest',
+        )
+        commissions = []
+        for index in range(4):
+            value = object.__new__(Commission)
+            value.name = f'委托{index}'
+            value.genre = 'daily_resource'
+            value.category_str = 'daily'
+            value.genre_str = 'resource'
+            value.status = 'pending'
+            value.valid = True
+            value.duration = timedelta(hours=1)
+            value.suffix_hash = ''
+            value.suffix_image = None
+            value.available_time = timedelta(0)
+            value.deadline_time = None
+            value.repeat_count = 1
+            commissions.append(value)
+        daily = SelectedGrids(commissions)
+
+        with patch.object(
+            COMMISSION_FILTER,
+            'apply',
+            return_value=[*commissions, 'tier', 'shortest'],
+        ):
+            daily_choose, urgent_choose = worker._commission_choose_legacy(
+                daily,
+                SelectedGrids([]),
+            )
+
+        self.assertEqual(daily_choose.grids, commissions)
+        self.assertEqual(urgent_choose.grids, [])
+        self.assertEqual(worker.comm_choose.grids, commissions)
+
+
+class TestCommissionTierFilter(unittest.TestCase):
+    def test_every_builtin_filter_defines_value_tiers(self):
+        for name, value in DICT_FILTER_PRESET.items():
+            with self.subTest(name=name):
+                COMMISSION_FILTER.load(value)
+                tiers = COMMISSION_FILTER.apply_tiers([])
+                self.assertIsInstance(tiers, list)
+
+    def test_tier_separator_groups_equal_value_commissions(self):
+        urgent = commission('紧急魔方', 'urgent_cube')
+        gem = commission('钻石', 'urgent_gem')
+        daily = commission('每日资源', 'daily_resource')
+        fallback = commission('兜底', 'extra_oil', duration=0.5)
+
+        COMMISSION_FILTER.load('UrgentCube > Gem > tier > DailyResource > shortest')
+        tiers = COMMISSION_FILTER.apply_tiers([urgent, gem, daily, fallback])
+
+        self.assertEqual(tiers, [[urgent, gem], [daily, fallback]])
+
+    def test_legacy_filter_keeps_each_rule_as_independent_tier(self):
+        urgent = commission('紧急魔方', 'urgent_cube')
+        gem = commission('钻石', 'urgent_gem')
+
+        COMMISSION_FILTER.load('UrgentCube > Gem')
+        tiers = COMMISSION_FILTER.apply_tiers([urgent, gem])
+
+        self.assertEqual(tiers, [[urgent], [gem]])
+
+    def test_running_commission_no_longer_has_start_deadline(self):
+        value = object.__new__(Commission)
+        value.valid = True
+        value.status = 'pending'
+        value.available_time = timedelta(hours=1)
+        value.deadline_time = datetime(2026, 8, 5, 12, 0, 0)
+
+        with patch('module.commission.project.current_time', return_value=datetime(2026, 8, 5, 11, 0, 0)):
+            value.convert_to_running()
+
+        self.assertEqual(value.status, 'running')
+        self.assertEqual(value.available_time, timedelta(0))
+        self.assertIsNone(value.deadline_time)
+
+
+class TestCommissionDynamicPlanner(unittest.TestCase):
+    def test_matches_complete_enumeration_on_random_extreme_cases(self):
+        rng = random.Random(20260806)
+        for case_index in range(500):
+            job_count = rng.randint(1, 7)
+            horizon = rng.randint(1, 8)
+            jobs = [
+                CommissionPlanJob(
+                    source_index=index,
+                    tier=rng.randint(0, 2),
+                    duration=rng.randint(1, 6),
+                    deadline=rng.choice([None, *range(1, horizon + 3)]),
+                    commission=index,
+                )
+                for index in range(job_count)
+            ]
+            slots = [rng.randint(0, horizon + 2) for _ in range(rng.randint(1, 3))]
+
+            expected, expected_jobs = brute_force_plan(jobs, slots, horizon)
+            plan, planned_jobs = optimize_commission_plan(jobs, slots, horizon)
+            actual_actions = tuple(
+                (action.job_index, action.start, action.finish)
+                for action in plan.actions
+            )
+
+            with self.subTest(case=case_index, jobs=jobs, slots=slots, horizon=horizon):
+                self.assertEqual(plan.score, expected[1])
+                self.assertEqual(plan.priority_sums, expected[2])
+                self.assertEqual(plan.makespan, expected[3])
+                self.assertEqual(plan.completion_sum, expected[4])
+                self.assertEqual(actual_actions, expected[0])
+                self.assertEqual(
+                    [job.source_index for job in planned_jobs],
+                    [job.source_index for job in expected_jobs],
+                )
+
+    def test_regular_twenty_job_case_keeps_state_space_small(self):
+        jobs = [
+            CommissionPlanJob(
+                source_index=index,
+                tier=index // 4,
+                duration=index % 7 + 1,
+                deadline=None,
+                commission=index,
+            )
+            for index in range(20)
+        ]
+
+        plan, _ = optimize_commission_plan(jobs, slot_available=[0, 0, 0, 0], horizon=10)
+
+        self.assertEqual(plan.score, (4, 4, 4, 4, 1))
+        self.assertLess(plan.state_count, 10000)
+
+    def test_short_job_can_run_first_without_losing_higher_tier_job(self):
+        high = object()
+        low_first = object()
+        low_second = object()
+        jobs = [
+            CommissionPlanJob(0, tier=0, duration=4, deadline=2, commission=high),
+            CommissionPlanJob(1, tier=1, duration=1, deadline=1, commission=low_first),
+            CommissionPlanJob(2, tier=1, duration=1, deadline=None, commission=low_second),
+        ]
+
+        plan, planned_jobs = optimize_commission_plan(jobs, slot_available=[0], horizon=10)
+        actions = [(planned_jobs[action.job_index].commission, action.start) for action in plan.actions]
+
+        self.assertEqual(plan.score, (1, 2))
+        self.assertIn(actions[0][0], [low_first, low_second])
+        self.assertEqual(actions[0][1], 0)
+        self.assertEqual(actions[1], (high, 1))
+
+    def test_running_slots_and_deadline_can_make_job_infeasible(self):
+        high = object()
+        low = object()
+        jobs = [
+            CommissionPlanJob(0, tier=0, duration=2, deadline=2, commission=high),
+            CommissionPlanJob(1, tier=1, duration=1, deadline=None, commission=low),
+        ]
+
+        plan, planned_jobs = optimize_commission_plan(jobs, slot_available=[2], horizon=10)
+        selected = [planned_jobs[action.job_index].commission for action in plan.actions]
+
+        self.assertEqual(plan.score, (0, 1))
+        self.assertEqual(selected, [low])
+
+    def test_one_high_tier_job_outweighs_many_lower_tier_jobs(self):
+        high = object()
+        jobs = [CommissionPlanJob(0, 0, 8, 1, high)]
+        jobs.extend(
+            CommissionPlanJob(index, 1, 1, None, object())
+            for index in range(1, 7)
+        )
+
+        plan, _ = optimize_commission_plan(jobs, slot_available=[0], horizon=6)
+
+        self.assertEqual(plan.score[0], 1)
+        self.assertLess(plan.score[1], 6)
+
+    def test_equal_score_prefers_smaller_source_index_sum(self):
+        preferred = object()
+        faster = object()
+        jobs = [
+            CommissionPlanJob(0, tier=0, duration=10, deadline=None, commission=preferred),
+            CommissionPlanJob(1, tier=0, duration=2, deadline=None, commission=faster),
+        ]
+
+        plan, planned_jobs = optimize_commission_plan(jobs, slot_available=[0], horizon=1)
+        selected = [planned_jobs[action.job_index].commission for action in plan.actions]
+
+        self.assertEqual(plan.score, (1,))
+        self.assertEqual(plan.priority_sums, (0,))
+        self.assertEqual(selected, [preferred])
+
+    def test_same_selection_and_makespan_uses_filter_order_before_completion_sum(self):
+        first_in_filter = object()
+        second_in_filter = object()
+        jobs = [
+            CommissionPlanJob(0, tier=0, duration=2, deadline=None, commission=first_in_filter),
+            CommissionPlanJob(1, tier=0, duration=1, deadline=None, commission=second_in_filter),
+        ]
+
+        plan, planned_jobs = optimize_commission_plan(jobs, slot_available=[0], horizon=10)
+        selected = [planned_jobs[action.job_index].commission for action in plan.actions]
+
+        # 短委托优先的完成时间总和是 4，但同集合去重先使用过滤器顺序，结果为 5。
+        self.assertEqual(plan.score, (2,))
+        self.assertEqual(plan.makespan, 3)
+        self.assertEqual(plan.completion_sum, 5)
+        self.assertEqual(selected, [first_in_filter, second_in_filter])
+
+    def test_priority_sums_are_compared_by_tier(self):
+        durations = [3, 4, 3, 4, 4, 3, 1, 5]
+        deadlines = [5, 5, None, 5, None, 3, None, 1]
+        jobs = [
+            CommissionPlanJob(
+                source_index=index,
+                tier=0 if index < 4 else 1,
+                duration=durations[index],
+                deadline=deadlines[index],
+                commission=index,
+            )
+            for index in range(8)
+        ]
+
+        plan, planned_jobs = optimize_commission_plan(jobs, slot_available=[0], horizon=7)
+        selected = sorted(planned_jobs[action.job_index].commission for action in plan.actions)
+
+        # (0, 1, 6) 的总编号和 7 大于 (0, 2, 4) 的 6，但其 T1 编号和更小。
+        self.assertEqual(plan.score, (2, 1))
+        self.assertEqual(plan.priority_sums, (1, 6))
+        self.assertEqual(selected, [0, 1, 6])
+
+    def test_empty_plan_keeps_tier_shaped_priority_sums(self):
+        jobs = [
+            CommissionPlanJob(0, tier=0, duration=1, deadline=None, commission=object()),
+            CommissionPlanJob(1, tier=1, duration=1, deadline=None, commission=object()),
+        ]
+
+        plan, _ = optimize_commission_plan(jobs, slot_available=[], horizon=10)
+
+        self.assertEqual(plan.score, (0, 0))
+        self.assertEqual(plan.priority_sums, (0, 0))
+
+    def test_log_contains_current_and_future_timeline_nodes(self):
+        now = datetime(2026, 8, 5, 10, 0, 0)
+        jobs = [
+            CommissionPlanJob(0, 0, 60, None, SimpleNamespace(name='当前委托')),
+            CommissionPlanJob(1, 1, 60, None, SimpleNamespace(name='后续委托')),
+        ]
+        plan = CommissionPlan(
+            score=(1, 1),
+            actions=(
+                CommissionPlanAction(0, 0, 60),
+                CommissionPlanAction(1, 60, 120),
+            ),
+            makespan=120,
+            completion_sum=180,
+            priority_sums=(0, 1),
+            state_count=3,
+        )
+
+        with patch('module.commission.commission.logger.info') as log:
+            RewardCommission._commission_plan_log(
+                plan=plan,
+                jobs=jobs,
+                running=[],
+                plan_time=now,
+                horizon_time=now + timedelta(hours=1),
+            )
+
+        output = '\n'.join(str(call.args[0]) for call in log.call_args_list)
+        self.assertIn('同集合按过滤器顺序去重', output)
+        self.assertIn('| T+0:00:00] 启动 T1 委托: 当前委托', output)
+        self.assertIn('| T+0:01:00] 预计委托完成: 当前委托；预计启动 T2 委托: 后续委托', output)
+
+
+if __name__ == '__main__':
+    unittest.main()

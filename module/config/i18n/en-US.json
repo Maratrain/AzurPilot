@@ -1950,6 +1950,10 @@
       "oil": "Diamond>Oil>Cubes",
       "custom": "Customize"
     },
+    "DynamicProgramming": {
+      "name": "Global optimal strategy (Experimental)",
+      "help": "This experimental option is disabled by default. Dynamic programming compares the value vector, per-tier index sums, and latest finish time. Plans selecting the same commissions in a different order are deduplicated by filter order before later tie-breakers such as total completion time."
+    },
     "CustomFilter": {
       "name": "Custom delegate filter",
       "help": "To use a custom filter, you need to set \"Delegated Filter\" to \"Custom\" and read https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"

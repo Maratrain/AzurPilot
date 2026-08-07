@@ -1962,9 +1962,13 @@
       "oil": "钻石>石油>魔方喵",
       "custom": "自定义喵"
     },
+    "DynamicProgramming": {
+      "name": "选择全局最优策略（实验性）",
+      "help": "此实验功能默认关闭喵。开启后依次比较价值向量、各层编号和与最晚结束时间；同一委托集合若只有顺序不同，会按过滤器顺序去重，再比较完成时间总和喵。"
+    },
     "CustomFilter": {
       "name": "自定义委托过滤器",
-      "help": "需将过滤器设自定义并阅读文档。乱设漏委托别叫喵→ https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
+      "help": "需将过滤器设为自定义喵。开启动态规划实验功能时可用 tier 分隔价值层级；关闭时会忽略 tier 并沿用传统过滤顺序喵。"
     },
     "DoMajorCommission": {
       "name": "做主要委托 (1200油/1000油)",
