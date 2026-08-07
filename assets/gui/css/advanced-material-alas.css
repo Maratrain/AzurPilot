@@ -34,7 +34,7 @@
 :root {
 	/* === 色彩系统 === */
 	--alas-apple-bg: #f5f5f7;
-	--alas-apple-bg-image: url("https://api.yppp.net/api.php");
+	--alas-apple-bg-image: none;
 	--alas-apple-bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 	--alas-apple-card-bg: rgba(255, 255, 255, 0.72);
 	--alas-apple-card-bg-solid: #ffffff;
@@ -61,7 +61,6 @@
 	--alas-entry-accent: var(--alas-apple-accent);
 	--alas-entry-on-accent: #ffffff;
 	--alas-entry-accent-soft: var(--alas-apple-accent-light);
-
 	/* === 阴影系统 === */
 	--alas-apple-shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.04);
 	--alas-apple-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -71,10 +70,8 @@
 	--alas-apple-shadow-accent-lg: 0 4px 20px rgba(0, 122, 255, 0.25);
 	--alas-entry-shadow: var(--alas-apple-shadow);
 	--alas-entry-panel-shadow: var(--alas-apple-shadow);
-
 	/* === 字体系统 === */
 	--alas-font-stack: "MiSans", "Maple Mono NF CN ExtraBold", "Noto Sans SC", "Microsoft YaHei", "SimHei", sans-serif;
-
 	/* === 间距系统 === */
 	--spacing-xs: 4px;
 	--spacing-sm: 8px;
@@ -82,7 +79,6 @@
 	--spacing-lg: 24px;
 	--spacing-xl: 32px;
 	--spacing-2xl: 40px;
-
 	/* === 圆角系统 === */
 	--radius-xs: 6px;
 	--radius-sm: 8px;
@@ -90,19 +86,16 @@
 	--radius-lg: 16px;
 	--radius-xl: 20px;
 	--radius-2xl: 24px;
-
 	/* === 滚动条变量 === */
 	--scrollbar-width: 8px;
 	--scrollbar-thumb: rgba(0, 0, 0, 0.2);
 	--scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
 	--scrollbar-track: transparent;
 	--scrollbar-radius: 4px;
-
 	/* === 过渡时间 === */
 	--transition-fast: 0.15s ease;
 	--transition-normal: 0.25s ease;
 	--transition-slow: 0.35s ease;
-
 	/* === iOS 弹性动画曲线 === */
 	--ease-ios-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 	--ease-ios-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
