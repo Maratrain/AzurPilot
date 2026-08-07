@@ -21,7 +21,7 @@ alwaysApply: true
 | `platform/ssh.py` 路径错误 | DEVICE.md §2.6 | 文档称 SSH 在 `module/device/platform/`，实际在 `module/base/ssh.py`；`module/device/platform/` 为 `platform_windows.py`/`platform_mac.py`/`platform_base.py` + `emulator_*.py` 架构 |
 | `os_grid.py` 导出类名错误 | MAP-DETECTION.md | 文档称导出 `OSGrid`，实际为 `OSGridInfo` 和 `OSGridPredictor`，不存在 `OSGrid` 类 |
 | `os_run.py` 类名与职责错误 | CAMPAIGN.md | 文档称 `class OpsiRun`（大世界战役运行），实际为 `class OSCampaignRun(OSMapOperation)`，方法名为 `opsi_*` |
-| `ambush_1_1.py` 定位错误 | CAMPAIGN.md | 文档称"战役地图定义 + 战斗逻辑"，实际为 `class Ambush11(GemsFarming)`，专用于 1-1 伏击刷关/钻石 farming |
+| `ambush_1_1.py` 定位错误 | CAMPAIGN.md | 文档称"战役地图定义 + 战斗逻辑"，实际为 `class Ambush11`（继承 `CampaignRun, FleetEquipment, Retirement`），专用于 1-1 伏击刷关/钻石 farming |
 
 ### 1.2 中等问题 (🟡)
 

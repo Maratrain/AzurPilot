@@ -378,16 +378,19 @@ alwaysApply: true
 
 ---
 
-### 2.9 ambush_1_1.py (300 行)
+### 2.9 ambush_1_1.py (700+ 行)
 
-**导出类型**：类 `Ambush11`（继承 `GemsFarming`）
+**导出类型**：类 `Ambush11`（继承 `CampaignRun, FleetEquipment, Retirement`，独立实现不依赖 GemsFarming）
 
 **导入依赖**：
-- `module.campaign.gems_farming.GemsFarming`：钻石 farming 基类
-- `module.config.config.AzurLaneConfig`：配置管理
+- `module.campaign.run.CampaignRun`：战役运行框架
+- `module.campaign.campaign_base.CampaignBase`：战役基类（供 `AmbushCampaignOverride` 注入）
+- `module.equipment.fleet_equipment.FleetEquipment`：舰队装备管理
+- `module.combat.emotion.Emotion`：情绪管理（供 `AmbushEmotion` 注入）
+- `module.retire.retirement.Retirement`：退役与船坞管理（MRO 链含 Dock/Equipment/EquipmentCodeHandler）
 - `module.logger.logger`：日志系统
 
-**说明**：专用于 1-1 伏击刷关/钻石 farming。重写旗舰更换策略（旗舰血量阈值处理），用于 `ambush11` 任务。注意不是单纯的战役地图定义文件。
+**说明**：专用于 1-1 伏击刷关/钻石 farming 的独立实现，用于 `ambush11` 任务。框架能力来自继承链（船坞、装备码、退役、装备、UI、地图），换船逻辑与 `GemsFarming` 等价但已内联。配置仍复用 `Ambush11.GemsFarming.*` 配置组。重写旗舰更换策略（填充主舰队 3 个后排槽位）。注意不是单纯的战役地图定义文件。
 
 ---
 
