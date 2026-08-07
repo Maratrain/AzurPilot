@@ -256,6 +256,12 @@ class TestCommissionValueModel(unittest.TestCase):
         self.assertIn('| 启动等待半衰期 | 03:00:00 |', table)
         self.assertIn('| 层内价值下限 | 75.00% |', table)
         self.assertIn('| 层内编号半衰期 | 2 |', table)
+        self.assertIn('| 低价值委托层内编号 | 3 (83.84%) |', table)
+        self.assertIn('| 被延迟委托层内编号 | 1 (92.68%) |', table)
+        self.assertIn('## 层内价值衰减表', table)
+        self.assertIn('| 第 1 个元素 | 0 | 100.00% |', table)
+        self.assertIn('| 第 2 个元素 | 1 | 92.68% |', table)
+        self.assertIn('| 第 4 个元素 | 3 | 83.84% |', table)
         self.assertIn('| 2 |', table)
 
     def test_runtime_model_reads_all_ui_parameters(self):

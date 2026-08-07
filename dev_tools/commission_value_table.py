@@ -51,7 +51,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from module.commission.planner import CommissionValueModel, delay_threshold_seconds
+from module.commission.planner import (
+    VALUE_SCALE,
+    CommissionValueModel,
+    delay_threshold_seconds,
+)
 
 
 def format_duration(seconds):
@@ -71,8 +75,9 @@ def build_table(
     max_delayed_count,
     delaying_filter_index,
     delayed_filter_index,
+    max_filter_index=16,
 ):
-    """构造 Markdown 参数说明与临界值表。
+    """构造 Markdown 参数说明、层内价值衰减表与临界值表。
 
     行表示低价值委托比被延迟委托落后多少个 tier，列表示同时被推迟的
     高价值委托数量。单元格是低价值委托仍会被选择的最大延迟整数秒。
@@ -81,6 +86,11 @@ def build_table(
         raise ValueError('最大 tier 间隔必须为正整数')
     if max_delayed_count <= 0:
         raise ValueError('最大被延迟委托数必须为正整数')
+    if max_filter_index < 0:
+        raise ValueError('最大过滤器编号必须为非负整数')
+
+    delaying_ratio = model.filter_factor(delaying_filter_index) / VALUE_SCALE * 100
+    delayed_ratio = model.filter_factor(delayed_filter_index) / VALUE_SCALE * 100
     lines = [
         '# 委托延迟临界值表',
         '',
@@ -95,8 +105,19 @@ def build_table(
         f'| 启动等待半衰期 | {format_duration(model.delay_half_life)} |',
         f'| 层内价值下限 | {model.filter_value_floor / 100:.2f}% |',
         f'| 层内编号半衰期 | {model.filter_value_half_life:g} |',
-        f'| 低价值委托层内编号 | {delaying_filter_index} |',
-        f'| 被延迟委托层内编号 | {delayed_filter_index} |',
+        f'| 低价值委托层内编号 | {delaying_filter_index} ({delaying_ratio:.2f}%) |',
+        f'| 被延迟委托层内编号 | {delayed_filter_index} ({delayed_ratio:.2f}%) |',
+        '',
+        '## 层内价值衰减表',
+        '',
+        '| 层内位置 | 过滤器编号 | 相对价值比例 |',
+        '| ---: | ---: | ---: |',
+    ]
+    for idx in range(max_filter_index + 1):
+        ratio = model.filter_factor(idx) / VALUE_SCALE * 100
+        lines.append(f'| 第 {idx + 1} 个元素 | {idx} | {ratio:.2f}% |')
+
+    lines.extend([
         '',
         '## 临界值',
         '',
@@ -104,7 +125,7 @@ def build_table(
         + ' | '.join(f'延迟 {count} 个高价值委托' for count in range(1, max_delayed_count + 1))
         + ' |',
         '| ---: | ' + ' | '.join('---:' for _ in range(max_delayed_count)) + ' |',
-    ]
+    ])
     for tier_gap in range(1, max_tier_gap + 1):
         values = [
             format_duration(delay_threshold_seconds(
@@ -169,6 +190,12 @@ def parse_args():
         default=4,
         help='表格最大同时被延迟委托数',
     )
+    parser.add_argument(
+        '--max-filter-index',
+        type=int,
+        default=16,
+        help='层内价值衰减表展示的最大过滤器编号',
+    )
     parser.add_argument('--output', type=Path, help='可选的 Markdown 输出文件')
     return parser.parse_args()
 
@@ -188,6 +215,7 @@ def main():
         max_delayed_count=args.max_delayed_count,
         delaying_filter_index=args.delaying_filter_index,
         delayed_filter_index=args.delayed_filter_index,
+        max_filter_index=args.max_filter_index,
     )
     if args.output:
         args.output.write_text(table, encoding='utf-8')
