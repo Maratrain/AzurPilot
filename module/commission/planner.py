@@ -1,36 +1,109 @@
-"""委托动态规划调度器。
+"""基于启动时间折现价值的委托精确规划器。
 
-根据委托价值层级、执行时长、可启动截止时间、当前运行槽位和服务器刷新时间，
-计算当前可见委托的全局最优启动计划。价值使用层级计数向量表示，并按字典序比较，
-因此任意一个高层级委托都优先于任意数量的低层级委托；价值向量相同时，
-再按层级依次比较候选编号和，优先选择首个不同层级中编号和更小的策略。
-例如 ``(T1=4, T2=9)`` 劣于 ``(T1=3, T2=13)``，不会用 T2 的优势抵消 T1。
-对同一委托集合，先按原过滤器顺序选出字典序最小的可行排列，再比较最晚结束时间。
+所有候选委托在规划时刻都已经可用，约束只有槽位可用时间和最晚启动时间。
+委托的基础价值按 tier 以有限倍率递减，并用一个有下限的指数函数区分同层
+过滤器编号；实际收益再按预计启动等待时间指数折现。规划目标是最大化全部
+已选委托的折现价值之和，而不是按 tier 数量做绝对字典序比较。
 
-求解分为两个严格等价阶段：第一阶段用完成截止时间排序定理把排列搜索降为
-槽位分配搜索，并结合状态支配和容量上界求价值目标；第二阶段只在价值目标
-最优切面上枚举精确集合，用可行性判定器直接恢复各集合的字典序最小计划，
-最后才比较这些规范计划的最晚结束时间。
-所有界均为乐观界，只会排除已被数学证明不可能更优的状态。
+求解器只展开非空转列表调度：每一步在最早空闲槽位启动一个尚未选择的
+可行委托。因为任务没有释放时间，且更早启动只会提高价值并放宽最晚启动
+约束，所以任意最优日程都能左移成这种形式。分支定界完整覆盖所有选择集合
+和有效执行顺序，并只使用严格乐观上界与已证明安全的状态支配剪枝。
 
-正确性依据：``start < limit`` 等价于 ``finish < limit + duration``，固定
-槽位分配后可用 EDD 交换论证规范化顺序；容量上界允许任务可分割并任选
-最短耗时，只会高估可选数量；槽位支配只删除逐项更晚的同价值状态。第二
-阶段完整枚举主目标精确相等的集合，固定集合可行性使用 EDD 顺序穷举所有
-互不支配的槽位分配，再逐位选择仍有可行后缀的最小过滤器编号。因此每个
-集合恢复的是过滤器字典序最小计划，集合间剩余目标也在完整候选上比较。
+所有目标比较都使用整数。指数函数仅用于构造模型定义中的定点折现表；求解
+过程本身没有浮点比较或近似剪枝，所以返回值是该定点模型的全局最优解。
 """
 
 from dataclasses import dataclass
 from functools import lru_cache
-from itertools import accumulate, product
+from math import ceil, exp2, isfinite
 
-from module.commission.planner_utils import (
-    cardinality_profile,
-    cardinality_upper,
-    makespan_lower_bound,
-    nondominated_slot_updates,
-)
+
+VALUE_SCALE = 1_000_000_000
+
+
+@dataclass(frozen=True)
+class CommissionValueModel:
+    """委托价值模型参数。
+
+    对 tier 为 ``t``、层内过滤器编号为 ``r``、预计等待 ``s`` 秒的委托，
+    求解器使用以下定点价值：
+
+    ``tier_ratio ** (max_tier - t) * filter_factor(r) * delay_factor(s)``
+
+    四个字段就是模型的全部行为参数。默认值与 GUI 的 ``Commission`` 配置组
+    保持一致；开发调参时既可以直接实例化本类，也可以使用 ``from_config()``
+    从运行配置构造，临界值工具同样复用本类，避免出现两套参数定义。
+
+    Args:
+        tier_value_ratio: 相邻 tier 的基础价值倍率。
+        delay_half_life: 启动等待价值减半所需秒数，支持小数。
+        filter_value_floor: 层内过滤器价值下限，单位为万分比。
+        filter_value_half_life: 层内编号修正衰减一半所需的规则数，支持小数。
+    """
+
+    tier_value_ratio: float = 2.0  # GUI: Commission_TierValueRatio
+    delay_half_life: float = 100 * 60 * 60  # GUI 小时数转换为秒
+    filter_value_floor: int = 6_000  # GUI 0~1 比例转换为万分比
+    filter_value_half_life: float = 2.0  # GUI: Commission_FilterValueHalfLife
+
+    def __post_init__(self):
+        if self.tier_value_ratio <= 1:
+            raise ValueError('委托 tier 价值倍率必须大于 1')
+        if not isfinite(self.delay_half_life) or self.delay_half_life <= 0:
+            raise ValueError('委托等待半衰期必须为正数')
+        if not 0 < self.filter_value_floor <= 10_000:
+            raise ValueError('委托层内价值下限必须在 1 到 10000 之间')
+        if not isfinite(self.filter_value_half_life) or self.filter_value_half_life <= 0:
+            raise ValueError('委托层内编号半衰期必须为正数')
+
+    def filter_factor(self, filter_index):
+        """返回层内过滤器编号的定点价值修正。"""
+        if filter_index < 0:
+            raise ValueError('委托过滤器编号必须为非负整数')
+        floor = self.filter_value_floor / 10_000
+        factor = floor + (1 - floor) * exp2(
+            -filter_index / self.filter_value_half_life
+        )
+        return round(VALUE_SCALE * factor)
+
+    @classmethod
+    def from_config(cls, config):
+        """从委托 UI 配置构造与开发工具一致的价值模型。"""
+        defaults = cls()
+        return cls(
+            tier_value_ratio=round(float(getattr(
+                config,
+                'Commission_TierValueRatio',
+                defaults.tier_value_ratio,
+            )), 2),
+            # UI 只保留一位小数；换算成整数秒后，搜索热路径无需处理小数时间。
+            delay_half_life=round(round(float(getattr(
+                config,
+                'Commission_DelayHalfLife',
+                defaults.delay_half_life / 60 / 60,
+            )), 1) * 60 * 60),
+            filter_value_floor=round(float(getattr(
+                config,
+                'Commission_FilterValueFloor',
+                defaults.filter_value_floor / 10_000,
+            )) * 10_000),
+            # 层内修正只在构造每个候选的缓存价值时计算一次，使用小数没有可感知开销。
+            filter_value_half_life=round(float(getattr(
+                config,
+                'Commission_FilterValueHalfLife',
+                defaults.filter_value_half_life,
+            )), 1),
+        )
+
+    @lru_cache(maxsize=None)
+    def delay_factor(self, seconds):
+        """返回等待指定秒数后的定点价值修正。"""
+        seconds = max(int(seconds), 0)
+        return round(VALUE_SCALE * exp2(-seconds / self.delay_half_life))
+
+
+DEFAULT_VALUE_MODEL = CommissionValueModel()
 
 
 @dataclass(frozen=True)
@@ -42,6 +115,7 @@ class CommissionPlanJob:
     duration: int
     deadline: int | None
     commission: object
+    filter_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -55,470 +129,271 @@ class CommissionPlanAction:
 
 @dataclass(frozen=True)
 class CommissionPlan:
-    """动态规划结果。
-
-    ``priority_sums`` 是各价值层级的候选编号和；``slot_fill_limits``
-    按当前空闲槽位列出传统委托可占用的最长秒数，``None`` 表示该槽位
-    在规划边界内未被动态规划占用。
-    """
+    """委托规划结果。"""
 
     score: tuple[int, ...]
     actions: tuple[CommissionPlanAction, ...]
     makespan: int
     completion_sum: int
-    priority_sums: tuple[int, ...] = ()
+    utility: int = 0
+    full_value: int = 0
+    value_scale: int = VALUE_SCALE * VALUE_SCALE
     state_count: int = 0
-    slot_fill_limits: tuple[int | None, ...] = ()
+
+    @property
+    def delay_loss(self):
+        """返回所选委托因等待损失的定点价值。"""
+        return self.full_value - self.utility
 
 
-def _get_slot_fill_limits(actions, slot_available):
-    """还原当前空闲槽位在首个动态规划动作前可使用的时间窗口。"""
-    initial = tuple(max(int(value), 0) for value in slot_available)
-    slots = sorted((available, index) for index, available in enumerate(initial))
-    first_starts = {}
+@dataclass(frozen=True)
+class _StateResult:
+    """搜索过程中一个可行部分计划的累计目标。"""
 
-    for action in actions:
-        available, slot_index = slots.pop(0)
-        if available != action.start:
-            raise RuntimeError('委托规划动作与槽位时间线不一致')
-        if initial[slot_index] == 0 and slot_index not in first_starts:
-            first_starts[slot_index] = action.start
-        slots.append((action.finish, slot_index))
-        slots.sort()
+    utility: int = 0
+    full_value: int = 0
+    makespan: int = 0
+    completion_sum: int = 0
+    order_key: tuple[int, ...] = ()
 
+    @property
+    def rank(self):
+        """返回完整且稳定的目标比较键。"""
+        return (
+            self.utility,
+            self.full_value,
+            -self.makespan,
+            -self.completion_sum,
+            self.order_key,
+        )
+
+
+def _job_base_values(jobs, model):
+    """构造各委托的未折现定点价值。"""
+    maximum_tier = max((job.tier for job in jobs), default=0)
     return tuple(
-        first_starts.get(index)
-        for index, available in enumerate(initial)
-        if available == 0
+        round(
+            (model.tier_value_ratio ** (maximum_tier - job.tier))
+            * model.filter_factor(job.filter_index)
+        )
+        for job in jobs
     )
 
 
-def optimize_commission_plan(jobs, slot_available, horizon):
-    """计算最大价值的并行委托启动计划。
-
-    所有待选委托在规划时刻已经可用。求主目标时按完成截止时间规范化每个
-    槽位内的顺序；恢复动作时通过精确后缀可行性判定，把下一个委托放入最早
-    空闲槽位。完全相同的槽位排序后记忆化，以消除槽位编号造成的重复状态。
-    由于任务没有未来释放时间且约束均为启动时间上界，主动闲置槽位不可能
-    改善可行性或任何后续目标，因此只需考虑不空转计划。
+def optimize_commission_plan(
+    jobs,
+    slot_available,
+    horizon,
+    model=DEFAULT_VALUE_MODEL,
+):
+    """计算折现总价值最大的并行委托启动计划。
 
     Args:
-        jobs (list[CommissionPlanJob]): 待选委托。
-        slot_available (list[int]): 各槽位距离空闲的秒数，空闲槽位为 0。
+        jobs (list[CommissionPlanJob]): 当前全部待选委托。
+        slot_available (list[int]): 各槽位距离空闲的秒数。
         horizon (int): 最晚允许启动新委托的相对秒数。
+        model (CommissionValueModel): 委托价值模型。
 
     Returns:
-        tuple[CommissionPlan, list[CommissionPlanJob]]: 全局最优计划和规划器内部的稳定委托顺序。
+        tuple[CommissionPlan, list[CommissionPlanJob]]: 全局最优计划与稳定委托列表。
     """
-    if not jobs or not slot_available or horizon <= 0:
-        tier_count = max((job.tier for job in jobs), default=-1) + 1
-        return CommissionPlan(
-            score=(0,) * tier_count,
-            actions=(),
-            makespan=0,
-            completion_sum=0,
-            priority_sums=(0,) * tier_count,
-            slot_fill_limits=tuple(
-                None for available in slot_available if max(int(available), 0) == 0
-            ),
-        ), list(jobs)
+    jobs = list(jobs)
+    tier_count = max((job.tier for job in jobs), default=-1) + 1
+    empty_score = (0,) * tier_count
+    slots = tuple(sorted(max(int(value), 0) for value in slot_available))
+    horizon = max(int(horizon), 0)
 
     if any(job.duration <= 0 for job in jobs):
         raise ValueError('委托规划要求所有委托耗时为正数')
     if any(job.tier < 0 for job in jobs):
         raise ValueError('委托规划要求价值层级为非负整数')
+    if any(job.filter_index < 0 for job in jobs):
+        raise ValueError('委托规划要求过滤器编号为非负整数')
+    if not jobs or not slots or horizon <= 0:
+        return CommissionPlan(
+            score=empty_score,
+            actions=(),
+            makespan=0,
+            completion_sum=0,
+        ), jobs
 
-    # 同层级先按调度约束排序；约束相同时按候选编号排序，以保留编号价值。
-    jobs = sorted(
-        jobs,
-        key=lambda job: (
-            job.tier,
-            job.deadline if job.deadline is not None else horizon,
-            job.duration,
-            job.source_index,
-        ),
-    )
-    tier_count = max(job.tier for job in jobs) + 1
-    slot_available = tuple(sorted(max(int(value), 0) for value in slot_available))
-    horizon = max(int(horizon), 0)
-
-    state_count = 0
     limits = tuple(
         min(job.deadline if job.deadline is not None else horizon, horizon)
         for job in jobs
     )
-
-    # 第一阶段只求价值与编号和。把启动截止约束改写为完成
-    # 截止约束 ``finish < limit + duration`` 后，Jackson 交换论证保证：固定
-    # 到每个槽位的委托集合均存在按完成截止时间非递减排列的最优日程。
-    # 因而这里只需枚举“跳过或分配到某个槽位”，不再枚举同槽位内的排列。
-    primary_jobs = sorted(
-        (
-            (job_index, job, limits[job_index])
-            for job_index, job in enumerate(jobs)
-        ),
-        key=lambda value: (
-            value[2] + value[1].duration,
-            value[1].tier,
-            value[1].source_index,
-        ),
-    )
-    suffix_tier_counts = [None] * (len(primary_jobs) + 1)
-    suffix_source_prefixes = [None] * (len(primary_jobs) + 1)
-    suffix_cardinality_profiles = [None] * (len(primary_jobs) + 1)
-    candidates_by_tier = [() for _ in range(tier_count)]
-    suffix_tier_counts[-1] = (0,) * tier_count
-    suffix_source_prefixes[-1] = tuple((0,) for _ in range(tier_count))
-    suffix_cardinality_profiles[-1] = ((), tuple(() for _ in range(tier_count)))
-    for position in range(len(primary_jobs) - 1, -1, -1):
-        candidate = primary_jobs[position]
-        tier = candidate[1].tier
-        candidates_by_tier = list(candidates_by_tier)
-        candidates_by_tier[tier] = (candidate, *candidates_by_tier[tier])
-        suffix_tier_counts[position] = tuple(
-            len(candidates) for candidates in candidates_by_tier
-        )
-        suffix_source_prefixes[position] = tuple(
-            (0, *accumulate(sources))
-            for sources in (
-                sorted(value[1].source_index for value in candidates)
-                for candidates in candidates_by_tier
-            )
-        )
-        suffix_cardinality_profiles[position] = (
-            cardinality_profile(primary_jobs[position:]),
-            tuple(cardinality_profile(candidates) for candidates in candidates_by_tier),
-        )
-
-    @lru_cache(maxsize=None)
-    def selection_gain_upper(position, slots):
-        """返回给定后缀和槽位状态下主目标的乐观增量上界。"""
-        tier_counts = suffix_tier_counts[position]
-        all_profile, tier_profiles = suffix_cardinality_profiles[position]
-        remaining_count_upper = cardinality_upper(
-            len(primary_jobs) - position,
-            all_profile,
-            slots,
-        )
-        score_gain = []
-        minimum_source_sums = []
-        for tier, candidate_count in enumerate(tier_counts):
-            tier_upper = cardinality_upper(
-                candidate_count,
-                tier_profiles[tier],
-                slots,
-            )
-            count_upper = min(tier_upper, remaining_count_upper)
-            remaining_count_upper -= count_upper
-            score_gain.append(count_upper)
-            minimum_source_sums.append(
-                suffix_source_prefixes[position][tier][count_upper]
-            )
-        return tuple(score_gain), tuple(minimum_source_sums)
-
-    primary_seen = set()
-    best_selection_rank = ((0,) * tier_count, (0,) * tier_count)
-
-    def search_primary(position, slots, score, priority_sums):
-        """求解价值向量与各层候选编号和的全局最优值。"""
-        nonlocal state_count, best_selection_rank
-
-        selection_rank = (
-            score,
-            tuple(-value for value in priority_sums),
-        )
-        exact_state = (position, slots, score, priority_sums)
-        if exact_state in primary_seen:
-            return
-        primary_seen.add(exact_state)
-        state_count += 1
-
-        if selection_rank > best_selection_rank:
-            best_selection_rank = selection_rank
-
-        if position >= len(primary_jobs):
-            return
-        score_gain, minimum_source_sums = selection_gain_upper(position, slots)
-        upper_selection_rank = (
-            tuple(value + gain for value, gain in zip(score, score_gain)),
-            tuple(
-                -(value + gain)
-                for value, gain in zip(priority_sums, minimum_source_sums)
-            ),
-        )
-        # 第一阶段只需要主目标的数值；上界即使只能追平，也不必保留路径供
-        # 第二阶段恢复，因此等号同样可以无损剪枝。
-        if upper_selection_rank <= best_selection_rank:
-            return
-
-        _, job, limit = primary_jobs[position]
-        # 当前委托相同，较早槽位向量严格支配较晚向量，只展开 Pareto 前沿。
-        for next_slots in nondominated_slot_updates(slots, job.duration, limit):
-            next_score = list(score)
-            next_score[job.tier] += 1
-            next_priority_sums = list(priority_sums)
-            next_priority_sums[job.tier] += job.source_index
-            search_primary(
-                position + 1,
-                next_slots,
-                tuple(next_score),
-                tuple(next_priority_sums),
-            )
-        search_primary(position + 1, slots, score, priority_sums)
-
-    search_primary(
-        position=0,
-        slots=slot_available,
-        score=(0,) * tier_count,
-        priority_sums=(0,) * tier_count,
-    )
-
-    target_score = best_selection_rank[0]
-    target_priority_sums = tuple(-value for value in best_selection_rank[1])
-
-    # 第二阶段先按精确数量与编号和生成价值目标允许的选择集合，再用同一
-    # EDD 可行性定理作为后缀判定器，逐位选择过滤器编号最小的可行动作。
-    # 每个集合只构造其规范排列，无需枚举其余排列；规范化后才比较工期。
-    tier_options = []
-    for tier in range(tier_count):
-        indices = tuple(sorted(
-            (index for index, job in enumerate(jobs) if job.tier == tier),
-            key=lambda index: jobs[index].source_index,
-        ))
-        source_values = tuple(jobs[index].source_index for index in indices)
-        source_prefix = [0]
-        for value in source_values:
-            source_prefix.append(source_prefix[-1] + value)
-
-        @lru_cache(maxsize=None)
-        def exact_mask_reachable(position, count, source_sum):
-            """判断后缀能否组成精确数量与编号和。"""
-            if not count:
-                return not source_sum
-            if len(indices) - position < count:
-                return False
-            minimum_sum = source_prefix[position + count] - source_prefix[position]
-            maximum_sum = source_prefix[-1] - source_prefix[-count - 1]
-            if (
-                source_sum < minimum_sum
-                or source_sum > maximum_sum
-            ):
-                return False
-
-            source_index = source_values[position]
-            return (
-                exact_mask_reachable(
-                    position + 1,
-                    count - 1,
-                    source_sum - source_index,
-                )
-                or exact_mask_reachable(position + 1, count, source_sum)
-            )
-
-        def iter_exact_masks(position, count, source_sum, selected_mask=0):
-            """只沿可达状态惰性生成精确掩码，避免缓存重复的掩码元组。"""
-            if not count:
-                if not source_sum:
-                    yield selected_mask
-                return
-
-            index = indices[position]
-            source_index = source_values[position]
-            if exact_mask_reachable(
-                position + 1,
-                count - 1,
-                source_sum - source_index,
-            ):
-                yield from iter_exact_masks(
-                    position + 1,
-                    count - 1,
-                    source_sum - source_index,
-                    selected_mask | (1 << index),
-                )
-            if exact_mask_reachable(position + 1, count, source_sum):
-                yield from iter_exact_masks(
-                    position + 1,
-                    count,
-                    source_sum,
-                    selected_mask,
-                )
-
-        tier_options.append(tuple(iter_exact_masks(
-            position=0,
-            count=target_score[tier],
-            source_sum=target_priority_sums[tier],
-        )))
-
-    feasibility_order = tuple(sorted(
+    base_values = _job_base_values(jobs, model)
+    full_values = tuple(value * VALUE_SCALE for value in base_values)
+    branch_order = tuple(sorted(
         range(len(jobs)),
         key=lambda index: (
-            limits[index] + jobs[index].duration,
-            jobs[index].tier,
+            -base_values[index],
+            jobs[index].duration,
             jobs[index].source_index,
         ),
     ))
-    duration_order = tuple(sorted(
-        range(len(jobs)),
-        key=lambda index: (jobs[index].duration, index),
-    ))
-    deadline_masks = tuple(
-        (
-            limit,
-            sum(
-                1 << index
-                for index, job_limit in enumerate(limits)
-                if job_limit <= limit
-            ),
-            tuple(
-                index for index in duration_order
-                if limits[index] <= limit
-            ),
-        )
-        for limit in sorted(set(limits))
-    )
-
-    def deadline_capacity_allows(selected_mask, slots):
-        """检查所有启动截止截面的必要容量条件。"""
-        for limit, deadline_mask, early_duration_order in deadline_masks:
-            early_mask = selected_mask & deadline_mask
-            early_count = early_mask.bit_count()
-            if not early_count:
-                continue
-
-            active_upper = 0
-            capacity = 0
-            for available in slots:
-                if available < limit:
-                    active_upper += 1
-                    capacity += limit - available
-            completed_required = early_count - active_upper
-            if completed_required <= 0:
-                continue
-            minimum_workload = 0
-            completed = 0
-            for job_index in early_duration_order:
-                if not early_mask & (1 << job_index):
-                    continue
-                minimum_workload += jobs[job_index].duration
-                completed += 1
-                if completed >= completed_required:
-                    break
-            if minimum_workload > capacity:
-                return False
-        return True
+    initial_mask = (1 << len(jobs)) - 1
+    state_count = 0
+    best = _StateResult()
+    best_actions = ()
+    frontiers = {}
 
     @lru_cache(maxsize=None)
-    def can_finish(selected_mask, slots):
-        """判断固定集合能否从当前槽位状态满足全部启动截止约束。"""
-        nonlocal state_count
-        state_count += 1
-        if not selected_mask:
-            return True
+    def remaining_indices(mask):
+        """按价值顺序返回掩码中的委托编号。"""
+        return tuple(index for index in branch_order if mask & (1 << index))
 
-        if not deadline_capacity_allows(selected_mask, slots):
+    @lru_cache(maxsize=None)
+    def optimistic_future(mask, current_slots):
+        """返回允许统一最短耗时且忽略截止时间的折现价值上界。"""
+        indices = remaining_indices(mask)
+        if not indices:
+            return 0
+
+        # 把所有委托耗时替换为剩余集合中的最短耗时，并把最高价值依次放到
+        # 最早的虚拟槽位。虚拟启动时刻逐项不晚于任何真实计划，故为严格上界。
+        minimum_duration = min(jobs[index].duration for index in indices)
+        virtual_slots = list(current_slots)
+        utility = 0
+        for index in indices:
+            start = virtual_slots[0]
+            utility += base_values[index] * model.delay_factor(start)
+            virtual_slots[0] = start + minimum_duration
+            virtual_slots.sort()
+        return utility
+
+    def slots_no_later(left, right):
+        """判断一个排序槽位向量是否逐项不晚于另一个。"""
+        return all(left_value <= right_value for left_value, right_value in zip(left, right))
+
+    def state_dominates(left, right):
+        """判断同一剩余集合中的状态是否可安全支配。"""
+        left_slots, left_result = left
+        right_slots, right_result = right
+        if not slots_no_later(left_slots, right_slots):
             return False
-
-        job_index = next(
-            index for index in feasibility_order
-            if selected_mask & (1 << index)
+        if left_result.utility != right_result.utility:
+            return left_result.utility > right_result.utility
+        return (
+            left_result.makespan <= right_result.makespan
+            and left_result.completion_sum <= right_result.completion_sum
+            and left_result.order_key >= right_result.order_key
         )
-        job = jobs[job_index]
-        remaining_mask = selected_mask ^ (1 << job_index)
-        for next_slots in nondominated_slot_updates(
-            slots,
-            job.duration,
-            limits[job_index],
-        ):
-            if can_finish(
-                remaining_mask,
+
+    def update_best(result, actions):
+        """用一个可随时终止的部分计划更新全局最优解。"""
+        nonlocal best, best_actions
+        if result.rank > best.rank:
+            best = result
+            best_actions = actions
+
+    def search(mask, current_slots, current, actions):
+        """使用严格上界和同集合状态支配枚举全部可能的非空转计划。"""
+        nonlocal state_count
+        update_best(current, actions)
+        start = current_slots[0]
+        if not mask or start >= horizon:
+            return
+
+        upper_rank = (
+            current.utility + optimistic_future(mask, current_slots),
+            current.full_value + sum(full_values[index] for index in remaining_indices(mask)),
+        )
+        if upper_rank < best.rank[:2]:
+            return
+
+        frontier = frontiers.setdefault(mask, [])
+        state = (current_slots, current)
+        if any(state_dominates(item, state) for item in frontier):
+            return
+        frontier[:] = [item for item in frontier if not state_dominates(state, item)]
+        frontier.append(state)
+        state_count += 1
+
+        factor = model.delay_factor(start)
+        for job_index in remaining_indices(mask):
+            if start >= limits[job_index]:
+                continue
+            job = jobs[job_index]
+            finish = start + job.duration
+            next_slots = tuple(sorted((*current_slots[1:], finish)))
+            action = CommissionPlanAction(job_index, start, finish)
+            next_result = _StateResult(
+                utility=current.utility + base_values[job_index] * factor,
+                full_value=current.full_value + full_values[job_index],
+                makespan=max(current.makespan, finish),
+                completion_sum=current.completion_sum + finish,
+                order_key=(*current.order_key, -job.source_index),
+            )
+            search(
+                mask ^ (1 << job_index),
                 next_slots,
-            ):
-                return True
-        return False
-
-    source_order = sorted(range(len(jobs)), key=lambda index: jobs[index].source_index)
-    best_actions = ()
-    best_makespan = 0
-    best_completion_sum = 0
-    best_rank = None
-    for tier_masks in product(*tier_options):
-        selected_mask = 0
-        for tier_mask in tier_masks:
-            selected_mask |= tier_mask
-        if not can_finish(selected_mask, slot_available):
-            continue
-        if best_rank is not None:
-            selected_durations = [
-                jobs[job_index].duration
-                for job_index in source_order
-                if selected_mask & (1 << job_index)
-            ]
-            makespan_lower = makespan_lower_bound(
-                slot_available,
-                selected_durations,
+                next_result,
+                (*actions, action),
             )
-            if makespan_lower > best_makespan:
-                continue
-            completion_lower = sum(
-                slot_available[0] + duration
-                for duration in selected_durations
-            )
-            if (
-                makespan_lower == best_makespan
-                and completion_lower > best_completion_sum
-            ):
-                continue
 
-        remaining_mask = selected_mask
-        slots = slot_available
-        actions = []
-        job_order = []
-        makespan = 0
-        completion_sum = 0
-        while remaining_mask:
-            start = slots[0]
-            for job_index in source_order:
-                bit = 1 << job_index
-                if not remaining_mask & bit:
-                    continue
-                job = jobs[job_index]
-                finish = start + job.duration
-                if start >= limits[job_index]:
-                    continue
-                next_slots = tuple(sorted((finish, *slots[1:])))
-                if not can_finish(remaining_mask ^ bit, next_slots):
-                    continue
-                actions.append(CommissionPlanAction(
-                    job_index=job_index,
-                    start=start,
-                    finish=finish,
-                ))
-                job_order.append(job_index)
-                makespan = max(makespan, finish)
-                completion_sum += finish
-                remaining_mask ^= bit
-                slots = next_slots
-                break
-            else:
-                raise RuntimeError('委托规划器无法恢复已证明可行的最优计划')
-        rank = (
-            # 过滤器顺序已在集合内部完成规范化，后续目标只比较规范计划。
-            -makespan,
-            -completion_sum,
-            tuple(-job_index for job_index in job_order),
-        )
-        if best_rank is None or rank > best_rank:
-            best_rank = rank
-            best_actions = tuple(actions)
-            best_makespan = makespan
-            best_completion_sum = completion_sum
+    search(initial_mask, slots, _StateResult(), ())
 
+    score = [0] * tier_count
+    for action in best_actions:
+        score[jobs[action.job_index].tier] += 1
+    top_value_scale = round(
+        (model.tier_value_ratio ** max(tier_count - 1, 0))
+        * VALUE_SCALE
+        * VALUE_SCALE
+    )
     return CommissionPlan(
-        score=target_score,
+        score=tuple(score),
         actions=best_actions,
-        makespan=best_makespan,
-        completion_sum=best_completion_sum,
-        priority_sums=target_priority_sums,
+        makespan=best.makespan,
+        completion_sum=best.completion_sum,
+        utility=best.utility,
+        full_value=best.full_value,
+        value_scale=top_value_scale,
         state_count=state_count,
-        slot_fill_limits=_get_slot_fill_limits(best_actions, slot_available),
     ), jobs
+
+
+def delay_threshold_seconds(
+    tier_gap,
+    delayed_count,
+    model=DEFAULT_VALUE_MODEL,
+    delaying_filter_index=0,
+    delayed_filter_index=0,
+):
+    """返回低 tier 委托允许推迟高 tier 委托的最大整数秒数。
+
+    临界条件与规划器完全一致：一个低 ``tier_gap`` 层的委托立即启动，
+    与放弃它并让 ``delayed_count`` 个高层委托立即启动进行比较。
+    返回 ``None`` 表示无有限临界值。
+    """
+    if tier_gap < 0:
+        raise ValueError('tier 间隔必须为非负整数')
+    if delayed_count <= 0:
+        raise ValueError('被延迟委托数必须为正整数')
+
+    high = (
+        model.tier_value_ratio ** tier_gap
+        * model.filter_factor(delayed_filter_index)
+    )
+    low = model.filter_factor(delaying_filter_index)
+    immediate_high = round(delayed_count * high * VALUE_SCALE)
+    immediate_low = round(low * VALUE_SCALE)
+    if immediate_low >= immediate_high:
+        return None
+
+    def is_allowed(seconds):
+        delayed_high = round(delayed_count * high * model.delay_factor(seconds))
+        return immediate_low + delayed_high > immediate_high
+
+    lower = 0
+    upper = max(ceil(model.delay_half_life), 1)
+    while is_allowed(upper):
+        lower = upper
+        upper *= 2
+    while lower + 1 < upper:
+        middle = (lower + upper) // 2
+        if is_allowed(middle):
+            lower = middle
+        else:
+            upper = middle
+    return lower
