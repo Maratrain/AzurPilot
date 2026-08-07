@@ -21,7 +21,7 @@
 """
 
 import copy
-
+from datetime import timedelta
 from scipy import signal
 
 from module.base.timer import Timer
@@ -48,7 +48,6 @@ from module.ui.scroll import Scroll
 from module.ui.switch import Switch
 from module.ui.ui import UI
 from module.ui_white.assets import REWARD_1_WHITE, REWARD_GOTO_COMMISSION_WHITE
-
 
 COMMISSION_SWITCH = Switch('Commission_switch', is_selector=True)
 COMMISSION_SWITCH.add_state('daily', COMMISSION_DAILY)
@@ -147,8 +146,9 @@ class RewardCommission(UI, InfoHandler):
                 image = crop(image, area, copy=False)
             commissions = self._commission_detect(image)
 
-            if commissions.count >= 2 and commissions.select(valid=False).count == 1:
-                logger.warning('[委托-检测] 发现1个无效委托，重试委托检测')
+            invalid_count = commissions.select(valid=False).count
+            if invalid_count:
+                logger.warning(f'[委托-检测] 发现{invalid_count}个无效委托，重试委托检测')
                 continue
             else:
                 return commissions
@@ -250,7 +250,8 @@ class RewardCommission(UI, InfoHandler):
         for comm in total:
             if comm.genre == 'daily_event':
                 self.max_commission = 5
-        running_count = len([c for c in total if c.status == 'running'])
+        running_list = [c for c in total if c.status == 'running']
+        running_count = len(running_list)
         logger.attr('运行中', f'{running_count}/{self.max_commission}')
 
         # 加载过滤器字符串
