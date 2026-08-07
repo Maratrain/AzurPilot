@@ -633,7 +633,7 @@ Commission:
       - chip_24h
       - oil
       - custom
-  DynamicProgramming: false
+  DynamicProgramming: true
   TierValueRatio:
     type: input
     value: 2.0
