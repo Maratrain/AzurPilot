@@ -260,6 +260,10 @@ class Commission:
             self.duration_hour = str(int(self.duration.total_seconds() / 36) / 100).strip('.0')
             self.duration_hm = str(self.duration).rsplit(':', 1)[0]
 
+    @property
+    def is_gem_commission(self):
+        return self.valid and self.genre == 'urgent_gem'
+
     def _commission_available_time_parse(self):
         """识别紧急委托的剩余可启动时间。
 
