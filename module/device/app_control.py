@@ -4,6 +4,8 @@
 以及 UI 层级结构（hierarchy）的获取和 XPath 元素查询。
 根据控制方法和模拟器类型自动选择 ADB 或 uiautomator2 后端。
 """
+import re
+
 from lxml import etree
 
 from module.base.timer import Timer
@@ -61,6 +63,51 @@ class AppControl(Adb, WSA, Uiautomator2):
         package = self.app_current()
         logger.attr('应用包名', package)
         return package == self.package
+
+    def app_is_running_bounded(self, timeout: int = 10) -> bool:
+        """带固定超时检查目标应用是否在前台。
+
+        恢复流程在模拟器异常时使用，避免 uiautomator2 的重试
+        长时间阻塞游戏重启流程。查询走 ADB shell，单次受 timeout 限制。
+
+        Args:
+            timeout (int): 单次 ADB 查询超时秒数，默认 10 秒。
+
+        Returns:
+            bool: 应用在前台运行返回 True；查询失败或无法判断返回 False。
+        """
+        try:
+            output = self.adb_shell(['dumpsys', 'window', 'windows'], timeout=timeout)
+        except Exception as e:
+            logger.warning(f'[设备-应用] 前台应用检查失败（{timeout}s 超时）: {e}')
+            return False
+
+        _focusedRE = re.compile(
+            r'mCurrentFocus=Window{.*\s+(?P<package>[^\s]+)/(?P<activity>[^\s]+)\}'
+        )
+        m = _focusedRE.search(output or '')
+        if m:
+            package = m.group('package')
+            logger.attr('应用包名', package)
+            return package == self.package
+
+        # 部分设备不输出 mCurrentFocus，回退到 activity top
+        try:
+            output = self.adb_shell(['dumpsys', 'activity', 'top'], timeout=timeout)
+        except Exception as e:
+            logger.warning(f'[设备-应用] 前台 Activity 检查失败（{timeout}s 超时）: {e}')
+            return False
+        _activityRE = re.compile(
+            r'ACTIVITY (?P<package>[^\s]+)/(?P<activity>[^/\s]+) \w+ pid=(?P<pid>\d+)'
+        )
+        packages = [item.group('package') for item in _activityRE.finditer(output or '')]
+        if packages:
+            package = packages[-1]
+            logger.attr('应用包名', package)
+            return package == self.package
+
+        logger.warning('[设备-应用] 无法判断前台应用，按未运行处理')
+        return False
 
     def app_start(self):
         """启动目标应用（碧蓝航线）。
