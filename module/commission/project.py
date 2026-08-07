@@ -27,7 +27,7 @@ from module.ocr.ocr import Duration, Ocr
 from module.reward.assets import *
 
 class CommissionFilter(Filter):
-    """支持 ``tier`` 价值分层和 ``shortest`` 兜底的委托过滤器。"""
+    """支持动态规划分层、传统分界和最短耗时兜底的委托过滤器。"""
 
     def apply_tiers(self, objs, func=None):
         """把过滤结果按价值层级分组。
@@ -36,6 +36,7 @@ class CommissionFilter(Filter):
         层级内保留规则顺序，供规划器按层级依次比较候选编号和来打破价值平局；
         不含 ``tier`` 的旧配置保持原行为，每条规则视为一个独立层级。
         ``shortest`` 会把尚未匹配的可用委托放入当前位置对应的最低层级。
+        遇到 ``ignore`` 后停止解析，后续规则交给传统过滤算法处理。
 
         Args:
             objs: 待匹配委托。
@@ -45,13 +46,20 @@ class CommissionFilter(Filter):
             list[list[Commission]]: 从高到低排列的委托层级。
         """
         objs = [obj for obj in objs if func is None or func(obj)]
-        has_tier = any(raw.lower() == 'tier' for raw in self.filter_raw)
+        dynamic_raw = []
+        for raw in self.filter_raw:
+            if raw.lower() == 'ignore':
+                break
+            dynamic_raw.append(raw)
+        has_tier = any(raw.lower() == 'tier' for raw in dynamic_raw)
         groups = [[]]
         shortest_group = None
         matched = set()
 
         for raw, parsed in zip(self.filter_raw, self.filter):
             token = raw.lower()
+            if token == 'ignore':
+                break
             if token == 'tier':
                 if has_tier:
                     groups.append([])
@@ -80,6 +88,35 @@ class CommissionFilter(Filter):
 
         return [group for group in groups if group]
 
+    def apply_after_ignore(self, objs, excluded=(), func=None):
+        """按传统过滤顺序应用首个 ``ignore`` 后的规则。
+
+        动态规划部分已经匹配的委托不会再次进入传统部分，确保分界前后的
+        规则仍遵循过滤器首次匹配即确定优先级的语义。
+
+        Args:
+            objs: 待匹配委托。
+            excluded: 已由动态规划部分匹配的委托。
+            func: 额外可用性检查函数。
+
+        Returns:
+            list: 传统过滤结果；未配置 ``ignore`` 时返回空列表。
+        """
+        try:
+            index = next(
+                index for index, raw in enumerate(self.filter_raw)
+                if raw.lower() == 'ignore'
+            )
+        except StopIteration:
+            return []
+
+        excluded_ids = {id(obj) for obj in excluded}
+        objs = [obj for obj in objs if id(obj) not in excluded_ids]
+        legacy_filter = Filter(self.regex, self.attr, self.preset)
+        legacy_filter.filter_raw = self.filter_raw[index + 1:]
+        legacy_filter.filter = self.filter[index + 1:]
+        return legacy_filter.apply(objs, func=func)
+
 
 COMMISSION_FILTER = CommissionFilter(
     regex=re.compile(
@@ -91,7 +128,7 @@ COMMISSION_FILTER = CommissionFilter(
         '(\d\d?.\d\d?|\d\d?)?'
     ),
     attr=('category_str', 'genre_str', 'duration_hm', 'duration_hour'),
-    preset=('shortest', 'tier')
+    preset=('shortest', 'tier', 'ignore')
 )
 
 

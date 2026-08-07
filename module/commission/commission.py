@@ -187,10 +187,10 @@ class RewardCommission(UI, InfoHandler):
             string = DICT_FILTER_PRESET[preset]
         logger.attr('委托过滤器', preset)
 
-        # 传统算法严格按过滤器顺序选择；tier 只服务于实验算法，在此忽略。
+        # 传统算法严格按过滤器顺序选择；tier 和 ignore 只服务于实验算法，在此忽略。
         COMMISSION_FILTER.load(string)
         run = SelectedGrids(COMMISSION_FILTER.apply(total.grids, func=self._commission_check))
-        run = run.delete(SelectedGrids(['tier']))
+        run = run.delete(SelectedGrids(['tier', 'ignore']))
         logger.attr('过滤排序', ' > '.join(str(comm) for comm in run))
 
         # shortest 是控制标记，不占用委托槽位。过滤结果不足时，按旧逻辑补入短委托。
@@ -269,90 +269,111 @@ class RewardCommission(UI, InfoHandler):
             string = DICT_FILTER_PRESET[preset]
         logger.attr('委托过滤器', preset)
 
-        # 将过滤规则解析成价值层级。旧配置没有 tier 时，每条规则仍视作独立层级。
+        # ignore 前解析为动态规划价值层级，后半段保持传统过滤顺序。
+        # 旧配置没有 tier 时，每条规则仍视作独立层级。
         COMMISSION_FILTER.load(string)
-        run = COMMISSION_FILTER.apply(total.grids, func=self._commission_check)
-        logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
-        run = SelectedGrids(run)
-
-        # 添加耗时最短的委托（从每日和紧急中合并查找最短的追加）
-        # 过滤结果中的 'shortest' 是预设关键字字符串，必须先移除，否则会占据 run[:N] 的位置
-        # 导致实际可选委托数量减少（bug 修复：原先仅在追加分支内更新 run，满额时 shortest 残留）
-        no_shortest = run.delete(SelectedGrids(['shortest']))
-        run = no_shortest
-        if run.count + running_count < self.max_commission:
-            # 合并每日和紧急委托，从中挑选耗时最短的（不区分优先级）
-            candidate = SelectedGrids([])
-            if daily.count:
-                candidate = candidate.add_by_eq(daily)
-            if urgent.count:
-                candidate = candidate.add_by_eq(urgent)
-            if candidate.count:
-                logger.info('[委托-选择] 委托数量不足，添加耗时最短的委托（每日和紧急）')
-                COMMISSION_FILTER.load(SHORTEST_FILTER)
-                # 反转列表以优先选择后缀编号较大的委托
-                shortest = COMMISSION_FILTER.apply(candidate[::-1], func=self._commission_check)
-                run = no_shortest.add_by_eq(SelectedGrids(shortest))
-                logger.attr('过滤排序', ' > '.join([str(c) for c in run]))
-            else:
-                logger.info('[委托-选择] 委托数量不足，无每日和紧急委托可选')
-
-        self.comm_choose = run
-        if running_count >= self.max_commission:
-            return SelectedGrids([]), SelectedGrids([])
-
-        logger.info('[委托-规划] 价值比较规则: ' + ' >> '.join(
-            f'T{index + 1}' for index in range(len(tiers))
+        tiers = COMMISSION_FILTER.apply_tiers(total.grids, func=self._commission_check)
+        dynamic_candidates = SelectedGrids([comm for tier in tiers for comm in tier])
+        legacy_run = SelectedGrids(COMMISSION_FILTER.apply_after_ignore(
+            total.grids,
+            excluded=dynamic_candidates.grids,
+            func=self._commission_check,
         ))
-        source_offset = 0
-        for index, tier in enumerate(tiers):
-            logger.info(f'[委托-规划] T{index + 1}（编号越小越优）: ' + ' | '.join(
-                f'#{source_offset + number} {comm}'
-                for number, comm in enumerate(tier)
+        legacy_run = legacy_run.delete(SelectedGrids(['tier', 'ignore']))
+        legacy_has_shortest = 'shortest' in legacy_run
+        legacy_run = legacy_run.delete(SelectedGrids(['shortest']))
+        self.comm_choose = dynamic_candidates.add_by_eq(legacy_run)
+        logger.hr('委托最优策略', level=2)
+        start_now = SelectedGrids([])
+        available_count = max(self.max_commission - running_count, 0)
+        slot_fill_limits = [None] * available_count
+        if tiers:
+            logger.info('[委托-规划] 价值比较规则: ' + ' >> '.join(
+                f'T{index + 1}' for index in range(len(tiers))
             ))
-            source_offset += len(tier)
-
-        plan_time = current_time()
-        server_update = getattr(self.config, 'Scheduler_ServerUpdate', '00:00')
-        horizon_time = get_server_next_update(server_update)
-        horizon = int((horizon_time - plan_time).total_seconds())
-        if horizon <= 0:
-            horizon = 24 * 60 * 60
-            horizon_time = plan_time + timedelta(seconds=horizon)
-
-        jobs = []
-        source_index = 0
-        for tier_index, tier in enumerate(tiers):
-            for comm in tier:
-                deadline = None
-                deadline_time = getattr(comm, 'deadline_time', None)
-                if deadline_time is not None:
-                    deadline = max(int((deadline_time - plan_time).total_seconds()), 0)
-                jobs.append(CommissionPlanJob(
-                    source_index=source_index,
-                    tier=tier_index,
-                    duration=max(int(comm.duration.total_seconds()), 1),
-                    deadline=deadline,
-                    commission=comm,
+            source_offset = 0
+            for index, tier in enumerate(tiers):
+                logger.info(f'[委托-规划] T{index + 1}（编号越小越优）: ' + ' | '.join(
+                    f'#{source_offset + number} {comm}'
+                    for number, comm in enumerate(tier)
                 ))
-                source_index += 1
+                source_offset += len(tier)
 
-        slot_available = [max(int(comm.duration.total_seconds()), 0) for comm in running_list]
-        slot_available.extend([0] * max(self.max_commission - running_count, 0))
-        plan, planned_jobs = optimize_commission_plan(jobs, slot_available, horizon)
-        self._commission_plan_log(
-            plan=plan,
-            jobs=planned_jobs,
-            running=running_list,
-            plan_time=plan_time,
-            horizon_time=horizon_time,
-        )
+            plan_time = current_time()
+            server_update = getattr(self.config, 'Scheduler_ServerUpdate', '00:00')
+            horizon_time = get_server_next_update(server_update)
+            horizon = int((horizon_time - plan_time).total_seconds())
+            if horizon <= 0:
+                horizon = 24 * 60 * 60
+                horizon_time = plan_time + timedelta(seconds=horizon)
 
-        start_now = SelectedGrids([
-            planned_jobs[action.job_index].commission
-            for action in plan.actions
-            if action.start == 0
-        ])
+            jobs = []
+            source_index = 0
+            for tier_index, tier in enumerate(tiers):
+                for comm in tier:
+                    deadline = None
+                    deadline_time = getattr(comm, 'deadline_time', None)
+                    if deadline_time is not None:
+                        deadline = max(int((deadline_time - plan_time).total_seconds()), 0)
+                    jobs.append(CommissionPlanJob(
+                        source_index=source_index,
+                        tier=tier_index,
+                        duration=max(int(comm.duration.total_seconds()), 1),
+                        deadline=deadline,
+                        commission=comm,
+                    ))
+                    source_index += 1
+
+            slot_available = [max(int(comm.duration.total_seconds()), 0) for comm in running_list]
+            slot_available.extend([0] * max(self.max_commission - running_count, 0))
+            plan, planned_jobs = optimize_commission_plan(jobs, slot_available, horizon)
+            self._commission_plan_log(
+                plan=plan,
+                jobs=planned_jobs,
+                running=running_list,
+                plan_time=plan_time,
+                horizon_time=horizon_time,
+            )
+
+            start_now = SelectedGrids([
+                planned_jobs[action.job_index].commission
+                for action in plan.actions
+                if action.start == 0
+            ])
+            slot_fill_limits = list(plan.slot_fill_limits)
+        else:
+            logger.info('[委托-规划] 动态规划部分没有匹配到可启动委托')
+
+        limits = []
+        for index, limit in enumerate(slot_fill_limits, start=1):
+            if limit is None:
+                text = '无限制'
+            elif limit <= 0:
+                text = '动态规划立即占用'
+            else:
+                text = str(timedelta(seconds=limit))
+            limits.append(f'槽位{index}={text}')
+        logger.info('[委托-规划] 传统委托槽位时限: ' + ('，'.join(limits) or '无当前空槽'))
+
+        # 传统部分按过滤顺序尝试填槽，但不得跨越动态规划预留的开始时间。
+        if legacy_run:
+            logger.attr('传统过滤排序', ' > '.join(str(comm) for comm in legacy_run))
+        legacy_choose = self._commission_fill_legacy_slots(legacy_run, slot_fill_limits)
+        fillable_count = sum(limit is None or limit > 0 for limit in slot_fill_limits)
+        if legacy_choose.count < fillable_count and legacy_has_shortest:
+            dynamic_ids = {id(comm) for comm in dynamic_candidates}
+            candidate = SelectedGrids([
+                comm for comm in total
+                if id(comm) not in dynamic_ids
+            ])
+            COMMISSION_FILTER.load(SHORTEST_FILTER)
+            shortest = COMMISSION_FILTER.apply(candidate.grids, func=self._commission_check)
+            legacy_run = legacy_run.add_by_eq(SelectedGrids(shortest))
+            self.comm_choose = dynamic_candidates.add_by_eq(legacy_run)
+            logger.attr('传统过滤排序', ' > '.join(str(comm) for comm in legacy_run))
+            legacy_choose = self._commission_fill_legacy_slots(legacy_run, slot_fill_limits)
+
+        start_now = start_now.add_by_eq(legacy_choose)
         daily_choose = start_now.intersect_by_eq(daily)
         urgent_choose = start_now.intersect_by_eq(urgent)
         if daily_choose:
@@ -365,6 +386,34 @@ class RewardCommission(UI, InfoHandler):
                 logger.info(comm)
 
         return daily_choose, urgent_choose
+
+    @staticmethod
+    def _commission_fill_legacy_slots(commissions, slot_fill_limits):
+        """按过滤顺序将传统委托放入满足动态规划时限的当前空槽。"""
+        remaining = list(slot_fill_limits)
+        selected = []
+        for comm in commissions:
+            duration = max(int(comm.duration.total_seconds()), 1)
+            compatible = [
+                (float('inf') if limit is None else limit, index)
+                for index, limit in enumerate(remaining)
+                if limit is None or duration <= limit
+            ]
+            if not compatible:
+                logger.info(
+                    f'[委托-选择] 跳过超出预留时限的传统委托: {comm}，'
+                    f'耗时 {timedelta(seconds=duration)}'
+                )
+                continue
+
+            # 优先使用能容纳该委托的最紧窗口，避免浪费无限制或更长的槽位。
+            _, slot_index = min(compatible)
+            remaining.pop(slot_index)
+            selected.append(comm)
+            if not remaining:
+                break
+
+        return SelectedGrids(selected)
 
     @staticmethod
     def _commission_plan_log(plan, jobs, running, plan_time, horizon_time):

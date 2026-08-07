@@ -40,7 +40,12 @@ class CommissionPlanAction:
 
 @dataclass(frozen=True)
 class CommissionPlan:
-    """动态规划结果，``priority_sums`` 是各价值层级的候选编号和。"""
+    """动态规划结果。
+
+    ``priority_sums`` 是各价值层级的候选编号和；``slot_fill_limits``
+    按当前空闲槽位列出传统委托可占用的最长秒数，``None`` 表示该槽位
+    在规划边界内未被动态规划占用。
+    """
 
     score: tuple[int, ...]
     actions: tuple[CommissionPlanAction, ...]
@@ -48,6 +53,7 @@ class CommissionPlan:
     completion_sum: int
     priority_sums: tuple[int, ...] = ()
     state_count: int = 0
+    slot_fill_limits: tuple[int | None, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -139,6 +145,28 @@ def _restore_actions(partial):
     return tuple(actions)
 
 
+def _get_slot_fill_limits(actions, slot_available):
+    """还原当前空闲槽位在首个动态规划动作前可使用的时间窗口。"""
+    initial = tuple(max(int(value), 0) for value in slot_available)
+    slots = sorted((available, index) for index, available in enumerate(initial))
+    first_starts = {}
+
+    for action in actions:
+        available, slot_index = slots.pop(0)
+        if available != action.start:
+            raise RuntimeError('委托规划动作与槽位时间线不一致')
+        if initial[slot_index] == 0 and slot_index not in first_starts:
+            first_starts[slot_index] = action.start
+        slots.append((action.finish, slot_index))
+        slots.sort()
+
+    return tuple(
+        first_starts.get(index)
+        for index, available in enumerate(initial)
+        if available == 0
+    )
+
+
 def optimize_commission_plan(jobs, slot_available, horizon):
     """计算最大价值的并行委托启动计划。
 
@@ -162,6 +190,9 @@ def optimize_commission_plan(jobs, slot_available, horizon):
             makespan=0,
             completion_sum=0,
             priority_sums=(0,) * tier_count,
+            slot_fill_limits=tuple(
+                None for available in slot_available if max(int(available), 0) == 0
+            ),
         ), list(jobs)
 
     # 同层级先按调度约束排序；约束相同时按候选编号排序，以保留编号价值。
@@ -450,11 +481,13 @@ def optimize_commission_plan(jobs, slot_available, horizon):
             best_rank = rank
             best_plan = partial
 
+    actions = _restore_actions(best_plan)
     return CommissionPlan(
         score=target_score,
-        actions=_restore_actions(best_plan),
+        actions=actions,
         makespan=target_makespan,
         completion_sum=best_plan.completion_sum,
         priority_sums=target_priority_sums,
         state_count=state_count,
+        slot_fill_limits=_get_slot_fill_limits(actions, slot_available),
     ), jobs

@@ -1955,8 +1955,8 @@
       "help": "This experimental option is disabled by default. Dynamic programming compares the value vector, per-tier index sums, and latest finish time. Plans selecting the same commissions in a different order are deduplicated by filter order before later tie-breakers such as total completion time."
     },
     "CustomFilter": {
-      "name": "Custom delegate filter",
-      "help": "To use a custom filter, you need to set \"Delegated Filter\" to \"Custom\" and read https://github.com/LmeSzinc/AzurLaneAutoScript/wiki/filter_string_cn"
+      "name": "Custom Commission Filter",
+      "help": "Set Commission Filter to Customize to use this filter. With experimental dynamic programming enabled, tier separates value levels and ignore marks the algorithm boundary: rules before ignore use dynamic programming; rules after it fill slots in traditional filter order, but a commission must fit within the time window reserved by dynamic programming for that slot. When dynamic programming is disabled, both tier and ignore are ignored."
     },
     "DoMajorCommission": {
       "name": "Make the main commission (1200 oil/1000 oil commission)",

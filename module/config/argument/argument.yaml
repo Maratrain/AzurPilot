@@ -650,6 +650,7 @@ Commission:
     > UrgentDrill-4 > UrgentDrill-2:40 > UrgentDrill-2
     > UrgentDrill-1 > UrgentDrill-1:30 > UrgentDrill-1:10
     > Extra-0:20 > Extra-0:30 > Extra-1:00 > Extra-1:30 > Extra-2:00
+    > ignore
     > shortest
   DoMajorCommission: false
   GemNotify:

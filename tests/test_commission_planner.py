@@ -31,6 +31,25 @@ def commission(name, genre, duration=1):
     )
 
 
+def selectable_commission(name, genre, duration=1):
+    """构造可直接进入委托选择算法的测试对象。"""
+    value = object.__new__(Commission)
+    value.name = name
+    value.genre = genre
+    value.category_str, value.genre_str = genre.split('_', 1)
+    value.status = 'pending'
+    value.valid = True
+    value.duration = timedelta(hours=duration)
+    value.duration_hm = f'{duration}:00'
+    value.duration_hour = str(duration)
+    value.suffix_hash = ''
+    value.suffix_image = None
+    value.available_time = timedelta(0)
+    value.deadline_time = None
+    value.repeat_count = 1
+    return value
+
+
 def brute_force_plan(jobs, slot_available, horizon):
     """用完整排列穷举生成小规模实例的精确对照结果。"""
     jobs = sorted(
@@ -131,7 +150,7 @@ class TestCommissionAlgorithmSwitch(unittest.TestCase):
         worker = object.__new__(RewardCommission)
         worker.config = SimpleNamespace(
             Commission_PresetFilter='custom',
-            Commission_CustomFilter='DailyResource > tier > shortest',
+            Commission_CustomFilter='DailyResource > tier > ignore > shortest',
         )
         commissions = []
         for index in range(4):
@@ -154,7 +173,7 @@ class TestCommissionAlgorithmSwitch(unittest.TestCase):
         with patch.object(
             COMMISSION_FILTER,
             'apply',
-            return_value=[*commissions, 'tier', 'shortest'],
+            return_value=[*commissions, 'tier', 'ignore', 'shortest'],
         ):
             daily_choose, urgent_choose = worker._commission_choose_legacy(
                 daily,
@@ -194,6 +213,39 @@ class TestCommissionTierFilter(unittest.TestCase):
 
         self.assertEqual(tiers, [[urgent], [gem]])
 
+    def test_ignore_splits_dynamic_tiers_and_legacy_filter(self):
+        urgent = commission('紧急魔方', 'urgent_cube')
+        gem = commission('钻石', 'urgent_gem')
+        daily = commission('每日资源', 'daily_resource')
+
+        COMMISSION_FILTER.load(
+            'UrgentCube > tier > ignore > Gem > DailyResource > shortest'
+        )
+        tiers = COMMISSION_FILTER.apply_tiers([urgent, gem, daily])
+        legacy = COMMISSION_FILTER.apply_after_ignore(
+            [urgent, gem, daily],
+            excluded=[comm for tier in tiers for comm in tier],
+        )
+
+        self.assertEqual(tiers, [[urgent]])
+        self.assertEqual(legacy, [gem, daily, 'shortest'])
+
+    def test_filter_without_ignore_has_no_legacy_part(self):
+        urgent = commission('紧急魔方', 'urgent_cube')
+
+        COMMISSION_FILTER.load('UrgentCube')
+
+        self.assertEqual(COMMISSION_FILTER.apply_tiers([urgent]), [[urgent]])
+        self.assertEqual(COMMISSION_FILTER.apply_after_ignore([urgent]), [])
+
+    def test_tier_after_ignore_does_not_change_dynamic_grouping(self):
+        urgent = commission('紧急魔方', 'urgent_cube')
+        gem = commission('钻石', 'urgent_gem')
+
+        COMMISSION_FILTER.load('UrgentCube > Gem > ignore > tier > shortest')
+
+        self.assertEqual(COMMISSION_FILTER.apply_tiers([urgent, gem]), [[urgent], [gem]])
+
     def test_running_commission_no_longer_has_start_deadline(self):
         value = object.__new__(Commission)
         value.valid = True
@@ -210,6 +262,129 @@ class TestCommissionTierFilter(unittest.TestCase):
 
 
 class TestCommissionDynamicPlanner(unittest.TestCase):
+    def test_legacy_jobs_use_tightest_compatible_slot_first(self):
+        one_hour = selectable_commission('一小时委托', 'urgent_gem', duration=1)
+        two_hours = selectable_commission('两小时委托', 'daily_resource', duration=2)
+
+        selected = RewardCommission._commission_fill_legacy_slots(
+            SelectedGrids([one_hour, two_hours]),
+            slot_fill_limits=[3 * 60 * 60, 60 * 60],
+        )
+
+        self.assertEqual(selected.grids, [one_hour, two_hours])
+
+    def test_ignore_tail_respects_per_slot_fill_limits_from_planner(self):
+        dynamic = [
+            selectable_commission(f'动态委托{index}', 'urgent_cube', duration=index + 1)
+            for index in range(4)
+        ]
+        legacy_long = selectable_commission('传统长委托', 'urgent_gem', duration=2)
+        legacy_short = selectable_commission('传统短委托', 'daily_resource', duration=0.5)
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(
+            Commission_PresetFilter='custom',
+            Commission_CustomFilter='UrgentCube > ignore > Gem > DailyResource',
+            Commission_DoMajorCommission=True,
+            Scheduler_ServerUpdate='00:00',
+        )
+        daily = SelectedGrids([legacy_short])
+        urgent = SelectedGrids([*dynamic, legacy_long])
+        now = datetime(2026, 8, 6, 10, 0, 0)
+
+        def plan_with_one_hour_reservation(jobs, slot_available, horizon):
+            actions = tuple(
+                CommissionPlanAction(
+                    job_index=index,
+                    start=0 if index < 3 else 3600,
+                    finish=(0 if index < 3 else 3600) + job.duration,
+                )
+                for index, job in enumerate(jobs)
+            )
+            return CommissionPlan(
+                score=(4,),
+                actions=actions,
+                makespan=max(action.finish for action in actions),
+                completion_sum=sum(action.finish for action in actions),
+                priority_sums=(sum(job.source_index for job in jobs),),
+                slot_fill_limits=(0, 0, 0, 3600),
+            ), jobs
+
+        with (
+            patch('module.commission.commission.current_time', return_value=now),
+            patch(
+                'module.commission.commission.get_server_next_update',
+                return_value=now + timedelta(days=1),
+            ),
+            patch(
+                'module.commission.commission.optimize_commission_plan',
+                side_effect=plan_with_one_hour_reservation,
+            ),
+        ):
+            daily_choose, urgent_choose = worker._commission_choose_dynamic(daily, urgent)
+
+        self.assertEqual(daily_choose.grids, [legacy_short])
+        self.assertNotIn(legacy_long, urgent_choose.grids)
+        self.assertEqual(len(urgent_choose.grids), 3)
+
+    def test_ignore_at_start_matches_full_legacy_filter_with_shortest(self):
+        gem = selectable_commission('钻石委托', 'urgent_gem', duration=8)
+        long = selectable_commission('长委托', 'daily_resource', duration=3)
+        short = selectable_commission('短委托', 'extra_oil', duration=1)
+        medium = selectable_commission('中委托', 'extra_drill', duration=2)
+        config = SimpleNamespace(
+            Commission_PresetFilter='custom',
+            Commission_CustomFilter='ignore > Gem > shortest',
+            Commission_DoMajorCommission=True,
+            Scheduler_ServerUpdate='00:00',
+        )
+        daily = SelectedGrids([long, short, medium])
+        urgent = SelectedGrids([gem])
+        dynamic_worker = object.__new__(RewardCommission)
+        dynamic_worker.config = config
+        legacy_worker = object.__new__(RewardCommission)
+        legacy_worker.config = config
+
+        dynamic_choose = dynamic_worker._commission_choose_dynamic(daily, urgent)
+        legacy_choose = legacy_worker._commission_choose_legacy(daily, urgent)
+
+        self.assertEqual(dynamic_choose[0].grids, legacy_choose[0].grids)
+        self.assertEqual(dynamic_choose[1].grids, legacy_choose[1].grids)
+        self.assertEqual(dynamic_worker.comm_choose.grids, legacy_worker.comm_choose.grids)
+
+    def test_ignore_tail_uses_legacy_order_without_entering_planner(self):
+        dynamic = selectable_commission('动态规划委托', 'urgent_cube', duration=2)
+        legacy_first = selectable_commission('传统委托一', 'urgent_gem')
+        legacy_second = selectable_commission('传统委托二', 'daily_resource')
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(
+            Commission_PresetFilter='custom',
+            Commission_CustomFilter='UrgentCube > ignore > Gem > DailyResource',
+            Commission_DoMajorCommission=True,
+            Scheduler_ServerUpdate='00:00',
+        )
+        daily = SelectedGrids([legacy_second])
+        urgent = SelectedGrids([dynamic, legacy_first])
+        now = datetime(2026, 8, 6, 10, 0, 0)
+
+        with (
+            patch('module.commission.commission.current_time', return_value=now),
+            patch(
+                'module.commission.commission.get_server_next_update',
+                return_value=now + timedelta(days=1),
+            ),
+            patch(
+                'module.commission.commission.optimize_commission_plan',
+                wraps=optimize_commission_plan,
+            ) as optimizer,
+        ):
+            daily_choose, urgent_choose = worker._commission_choose_dynamic(daily, urgent)
+
+        planned_jobs = optimizer.call_args.args[0]
+        self.assertEqual([job.commission for job in planned_jobs], [dynamic])
+        self.assertEqual(urgent_choose.grids, [dynamic, legacy_first])
+        self.assertEqual(daily_choose.grids, [legacy_second])
+        self.assertEqual(worker.comm_choose.grids, [dynamic, legacy_first, legacy_second])
+
     def test_matches_complete_enumeration_on_random_extreme_cases(self):
         rng = random.Random(20260806)
         for case_index in range(500):
@@ -261,6 +436,15 @@ class TestCommissionDynamicPlanner(unittest.TestCase):
 
         self.assertEqual(plan.score, (4, 4, 4, 4, 1))
         self.assertLess(plan.state_count, 10000)
+
+    def test_planner_returns_fill_limit_for_each_currently_free_slot(self):
+        jobs = [
+            CommissionPlanJob(0, tier=0, duration=2, deadline=None, commission=object()),
+        ]
+
+        plan, _ = optimize_commission_plan(jobs, slot_available=[0, 0], horizon=10)
+
+        self.assertEqual(plan.slot_fill_limits, (0, None))
 
     def test_short_job_can_run_first_without_losing_higher_tier_job(self):
         high = object()
