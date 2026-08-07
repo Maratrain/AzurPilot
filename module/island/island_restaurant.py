@@ -21,6 +21,13 @@ FIXED_SELECT_DOUBLE_BAMBOO_SHOOTS = Button(
     file={'cn': '', 'en': '', 'jp': '', 'tw': ''}
 )
 
+# 秋季高优先级菜品（松茸鸡汤，槽位2）的固定位置——固定第二格，
+# 与春/夏季高优先级菜品（凉拌双笋/苋菜饭团）所在格不同
+FIXED_SELECT_MATSUTAKE_CHICKEN_SOUP = Button(
+    area=(), color=(), button=(212, 300, 292, 360),
+    file={'cn': '', 'en': '', 'jp': '', 'tw': ''}
+)
+
 RESTAURANT_SEASONAL_DISHES = {
     'double_bamboo_shoots': {
         'name': 'double_bamboo_shoots', 'template': TEMPLATE_DOUBLE_BAMBOO_SHOOTS,
@@ -42,6 +49,16 @@ RESTAURANT_SEASONAL_DISHES = {
         'selection': SELECT_TOMATO_EGG, 'selection_check': SELECT_TOMATO_EGG_CHECK,
         'post_action': POST_TOMATO_EGG, 'cn_name': '番茄炒蛋'
     },
+    'matsutake_chicken_soup': {
+        'name': 'matsutake_chicken_soup', 'template': TEMPLATE_MATSUTAKE_CHICKEN_SOUP,
+        'selection': SELECT_MATSUTAKE_CHICKEN_SOUP, 'selection_check': SELECT_MATSUTAKE_CHICKEN_SOUP_CHECK,
+        'post_action': POST_MATSUTAKE_CHICKEN_SOUP, 'cn_name': '松茸鸡汤'
+    },
+    'persimmon_cake': {
+        'name': 'persimmon_cake', 'template': TEMPLATE_PERSIMMON_CAKE,
+        'selection': SELECT_PERSIMMON_CAKE, 'selection_check': SELECT_PERSIMMON_CAKE_CHECK,
+        'post_action': POST_PERSIMMON_CAKE, 'cn_name': '柿子饼'
+    },
 }
 
 HIGH_PRIORITY_SEASONAL_DISHES = {
@@ -51,6 +68,12 @@ HIGH_PRIORITY_SEASONAL_DISHES = {
         'selection_check': FIXED_SELECT_DOUBLE_BAMBOO_SHOOTS,
     }
     for name in ('double_bamboo_shoots', 'amaranth_rice_ball')
+}
+# 秋季高优先级为松茸鸡汤，位于固定第二格（与春/夏季高优先级菜品不同格）
+HIGH_PRIORITY_SEASONAL_DISHES['matsutake_chicken_soup'] = {
+    **RESTAURANT_SEASONAL_DISHES['matsutake_chicken_soup'],
+    'selection': FIXED_SELECT_MATSUTAKE_CHICKEN_SOUP,
+    'selection_check': FIXED_SELECT_MATSUTAKE_CHICKEN_SOUP,
 }
 
 
@@ -224,7 +247,7 @@ class IslandRestaurant(IslandShopBase):
             fixed_selection = self.seasonal_dish_slot['selection']
             normal_selection = self.name_to_config.get(dish_name, {}).get('selection')
             if product_selection in (fixed_selection, normal_selection):
-                self.device.click(FIXED_SELECT_DOUBLE_BAMBOO_SHOOTS)
+                self.device.click(self.seasonal_dish_slot['selection'])
                 self.device.sleep(0.5)
                 return True
         return super().select_product(product_selection, product_selection_check)
