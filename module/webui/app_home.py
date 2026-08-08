@@ -119,34 +119,35 @@ class HomeMixin(WebUIMixinBase):
                 "text-align: center"
             )
             put_html(
-                '<div class="alas-wallpaper-toggle" onclick="alasToggleWallpaper()" title="纯背景模式">\u25C9</div>'
+                '<div id="alas-wallpaper-toggle" onclick="alasToggleWallpaper()" title="纯背景模式">\u25C9</div>'
             )
             put_html('<div class="alas-home-marker" aria-hidden="true"></div>')
             put_html(
                 """
                 <style>
-                .alas-wallpaper-toggle {
+                #alas-wallpaper-toggle {
                     position: fixed;
-                    bottom: 16px;
-                    right: 16px;
-                    z-index: 9999;
-                    width: 48px;
-                    height: 48px;
+                    bottom: 10px;
+                    right: 10px;
+                    z-index: 99999;
+                    width: 24px;
+                    height: 24px;
                     border-radius: 50%;
-                    background: rgba(255,255,255,0.7);
-                    backdrop-filter: blur(8px);
-                    border: 1px solid rgba(0,0,0,0.1);
+                    background: rgba(255,255,255,0.6);
+                    backdrop-filter: blur(6px);
+                    border: 1px solid rgba(0,0,0,0.12);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    font-size: 18px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    transition: all 0.2s;
+                    font-size: 11px;
+                    line-height: 1;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+                    user-select: none;
+                    transition: background 0.15s;
                 }
-                .alas-wallpaper-toggle:hover {
+                #alas-wallpaper-toggle:hover {
                     background: rgba(255,255,255,0.9);
-                    transform: scale(1.08);
                 }
                 body.alas-wallpaper-mode #pywebio-scope-content,
                 body.alas-wallpaper-mode #pywebio-scope-header,
@@ -156,6 +157,10 @@ class HomeMixin(WebUIMixinBase):
                 }
                 </style>
                 <script>
+                (function(){
+                    var btn = document.getElementById('alas-wallpaper-toggle');
+                    if (btn) { document.body.appendChild(btn); }
+                })();
                 function alasToggleWallpaper() {
                     document.body.classList.toggle('alas-wallpaper-mode');
                 }
