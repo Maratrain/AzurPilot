@@ -135,25 +135,54 @@ class HomeMixin(WebUIMixinBase):
             """
             ).style("text-align: center")
 
-        if lang.TRANSLATE_MODE:
-            lang.reload()
+        # 纯图模式开关：用 put_html 注入到默认 scope（不在 content 内），
+        # 这样切换纯图模式时不会被一起隐藏；按钮固定在右下角
+        put_html(
+            """
+            <div id="alas-pic-toggle" style="
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                z-index: 99999;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: 500;
+                background: rgba(0,0,0,0.7);
+                color: #fff;
+                border: 1px solid rgba(255,255,255,0.35);
+                border-radius: 8px;
+                cursor: pointer;
+                user-select: none;
+                backdrop-filter: blur(4px);
+                transition: background 0.2s;
+            "
+            onmouseover="this.style.background='rgba(0,0,0,0.88)'"
+            onmouseout="this.style.background='rgba(0,0,0,0.7)'"
+            onclick="document.body.classList.toggle('alas-picture-mode');if(document.body.classList.contains('alas-picture-mode')){localStorage.setItem('alas_picture_mode','1');this.textContent='显示内容'}else{localStorage.removeItem('alas_picture_mode');this.textContent='纯图模式'}">
+                纯图模式
+            </div>
+            <style>
+            body.alas-picture-mode #pywebio-scope-content { display: none !important; }
+            body.alas-picture-mode #pywebio-scope-aside { display: none !important; }
+            </style>
+            <script>
+            (function(){
+                var b = document.getElementById('alas-pic-toggle');
+                if (localStorage.getItem('alas_picture_mode') === '1') {
+                    document.body.classList.add('alas-picture-mode');
+                    b.textContent = '显示内容';
+                }
+            })();
+            </script>
+            """
+        )
 
-            def _disable():
-                lang.TRANSLATE_MODE = False
-                self.show_home()
-
-            toast(
-                _t("Gui.Toast.DisableTranslateMode"),
-                duration=0,
-                position="right",
-                onclick=_disable,
-            )
     def init_wallpaper(self):
         if getattr(self, "wallpaper_url", None):
             return
 
         MAX_SIZE = 1 * 1024 * 1024  # 1MB
-        MAX_RETRIES = 3
+        MAX_RETRIES = 20
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
