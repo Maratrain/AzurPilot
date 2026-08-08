@@ -22,8 +22,8 @@
 
 | 业务写法 | 实际 `AlOcr` 模型 | ONNX 识别模型 | 字典 | 主要用途 |
 |---|---|---|---|---|
-| 默认不写 `lang` / `lang='azur_lane'` | `azur_lane`；日服运行时自动改成 `azur_lane_jp` | `bin/ocr_models/azur_lane/ap_azurlane-v6.5_small_rec_nvidia.onnx`；日服为 `bin/ocr_models/azur_lane_jp/ap_azurlane_jp-v6_small_rec_nvidia.onnx` | `ppocrv6_azurlane_dict.txt`；日服为 `ppocrv6_azurlane_jp_dict.txt` | 数字、计数器、时长、关卡名、少量英文/符号 |
-| `lang='cnocr'` | `cn` | `bin/ocr_models/zh-CN/ap_zh-cn-v6.1_small_rec_dcu.onnx` | `ppocrv6_cn_dict.txt` | 中文文本、中文 UI 中非标准字体数字 |
+| 默认不写 `lang` / `lang='azur_lane'` | `azur_lane`；日服运行时自动改成 `azur_lane_jp` | `bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx`（auto 默认通用 PP-OCRv6） | `ppocrv6_dict.txt` | 数字、计数器、时长、关卡名、少量英文/符号 |
+| `lang='cnocr'` | `cn` | `bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx`（auto 默认通用 PP-OCRv6） | `ppocrv6_dict.txt` | 中文文本、中文 UI 中非标准字体数字 |
 | `lang='ppocr_v6'` | `ppocr_v6` | `bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx` | `ppocrv6_dict.txt` | 国际服/通用文本 |
 | `lang='jp'` | `jp` | `bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx` | `ppocrv6_dict.txt` | 日服文本 |
 | `lang='tw'` | `tw` | `bin/ocr_models/ppocr-v6/PP-OCRv6_small_rec.onnx` | `ppocrv6_dict.txt` | 台服文本 |
@@ -32,7 +32,7 @@
 后端说明：
 
 - 默认后端是 RapidOCR + ONNX Runtime。
-- 当配置 `ocr_backend == 'ncnn'` 时，识别模型改用 `bin/ocr_models/ncnn/*.param/*.bin`；`cnocr` 是 `cn` 的别名，`en` 是 `azur_lane` 的别名。
+- 当配置 `ocr_backend == 'ncnn'` 时，识别模型改用 `bin/ocr_models/ncnn/ppocr_v6.param/bin`（通用 PP-OCRv6 的 ncnn 转换版）；`cnocr` 是 `cn` 的别名，`en` 是 `azur_lane` 的别名。
 - `.det()` 文本检测使用 `bin/ocr_models/det/PP-OCRv6_tiny_det.onnx`，ONNX 后端会检测 + 识别；ncnn 后端用 RapidOCR 做检测，再用 ncnn 识别模型。
 - `Ocr` 默认会先裁剪区域、按字色二值化，再走 `atomic_ocr_for_single_lines()`；`Digit`、`DigitCounter`、`Duration` 在此基础上做数字、`x/y`、`hh:mm:ss` 后处理。
 
@@ -177,7 +177,6 @@
 |---|---|---|
 | `dev_tools/snapshot_resources.py` | 默认 `azur_lane` | 从截图批量识别燃油、金币、宝石、魔方、活动 PT，辅助生成资源快照 |
 | `module/daemon/ocr_benchmark.py` | 动态 `model_name` | 对不同 OCR 模型跑性能/准确性基准 |
-| `test/ncnn_ocr_benchmark.py` | ncnn 测试封装 | ncnn OCR 性能测试 |
 
 ## 框架内部支撑
 

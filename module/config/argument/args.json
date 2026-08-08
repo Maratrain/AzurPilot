@@ -541,13 +541,9 @@
         "value": "auto",
         "option": [
           "auto",
-          "alocr_en_900k",
-          "azur_lane_v6_6",
-          "azur_lane_v6_5",
-          "ppocr_v6",
-          "alocr_en_v2_6",
-          "alocr_en_v2_0",
-          "alocr_en_v1_0"
+          "lite",
+          "standard",
+          "pro"
         ]
       },
       "OcrModelVersionChinese": {
@@ -555,11 +551,9 @@
         "value": "auto",
         "option": [
           "auto",
-          "cn_v6_1",
-          "cn_v6",
-          "ppocr_v6",
-          "alocr_cn_v3",
-          "alocr_cn_v2_5"
+          "lite",
+          "standard",
+          "pro"
         ]
       },
       "OcrModelVersionJapanese": {
@@ -567,8 +561,9 @@
         "value": "auto",
         "option": [
           "auto",
-          "azur_lane_jp_v6",
-          "ppocr_v6"
+          "lite",
+          "standard",
+          "pro"
         ]
       },
       "OcrModelVersionTraditionalChinese": {
@@ -576,7 +571,9 @@
         "value": "auto",
         "option": [
           "auto",
-          "ppocr_v6"
+          "lite",
+          "standard",
+          "pro"
         ]
       },
       "ScreenshotInterval": {

@@ -151,9 +151,9 @@ uv run -m dev_tools.button_extract    # 从截图中提取按钮定义
 - `Duration` (`ocr.py`) — 识别时长如 `08:00:00`，返回 `timedelta`。
 - `OcrYuv`、`DigitYuv`、`DigitCounterYuv`、`DurationYuv` — YUV 色彩空间变体。
 - `AlOcr` (`al_ocr.py`) — 基于 RapidOCR 的后端，支持 NCNN。支持 DirectML (Windows) 和 CoreML (macOS) GPU 加速。
-- `NcnnRecOCR` (`ncnn_ocr.py`) — 基于 NCNN 的 OCR 识别，推理更快。模型：en、cn、jp、tw。模型存储在 `bin/ocr_models/ncnn/`。
+- `NcnnRecOCR` (`ncnn_ocr.py`) — 基于 NCNN 的 OCR 识别，推理更快。所有逻辑模型统一使用通用 PP-OCRv6 的 ncnn 转换版（`bin/ocr_models/ncnn/ppocr_v6.param/bin`）。
 - `ModelProxyFactory` (`rpc.py`) — 基于 zerorpc 的 OCR 服务器模式，用于分布式推理。
-- `models.py` — 惰性加载的 OCR 模型实例：`azur_lane` (EN)、`azur_lane_jp` (JP)、`cnocr` (中+英)、`jp` (日文)、`tw` (繁体中文)。
+- `models.py` — 惰性加载的 OCR 模型实例：`azur_lane`、`azur_lane_jp`、`ppocr_v6`、`cnocr`、`jp`、`tw`，统一使用通用 PP-OCRv6 识别模型。
 - ONNX 模型存储在 `bin/ocr_models/`，NCNN 模型在 `bin/ocr_models/ncnn/`。
 
 **处理器层** (`module/handler/`):
@@ -464,7 +464,7 @@ uv run dev_tools/grids_debug.py         # 调试网格检测
 | `submodule/` | 外部桥接：AlasFpyBridge、AlasMaaBridge |
 
 ## 测试
-Python 单元测试在 `tests/`，使用标准库 `unittest`（`discover` 模式，非 pytest），覆盖 WebUI、进程管理、部署与配置逻辑。运行：`uv run python -m unittest discover -s tests`；单个文件：`uv run python -m unittest tests.test_webui_config_search`。游戏逻辑无自动化测试——通过在真实模拟器实例上运行任务完成。另有 `test/ncnn_ocr_benchmark.py` OCR 基准测试工具。
+Python 单元测试在 `tests/`，使用标准库 `unittest`（`discover` 模式，非 pytest），覆盖 WebUI、进程管理、部署与配置逻辑。运行：`uv run python -m unittest discover -s tests`；单个文件：`uv run python -m unittest tests.test_webui_config_search`。游戏逻辑无自动化测试——通过在真实模拟器实例上运行任务完成。OCR 基准测试见 `module/daemon/ocr_benchmark.py`。
 
 ## 备注
 - `alas.py` 中的 `run()` 方法抛出异常而不是调用 `exit(1)`，允许调度循环捕获并重试

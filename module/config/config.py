@@ -254,9 +254,6 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         return val
 
     def ocr_model_version(self, name: str) -> str:
-        if self.ocr_backend == 'ncnn':
-            return 'ncnn'
-
         if name == 'azur_lane':
             return self.Optimization_OcrModelVersionEnglish
         elif name == 'cn':

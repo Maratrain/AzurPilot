@@ -299,7 +299,7 @@ TEMPLATE_SHIP = Template(file='assets/cn/module/TEMPLATE_SHIP.png')
 - Python 单元测试位于 `tests/`，使用标准库 `unittest`（非 pytest），覆盖 WebUI、进程管理、部署与配置逻辑
 - 运行全部测试：`uv run python -m unittest discover -s tests`
 - 运行单个测试文件：`uv run python -m unittest tests.test_webui_config_search`
-- `test/ncnn_ocr_benchmark.py` 为 OCR 模型性能基准工具（非单元测试）
+- OCR 性能基准见 `module/daemon/ocr_benchmark.py`（非单元测试）
 - 游戏逻辑无自动化测试——通过运行任务对接真实模拟器进行
 
 ---
