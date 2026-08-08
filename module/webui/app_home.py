@@ -118,7 +118,50 @@ class HomeMixin(WebUIMixinBase):
             ).style(
                 "text-align: center"
             )
+            put_html(
+                '<div class="alas-wallpaper-toggle" onclick="alasToggleWallpaper()" title="纯背景模式">\u25C9</div>'
+            )
             put_html('<div class="alas-home-marker" aria-hidden="true"></div>')
+            put_html(
+                """
+                <style>
+                .alas-wallpaper-toggle {
+                    position: fixed;
+                    bottom: 16px;
+                    right: 16px;
+                    z-index: 9999;
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 50%;
+                    background: rgba(255,255,255,0.7);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(0,0,0,0.1);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 18px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    transition: all 0.2s;
+                }
+                .alas-wallpaper-toggle:hover {
+                    background: rgba(255,255,255,0.9);
+                    transform: scale(1.08);
+                }
+                body.alas-wallpaper-mode #pywebio-scope-content,
+                body.alas-wallpaper-mode #pywebio-scope-header,
+                body.alas-wallpaper-mode #pywebio-scope-aside,
+                body.alas-wallpaper-mode #pywebio-scope-menu {
+                    display: none !important;
+                }
+                </style>
+                <script>
+                function alasToggleWallpaper() {
+                    document.body.classList.toggle('alas-wallpaper-mode');
+                }
+                </script>
+                """
+            )
             # show something
             put_markdown(
                 """
@@ -135,48 +178,19 @@ class HomeMixin(WebUIMixinBase):
             """
             ).style("text-align: center")
 
-        # 纯图模式开关：用 put_html 注入到默认 scope（不在 content 内），
-        # 这样切换纯图模式时不会被一起隐藏；按钮固定在右下角
-        put_html(
-            """
-            <div id="alas-pic-toggle" style="
-                position: fixed;
-                bottom: 24px;
-                right: 24px;
-                z-index: 99999;
-                padding: 10px 20px;
-                font-size: 14px;
-                font-weight: 500;
-                background: rgba(0,0,0,0.7);
-                color: #fff;
-                border: 1px solid rgba(255,255,255,0.35);
-                border-radius: 8px;
-                cursor: pointer;
-                user-select: none;
-                backdrop-filter: blur(4px);
-                transition: background 0.2s;
-            "
-            onmouseover="this.style.background='rgba(0,0,0,0.88)'"
-            onmouseout="this.style.background='rgba(0,0,0,0.7)'"
-            onclick="document.body.classList.toggle('alas-picture-mode');if(document.body.classList.contains('alas-picture-mode')){localStorage.setItem('alas_picture_mode','1');this.textContent='显示内容'}else{localStorage.removeItem('alas_picture_mode');this.textContent='纯图模式'}">
-                纯图模式
-            </div>
-            <style>
-            body.alas-picture-mode #pywebio-scope-content { display: none !important; }
-            body.alas-picture-mode #pywebio-scope-aside { display: none !important; }
-            </style>
-            <script>
-            (function(){
-                var b = document.getElementById('alas-pic-toggle');
-                if (localStorage.getItem('alas_picture_mode') === '1') {
-                    document.body.classList.add('alas-picture-mode');
-                    b.textContent = '显示内容';
-                }
-            })();
-            </script>
-            """
-        )
+        if lang.TRANSLATE_MODE:
+            lang.reload()
 
+            def _disable():
+                lang.TRANSLATE_MODE = False
+                self.show_home()
+
+            toast(
+                _t("Gui.Toast.DisableTranslateMode"),
+                duration=0,
+                position="right",
+                onclick=_disable,
+            )
     def init_wallpaper(self):
         if getattr(self, "wallpaper_url", None):
             return
@@ -226,11 +240,11 @@ class HomeMixin(WebUIMixinBase):
                 return
 
             except Exception as e:
-                logger.error(
-                    f"[WebUI] 获取背景图失败 (第 {attempt}/{MAX_RETRIES} 次): {e}"
-                )
                 if attempt == MAX_RETRIES:
                     self.wallpaper_url = ""
+                    logger.info(
+                        f"[WebUI] 获取背景图连续 {MAX_RETRIES} 次失败，已跳过"
+                    )
 
     def download_wallpaper(self):
         """
