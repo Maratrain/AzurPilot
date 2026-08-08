@@ -178,7 +178,7 @@ class Secretary(SecretaryDockMixin,UI):
 
         self.select_ship(ship)
         self.restore_sort()
-        logger.info("已成功更换秘书舰")
+        logger.info("已成功选择秘书舰")
         return True
 
     def search_ship(self, initialize=True):
@@ -269,6 +269,7 @@ class Secretary(SecretaryDockMixin,UI):
             self.device.screenshot()
 
             if self.appear(SECRETARY_GROUP_CHECK):
+                logger.info("已成功更换秘书舰")
                 return
 
             if self.appear_then_click(
@@ -364,6 +365,8 @@ class Secretary(SecretaryDockMixin,UI):
         if not self.choose_secretary(initialize=True):
             logger.warning("未找到可更换秘书舰")
             return False
+
+        self.confirm()
 
         return True
 
