@@ -27,96 +27,81 @@ from module.ocr.ocr import Duration, Ocr
 from module.reward.assets import *
 
 class CommissionFilter(Filter):
-    """支持动态规划分层、传统分界和最短耗时兜底的委托过滤器。"""
+    """支持价值分层和最短耗时兜底的委托过滤器。"""
 
     def apply_tiers(self, objs, func=None):
         """把过滤结果按价值层级分组。
 
         含 ``tier`` 时，相邻两个 ``tier`` 之间的规则属于同一价值层级，
-        层级内保留规则顺序，供规划器按层级依次比较候选编号和来打破价值平局；
+        层级内保留规则编号，用于计算稳定的有限层内价值；
         不含 ``tier`` 的旧配置保持原行为，每条规则视为一个独立层级。
         ``shortest`` 会把尚未匹配的可用委托放入当前位置对应的最低层级。
-        遇到 ``ignore`` 后停止解析，后续规则交给传统过滤算法处理。
+        空层级和未匹配规则不会被压缩，避免候选价值随当前可见列表漂移。
 
         Args:
             objs: 待匹配委托。
             func: 额外可用性检查函数。
 
         Returns:
-            list[list[Commission]]: 从高到低排列的委托层级。
+            list[list[tuple[int, Commission]]]: 从高到低排列的委托层级，
+                元组首项是该层内稳定过滤器编号。
         """
         objs = [obj for obj in objs if func is None or func(obj)]
-        dynamic_raw = []
-        for raw in self.filter_raw:
-            if raw.lower() == 'ignore':
-                break
-            dynamic_raw.append(raw)
-        has_tier = any(raw.lower() == 'tier' for raw in dynamic_raw)
-        groups = [[]]
+        has_tier = any(raw.lower() == 'tier' for raw in self.filter_raw)
+        groups = []
         shortest_group = None
         matched = set()
 
-        for raw, parsed in zip(self.filter_raw, self.filter):
-            token = raw.lower()
-            if token == 'ignore':
-                break
-            if token == 'tier':
-                if has_tier:
+        if has_tier:
+            groups.append([])
+            filter_index = 0
+            for raw, parsed in zip(self.filter_raw, self.filter):
+                token = raw.lower()
+                if token == 'tier':
                     groups.append([])
-                continue
-            if token == 'shortest':
-                shortest_group = len(groups) - 1
-                if not has_tier:
-                    groups.append([])
-                    shortest_group += 1
-                continue
-
-            if not has_tier and groups[-1]:
-                groups.append([])
-            for obj in objs:
-                identity = id(obj)
-                if identity in matched:
+                    filter_index = 0
                     continue
-                if self.apply_filter_to_obj(obj=obj, filter=parsed):
-                    groups[-1].append(obj)
-                    matched.add(identity)
+                if token == 'shortest':
+                    shortest_group = len(groups) - 1
+                    shortest_filter_index = filter_index
+                    filter_index += 1
+                    continue
+
+                for obj in objs:
+                    identity = id(obj)
+                    if identity in matched:
+                        continue
+                    if self.apply_filter_to_obj(obj=obj, filter=parsed):
+                        groups[-1].append((filter_index, obj))
+                        matched.add(identity)
+                filter_index += 1
+        else:
+            shortest_filter_index = 0
+            for raw, parsed in zip(self.filter_raw, self.filter):
+                token = raw.lower()
+                if token == 'tier':
+                    continue
+                groups.append([])
+                if token == 'shortest':
+                    shortest_group = len(groups) - 1
+                    continue
+
+                for obj in objs:
+                    identity = id(obj)
+                    if identity in matched:
+                        continue
+                    if self.apply_filter_to_obj(obj=obj, filter=parsed):
+                        groups[-1].append((0, obj))
+                        matched.add(identity)
 
         if shortest_group is not None:
             fallback = [obj for obj in objs if id(obj) not in matched]
             fallback.sort(key=lambda obj: (obj.duration, obj.genre, obj.repeat_count))
-            groups[shortest_group].extend(fallback)
-
-        return [group for group in groups if group]
-
-    def apply_after_ignore(self, objs, excluded=(), func=None):
-        """按传统过滤顺序应用首个 ``ignore`` 后的规则。
-
-        动态规划部分已经匹配的委托不会再次进入传统部分，确保分界前后的
-        规则仍遵循过滤器首次匹配即确定优先级的语义。
-
-        Args:
-            objs: 待匹配委托。
-            excluded: 已由动态规划部分匹配的委托。
-            func: 额外可用性检查函数。
-
-        Returns:
-            list: 传统过滤结果；未配置 ``ignore`` 时返回空列表。
-        """
-        try:
-            index = next(
-                index for index, raw in enumerate(self.filter_raw)
-                if raw.lower() == 'ignore'
+            groups[shortest_group].extend(
+                (shortest_filter_index, obj) for obj in fallback
             )
-        except StopIteration:
-            return []
 
-        excluded_ids = {id(obj) for obj in excluded}
-        objs = [obj for obj in objs if id(obj) not in excluded_ids]
-        legacy_filter = Filter(self.regex, self.attr, self.preset)
-        legacy_filter.filter_raw = self.filter_raw[index + 1:]
-        legacy_filter.filter = self.filter[index + 1:]
-        return legacy_filter.apply(objs, func=func)
-
+        return groups
 
 COMMISSION_FILTER = CommissionFilter(
     regex=re.compile(
@@ -128,7 +113,7 @@ COMMISSION_FILTER = CommissionFilter(
         '(\d\d?.\d\d?|\d\d?)?'
     ),
     attr=('category_str', 'genre_str', 'duration_hm', 'duration_hour'),
-    preset=('shortest', 'tier', 'ignore')
+    preset=('shortest', 'tier')
 )
 
 

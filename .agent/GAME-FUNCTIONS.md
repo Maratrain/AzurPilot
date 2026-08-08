@@ -208,7 +208,7 @@ def _commission_detect(self, image):
 **2. 委托选择 (`commission.py`)**
 ```python
 def _commission_choose(self, daily, urgent):
-    """默认使用传统过滤排序，按实验开关分派动态规划"""
+    """默认使用传统贪心策略，按实验开关分派精确规划器"""
     if self.config.Commission_DynamicProgramming:
         return self._commission_choose_dynamic(daily, urgent)
     return self._commission_choose_legacy(daily, urgent)
@@ -228,9 +228,10 @@ def _commission_start_click(self, comm, is_urgent=False):
 
 #### 特殊处理
 - **夜间委托转换**: 自动将紧急委托转换为夜间委托格式
-- **传统选择（默认）**: 严格沿用过滤器顺序，不足时补入最短委托；忽略 `tier` 控制标记
-- **层级价值规划（实验性）**: 开启 `Commission.DynamicProgramming` 后，`tier` 分隔价值层级；依次比较价值向量、各层编号和、最晚结束时间。同一委托集合若只有执行顺序不同，按过滤器顺序去重，再比较完成时间总和等后续规则
-- **精确动态规划调度（实验性）**: 综合运行槽位、委托时长、可启动截止时间和服务器刷新边界；先用完成截止时间规范化、状态支配与严格上下界求全局最优主目标，再在最优切面恢复原平局规则并输出完整事件时间线，不采用近似剪枝
+- **传统贪心策略（默认）**: 严格按过滤器顺序选择，并用最短委托补足空槽
+- **有限层级价值**: `tier` 分隔价值层级；未填写时每条规则为独立层级。相邻层级使用有限倍率，层内编号使用有下限的价值修正
+- **启动时间折现**: 委托价值按预计启动等待时间指数衰减，低价值委托只有在收益足以覆盖其造成的高价值委托等待损失时才会被保留
+- **精确动态规划调度（实验性）**: 开启 `Commission.DynamicProgramming` 后，综合运行槽位、委托时长、可启动截止时间和服务器刷新边界；使用非空转列表调度完备枚举、严格虚拟调度上界和状态支配求全局最优，不采用近似剪枝
 - **委托收入记录**: 记录委托奖励到数据库
 
 ---

@@ -1,5 +1,5 @@
 """WebUI首页和会话运行"""
-
+import requests
 from module.webui.app_dependencies import (
     Switch,
     _t,
@@ -63,6 +63,17 @@ class HomeMixin(WebUIMixinBase):
             set_localstorage("aside", "Home")
             go_app("index", new_window=False)
 
+        if self.wallpaper_url:
+            put_html(
+                f"""
+                <style>
+                :root {{
+                    --alas-apple-bg-image: url("{self.wallpaper_url}");
+                }}
+                </style>
+                """
+            )
+
         with use_scope("content"):
             put_text("Select your language / 选择语言").style(
                 "text-align: center; font-weight: 600"
@@ -95,6 +106,18 @@ class HomeMixin(WebUIMixinBase):
                 ],
                 onclick=lambda t: set_theme(t),
             ).style("text-align: center")
+            put_buttons(
+                [
+                    {
+                        "label": "下载当前背景图",
+                        "value": "download",
+                        "color": "light",
+                    }
+                ],
+                onclick=lambda _: self.download_wallpaper(),
+            ).style(
+                "text-align: center"
+            )
             put_html('<div class="alas-home-marker" aria-hidden="true"></div>')
             # show something
             put_markdown(
@@ -124,6 +147,75 @@ class HomeMixin(WebUIMixinBase):
                 duration=0,
                 position="right",
                 onclick=_disable,
+            )
+    def init_wallpaper(self):
+        if getattr(self, "wallpaper_url", None):
+            return
+
+        try:
+            response = requests.get(
+                "https://api.yppp.net/api.php",
+                timeout=10,
+                allow_redirects=True,
+            )
+
+            self.wallpaper_url = response.url
+
+            logger.info(
+                f"[WebUI] 当前背景图: {self.wallpaper_url}"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"[WebUI] 获取背景图失败: {e}"
+            )
+            self.wallpaper_url = ""
+
+    def download_wallpaper(self):
+        """
+        下载当前背景图
+        """
+        if not getattr(self, "wallpaper_url", None):
+            toast(
+                "当前没有背景图地址",
+                color="error",
+            )
+            return
+
+        try:
+            response = requests.get(
+                self.wallpaper_url,
+                timeout=10,
+            )
+            response.raise_for_status()
+
+            filename = time.strftime(
+                "wallpaper_%Y-%m-%d_%H-%M-%S.jpg"
+            )
+
+            if not filename:
+                filename = "wallpaper.jpg"
+
+            with open(filename, "wb") as f:
+                f.write(response.content)
+
+            toast(
+                f"下载完成: {filename}",
+                color="success",
+            )
+
+            logger.info(
+                f"[WebUI] 背景图已保存: {filename}"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"[WebUI] 下载背景图失败: {e}"
+            )
+
+            toast(
+                f"下载失败: {e}",
+                color="error",
             )
 
     def _fetch_announcement_thread(self, force=False):
@@ -277,6 +369,8 @@ class HomeMixin(WebUIMixinBase):
         )
 
     def run(self, initial_page="home", localstorage=None) -> None:
+        # 初始化背景图
+        self.init_wallpaper()
         # setup gui
         set_env(title="AzurPilot", output_animation=False)
         load_webui_styles(theme=self.theme, is_mobile=self.is_mobile)
