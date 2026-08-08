@@ -154,12 +154,22 @@ class HomeMixin(WebUIMixinBase):
 
         try:
             response = requests.get(
-                "https://api.yppp.net/api.php",
+                "https://api.lolicon.app/setu/v2",
+                params={
+                    "r18": 0,
+                    "num": 1,
+                    "size": "original",
+                    "excludeAI": True,
+                    "aspectRatio": "gt1",
+                    "dsc": False,
+                    "tag": "碧蓝航线|AzurLane|Azur Lane|アズールレーン",
+                },
                 timeout=10,
-                allow_redirects=True,
             )
+            response.raise_for_status()
 
-            self.wallpaper_url = response.url
+            data = response.json()["data"][0]
+            self.wallpaper_url = data["urls"]["original"]
 
             logger.info(
                 f"[WebUI] 当前背景图: {self.wallpaper_url}"
