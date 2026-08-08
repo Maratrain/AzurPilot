@@ -152,46 +152,56 @@ class HomeMixin(WebUIMixinBase):
         if getattr(self, "wallpaper_url", None):
             return
 
-        try:
-            response = requests.get(
-                "https://api.lolicon.app/setu/v2",
-                params={
-                    "r18": 0,
-                    "num": 1,
-                    "size": "original",
-                    "excludeAI": True,
-                    "aspectRatio": "gt1",
-                    "dsc": False,
-                    "tag": "碧蓝航线|AzurLane|Azur Lane|アズールレーン",
-                },
-                timeout=10,
-            )
-            response.raise_for_status()
+        MAX_SIZE = 1 * 1024 * 1024  # 1MB
+        MAX_RETRIES = 3
 
-            data = response.json()["data"][0]
-            image_url = data["urls"]["original"]
-
-            # 先检查图片大小，超过 3MB 跳过
-            head = requests.head(image_url, timeout=5, allow_redirects=True)
-            content_length = int(head.headers.get("Content-Length", 0))
-            if content_length > 3 * 1024 * 1024:
-                logger.info(
-                    f"[WebUI] 背景图过大 ({content_length / 1024 / 1024:.1f}MB)，跳过"
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                response = requests.get(
+                    "https://api.lolicon.app/setu/v2",
+                    params={
+                        "r18": 0,
+                        "num": 1,
+                        "size": "original",
+                        "excludeAI": True,
+                        "aspectRatio": "gt1",
+                        "dsc": False,
+                        "tag": "碧蓝航线|AzurLane|Azur Lane|アズールレーン",
+                    },
+                    timeout=10,
                 )
-                self.wallpaper_url = ""
+                response.raise_for_status()
+
+                data = response.json()["data"][0]
+                image_url = data["urls"]["original"]
+
+                # 检查图片大小，超过 1MB 重新请求
+                head = requests.head(image_url, timeout=5, allow_redirects=True)
+                content_length = int(head.headers.get("Content-Length", 0))
+                if content_length > MAX_SIZE:
+                    logger.info(
+                        f"[WebUI] 背景图过大 ({content_length / 1024 / 1024:.1f}MB)，第 {attempt} 次重试"
+                    )
+                    if attempt < MAX_RETRIES:
+                        continue
+                    logger.info(
+                        f"[WebUI] 背景图连续 {MAX_RETRIES} 次超过限制，跳过"
+                    )
+                    self.wallpaper_url = ""
+                    return
+
+                self.wallpaper_url = image_url
+                logger.info(
+                    f"[WebUI] 当前背景图: {self.wallpaper_url}"
+                )
                 return
 
-            self.wallpaper_url = image_url
-
-            logger.info(
-                f"[WebUI] 当前背景图: {self.wallpaper_url}"
-            )
-
-        except Exception as e:
-            logger.error(
-                f"[WebUI] 获取背景图失败: {e}"
-            )
-            self.wallpaper_url = ""
+            except Exception as e:
+                logger.error(
+                    f"[WebUI] 获取背景图失败 (第 {attempt}/{MAX_RETRIES} 次): {e}"
+                )
+                if attempt == MAX_RETRIES:
+                    self.wallpaper_url = ""
 
     def download_wallpaper(self):
         """
