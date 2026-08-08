@@ -1951,12 +1951,28 @@
       "custom": "Customize"
     },
     "DynamicProgramming": {
-      "name": "Global optimal strategy (Experimental)",
-      "help": "This experimental option is disabled by default. Dynamic programming compares the value vector, per-tier index sums, and deduplicates plans selecting the same commissions by filter order before comparing latest finish time and total completion time."
+      "name": "Experimental Dynamic Programming",
+      "help": "When disabled, commissions are selected greedily in filter order. Enable it to use the exact global planner and the four value-model settings below."
+    },
+    "TierValueRatio": {
+      "name": "Adjacent Tier Value Ratio",
+      "help": "Base-value ratio between one tier and the next; must be greater than 1. Higher values make the planner less willing to delay a higher tier for a lower tier. Default: 8."
+    },
+    "DelayHalfLife": {
+      "name": "Delay Value Half-Life (Hours)",
+      "help": "A commission's discounted value halves after this many hours of expected start delay. Lower values penalize delay more strongly. One decimal place is supported."
+    },
+    "FilterValueFloor": {
+      "name": "In-Tier Filter Value Floor",
+      "help": "Minimum value fraction retained by very late rules within one tier. Range: greater than 0 and at most 1. Lower values make in-tier order matter more. Default: 0.5."
+    },
+    "FilterValueHalfLife": {
+      "name": "In-Tier Index Half-Life",
+      "help": "Number of filter rules required for the in-tier adjustment to move halfway toward its floor; must be positive and may use one decimal place. Lower values concentrate more value in early rules."
     },
     "CustomFilter": {
       "name": "Custom Commission Filter",
-      "help": "Set Commission Filter to Customize to use this filter. With experimental dynamic programming enabled, tier separates value levels and ignore marks the algorithm boundary: rules before ignore use dynamic programming; rules after it fill slots in traditional filter order, but a commission must fit within the time window reserved by dynamic programming for that slot. When dynamic programming is disabled, both tier and ignore are ignored."
+      "help": "Set Commission Filter to Customize to use this filter. With experimental dynamic programming enabled, tier separates value levels; without tier, every rule becomes its own level. The planner discounts finite tier and in-tier values by expected start delay and may drop low-value commissions. The traditional greedy strategy ignores tier; shortest fills unmatched slots."
     },
     "DoMajorCommission": {
       "name": "Make the main commission (1200 oil/1000 oil commission)",

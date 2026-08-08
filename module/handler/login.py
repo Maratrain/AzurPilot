@@ -16,6 +16,8 @@
 # 基于原版 login.py 增加了智能的游戏重启逻辑
 # 用于处理登录流程中的各种弹窗、公告以及在应用崩溃时执行重启恢复操作。
 # 最后更新: 2025-08-25 20:41
+import time
+
 import numpy as np
 from scipy.signal import find_peaks
 # 在导入 adbutils 和 uiautomator2 之前修补 pkg_resources
@@ -36,6 +38,15 @@ from module.map.assets import *
 from module.ui.assets import *
 from module.ui.page import page_campaign_menu
 from module.ui.ui import UI
+
+
+# 应用重启恢复策略：3 次启动失败后进入观察阶段，观察期间仍无恢复则
+# 由上层调度器执行模拟器重启，避免长时间无效重试。
+RESTART_TRIES = 3
+RESTART_FIRST_TRY_WAIT_SECONDS = 30
+RESTART_SUBSEQUENT_TRY_WAIT_SECONDS = 20
+RESTART_OBSERVE_SECONDS = 180
+RESTART_OBSERVE_INTERVAL = 15
 
 
 class LoginHandler(UI):
@@ -205,11 +216,6 @@ class LoginHandler(UI):
 
     def app_restart(self):
         logger.hr('应用重启')
-        # 智能的多次尝试重启逻辑
-        RESTART_TRIES = 4
-        FIRST_TRY_WAIT_SECONDS = 30
-        SUBSEQUENT_TRY_WAIT_SECONDS = 20
-
         is_restart_success = False
 
         clear_cache = getattr(self.config, 'Restart_ClearCache', False)
@@ -220,12 +226,13 @@ class LoginHandler(UI):
                 self.device.app_clear()
             self.device.sleep(3)
             self.device.app_start()
-            wait_seconds = FIRST_TRY_WAIT_SECONDS if i == 0 else SUBSEQUENT_TRY_WAIT_SECONDS
+            wait_seconds = RESTART_FIRST_TRY_WAIT_SECONDS if i == 0 else RESTART_SUBSEQUENT_TRY_WAIT_SECONDS
             logger.info(f"[重启] 等待 {wait_seconds} 秒让应用启动和稳定...")
             self.device.sleep(wait_seconds)
 
-            # 验证应用是否已运行
-            if self.device.app_is_running():
+            # 用带超时的 ADB 检查验证应用是否已运行，
+            # 避免 uiautomator2 重试在模拟器异常时阻塞恢复流程
+            if self.device.app_is_running_bounded():
                 logger.info("[重启] 应用启动成功并正在运行")
                 is_restart_success = True
                 break  # 成功启动，跳出循环
@@ -234,11 +241,37 @@ class LoginHandler(UI):
                 if i < RESTART_TRIES - 1:
                     logger.info("[重启] 重试中...")
 
-        # 所有尝试均失败则抛出异常
+        # 连续失败后先进入观察阶段，给慢启动/游戏更新留出恢复时间
         if not is_restart_success:
-            logger.critical(f"[重启] 重试 {RESTART_TRIES} 次了！还是死活起不来，你的运行环境是碳基生物能搞出来的？")
-            from module.exception import RequestHumanTakeover
-            raise RequestHumanTakeover("[重启] 应用重启多次失败")
+            logger.critical(
+                f"[重启] 应用重启连续失败 {RESTART_TRIES} 次，"
+                f"进入观察阶段，最多等待 {RESTART_OBSERVE_SECONDS} 秒"
+            )
+            deadline = time.monotonic() + RESTART_OBSERVE_SECONDS
+            while 1:
+                if time.monotonic() >= deadline:
+                    break
+                if self.device.app_is_running_bounded():
+                    logger.info("[重启] 观察阶段检测到应用恢复运行")
+                    is_restart_success = True
+                    break
+                remaining = max(0, int(deadline - time.monotonic()))
+                logger.info(f"[重启] 观察阶段应用仍未恢复，剩余 {remaining} 秒后触发模拟器重启")
+                self.device.sleep(min(RESTART_OBSERVE_INTERVAL, remaining))
+
+        # 观察阶段仍失败则抛出 EmulatorNotRunningError，
+        # 由上层调度器触发模拟器重启流程，而非直接终止。
+        if not is_restart_success:
+            logger.critical(
+                "[重启] 应用重启连续失败且观察阶段仍未恢复，"
+                "判定模拟器或游戏环境异常，触发模拟器重启"
+            )
+            from module.exception import EmulatorNotRunningError
+            raise EmulatorNotRunningError(
+                f"[重启] 应用重启连续失败 {RESTART_TRIES} 次，"
+                f"观察 {RESTART_OBSERVE_SECONDS} 秒后仍未恢复，"
+                "判定模拟器或游戏环境异常，触发模拟器重启"
+            )
         self.handle_app_login()
         # self.ensure_no_unfinished_campaign()
 

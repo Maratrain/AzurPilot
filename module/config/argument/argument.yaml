@@ -634,6 +634,18 @@ Commission:
       - oil
       - custom
   DynamicProgramming: true
+  TierValueRatio:
+    type: input
+    value: 2.0
+  DelayHalfLife:
+    type: input
+    value: 100.0
+  FilterValueFloor:
+    type: input
+    value: 0.6
+  FilterValueHalfLife:
+    type: input
+    value: 4.0
   CustomFilter: |-
     DailyEvent > Gem-4 > Gem-2 > Gem-8 > ExtraCube-0:30
     > UrgentCube-1:30 > UrgentCube-1:45 > UrgentCube-3
@@ -650,7 +662,6 @@ Commission:
     > UrgentDrill-4 > UrgentDrill-2:40 > UrgentDrill-2
     > UrgentDrill-1 > UrgentDrill-1:30 > UrgentDrill-1:10
     > Extra-0:20 > Extra-0:30 > Extra-1:00 > Extra-1:30 > Extra-2:00
-    > ignore
     > shortest
   DoMajorCommission: false
   GemNotify:
