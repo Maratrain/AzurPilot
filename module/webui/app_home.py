@@ -118,7 +118,55 @@ class HomeMixin(WebUIMixinBase):
             ).style(
                 "text-align: center"
             )
+            put_html(
+                '<div id="alas-wallpaper-toggle" onclick="alasToggleWallpaper()" title="纯背景模式">\u25C9</div>'
+            )
             put_html('<div class="alas-home-marker" aria-hidden="true"></div>')
+            put_html(
+                """
+                <style>
+                #alas-wallpaper-toggle {
+                    position: fixed;
+                    bottom: 10px;
+                    right: 10px;
+                    z-index: 99999;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: rgba(255,255,255,0.6);
+                    backdrop-filter: blur(6px);
+                    border: 1px solid rgba(0,0,0,0.12);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 11px;
+                    line-height: 1;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+                    user-select: none;
+                    transition: background 0.15s;
+                }
+                #alas-wallpaper-toggle:hover {
+                    background: rgba(255,255,255,0.9);
+                }
+                body.alas-wallpaper-mode #pywebio-scope-content,
+                body.alas-wallpaper-mode #pywebio-scope-header,
+                body.alas-wallpaper-mode #pywebio-scope-aside,
+                body.alas-wallpaper-mode #pywebio-scope-menu {
+                    display: none !important;
+                }
+                </style>
+                <script>
+                (function(){
+                    var btn = document.getElementById('alas-wallpaper-toggle');
+                    if (btn) { document.body.appendChild(btn); }
+                })();
+                function alasToggleWallpaper() {
+                    document.body.classList.toggle('alas-wallpaper-mode');
+                }
+                </script>
+                """
+            )
             # show something
             put_markdown(
                 """
@@ -152,40 +200,56 @@ class HomeMixin(WebUIMixinBase):
         if getattr(self, "wallpaper_url", None):
             return
 
-        apis = [
-            "https://api.yppp.net/api.php",
-            "https://api.lolicon.app/setu/v2?size=regular&aspectRatio=gte1.5&excludeAI=true&r18=0",
-        ]
+        MAX_SIZE = 1 * 1024 * 1024  # 1MB
+        MAX_RETRIES = 20
 
-        import random
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                response = requests.get(
+                    "https://api.lolicon.app/setu/v2",
+                    params={
+                        "r18": 0,
+                        "num": 1,
+                        "size": "original",
+                        "excludeAI": True,
+                        "aspectRatio": "gt1",
+                        "dsc": False,
+                        "tag": "碧蓝航线|AzurLane|Azur Lane|アズールレーン",
+                    },
+                    timeout=10,
+                )
+                response.raise_for_status()
 
-        api = random.choice(apis)
+                data = response.json()["data"][0]
+                image_url = data["urls"]["original"]
 
-        try:
-            response = requests.get(
-                api,
-                timeout=10,
-                allow_redirects=True,
-            )
+                # 检查图片大小，超过 1MB 重新请求
+                head = requests.head(image_url, timeout=5, allow_redirects=True)
+                content_length = int(head.headers.get("Content-Length", 0))
+                if content_length > MAX_SIZE:
+                    logger.info(
+                        f"[WebUI] 背景图过大 ({content_length / 1024 / 1024:.1f}MB)，第 {attempt} 次重试"
+                    )
+                    if attempt < MAX_RETRIES:
+                        continue
+                    logger.info(
+                        f"[WebUI] 背景图连续 {MAX_RETRIES} 次超过限制，跳过"
+                    )
+                    self.wallpaper_url = ""
+                    return
 
-            # Lolicon API
-            if "api.lolicon.app" in api:
-                data = response.json()
-                self.wallpaper_url = data["data"][0]["urls"]["regular"]
+                self.wallpaper_url = image_url
+                logger.info(
+                    f"[WebUI] 当前背景图: {self.wallpaper_url}"
+                )
+                return
 
-            # 原来的随机图 API
-            else:
-                self.wallpaper_url = response.url
-
-            logger.info(
-                f"[WebUI] 当前背景图: {self.wallpaper_url}"
-            )
-
-        except Exception as e:
-            logger.error(
-                f"[WebUI] 获取背景图失败: {e}"
-            )
-            self.wallpaper_url = ""
+            except Exception as e:
+                if attempt == MAX_RETRIES:
+                    self.wallpaper_url = ""
+                    logger.info(
+                        f"[WebUI] 获取背景图连续 {MAX_RETRIES} 次失败，已跳过"
+                    )
 
     def download_wallpaper(self):
         """
