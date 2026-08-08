@@ -152,14 +152,30 @@ class HomeMixin(WebUIMixinBase):
         if getattr(self, "wallpaper_url", None):
             return
 
+        apis = [
+            "https://api.yppp.net/api.php",
+            "https://api.lolicon.app/setu/v2?size=regular&aspectRatio=gte1.5&excludeAI=true&r18=0",
+        ]
+
+        import random
+
+        api = random.choice(apis)
+
         try:
             response = requests.get(
-                "https://api.yppp.net/api.php",
+                api,
                 timeout=10,
                 allow_redirects=True,
             )
 
-            self.wallpaper_url = response.url
+            # Lolicon API
+            if "api.lolicon.app" in api:
+                data = response.json()
+                self.wallpaper_url = data["data"][0]["urls"]["regular"]
+
+            # 原来的随机图 API
+            else:
+                self.wallpaper_url = response.url
 
             logger.info(
                 f"[WebUI] 当前背景图: {self.wallpaper_url}"
