@@ -307,6 +307,7 @@ class AppShellMixin(WebUIMixinBase):
     def set_theme(cls, theme="default") -> None:
         if theme == "apple":
             theme = "advanced_material"
+
         if theme not in (
             "default",
             "dark",
@@ -315,11 +316,33 @@ class AppShellMixin(WebUIMixinBase):
             "dark_advanced_material",
         ):
             theme = "default"
+
         cls.theme = theme
         State.deploy_config.Theme = theme
         State.theme = theme
-        pywebio_theme = theme if theme in ("default", "dark", "light") else "dark"
-        if theme in ("advanced_material", "dark_advanced_material"):
-            pywebio_theme = "default"
+
+        pywebio_theme = (
+            theme
+            if theme in ("default", "dark", "light")
+            else "default"
+        )
 
         webconfig(theme=pywebio_theme)
+
+        run_js("""
+        document.querySelectorAll(
+            'link[href*="advanced-material-alas"],' +
+            'link[href*="dark-advanced-material-overrides-alas"]'
+        ).forEach(function(e) {
+            e.remove();
+        });
+        """)
+
+        run_js(f"""
+        window.dispatchEvent(
+            new CustomEvent(
+                "alas-theme-change",
+                {{detail: "{theme}"}}
+            )
+        );
+        """)
