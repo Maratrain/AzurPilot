@@ -400,7 +400,8 @@ class Camera(MapOperation):
 
             if len(record) > 0:
                 # 即使两条边缘可见也要滑动，以避免一些尴尬的相机位置。
-                self.map_swipe((x, y))
+                if x != 0 or y != 0:
+                    self.map_swipe((x, y))
 
             record.append((x, y))
 
