@@ -163,11 +163,34 @@ class RewardCommission(UI, InfoHandler):
 
     def _commission_choose(self, daily, urgent):
         """根据实验开关分派委托选择算法。"""
+        blacklist = self._commission_blacklist()
+        if blacklist:
+            logger.attr('委托黑名单', ', '.join(blacklist))
         dynamic = bool(getattr(self.config, 'Commission_DynamicProgramming', False))
         logger.attr('委托选择算法', '动态规划（实验性）' if dynamic else '传统贪心策略')
         if dynamic:
             return self._commission_choose_dynamic(daily, urgent)
         return self._commission_choose_legacy(daily, urgent)
+
+    def _commission_blacklist(self):
+        """解析以英文半角逗号分隔的委托过滤规则。"""
+        blacklist = []
+        raw = getattr(self.config, 'Commission_Blacklist', '') or ''
+        for rule in str(raw).split(','):
+            rule = rule.strip()
+            if not rule:
+                continue
+            if rule not in blacklist:
+                blacklist.append(rule)
+        return blacklist
+
+    def _commission_is_blacklisted(self, commission):
+        """检查委托是否匹配任一黑名单过滤规则。"""
+        for rule in self._commission_blacklist():
+            parsed = COMMISSION_FILTER.parse_filter(rule)
+            if COMMISSION_FILTER.apply_filter_to_obj(commission, parsed):
+                return True
+        return False
 
     def _commission_choose_legacy(self, daily, urgent):
         """按过滤器顺序贪心选择委托，保持默认传统行为。"""
@@ -443,8 +466,9 @@ class RewardCommission(UI, InfoHandler):
     def _commission_check(self, commission):
         """检查委托是否符合执行条件。
 
-        过滤掉无效委托、非待启动状态的委托，以及用户配置中
-        明确禁用的主线委托（major commission）。
+        过滤掉无效委托、非待启动状态的委托、黑名单中的委托，以及用户配置中
+        明确禁用的主线委托（major commission）。黑名单复用委托过滤器语法，
+        可按委托类别、奖励类型和时长进行匹配。
 
         Args:
             commission (Commission): 待检查的委托对象。
@@ -453,6 +477,8 @@ class RewardCommission(UI, InfoHandler):
             bool: 委托是否可以被选择执行。
         """
         if not commission.valid or commission.status != 'pending':
+            return False
+        if self._commission_is_blacklisted(commission):
             return False
         if not self.config.Commission_DoMajorCommission and commission.category_str == 'major':
             return False
@@ -655,6 +681,9 @@ class RewardCommission(UI, InfoHandler):
                     current.call('convert_to_night')  # 将额外委托转换为夜间委托
                 if current.count >= 1:
                     current = current[0]
+                    if not self._commission_check(current):
+                        logger.warning(f'[委托-启动] 当前委托已被过滤: {current.name}')
+                        return False
                     if current == comm:
                         logger.info('[委托-启动] 已选择正确的委托')
                     else:
@@ -700,7 +729,7 @@ class RewardCommission(UI, InfoHandler):
                 # 不同扫描中委托信息相同，但位置可能不同。
                 current = None
                 for new_comm in new:
-                    if new_comm == comm:
+                    if self._commission_check(new_comm) and new_comm == comm:
                         current = new_comm
                 if current is not None:
                     if self._commission_start_click(current, is_urgent=is_urgent):

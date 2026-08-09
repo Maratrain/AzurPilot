@@ -1978,6 +1978,10 @@
       "name": "Custom Commission Filter",
       "help": "Set Commission Filter to Customize to use this filter. With experimental dynamic programming enabled, tier separates value levels; without tier, every rule becomes its own level. The planner discounts finite tier and in-tier values by expected start delay and may drop low-value commissions. The traditional greedy strategy ignores tier; shortest fills unmatched slots."
     },
+    "Blacklist": {
+      "name": "Commission Blacklist",
+      "help": "Enter commission filter rules to ignore, separated by half-width commas (,), for example: ExtraBook, UrgentOil-8, Major. The blacklist applies to both the traditional greedy strategy and the planner."
+    },
     "DoMajorCommission": {
       "name": "Make the main commission (1200 oil/1000 oil commission)",
       "help": "The 1200 oil commission is now obsolete and the yield is very low. It is recommended to close it."
