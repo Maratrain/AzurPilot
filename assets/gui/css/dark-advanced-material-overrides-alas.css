@@ -50,9 +50,7 @@ body {
 
 #pywebio-scope-content,
 #pywebio-scope-content .markdown-body,
-#pywebio-scope-groups,
-#pywebio-scope-groups p,
-#pywebio-scope-groups td {
+#pywebio-scope-groups {
 	color: var(--alas-apple-text) !important;
 }
 
@@ -108,6 +106,19 @@ body {
 .container-log {
 	background-color: rgba(8, 14, 25, 0.86) !important;
 	border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+/* 高级材质关闭按钮 */
+.btn-off {
+	background-color: rgba(30, 41, 59, 0.85) !important;
+	border: 1px solid rgba(148, 163, 184, 0.35) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+.btn-off:hover {
+	background-color: rgba(51, 65, 85, 0.95) !important;
+	border-color: rgba(96, 165, 250, 0.5) !important;
+	color: #ffffff !important;
 }
 
 .btn-secondary,
@@ -214,4 +225,40 @@ textarea,
 select option {
 	color: var(--alas-apple-text);
 	background-color: #111827;
+}
+
+/* 高级材质暗色：统计页面背景修复 */
+
+#pywebio-scope-opsi_stats,
+#pywebio-scope-ship_exp_table,
+#pywebio-scope-commission_income {
+	background-color: transparent !important;
+}
+
+#pywebio-scope-opsi_stats table,
+#pywebio-scope-ship_exp_table table,
+#pywebio-scope-commission_income table {
+	background-color: rgba(15, 23, 42, 0.78) !important;
+}
+
+#pywebio-scope-opsi_stats td,
+#pywebio-scope-ship_exp_table td,
+#pywebio-scope-commission_income td {
+	background-color: rgba(30, 41, 59, 0.72) !important;
+	color: var(--alas-apple-text-secondary) !important;
+}
+
+#pywebio-scope-opsi_stats th,
+#pywebio-scope-ship_exp_table th,
+#pywebio-scope-commission_income th {
+	background-color: rgba(15, 23, 42, 0.96) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+/* 高级材质暗色：统计表格 hover 修复 */
+#pywebio-scope-opsi_stats tr:hover td,
+#pywebio-scope-ship_exp_table tr:hover td,
+#pywebio-scope-commission_income tr:hover td {
+	background-color: rgba(37, 99, 235, 0.28) !important;
+	color: #ffffff !important;
 }
