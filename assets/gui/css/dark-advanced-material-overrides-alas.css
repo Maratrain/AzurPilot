@@ -108,6 +108,28 @@ body {
 	border-color: rgba(148, 163, 184, 0.2) !important;
 }
 
+/* 高级材质暗色：实例侧边栏状态 */
+
+#pywebio-scope-aside .btn-aside-active {
+	background-color: rgba(37, 99, 235, 0.42) !important;
+	color: #60a5fa !important;
+	box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.3) !important;
+}
+
+
+/* 选中状态 hover */
+#pywebio-scope-aside .btn-aside-active:hover {
+	background-color: rgba(37, 99, 235, 0.55) !important;
+	color: #93c5fd !important;
+}
+
+
+/* 未选中 hover */
+#pywebio-scope-aside .btn-aside:hover {
+	background-color: rgba(37, 99, 235, 0.22) !important;
+	color: #60a5fa !important;
+}
+
 /* 高级材质关闭按钮 */
 .btn-off {
 	background-color: rgba(30, 41, 59, 0.85) !important;
@@ -227,38 +249,91 @@ select option {
 	background-color: #111827;
 }
 
-/* 高级材质暗色：统计页面背景修复 */
+/* 覆盖高级材质菜单的透明化规则，保证搜索控件在暗色主题可见。 */
+#pywebio-scope-menu #pywebio-scope-task_config_search .form-control {
+	background-color: rgba(15, 23, 42, 0.82) !important;
+	border: 1px solid rgba(148, 163, 184, 0.3) !important;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+#pywebio-scope-menu #pywebio-scope-task_config_search .form-control:focus {
+	border-color: #60a5fa !important;
+	box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.26), 0 1px 4px rgba(0, 0, 0, 0.28) !important;
+}
+
+#pywebio-scope-menu .config-search-result {
+	background-color: rgba(30, 41, 59, 0.72) !important;
+	border: 1px solid rgba(148, 163, 184, 0.24) !important;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+#pywebio-scope-menu .config-search-result:hover,
+#pywebio-scope-menu .config-search-result:focus-visible {
+	background-color: rgba(37, 99, 235, 0.22) !important;
+	border-color: rgba(96, 165, 250, 0.48) !important;
+	box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* 高级材质暗色：统计表格颜色修复，只处理单元格 */
 
 #pywebio-scope-opsi_stats,
 #pywebio-scope-ship_exp_table,
 #pywebio-scope-commission_income {
-	background-color: transparent !important;
+	background: transparent !important;
 }
 
-#pywebio-scope-opsi_stats table,
-#pywebio-scope-ship_exp_table table,
-#pywebio-scope-commission_income table {
-	background-color: rgba(15, 23, 42, 0.78) !important;
-}
 
-#pywebio-scope-opsi_stats td,
-#pywebio-scope-ship_exp_table td,
-#pywebio-scope-commission_income td {
-	background-color: rgba(30, 41, 59, 0.72) !important;
-	color: var(--alas-apple-text-secondary) !important;
-}
-
-#pywebio-scope-opsi_stats th,
-#pywebio-scope-ship_exp_table th,
-#pywebio-scope-commission_income th {
-	background-color: rgba(15, 23, 42, 0.96) !important;
+/* 普通统计表头 */
+#pywebio-scope-opsi_stats .simple-table th,
+#pywebio-scope-ship_exp_table .simple-table th {
+	background: rgba(15,23,42,0.96) !important;
 	color: var(--alas-apple-text) !important;
 }
 
-/* 高级材质暗色：统计表格 hover 修复 */
-#pywebio-scope-opsi_stats tr:hover td,
-#pywebio-scope-ship_exp_table tr:hover td,
-#pywebio-scope-commission_income tr:hover td {
-	background-color: rgba(37, 99, 235, 0.28) !important;
+
+/* 普通统计数据 */
+#pywebio-scope-opsi_stats .simple-table td,
+#pywebio-scope-ship_exp_table .simple-table td {
+	background: rgba(15,23,42,0.92) !important;
+	color: var(--alas-apple-text-secondary) !important;
+}
+
+
+/* 普通统计 hover */
+#pywebio-scope-opsi_stats .simple-table tr:hover td,
+#pywebio-scope-ship_exp_table .simple-table tr:hover td {
+	background: rgba(51,65,85,0.35) !important;
+	color: #ffffff !important;
+}
+
+
+/* 委托收益 */
+#pywebio-scope-commission_income .commission-income-table th {
+	background: rgba(15,23,42,0.96) !important;
+	color: var(--alas-apple-text) !important;
+}
+
+
+#pywebio-scope-commission_income .commission-income-table td,
+#pywebio-scope-commission_income .commission-income-recent-row {
+	background: rgba(15,23,42,0.92) !important;
+	color: var(--alas-apple-text-secondary) !important;
+	opacity: 1 !important;
+}
+
+
+/* 修复委托收益部分列内联 opacity */
+#pywebio-scope-commission_income td[style*="opacity"] {
+	opacity: 1 !important;
+	color: rgba(210,220,235,0.7) !important;
+}
+
+
+/* 委托收益 hover */
+#pywebio-scope-commission_income .commission-income-table tr:hover td,
+#pywebio-scope-commission_income .commission-income-recent-row:hover {
+	background: rgba(51,65,85,0.35) !important;
 	color: #ffffff !important;
 }

@@ -75,6 +75,119 @@ footer {
     font-size: var(--alas-menu-secondary-font-size);
 }
 
+#pywebio-scope-task_config_search {
+    padding: .125rem .5rem .45rem;
+}
+
+#pywebio-scope-task_config_search .form-group {
+    margin: 0;
+}
+
+#pywebio-scope-task_config_search .form-control {
+    min-height: 2.25rem;
+    border-radius: 6px;
+}
+
+#pywebio-scope-task_config_search .form-group:has(input[name="config_search_selection"]) {
+    display: none;
+}
+
+#pywebio-scope-task_config_search_results {
+    padding: 0 0 .25rem;
+}
+
+.config-search-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: calc(100% - 1rem);
+    min-width: 0;
+    margin: .25rem .5rem;
+    padding: .5rem .625rem;
+    overflow: hidden;
+    color: inherit;
+    text-align: left;
+    background: var(--alas-content-bg, #ffffff);
+    border: 1px solid rgba(80, 100, 120, .2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.config-search-result:hover,
+.config-search-result:focus-visible {
+    background: rgba(72, 117, 164, .1);
+    border-color: rgba(54, 112, 174, .42);
+    box-shadow: 0 2px 8px rgba(32, 68, 104, .14);
+    outline: none;
+}
+
+.config-search-result-name,
+.config-search-result-path,
+.config-search-result-key,
+.config-search-result-help {
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.config-search-result-name {
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.config-search-result-path,
+.config-search-result-key {
+    margin-top: .125rem;
+    font-size: .7rem;
+    line-height: 1.35;
+    opacity: .72;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.config-search-result-key {
+    font-family: "JetBrains Mono NL", Consolas, monospace !important;
+    opacity: .58;
+}
+
+.config-search-result-help {
+    display: -webkit-box;
+    margin-top: .2rem;
+    font-size: .7rem;
+    line-height: 1.35;
+    opacity: .78;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+*[style*="--task-config-search-count--"],
+*[style*="--task-config-search-empty--"] {
+    display: block;
+    margin: .35rem .75rem .3rem !important;
+    font-size: .75rem;
+    line-height: 1.4;
+    opacity: .72;
+}
+
+#pywebio-scope-groups .config-search-target {
+    border-radius: 6px;
+    outline: 2px solid rgba(47, 123, 192, .62);
+    outline-offset: 4px;
+    animation: config-search-target-flash 1.8s ease-out;
+}
+
+@keyframes config-search-target-flash {
+    0% {
+        background-color: rgba(79, 146, 204, .18);
+        box-shadow: 0 0 0 0 rgba(47, 123, 192, .36);
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 .9rem rgba(47, 123, 192, 0);
+    }
+}
+
 .btn-aside {
     width: 4rem;
     font-weight: 500;
