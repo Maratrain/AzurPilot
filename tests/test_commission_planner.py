@@ -194,6 +194,7 @@ class TestCommissionTierFilter(unittest.TestCase):
 class TestCommissionAlgorithmSwitch(unittest.TestCase):
     def test_dynamic_programming_is_disabled_by_default(self):
         self.assertIs(GeneratedConfig.Commission_DynamicProgramming, False)
+        self.assertIsNone(GeneratedConfig.Commission_Blacklist)
         self.assertIsInstance(GeneratedConfig.Commission_DelayHalfLife, float)
         self.assertIsInstance(GeneratedConfig.Commission_DeadlineFutureHorizon, float)
         self.assertIsInstance(GeneratedConfig.Commission_FilterValueHalfLife, float)
@@ -243,6 +244,50 @@ class TestCommissionAlgorithmSwitch(unittest.TestCase):
 
         self.assertEqual(urgent_choose.grids, [first])
         self.assertEqual(daily_choose.grids, [second])
+
+    def test_blacklist_uses_comma_separated_filter_rules(self):
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(
+            Commission_Blacklist=' ExtraBook, UrgentOil-8, Major, ',
+            Commission_DoMajorCommission=True,
+        )
+        COMMISSION_FILTER.load('UrgentCube > DailyResource')
+
+        self.assertFalse(worker._commission_check(
+            selectable_commission('书委托', 'extra_book')
+        ))
+        self.assertFalse(worker._commission_check(
+            selectable_commission('八小时油委托', 'urgent_oil', duration=8)
+        ))
+        self.assertFalse(worker._commission_check(
+            selectable_commission('主要委托', 'major_comm')
+        ))
+        self.assertTrue(worker._commission_check(
+            selectable_commission('四小时油委托', 'urgent_oil', duration=4)
+        ))
+        self.assertEqual(COMMISSION_FILTER.filter_raw, ['UrgentCube', 'DailyResource'])
+
+    def test_blacklist_applies_to_both_selection_algorithms(self):
+        blocked = selectable_commission('黑名单委托', 'extra_oil', duration=0.5)
+        allowed = selectable_commission('允许委托', 'urgent_cube')
+        daily = SelectedGrids([blocked])
+        urgent = SelectedGrids([allowed])
+
+        for dynamic in (False, True):
+            with self.subTest(dynamic=dynamic):
+                worker = object.__new__(RewardCommission)
+                worker.config = SimpleNamespace(
+                    Commission_PresetFilter='custom',
+                    Commission_CustomFilter='UrgentCube > shortest',
+                    Commission_Blacklist='ExtraOil',
+                    Commission_DoMajorCommission=True,
+                    Commission_DynamicProgramming=dynamic,
+                )
+
+                daily_choose, urgent_choose = worker._commission_choose(daily, urgent)
+
+                self.assertEqual(daily_choose.grids, [])
+                self.assertEqual(urgent_choose.grids, [allowed])
 
 
 class TestCommissionValueModel(unittest.TestCase):
