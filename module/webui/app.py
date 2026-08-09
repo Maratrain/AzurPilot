@@ -240,7 +240,6 @@ def app():
     )
     args, _ = parser.parse_known_args()
 
-    AlasGUI.set_theme(theme=State.deploy_config.Theme)
     initial_style_names = _initial_style_names(AlasGUI.theme)
     initial_css_files = (
         INITIAL_WEBUI_CSS,
@@ -304,6 +303,7 @@ def app():
         return True
 
     def _run_gui(initial_page: str = "home") -> None:
+        AlasGUI.set_theme(theme=State.deploy_config.Theme)
         set_env(title="AzurPilot", output_animation=False)
         load_webui_styles(
             theme=AlasGUI.theme,
