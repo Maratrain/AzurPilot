@@ -232,9 +232,10 @@ class RewardCommission(UI, InfoHandler):
     def _commission_choose_dynamic(self, daily, urgent):
         """使用启动时间折现价值选择当前应启动的委托。
 
-        tier 使用有限倍率表示基础价值，层内候选编号提供有下限的价值修正，
-        每条委托再按预计启动等待时间指数折现。规划器最大化折现价值总和，
-        因此低价值限时委托只有在收益足以覆盖其造成的等待损失时才会被保留。
+        tier 使用有限倍率表示基础价值，层内候选编号提供有下限的价值修正。
+        每条委托统一按预计启动等待、最晚启动窗口和基础等待半衰期折现；
+        没有游戏内截止时间的委托以服务器刷新时刻作为截止时间。规划器最大化
+        折现价值总和，因此低价值委托只有在收益足以覆盖等待损失时才会被保留。
 
         Args:
             daily (SelectedGrids):
@@ -304,10 +305,13 @@ class RewardCommission(UI, InfoHandler):
             source_index = 0
             for tier_index, tier in enumerate(tiers):
                 for filter_index, comm in tier:
-                    deadline = None
-                    deadline_time = getattr(comm, 'deadline_time', None)
-                    if deadline_time is not None:
-                        deadline = max(int((deadline_time - plan_time).total_seconds()), 0)
+                    # 规划层只接受统一的有限截止时间。源数据的 None 仅表示游戏
+                    # 没有显式倒计时，此时使用本轮实际服务器刷新时刻。
+                    deadline_time = getattr(comm, 'deadline_time', None) or horizon_time
+                    deadline = int((deadline_time - plan_time).total_seconds())
+                    if deadline <= 0:
+                        logger.info(f'[委托-规划] 忽略已过期委托: {comm}')
+                        continue
                     jobs.append(CommissionPlanJob(
                         source_index=source_index,
                         tier=tier_index,
@@ -326,7 +330,11 @@ class RewardCommission(UI, InfoHandler):
                 logger.warning(f'[委托-规划] 价值模型参数无效，使用默认值: {error}')
                 value_model = DEFAULT_VALUE_MODEL
             logger.info(f'[委托-规划] Tier 价值倍率: {value_model.tier_value_ratio}')
-            logger.info(f'[委托-规划] 等待半衰期: {timedelta(seconds=value_model.delay_half_life)}')
+            logger.info(f'[委托-规划] 基础等待半衰期: {timedelta(seconds=value_model.delay_half_life)}')
+            logger.info(
+                f'[委托-规划] Deadline 折现基准时间: '
+                f'{timedelta(seconds=value_model.deadline_future_horizon)}'
+            )
             logger.info(f'[委托-规划] 层内价值下限: {value_model.filter_value_floor / 100:.2f}%')
             logger.info(f'[委托-规划] 层内编号半衰期: {value_model.filter_value_half_life:g}')
             plan, planned_jobs = optimize_commission_plan(
@@ -375,7 +383,19 @@ class RewardCommission(UI, InfoHandler):
         logger.info(f'[委托-规划] 折现价值: {utility:.6f} T1')
         logger.info(f'[委托-规划] 立即启动价值: {full_value:.6f} T1')
         logger.info(f'[委托-规划] 等待损失: {delay_loss:.6f} T1')
-        logger.info(f'[委托-规划] 搜索状态数: {plan.state_count}')
+        logger.info(
+            f'[委托-规划] 搜索状态数: {plan.state_count}, '
+            f'束宽: {plan.beam_width}, 裁剪: {plan.pruned_state_count}'
+        )
+        if plan.optimality_proven:
+            logger.info('[委托-规划] 最优性证书: 已证明当前计划为全局最优')
+        else:
+            upper_value = plan.utility_upper_bound / plan.value_scale
+            gap = plan.utility_gap / plan.value_scale
+            logger.info(
+                f'[委托-规划] 最优性证书: 尚未证明，严格上界 {upper_value:.6f} T1，'
+                f'最大可能差距 {gap:.6f} T1'
+            )
         logger.info(f'[委托-规划] 规划边界: {horizon_time:%Y-%m-%d %H:%M:%S}')
         logger.info('[委托-规划] 比较规则: 折现总价值 > 未折现总价值 > 最晚结束时间 > 完成时间总和 > 稳定编号')
 
@@ -402,7 +422,7 @@ class RewardCommission(UI, InfoHandler):
         for job in jobs:
             if job.source_index in selected:
                 continue
-            if job.deadline is not None and job.deadline <= horizon:
+            if job.deadline < horizon:
                 events.setdefault(job.deadline, []).append(
                     f'截止且放弃 T{job.tier + 1} 委托: {job.commission.name}'
                 )

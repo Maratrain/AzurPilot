@@ -208,7 +208,7 @@ def _commission_detect(self, image):
 **2. 委托选择 (`commission.py`)**
 ```python
 def _commission_choose(self, daily, urgent):
-    """默认使用传统贪心策略，按实验开关分派精确规划器"""
+    """默认使用传统贪心策略，按实验开关分派有证书的多项式规划器"""
     if self.config.Commission_DynamicProgramming:
         return self._commission_choose_dynamic(daily, urgent)
     return self._commission_choose_legacy(daily, urgent)
@@ -230,8 +230,9 @@ def _commission_start_click(self, comm, is_urgent=False):
 - **夜间委托转换**: 自动将紧急委托转换为夜间委托格式
 - **传统贪心策略（默认）**: 严格按过滤器顺序选择，并用最短委托补足空槽
 - **有限层级价值**: `tier` 分隔价值层级；未填写时每条规则为独立层级。相邻层级使用有限倍率，层内编号使用有下限的价值修正
-- **启动时间折现**: 委托价值按预计启动等待时间指数衰减，低价值委托只有在收益足以覆盖其造成的高价值委托等待损失时才会被保留
-- **精确动态规划调度（实验性）**: 开启 `Commission.DynamicProgramming` 后，综合运行槽位、委托时长、可启动截止时间和服务器刷新边界；使用非空转列表调度完备枚举、严格虚拟调度上界和状态支配求全局最优，不采用近似剪枝
+- **统一启动时间折现**: 所有委托统一使用 `f(s,d)=(1-s/d)^((T/d)^2)×2^(-s/H)`；没有游戏内 deadline 的委托以本轮服务器刷新剩余时间作为 `d`，预计启动达到 deadline 时不可行。立即启动价值不变
+- **有证书的多项式规划（实验性）**: 开启 `Commission.DynamicProgramming` 后，综合运行槽位、委托时长、可启动截止时间和服务器刷新边界；所有折现因子先按 `10^9` 缩放舍入，调度目标只做整数比较。求解器每层保留至多 `max(128, min(n², 16n))=O(n)` 个状态，状态数为 `O(n²)`，当前实现的最坏时间为 `O(n⁴)`、内存为 `O(n³)`，不会退化成指数枚举
+- **最优性证书**: 每个被束宽裁剪的状态都保留严格乐观上界。最终计划达到所有被裁剪分支的上界时标记为“已证明全局最优”；否则输出全局最优值上界和最大可能价值差距，不把近似结果冒充精确结果
 - **委托收入记录**: 记录委托奖励到数据库
 
 ---
