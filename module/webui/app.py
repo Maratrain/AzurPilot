@@ -5,81 +5,36 @@
 版本更新、活动工具等。同时提供 ASGI 应用创建和路由注册。
 
 该模块是 WebUI 的顶层入口，被 gui.py 启动时引用。
+
+设计上采用延迟加载策略：module-level 仅保留静态资源哈希计算，
+所有重依赖（pywebio、mixin 等）延迟到 app() 被调用时才加载。
+MCP 子应用进一步推迟到首次 /mcp 请求时加载。
 """
 
 from hashlib import sha256
 from pathlib import Path
-
-from module.webui.app_dashboard import DashboardMixin
-from module.webui.app_dependencies import (
-    Dict,
-    Frame,
-    IS_ON_PHONE_CLOUD,
-    List,
-    PUBLIC_WEBUI_PASSWORD_GENERATE_FAILED_MESSAGE,
-    ProcessManager,
-    RESTRICTED_DEVICE_IDS,
-    RESTRICTED_DEVICE_MESSAGE,
-    RichLog,
-    State,
-    argparse,
-    asgi_app,
-    get_device_id,
-    get_localstorage_values,
-    info,
-    lang,
-    load_webui_styles,
-    local,
-    logger,
-    login,
-    popup,
-    run_js,
-    set_env,
-    task_handler,
-    time,
-    updater,
-    webconfig,
-)
-from module.webui.app_developer_menu import DeveloperMenuMixin
-from module.webui.app_developer_settings import DeveloperSettingsMixin
-from module.webui.app_developer_tools import DeveloperToolsMixin
-from module.webui.app_developer_update import DeveloperUpdateMixin
-from module.webui.app_event_tools import EventToolsMixin
-from module.webui.app_fleet_management import FleetManagementMixin
-from module.webui.app_helpers import (
-    DEMO_DEVICE_ID_TEXT,
-    WEBUI_AUTO_PASSWORD_FILE,
-    build_copyable_device_id,
-    build_muted_notice,
-    build_recommendation_box,
-    build_simple_table,
-    build_title_block,
-    ensure_public_webui_password,
-    generate_webui_password,
-    is_demo_mode,
-    is_public_webui_host,
-    is_webui_password_set,
-    read_webapp_template,
-    timedelta_to_text,
-)
-from module.webui.app_home import HomeMixin
-from module.webui.app_instances import InstanceMixin
-from module.webui.app_lifecycle import clearup, startup
-from module.webui.app_manage import app_manage
-from module.webui.app_overview import OverviewMixin
-from module.webui.app_shell import AppShellMixin
-from module.webui.app_stat_action_point import ActionPointStatisticsMixin
-from module.webui.app_stat_action_point_toolbar import ActionPointToolbarMixin
-from module.webui.app_stat_commission import CommissionIncomeStatisticsMixin
-from module.webui.app_stat_opsi import OpsiStatisticsMixin
-from module.webui.app_stat_opsi_export import OpsiExportMixin
-from module.webui.app_stat_resource import ResourceStatisticsMixin
-from module.webui.app_stat_ship import ShipExperienceStatisticsMixin
-from module.webui.app_statistics_page import StatisticsPageMixin
-from module.webui.app_task_config import TaskConfigMixin
-
+from threading import Lock
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+class _LazyMCPApp:
+    """延迟加载 mcp_server_sse 的 ASGI 包装器。
+
+    MCP 子应用在 app() 构建时不导入，仅当首次收到 /mcp 请求时才加载。
+    """
+
+    def __init__(self):
+        self._app = None
+        self._lock = Lock()
+
+    async def __call__(self, scope, receive, send):
+        if self._app is None:
+            with self._lock:
+                if self._app is None:
+                    from mcp_server_sse import app as mcp_app
+                    self._app = mcp_app
+        await self._app(scope, receive, send)
 
 
 def _versioned_static_asset(relative_path: str) -> str:
@@ -176,53 +131,114 @@ html:not(.alas-initial-ready) #pywebio-scope-ROOT:empty::after {{
 """
 
 
-class AlasGUI(
-    AppShellMixin,
-    StatisticsPageMixin,
-    ActionPointStatisticsMixin,
-    ActionPointToolbarMixin,
-    ResourceStatisticsMixin,
-    OpsiStatisticsMixin,
-    OpsiExportMixin,
-    ShipExperienceStatisticsMixin,
-    CommissionIncomeStatisticsMixin,
-    FleetManagementMixin,
-    TaskConfigMixin,
-    EventToolsMixin,
-    OverviewMixin,
-    DashboardMixin,
-    DeveloperMenuMixin,
-    DeveloperUpdateMixin,
-    DeveloperSettingsMixin,
-    DeveloperToolsMixin,
-    InstanceMixin,
-    HomeMixin,
-    Frame,
-):
-    """组合各 WebUI 视图的会话控制器。
+def _build_alas_gui_class():
+    """延迟构建 AlasGUI 类，合并所有 Mixin。"""
+    from module.webui.app_dashboard import DashboardMixin
+    from module.webui.app_dependencies import Dict, Frame, List, RichLog
+    from module.webui.app_developer_menu import DeveloperMenuMixin
+    from module.webui.app_developer_settings import DeveloperSettingsMixin
+    from module.webui.app_developer_tools import DeveloperToolsMixin
+    from module.webui.app_developer_update import DeveloperUpdateMixin
+    from module.webui.app_event_tools import EventToolsMixin
+    from module.webui.app_fleet_management import FleetManagementMixin
+    from module.webui.app_home import HomeMixin
+    from module.webui.app_instances import InstanceMixin
+    from module.webui.app_overview import OverviewMixin
+    from module.webui.app_shell import AppShellMixin
+    from module.webui.app_stat_action_point import ActionPointStatisticsMixin
+    from module.webui.app_stat_action_point_toolbar import ActionPointToolbarMixin
+    from module.webui.app_stat_commission import CommissionIncomeStatisticsMixin
+    from module.webui.app_stat_opsi import OpsiStatisticsMixin
+    from module.webui.app_stat_opsi_export import OpsiExportMixin
+    from module.webui.app_stat_resource import ResourceStatisticsMixin
+    from module.webui.app_stat_ship import ShipExperienceStatisticsMixin
+    from module.webui.app_statistics_page import StatisticsPageMixin
+    from module.webui.app_task_config import TaskConfigMixin
 
-    Mixin 的顺序明确会话能力的组合层次。统计页入口通过 ``self`` 调用具体
-    视图的渲染方法，因此各视图模块既可独立维护，也保持原有会话接口不变。
-    """
+    class AlasGUI(
+        AppShellMixin,
+        StatisticsPageMixin,
+        ActionPointStatisticsMixin,
+        ActionPointToolbarMixin,
+        ResourceStatisticsMixin,
+        OpsiStatisticsMixin,
+        OpsiExportMixin,
+        ShipExperienceStatisticsMixin,
+        CommissionIncomeStatisticsMixin,
+        FleetManagementMixin,
+        TaskConfigMixin,
+        EventToolsMixin,
+        OverviewMixin,
+        DashboardMixin,
+        DeveloperMenuMixin,
+        DeveloperUpdateMixin,
+        DeveloperSettingsMixin,
+        DeveloperToolsMixin,
+        InstanceMixin,
+        HomeMixin,
+        Frame,
+    ):
+        """组合各 WebUI 视图的会话控制器。"""
 
-    ALAS_MENU: Dict[str, Dict[str, List[str]]]
-    ALAS_ARGS: Dict[str, Dict[str, Dict[str, Dict[str, str]]]]
-    theme = "default"
-    _log = RichLog
+        ALAS_MENU: Dict[str, Dict[str, List[str]]]
+        ALAS_ARGS: Dict[str, Dict[str, Dict[str, Dict[str, str]]]]
+        theme = "default"
+        _log = RichLog
+
+    return AlasGUI
 
 
 def debug() -> None:
     """初始化 WebUI 后进入交互式调试会话。"""
+    from module.webui.app_lifecycle import startup
+
     startup()
-    AlasGUI().run()
+    _build_alas_gui_class()().run()
 
 
 def app():
     """创建供 Uvicorn 使用的 ASGI 应用工厂。
 
+    采用延迟加载：所有重依赖（pywebio、mixin 等）在此函数调用时才加载。
+
     Returns:
         Starlette: 挂载 WebUI 页面和 MCP 子应用的 ASGI 应用。
     """
+    import argparse
+    import time
+    from typing import List
+
+    from module.webui.app_dependencies import (
+        IS_ON_PHONE_CLOUD,
+        PUBLIC_WEBUI_PASSWORD_GENERATE_FAILED_MESSAGE,
+        ProcessManager,
+        RESTRICTED_DEVICE_IDS,
+        RESTRICTED_DEVICE_MESSAGE,
+        State,
+        asgi_app,
+        get_device_id,
+        get_localstorage_values,
+        info,
+        lang,
+        load_webui_styles,
+        local,
+        logger,
+        login,
+        popup,
+        run_js,
+        set_env,
+        updater,
+        webconfig,
+    )
+    from module.webui.app_helpers import (
+        ensure_public_webui_password,
+        is_demo_mode,
+        is_webui_password_set,
+    )
+    from module.webui.app_lifecycle import clearup, startup
+
+    AlasGUI = _build_alas_gui_class()
+
     parser = argparse.ArgumentParser(description="Alas web service")
     parser.add_argument(
         "-k", "--key", type=str, help="Password of alas. No password by default"
@@ -257,10 +273,8 @@ def app():
     if args.run:
         runs = args.run
     elif State.deploy_config.Run:
-        # deploy.yaml 的旧格式仍是逗号分隔字符串，保持兼容直到配置读取器支持列表。
         tmp = State.deploy_config.Run.split(",")
         runs = [item.strip(" ['\"]") for item in tmp if item]
-    # 未传入 --run 时保持 None，由进程管理器跳过启动实例。
     instances: List[str] | None = runs
 
     logger.hr("[WebUI] WebUI 配置")
@@ -344,8 +358,6 @@ def app():
     def manage() -> None:
         _run_gui(initial_page="manage")
 
-    from mcp_server_sse import app as mcp_app
-
     application = asgi_app(
         applications=[index, manage],
         cdn=cdn,
@@ -359,5 +371,19 @@ def app():
         ],
         on_shutdown=[clearup],
     )
-    application.mount("/mcp", mcp_app)
+    application.mount("/mcp", _LazyMCPApp())
     return application
+
+
+# 兼容旧导入路径：updater.py 从 module.webui.app import clearup
+# 注意：此处使用 lazy import 避免 module-level 触发 pywebio 加载
+def __getattr__(name: str):
+    if name == "clearup":
+        from module.webui.app_lifecycle import clearup
+
+        return clearup
+    if name == "startup":
+        from module.webui.app_lifecycle import startup
+
+        return startup
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
