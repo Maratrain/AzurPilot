@@ -6,6 +6,8 @@ import { spawn, spawnSync } from "node:child_process";
 import yazl from "yazl";
 
 const env = process.env;
+// Cloudflare Worker 单文件上限 25MB，24MB 留出余量
+const MAX_PACK_BYTES = 24 * 1024 * 1024;
 const MAIN_SITE_URL = "https://alas.nanoda.work/";
 const MAIN_SITE_HOST = "alas.nanoda.work";
 const CDN_SITE_URLS = [
@@ -342,6 +344,28 @@ async function buildPack(latest, old, outputDir, repoRoot) {
     { path: packPath, name: packName },
     { path: idxPath, name: idxName },
   ]);
+
+  const size = fs.statSync(zipPath).size;
+  if (size > MAX_PACK_BYTES) {
+    // 超出 Worker 单文件存储上限，生成也无法上传，直接清理
+    for (const file of [zipPath, packPath, idxPath]) {
+      fs.rmSync(file, { force: true });
+    }
+    console.log(`  skip ${old}.zip (${fmtBytes(size)} > ${fmtBytes(MAX_PACK_BYTES)})`);
+    return null;
+  }
+
+  return zipPath;
+}
+
+function fmtBytes(bytes) {
+  for (const unit of ["B", "KB", "MB", "GB"]) {
+    if (bytes < 1024) {
+      return `${bytes.toFixed(1)} ${unit}`;
+    }
+    bytes /= 1024;
+  }
+  return `${bytes.toFixed(1)} TB`;
 }
 
 function cleanupPackArtifacts(outputDir) {
@@ -469,7 +493,8 @@ function writeIndexHtml(outputDir, options, latest, oldCommits, commitInfos, gen
     sameAs: options.mirrorUrls,
     dateModified: generatedAt,
   }, null, 2));
-  const packRows = oldCommits.map((commit) => {
+  const builtPacks = oldCommits.filter((commit) => fs.existsSync(path.join(outputDir, latest, `${commit}.zip`)));
+  const packRows = builtPacks.map((commit) => {
     const filename = `${latest}/${commit}.zip`;
     return `
           <tr>
@@ -477,6 +502,8 @@ function writeIndexHtml(outputDir, options, latest, oldCommits, commitInfos, gen
             <td><a href="${escapeHtml(filename)}">${escapeHtml(filename)}</a></td>
           </tr>`;
   }).join("");
+  const generatedPackCount = builtPacks.length;
+  const skippedPackCount = oldCommits.length - generatedPackCount;
   const commitRows = commitInfos.map((info, index) => `
           <tr>
             <td>${index === 0 ? "最新" : `前 ${index} 次`}</td>
@@ -647,7 +674,7 @@ function writeIndexHtml(outputDir, options, latest, oldCommits, commitInfos, gen
         <dt>CDN 首页</dt>
         <dd><a href="${escapeHtml(options.siteUrl)}">${escapeHtml(options.siteUrl)}</a></dd>
         <dt>更新包数量</dt>
-        <dd>${oldCommits.length}</dd>
+        <dd>${generatedPackCount}${skippedPackCount ? `（跳过 ${skippedPackCount} 个超过 ${fmtBytes(MAX_PACK_BYTES)} 的）` : ""}</dd>
         <dt>生成时间</dt>
         <dd><time datetime="${escapeHtml(generatedAt)}">${escapeHtml(generatedAt)}</time></dd>
         <dt>版本接口</dt>
@@ -717,8 +744,11 @@ async function main() {
   );
 
   const latestDir = path.join(outputDir, latest);
+  let skipped = 0;
   for (const old of oldCommits) {
-    await buildPack(latest, old, latestDir, repoRoot);
+    if (await buildPack(latest, old, latestDir, repoRoot) === null) {
+      skipped += 1;
+    }
   }
   cleanupPackArtifacts(latestDir);
   const generatedAtTimestamp = Date.now();
@@ -734,7 +764,10 @@ async function main() {
   console.log(`  output : ${path.relative(repoRoot, outputDir).replaceAll(path.sep, "/")}`);
   console.log(`  site   : ${options.siteUrl}`);
   console.log(`  mirrors: ${options.mirrorUrls.length}`);
-  console.log(`Generated index.html, robots.txt, sitemap.xml, latest.json and ${oldCommits.length} update pack(s)`);
+  console.log(`Generated index.html, robots.txt, sitemap.xml, latest.json and ${oldCommits.length - skipped} update pack(s)`);
+  if (skipped > 0) {
+    console.log(`Skipped ${skipped} update pack(s) larger than ${fmtBytes(MAX_PACK_BYTES)} (Cloudflare Worker file limit)`);
+  }
 }
 
 main().catch((error) => {

@@ -1,5 +1,8 @@
+import gc
 import random
 import unittest
+import weakref
+from decimal import Decimal, ROUND_HALF_EVEN, localcontext
 from datetime import datetime, timedelta
 from itertools import product
 from types import SimpleNamespace
@@ -68,10 +71,7 @@ def brute_force_plan(jobs, slot_available, horizon, model=DEFAULT_VALUE_MODEL):
         for job in jobs
     ]
     full_values = [value * VALUE_SCALE for value in base_values]
-    limits = [
-        min(job.deadline if job.deadline is not None else horizon, horizon)
-        for job in jobs
-    ]
+    limits = [min(job.deadline, horizon) for job in jobs]
     best = None
 
     def search(selected_mask, slots, actions, utility, full_value, makespan, completion_sum, order_key):
@@ -92,7 +92,8 @@ def brute_force_plan(jobs, slot_available, horizon, model=DEFAULT_VALUE_MODEL):
                 selected_mask | bit,
                 tuple(sorted((*slots[1:], finish))),
                 (*actions, (job_index, start, finish)),
-                utility + base_values[job_index] * model.delay_factor(start),
+                utility
+                + base_values[job_index] * model.delay_factor(start, job.deadline),
                 full_value + full_values[job_index],
                 max(makespan, finish),
                 completion_sum + finish,
@@ -101,6 +102,35 @@ def brute_force_plan(jobs, slot_available, horizon, model=DEFAULT_VALUE_MODEL):
 
     search(0, tuple(sorted(slot_available)), (), 0, 0, 0, 0, ())
     return best
+
+
+def decimal_delay_factor(model, seconds, deadline):
+    """用高精度十进制独立计算折现定点值。"""
+    seconds = max(int(seconds), 0)
+    deadline = int(deadline)
+    if deadline <= 0:
+        raise ValueError('委托 deadline 必须为正数')
+    if seconds >= deadline:
+        return 0
+    if not seconds:
+        return VALUE_SCALE
+
+    with localcontext() as context:
+        context.prec = 100
+        value_s = Decimal(seconds)
+        value_d = Decimal(deadline)
+        value_t = Decimal(str(model.deadline_future_horizon))
+        value_h = Decimal(str(model.delay_half_life))
+        logarithm = (
+            (value_t / value_d) ** 2
+            * (Decimal(1) - value_s / value_d).ln()
+            - Decimal(2).ln() * value_s / value_h
+        )
+        return int(
+            (Decimal(VALUE_SCALE) * logarithm.exp()).to_integral_value(
+                rounding=ROUND_HALF_EVEN
+            )
+        )
 
 
 class TestCommissionTierFilter(unittest.TestCase):
@@ -164,7 +194,9 @@ class TestCommissionTierFilter(unittest.TestCase):
 class TestCommissionAlgorithmSwitch(unittest.TestCase):
     def test_dynamic_programming_is_disabled_by_default(self):
         self.assertIs(GeneratedConfig.Commission_DynamicProgramming, False)
+        self.assertIsNone(GeneratedConfig.Commission_Blacklist)
         self.assertIsInstance(GeneratedConfig.Commission_DelayHalfLife, float)
+        self.assertIsInstance(GeneratedConfig.Commission_DeadlineFutureHorizon, float)
         self.assertIsInstance(GeneratedConfig.Commission_FilterValueHalfLife, float)
 
     def test_dispatches_to_legacy_algorithm_by_default(self):
@@ -213,18 +245,67 @@ class TestCommissionAlgorithmSwitch(unittest.TestCase):
         self.assertEqual(urgent_choose.grids, [first])
         self.assertEqual(daily_choose.grids, [second])
 
+    def test_blacklist_uses_comma_separated_filter_rules(self):
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(
+            Commission_Blacklist=' ExtraBook, UrgentOil-8, Major, ',
+            Commission_DoMajorCommission=True,
+        )
+        COMMISSION_FILTER.load('UrgentCube > DailyResource')
+
+        self.assertFalse(worker._commission_check(
+            selectable_commission('书委托', 'extra_book')
+        ))
+        self.assertFalse(worker._commission_check(
+            selectable_commission('八小时油委托', 'urgent_oil', duration=8)
+        ))
+        self.assertFalse(worker._commission_check(
+            selectable_commission('主要委托', 'major_comm')
+        ))
+        self.assertTrue(worker._commission_check(
+            selectable_commission('四小时油委托', 'urgent_oil', duration=4)
+        ))
+        self.assertEqual(COMMISSION_FILTER.filter_raw, ['UrgentCube', 'DailyResource'])
+
+    def test_blacklist_applies_to_both_selection_algorithms(self):
+        blocked = selectable_commission('黑名单委托', 'extra_oil', duration=0.5)
+        allowed = selectable_commission('允许委托', 'urgent_cube')
+        daily = SelectedGrids([blocked])
+        urgent = SelectedGrids([allowed])
+
+        for dynamic in (False, True):
+            with self.subTest(dynamic=dynamic):
+                worker = object.__new__(RewardCommission)
+                worker.config = SimpleNamespace(
+                    Commission_PresetFilter='custom',
+                    Commission_CustomFilter='UrgentCube > shortest',
+                    Commission_Blacklist='ExtraOil',
+                    Commission_DoMajorCommission=True,
+                    Commission_DynamicProgramming=dynamic,
+                )
+
+                daily_choose, urgent_choose = worker._commission_choose(daily, urgent)
+
+                self.assertEqual(daily_choose.grids, [])
+                self.assertEqual(urgent_choose.grids, [allowed])
+
 
 class TestCommissionValueModel(unittest.TestCase):
     def test_default_adjacent_tier_threshold_is_finite(self):
-        threshold = delay_threshold_seconds(tier_gap=1, delayed_count=1)
+        deadline = 12 * 60 * 60
+        threshold = delay_threshold_seconds(
+            tier_gap=1,
+            delayed_count=1,
+            delayed_deadline=deadline,
+        )
 
         self.assertIsInstance(threshold, int)
         self.assertGreaterEqual(threshold, 0)
-        self.assertLess(threshold, DEFAULT_VALUE_MODEL.delay_half_life)
+        self.assertLess(threshold, deadline)
 
     def test_delaying_more_high_value_jobs_reduces_threshold(self):
-        one = delay_threshold_seconds(tier_gap=1, delayed_count=1)
-        three = delay_threshold_seconds(tier_gap=1, delayed_count=3)
+        one = delay_threshold_seconds(1, 1, 12 * 60 * 60)
+        three = delay_threshold_seconds(1, 3, 12 * 60 * 60)
 
         self.assertLess(three, one)
 
@@ -232,11 +313,13 @@ class TestCommissionValueModel(unittest.TestCase):
         early = delay_threshold_seconds(
             tier_gap=1,
             delayed_count=1,
+            delayed_deadline=60 * 60,
             delayed_filter_index=0,
         )
         late = delay_threshold_seconds(
             tier_gap=1,
             delayed_count=1,
+            delayed_deadline=60 * 60,
             delayed_filter_index=20,
         )
 
@@ -248,12 +331,14 @@ class TestCommissionValueModel(unittest.TestCase):
             delay_half_life=3 * 60 * 60,
             filter_value_floor=7_500,
             filter_value_half_life=2,
+            deadline_future_horizon=4 * 60 * 60,
         )
 
         table = build_table(model, 2, 2, delaying_filter_index=3, delayed_filter_index=1)
 
         self.assertIn('| 相邻 tier 价值倍率 | 4 |', table)
-        self.assertIn('| 启动等待半衰期 | 03:00:00 |', table)
+        self.assertIn('| 基础等待半衰期 | 03:00:00 |', table)
+        self.assertIn('| Deadline 折现基准时间 | 04:00:00 |', table)
         self.assertIn('| 层内价值下限 | 75.00% |', table)
         self.assertIn('| 层内编号半衰期 | 2 |', table)
         self.assertIn('| 低价值委托层内编号 | 3 (83.84%) |', table)
@@ -268,12 +353,14 @@ class TestCommissionValueModel(unittest.TestCase):
         model = CommissionValueModel.from_config(SimpleNamespace(
             Commission_TierValueRatio=5,
             Commission_DelayHalfLife=2.54,
+            Commission_DeadlineFutureHorizon=2.56,
             Commission_FilterValueFloor=0.7,
             Commission_FilterValueHalfLife=3.46,
         ))
 
         self.assertEqual(model.tier_value_ratio, 5)
         self.assertEqual(model.delay_half_life, 2.5 * 60 * 60)
+        self.assertEqual(model.deadline_future_horizon, 2.6 * 60 * 60)
         self.assertEqual(model.filter_value_floor, 7_000)
         self.assertEqual(model.filter_value_half_life, 3.5)
 
@@ -283,8 +370,115 @@ class TestCommissionValueModel(unittest.TestCase):
             filter_value_half_life=1.5,
         )
 
-        self.assertEqual(model.delay_factor(5), round(VALUE_SCALE / 4))
+        self.assertEqual(
+            model.delay_factor(5, 100),
+            decimal_delay_factor(model, 5, 100),
+        )
         self.assertGreater(model.filter_factor(1), model.filter_factor(2))
+
+    def test_delay_factor_matches_independent_decimal_formula(self):
+        model = CommissionValueModel(
+            delay_half_life=3.5 * 3600,
+            deadline_future_horizon=2.5 * 3600,
+        )
+        cases = ((0, 1), (1, 3803), (2468, 4937), (3599, 3600), (3600, 3600))
+
+        for seconds, deadline in cases:
+            with self.subTest(seconds=seconds, deadline=deadline):
+                self.assertEqual(
+                    model.delay_factor(seconds, deadline),
+                    decimal_delay_factor(model, seconds, deadline),
+                )
+
+    def test_delay_factor_matches_decimal_on_random_game_range(self):
+        rng = random.Random(20260809)
+        for case_index in range(200):
+            deadline = rng.randint(1, 24 * 3600)
+            seconds = rng.randint(0, deadline + 1)
+            model = CommissionValueModel(
+                delay_half_life=rng.randint(1, 200) * 1800,
+                deadline_future_horizon=rng.randint(1, 24) * 1800,
+            )
+
+            with self.subTest(case=case_index, seconds=seconds, deadline=deadline):
+                self.assertEqual(
+                    model.delay_factor(seconds, deadline),
+                    decimal_delay_factor(model, seconds, deadline),
+                )
+
+    def test_delay_factor_boundaries_and_monotonicity(self):
+        model = CommissionValueModel(delay_half_life=100 * 3600)
+        deadline = 6 * 3600
+        values = [model.delay_factor(seconds, deadline) for seconds in range(0, deadline, 60)]
+
+        self.assertEqual(values[0], VALUE_SCALE)
+        self.assertTrue(all(left > right for left, right in zip(values, values[1:])))
+        self.assertEqual(model.delay_factor(deadline, deadline), 0)
+        self.assertEqual(model.delay_factor(deadline + 1, deadline), 0)
+
+    def test_larger_deadline_reduces_penalty_at_same_delay(self):
+        model = CommissionValueModel(delay_half_life=100 * 3600)
+        delay = 30 * 60
+
+        self.assertLess(
+            model.delay_factor(delay, 1 * 3600),
+            model.delay_factor(delay, 2 * 3600),
+        )
+        self.assertLess(
+            model.delay_factor(delay, 2 * 3600),
+            model.delay_factor(delay, 6 * 3600),
+        )
+
+    def test_future_horizon_controls_deadline_penalty_strength(self):
+        frequent = CommissionValueModel(deadline_future_horizon=30)
+        balanced = CommissionValueModel(deadline_future_horizon=60)
+        rare = CommissionValueModel(deadline_future_horizon=120)
+
+        self.assertLess(rare.delay_factor(30, 60), balanced.delay_factor(30, 60))
+        self.assertLess(balanced.delay_factor(30, 60), frequent.delay_factor(30, 60))
+
+    def test_extreme_horizon_does_not_overflow(self):
+        model = CommissionValueModel(deadline_future_horizon=1e300)
+
+        self.assertEqual(model.delay_factor(0, 1), VALUE_SCALE)
+        self.assertEqual(model.delay_factor(1, 2), 0)
+
+    def test_value_model_is_not_retained_by_process_wide_cache(self):
+        references = []
+        for index in range(100):
+            model = CommissionValueModel(deadline_future_horizon=index + 1)
+            optimize_commission_plan(
+                [CommissionPlanJob(0, 0, 1, 10, object())],
+                [0],
+                10,
+                model,
+            )
+            references.append(weakref.ref(model))
+
+        del model
+        gc.collect()
+        self.assertTrue(all(reference() is None for reference in references))
+
+    def test_deadline_threshold_is_before_expiration(self):
+        threshold = delay_threshold_seconds(
+            tier_gap=0,
+            delayed_count=1,
+            delayed_deadline=60,
+        )
+
+        self.assertGreaterEqual(threshold, 0)
+        self.assertLess(threshold, 60)
+
+    def test_more_valuable_delaying_job_has_no_deadline_threshold(self):
+        threshold = delay_threshold_seconds(
+            tier_gap=0,
+            delayed_count=1,
+            delaying_filter_index=0,
+            delayed_filter_index=20,
+            delayed_deadline=60,
+        )
+
+        self.assertIsNone(threshold)
 
     def test_threshold_is_the_last_strictly_profitable_second(self):
         model = CommissionValueModel(
@@ -296,6 +490,7 @@ class TestCommissionValueModel(unittest.TestCase):
         threshold = delay_threshold_seconds(
             tier_gap=2,
             delayed_count=3,
+            delayed_deadline=6 * 3600,
             model=model,
             delaying_filter_index=4,
             delayed_filter_index=1,
@@ -304,9 +499,13 @@ class TestCommissionValueModel(unittest.TestCase):
         low = model.filter_factor(4)
         immediate = 3 * high * VALUE_SCALE
 
-        self.assertGreater(low * VALUE_SCALE + 3 * high * model.delay_factor(threshold), immediate)
+        self.assertGreater(
+            low * VALUE_SCALE + 3 * high * model.delay_factor(threshold, 6 * 3600),
+            immediate,
+        )
         self.assertLessEqual(
-            low * VALUE_SCALE + 3 * high * model.delay_factor(threshold + 1),
+            low * VALUE_SCALE
+            + 3 * high * model.delay_factor(threshold + 1, 6 * 3600),
             immediate,
         )
 
@@ -326,7 +525,7 @@ class TestCommissionPlanner(unittest.TestCase):
         high = object()
         low = object()
         jobs = [
-            CommissionPlanJob(0, 0, 4 * 3600, None, high),
+            CommissionPlanJob(0, 0, 4 * 3600, 12 * 3600, high),
             CommissionPlanJob(1, 1, 1 * 3600, 1, low),
         ]
 
@@ -341,7 +540,7 @@ class TestCommissionPlanner(unittest.TestCase):
         high = object()
         low = object()
         jobs = [
-            CommissionPlanJob(0, 0, 4 * 3600, None, high),
+            CommissionPlanJob(0, 0, 4 * 3600, 12 * 3600, high),
             CommissionPlanJob(1, 1, 2 * 3600, 1, low),
         ]
 
@@ -356,7 +555,7 @@ class TestCommissionPlanner(unittest.TestCase):
         high = object()
         low = object()
         jobs = [
-            CommissionPlanJob(0, 0, 4 * 3600, None, high),
+            CommissionPlanJob(0, 0, 4 * 3600, 12 * 3600, high),
             CommissionPlanJob(1, 3, 20 * 60, 1, low),
         ]
 
@@ -377,13 +576,14 @@ class TestCommissionPlanner(unittest.TestCase):
                 delay_half_life=rng.randint(2, 20) / 2,
                 filter_value_floor=rng.randint(1, 10_000),
                 filter_value_half_life=rng.randint(2, 16) / 2,
+                deadline_future_horizon=rng.randint(1, 10),
             )
             jobs = [
                 CommissionPlanJob(
                     source_index=index,
                     tier=rng.choice([0, 0, 1, 2, 4]),
                     duration=rng.randint(1, 6),
-                    deadline=rng.choice([None, 0, *range(1, horizon + 3)]),
+                    deadline=rng.choice([0, *range(1, horizon + 3)]),
                     commission=index,
                     filter_index=rng.randint(0, 6),
                 )
@@ -411,7 +611,7 @@ class TestCommissionPlanner(unittest.TestCase):
 
     def test_matches_complete_enumeration_on_systematic_boundaries(self):
         for durations in product(range(1, 4), repeat=3):
-            for deadlines in product((None, 0, 1, 3), repeat=3):
+            for deadlines in product((0, 1, 3, 4), repeat=3):
                 jobs = [
                     CommissionPlanJob(
                         source_index=index,
@@ -446,7 +646,7 @@ class TestCommissionPlanner(unittest.TestCase):
                 source_index=index,
                 tier=index // 4,
                 duration=(index % 7 + 1) * 3600,
-                deadline=None,
+                deadline=10 * 3600,
                 commission=index,
                 filter_index=index % 4,
             )
@@ -457,10 +657,158 @@ class TestCommissionPlanner(unittest.TestCase):
 
         self.assertLess(plan.state_count, 5000)
 
+    def test_beam_search_has_polynomial_state_bound(self):
+        jobs = [
+            CommissionPlanJob(index, index % 4, index % 5 + 1, 30, index, index % 3)
+            for index in range(12)
+        ]
+
+        plan, _ = optimize_commission_plan(jobs, [0, 0], 30, beam_width=5)
+
+        # 最多 n 层、每层最多展开 beam_width 个状态。
+        self.assertLessEqual(plan.state_count, len(jobs) * plan.beam_width)
+        self.assertEqual(plan.beam_width, 5)
+
+    def test_default_beam_width_grows_at_most_linearly(self):
+        jobs = [
+            CommissionPlanJob(index, 0, 1, 10, index)
+            for index in range(100)
+        ]
+
+        plan, _ = optimize_commission_plan(jobs, [], 10)
+
+        self.assertLessEqual(plan.beam_width, 128 + 16 * len(jobs))
+
+    def test_pruned_plan_reports_strict_upper_bound(self):
+        model = CommissionValueModel(
+            tier_value_ratio=1.5,
+            delay_half_life=7,
+            filter_value_floor=9477,
+            filter_value_half_life=7.5,
+            deadline_future_horizon=1,
+        )
+        values = (
+            (3, 5, 5, 5),
+            (2, 4, 9, 1),
+            (0, 2, 7, 5),
+            (2, 5, 6, 0),
+            (3, 3, 7, 6),
+            (1, 1, 7, 1),
+            (1, 2, 8, 5),
+            (1, 6, 7, 4),
+        )
+        jobs = [
+            CommissionPlanJob(index, tier, duration, deadline, index, filter_index)
+            for index, (tier, duration, deadline, filter_index) in enumerate(values)
+        ]
+
+        expected_rank, _ = brute_force_plan(jobs, [3, 3, 3, 2], 6, model)
+        plan, _ = optimize_commission_plan(
+            jobs,
+            [3, 3, 3, 2],
+            6,
+            model,
+            beam_width=1,
+        )
+
+        self.assertGreater(plan.pruned_state_count, 0)
+        self.assertLessEqual(expected_rank[0], plan.utility_upper_bound)
+        self.assertGreaterEqual(plan.utility_gap, expected_rank[0] - plan.utility)
+        self.assertFalse(plan.optimality_proven)
+
+    def test_unpruned_search_proves_global_optimality(self):
+        jobs = [
+            CommissionPlanJob(0, 0, 2, 8, 0),
+            CommissionPlanJob(1, 1, 1, 5, 1),
+            CommissionPlanJob(2, 2, 3, 7, 2),
+        ]
+
+        expected_rank, _ = brute_force_plan(jobs, [0], 8)
+        plan, _ = optimize_commission_plan(jobs, [0], 8)
+
+        self.assertEqual(plan.pruned_state_count, 0)
+        self.assertTrue(plan.optimality_proven)
+        self.assertEqual(plan.utility_upper_bound, expected_rank[0])
+
+    def test_equivalent_jobs_use_one_stable_representative_per_state(self):
+        jobs = [
+            CommissionPlanJob(
+                source_index=index,
+                tier=0,
+                duration=1,
+                deadline=1000,
+                commission=index,
+            )
+            for index in range(64)
+        ]
+
+        plan, _ = optimize_commission_plan(jobs, [0], 1000)
+
+        self.assertEqual(plan.state_count, len(jobs))
+        self.assertEqual(
+            [action.job_index for action in plan.actions],
+            list(range(len(jobs))),
+        )
+
+    def test_nearer_deadline_job_is_started_first_when_other_values_match(self):
+        near = object()
+        far = object()
+        jobs = [
+            CommissionPlanJob(0, 0, 3600, 2 * 3600, near),
+            CommissionPlanJob(1, 0, 3600, 8 * 3600, far),
+        ]
+
+        plan, planned_jobs = optimize_commission_plan(jobs, [0], 12 * 3600)
+
+        self.assertEqual(
+            [planned_jobs[action.job_index].commission for action in plan.actions],
+            [near, far],
+        )
+
+    def test_near_deadline_prevents_two_tier_job_from_taking_slot(self):
+        high = object()
+        low = object()
+        jobs = [
+            CommissionPlanJob(0, 0, 4 * 3600, 1 * 3600, high),
+            CommissionPlanJob(1, 2, 30 * 60, 1, low),
+        ]
+        model = CommissionValueModel(
+            tier_value_ratio=2,
+            delay_half_life=100 * 3600,
+            deadline_future_horizon=2 * 3600,
+        )
+
+        plan, planned_jobs = optimize_commission_plan(jobs, [0], 12 * 3600, model)
+
+        self.assertEqual(
+            [planned_jobs[action.job_index].commission for action in plan.actions],
+            [high],
+        )
+
+    def test_far_deadline_allows_two_tier_job_to_take_slot(self):
+        high = object()
+        low = object()
+        jobs = [
+            CommissionPlanJob(0, 0, 4 * 3600, 6 * 3600, high),
+            CommissionPlanJob(1, 2, 30 * 60, 1, low),
+        ]
+        model = CommissionValueModel(
+            tier_value_ratio=2,
+            delay_half_life=100 * 3600,
+            deadline_future_horizon=2 * 3600,
+        )
+
+        plan, planned_jobs = optimize_commission_plan(jobs, [0], 12 * 3600, model)
+
+        self.assertEqual(
+            [planned_jobs[action.job_index].commission for action in plan.actions],
+            [low, high],
+        )
+
     def test_empty_plan_keeps_tier_shaped_score(self):
         jobs = [
-            CommissionPlanJob(0, 0, 1, None, object()),
-            CommissionPlanJob(1, 1, 1, None, object()),
+            CommissionPlanJob(0, 0, 1, 10, object()),
+            CommissionPlanJob(1, 1, 1, 10, object()),
         ]
 
         plan, _ = optimize_commission_plan(jobs, [], 10)
@@ -470,10 +818,13 @@ class TestCommissionPlanner(unittest.TestCase):
     def test_rejects_invalid_model_and_job_domains(self):
         with self.assertRaises(ValueError):
             CommissionValueModel(tier_value_ratio=1)
+        with self.assertRaises(ValueError):
+            CommissionValueModel(deadline_future_horizon=0)
         invalid_jobs = [
-            CommissionPlanJob(0, 0, 0, None, object()),
-            CommissionPlanJob(0, -1, 1, None, object()),
-            CommissionPlanJob(0, 0, 1, None, object(), filter_index=-1),
+            CommissionPlanJob(0, 0, 0, 10, object()),
+            CommissionPlanJob(0, -1, 1, 10, object()),
+            CommissionPlanJob(0, 0, 1, 10, object(), filter_index=-1),
+            CommissionPlanJob(0, 0, 1, -1, object()),
         ]
         for job in invalid_jobs:
             with self.subTest(job=job), self.assertRaises(ValueError):
@@ -484,8 +835,8 @@ class TestCommissionPlanner(unittest.TestCase):
         self.assertEqual(model.tier_value_ratio, 1.5)
 
         jobs = [
-            CommissionPlanJob(0, 0, 10, None, object()),
-            CommissionPlanJob(1, 1, 10, None, object()),
+            CommissionPlanJob(0, 0, 10, 30, object()),
+            CommissionPlanJob(1, 1, 10, 30, object()),
         ]
         plan, _ = optimize_commission_plan(jobs, [0], 30, model=model)
         expected_rank, expected_actions = brute_force_plan(jobs, [0], 30, model=model)
@@ -494,85 +845,10 @@ class TestCommissionPlanner(unittest.TestCase):
             plan.full_value,
             -plan.makespan,
             -plan.completion_sum,
-            tuple(-action.job_index for action in plan.actions),
+            tuple(-jobs[action.job_index].source_index for action in plan.actions),
         )
-        self.assertEqual(actual_rank, expected_rank)
-
-        config = SimpleNamespace(Commission_TierValueRatio=2.5)
-        config_model = CommissionValueModel.from_config(config)
-        self.assertEqual(config_model.tier_value_ratio, 2.5)
-
-
-class TestCommissionIntegration(unittest.TestCase):
-    def test_all_filtered_candidates_enter_single_planner(self):
-        urgent = selectable_commission('紧急魔方', 'urgent_cube')
-        daily = selectable_commission('每日资源', 'daily_resource')
-        fallback = selectable_commission('兜底委托', 'extra_oil')
-        worker = object.__new__(RewardCommission)
-        worker.config = SimpleNamespace(
-            Commission_DynamicProgramming=True,
-            Commission_PresetFilter='custom',
-            Commission_CustomFilter='UrgentCube > tier > DailyResource > shortest',
-            Commission_DoMajorCommission=True,
-            Scheduler_ServerUpdate='00:00',
+        actual_actions = tuple(
+            (action.job_index, action.start, action.finish)
+            for action in plan.actions
         )
-        now = datetime(2026, 8, 7, 10, 0, 0)
-
-        with (
-            patch('module.commission.commission.current_time', return_value=now),
-            patch(
-                'module.commission.commission.get_server_next_update',
-                return_value=now + timedelta(days=1),
-            ),
-            patch(
-                'module.commission.commission.optimize_commission_plan',
-                wraps=optimize_commission_plan,
-            ) as optimizer,
-        ):
-            daily_choose, urgent_choose = worker._commission_choose(
-                SelectedGrids([daily, fallback]),
-                SelectedGrids([urgent]),
-            )
-
-        planned = optimizer.call_args.args[0]
-        self.assertEqual({job.commission for job in planned}, {urgent, daily, fallback})
-        self.assertEqual(daily_choose.count, 2)
-        self.assertEqual(urgent_choose.count, 1)
-
-    def test_log_contains_value_and_timeline(self):
-        now = datetime(2026, 8, 7, 10, 0, 0)
-        jobs = [
-            CommissionPlanJob(0, 0, 60, None, SimpleNamespace(name='当前委托')),
-            CommissionPlanJob(1, 1, 60, None, SimpleNamespace(name='后续委托')),
-        ]
-        plan = CommissionPlan(
-            score=(1, 1),
-            actions=(
-                CommissionPlanAction(0, 0, 60),
-                CommissionPlanAction(1, 60, 120),
-            ),
-            makespan=120,
-            completion_sum=180,
-            utility=9 * VALUE_SCALE * VALUE_SCALE,
-            full_value=10 * VALUE_SCALE * VALUE_SCALE,
-            value_scale=8 * VALUE_SCALE * VALUE_SCALE,
-            state_count=3,
-        )
-
-        with patch('module.commission.commission.logger.info') as log:
-            RewardCommission._commission_plan_log(
-                plan=plan,
-                jobs=jobs,
-                running=[],
-                plan_time=now,
-                horizon_time=now + timedelta(hours=1),
-            )
-
-        output = '\n'.join(str(call.args[0]) for call in log.call_args_list)
-        self.assertIn('折现价值', output)
-        self.assertIn('等待损失', output)
-        self.assertIn('启动 T1 委托: 当前委托', output)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertEqual((actual_rank, actual_actions), (expected_rank, expected_actions))

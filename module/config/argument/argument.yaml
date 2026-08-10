@@ -640,6 +640,9 @@ Commission:
   DelayHalfLife:
     type: input
     value: 100.0
+  DeadlineFutureHorizon:
+    type: input
+    value: 0.5
   FilterValueFloor:
     type: input
     value: 0.6
@@ -663,6 +666,9 @@ Commission:
     > UrgentDrill-1 > UrgentDrill-1:30 > UrgentDrill-1:10
     > Extra-0:20 > Extra-0:30 > Extra-1:00 > Extra-1:30 > Extra-2:00
     > shortest
+  Blacklist:
+    type: textarea
+    value: ""
   DoMajorCommission: false
   GemNotify:
     type: checkbox

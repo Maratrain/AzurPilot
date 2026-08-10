@@ -163,11 +163,34 @@ class RewardCommission(UI, InfoHandler):
 
     def _commission_choose(self, daily, urgent):
         """根据实验开关分派委托选择算法。"""
+        blacklist = self._commission_blacklist()
+        if blacklist:
+            logger.attr('委托黑名单', ', '.join(blacklist))
         dynamic = bool(getattr(self.config, 'Commission_DynamicProgramming', False))
         logger.attr('委托选择算法', '动态规划（实验性）' if dynamic else '传统贪心策略')
         if dynamic:
             return self._commission_choose_dynamic(daily, urgent)
         return self._commission_choose_legacy(daily, urgent)
+
+    def _commission_blacklist(self):
+        """解析以英文半角逗号分隔的委托过滤规则。"""
+        blacklist = []
+        raw = getattr(self.config, 'Commission_Blacklist', '') or ''
+        for rule in str(raw).split(','):
+            rule = rule.strip()
+            if not rule:
+                continue
+            if rule not in blacklist:
+                blacklist.append(rule)
+        return blacklist
+
+    def _commission_is_blacklisted(self, commission):
+        """检查委托是否匹配任一黑名单过滤规则。"""
+        for rule in self._commission_blacklist():
+            parsed = COMMISSION_FILTER.parse_filter(rule)
+            if COMMISSION_FILTER.apply_filter_to_obj(commission, parsed):
+                return True
+        return False
 
     def _commission_choose_legacy(self, daily, urgent):
         """按过滤器顺序贪心选择委托，保持默认传统行为。"""
@@ -232,9 +255,10 @@ class RewardCommission(UI, InfoHandler):
     def _commission_choose_dynamic(self, daily, urgent):
         """使用启动时间折现价值选择当前应启动的委托。
 
-        tier 使用有限倍率表示基础价值，层内候选编号提供有下限的价值修正，
-        每条委托再按预计启动等待时间指数折现。规划器最大化折现价值总和，
-        因此低价值限时委托只有在收益足以覆盖其造成的等待损失时才会被保留。
+        tier 使用有限倍率表示基础价值，层内候选编号提供有下限的价值修正。
+        每条委托统一按预计启动等待、最晚启动窗口和基础等待半衰期折现；
+        没有游戏内截止时间的委托以服务器刷新时刻作为截止时间。规划器最大化
+        折现价值总和，因此低价值委托只有在收益足以覆盖等待损失时才会被保留。
 
         Args:
             daily (SelectedGrids):
@@ -304,10 +328,13 @@ class RewardCommission(UI, InfoHandler):
             source_index = 0
             for tier_index, tier in enumerate(tiers):
                 for filter_index, comm in tier:
-                    deadline = None
-                    deadline_time = getattr(comm, 'deadline_time', None)
-                    if deadline_time is not None:
-                        deadline = max(int((deadline_time - plan_time).total_seconds()), 0)
+                    # 规划层只接受统一的有限截止时间。源数据的 None 仅表示游戏
+                    # 没有显式倒计时，此时使用本轮实际服务器刷新时刻。
+                    deadline_time = getattr(comm, 'deadline_time', None) or horizon_time
+                    deadline = int((deadline_time - plan_time).total_seconds())
+                    if deadline <= 0:
+                        logger.info(f'[委托-规划] 忽略已过期委托: {comm}')
+                        continue
                     jobs.append(CommissionPlanJob(
                         source_index=source_index,
                         tier=tier_index,
@@ -326,7 +353,11 @@ class RewardCommission(UI, InfoHandler):
                 logger.warning(f'[委托-规划] 价值模型参数无效，使用默认值: {error}')
                 value_model = DEFAULT_VALUE_MODEL
             logger.info(f'[委托-规划] Tier 价值倍率: {value_model.tier_value_ratio}')
-            logger.info(f'[委托-规划] 等待半衰期: {timedelta(seconds=value_model.delay_half_life)}')
+            logger.info(f'[委托-规划] 基础等待半衰期: {timedelta(seconds=value_model.delay_half_life)}')
+            logger.info(
+                f'[委托-规划] Deadline 折现基准时间: '
+                f'{timedelta(seconds=value_model.deadline_future_horizon)}'
+            )
             logger.info(f'[委托-规划] 层内价值下限: {value_model.filter_value_floor / 100:.2f}%')
             logger.info(f'[委托-规划] 层内编号半衰期: {value_model.filter_value_half_life:g}')
             plan, planned_jobs = optimize_commission_plan(
@@ -375,7 +406,19 @@ class RewardCommission(UI, InfoHandler):
         logger.info(f'[委托-规划] 折现价值: {utility:.6f} T1')
         logger.info(f'[委托-规划] 立即启动价值: {full_value:.6f} T1')
         logger.info(f'[委托-规划] 等待损失: {delay_loss:.6f} T1')
-        logger.info(f'[委托-规划] 搜索状态数: {plan.state_count}')
+        logger.info(
+            f'[委托-规划] 搜索状态数: {plan.state_count}, '
+            f'束宽: {plan.beam_width}, 裁剪: {plan.pruned_state_count}'
+        )
+        if plan.optimality_proven:
+            logger.info('[委托-规划] 最优性证书: 已证明当前计划为全局最优')
+        else:
+            upper_value = plan.utility_upper_bound / plan.value_scale
+            gap = plan.utility_gap / plan.value_scale
+            logger.info(
+                f'[委托-规划] 最优性证书: 尚未证明，严格上界 {upper_value:.6f} T1，'
+                f'最大可能差距 {gap:.6f} T1'
+            )
         logger.info(f'[委托-规划] 规划边界: {horizon_time:%Y-%m-%d %H:%M:%S}')
         logger.info('[委托-规划] 比较规则: 折现总价值 > 未折现总价值 > 最晚结束时间 > 完成时间总和 > 稳定编号')
 
@@ -402,7 +445,7 @@ class RewardCommission(UI, InfoHandler):
         for job in jobs:
             if job.source_index in selected:
                 continue
-            if job.deadline is not None and job.deadline <= horizon:
+            if job.deadline < horizon:
                 events.setdefault(job.deadline, []).append(
                     f'截止且放弃 T{job.tier + 1} 委托: {job.commission.name}'
                 )
@@ -423,8 +466,9 @@ class RewardCommission(UI, InfoHandler):
     def _commission_check(self, commission):
         """检查委托是否符合执行条件。
 
-        过滤掉无效委托、非待启动状态的委托，以及用户配置中
-        明确禁用的主线委托（major commission）。
+        过滤掉无效委托、非待启动状态的委托、黑名单中的委托，以及用户配置中
+        明确禁用的主线委托（major commission）。黑名单复用委托过滤器语法，
+        可按委托类别、奖励类型和时长进行匹配。
 
         Args:
             commission (Commission): 待检查的委托对象。
@@ -433,6 +477,8 @@ class RewardCommission(UI, InfoHandler):
             bool: 委托是否可以被选择执行。
         """
         if not commission.valid or commission.status != 'pending':
+            return False
+        if self._commission_is_blacklisted(commission):
             return False
         if not self.config.Commission_DoMajorCommission and commission.category_str == 'major':
             return False
@@ -635,6 +681,9 @@ class RewardCommission(UI, InfoHandler):
                     current.call('convert_to_night')  # 将额外委托转换为夜间委托
                 if current.count >= 1:
                     current = current[0]
+                    if not self._commission_check(current):
+                        logger.warning(f'[委托-启动] 当前委托已被过滤: {current.name}')
+                        return False
                     if current == comm:
                         logger.info('[委托-启动] 已选择正确的委托')
                     else:
@@ -680,7 +729,7 @@ class RewardCommission(UI, InfoHandler):
                 # 不同扫描中委托信息相同，但位置可能不同。
                 current = None
                 for new_comm in new:
-                    if new_comm == comm:
+                    if self._commission_check(new_comm) and new_comm == comm:
                         current = new_comm
                 if current is not None:
                     if self._commission_start_click(current, is_urgent=is_urgent):

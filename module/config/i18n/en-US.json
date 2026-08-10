@@ -1952,19 +1952,23 @@
     },
     "DynamicProgramming": {
       "name": "Experimental Dynamic Programming",
-      "help": "When disabled, commissions are selected greedily in filter order. Enable it to use the exact global planner and the four value-model settings below."
+      "help": "When disabled, commissions are selected greedily in filter order. Enable it to use the polynomial planner with a rigorous optimality certificate and the five value-model settings below."
     },
     "TierValueRatio": {
       "name": "Adjacent Tier Value Ratio",
-      "help": "Base-value ratio between one tier and the next; must be greater than 1. Higher values make the planner less willing to delay a higher tier for a lower tier. Default: 8."
+      "help": "Base-value ratio between one tier and the next; must be greater than 1. Higher values make the planner less willing to delay a higher tier for a lower tier. Default: 2."
     },
     "DelayHalfLife": {
-      "name": "Delay Value Half-Life (Hours)",
-      "help": "A commission's discounted value halves after this many hours of expected start delay. Lower values penalize delay more strongly. One decimal place is supported."
+      "name": "Base Delay Half-Life (Hours)",
+      "help": "H in the unified factor 2^(-s/H). Lower values apply a stronger base delay penalty to every commission. Must be positive; one decimal place is supported."
+    },
+    "DeadlineFutureHorizon": {
+      "name": "Deadline Discount Scale (Hours)",
+      "help": "T in the unified relative-window exponent (T/d)^2. Larger values impose a stronger penalty for the same start delay and deadline. Must be positive; one decimal place is supported. Default: 2.0 hours."
     },
     "FilterValueFloor": {
       "name": "In-Tier Filter Value Floor",
-      "help": "Minimum value fraction retained by very late rules within one tier. Range: greater than 0 and at most 1. Lower values make in-tier order matter more. Default: 0.5."
+      "help": "Minimum value fraction retained by very late rules within one tier. Range: greater than 0 and at most 1. Lower values make in-tier order matter more. Default: 0.6."
     },
     "FilterValueHalfLife": {
       "name": "In-Tier Index Half-Life",
@@ -1973,6 +1977,10 @@
     "CustomFilter": {
       "name": "Custom Commission Filter",
       "help": "Set Commission Filter to Customize to use this filter. With experimental dynamic programming enabled, tier separates value levels; without tier, every rule becomes its own level. The planner discounts finite tier and in-tier values by expected start delay and may drop low-value commissions. The traditional greedy strategy ignores tier; shortest fills unmatched slots."
+    },
+    "Blacklist": {
+      "name": "Commission Blacklist",
+      "help": "Enter commission filter rules to ignore, separated by half-width commas (,), for example: ExtraBook, UrgentOil-8, Major. The blacklist applies to both the traditional greedy strategy and the planner."
     },
     "DoMajorCommission": {
       "name": "Make the main commission (1200 oil/1000 oil commission)",
@@ -5990,8 +5998,8 @@
       "help": "Username for SSH login, e.g.: root"
     },
     "RemoteSSHPublicKey": {
-      "name": "Public Key",
-      "help": "Public key content for SSH login (if needed)"
+      "name": "Private Key",
+      "help": "Private key content for SSH login (if needed)"
     },
     "RemoteStartCommand": {
       "name": "Remote Start Command",
