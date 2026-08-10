@@ -792,19 +792,21 @@
     },
     "OcrModelVersionEnglish": {
       "name": "OCR English Model Version",
-      "help": "Choose the English OCR model tier. Lite is lightest and fastest, Standard is balanced, Pro is highest accuracy. Auto uses Standard. This affects the English Azur Lane model.",
+      "help": "Choose the English OCR model tier. Lite is lightest and fastest, Standard is balanced, Pro is highest accuracy. Auto uses Standard. alocr_en_v2_6 is the legacy AlOCR English model (ONNX backend only). This affects the English Azur Lane model.",
       "auto": "Auto Recommended",
       "lite": "Lite",
       "standard": "Standard",
-      "pro": "Pro"
+      "pro": "Pro",
+      "alocr_en_v2_6": "AlOCR v2.6 (Legacy)"
     },
     "OcrModelVersionChinese": {
       "name": "OCR Chinese Model Version",
-      "help": "Choose the Simplified Chinese OCR model tier. Lite is lightest and fastest, Standard is balanced, Pro is highest accuracy. Auto uses Standard. This affects cnocr/Chinese models.",
+      "help": "Choose the Simplified Chinese OCR model tier. Lite is lightest and fastest, Standard is balanced, Pro is highest accuracy. Auto uses Standard. alocr_cn_v3 is the legacy AlOCR Chinese model (ONNX backend only). This affects cnocr/Chinese models.",
       "auto": "Auto Recommended",
       "lite": "Lite",
       "standard": "Standard",
-      "pro": "Pro"
+      "pro": "Pro",
+      "alocr_cn_v3": "AlOCR v3 (Legacy)"
     },
     "OcrModelVersionJapanese": {
       "name": "OCR Japanese Model Version",

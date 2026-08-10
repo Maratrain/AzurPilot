@@ -26,3 +26,17 @@ uv run python -m dev_tools.ocr_ncnn_convert
 
 文本检测使用 PP-OCRv6 系列检测模型（`det/` 目录），检测 + 识别流水线在
 ncnn 和 ONNX 后端有不同实现。
+
+## 旧版 AlOCR 专用模型（可选）
+
+从 git 历史恢复的旧版 AlOCR 专用识别模型，作为 `OcrModelVersionEnglish` /
+`OcrModelVersionChinese` 的可选版本在 GUI 中提供：
+
+| 目录 | 内容 |
+|---|---|
+| `azur_lane/alocr-en-us-v2.6.nvc.onnx` | 旧版 AlOCR v2.6 英文数字/字母识别模型（PP-OCRv4 结构，仅 ONNX 后端） |
+| `azur_lane/en_dict.txt` | 上述英文模型的字典 |
+| `zh-CN/alocr-zh-cn-v3.dtk.onnx` | 旧版 AlOCR v3 简体中文识别模型（PP-OCRv5 结构，仅 ONNX 后端） |
+| `zh-CN/cn.txt` | 上述中文模型的字典 |
+
+默认仍使用 PP-OCRv6（`standard`），需要时可在 GUI 中单独切换为旧版模型。

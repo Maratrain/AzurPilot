@@ -215,10 +215,10 @@ Optimization:
     option: [true, false]
   OcrModelVersionEnglish:
     value: auto
-    option: [auto, lite, standard, pro]
+    option: [auto, lite, standard, pro, alocr_en_v2_6]
   OcrModelVersionChinese:
     value: auto
-    option: [auto, lite, standard, pro]
+    option: [auto, lite, standard, pro, alocr_cn_v3]
   OcrModelVersionJapanese:
     value: auto
     option: [auto, lite, standard, pro]

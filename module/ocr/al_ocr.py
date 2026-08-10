@@ -87,6 +87,14 @@ PPOCR_V6_TINY_DICT = "bin/ocr_models/ppocr-v6/ppocrv6_tiny_dict.txt"
 PPOCR_V6_EN_RESTRICTED_DICT = "bin/ocr_models/ppocr-v6/ppocrv6_en_restricted_dict.txt"
 PPOCR_V6_TINY_EN_RESTRICTED_DICT = "bin/ocr_models/ppocr-v6/ppocrv6_tiny_en_restricted_dict.txt"
 
+# 旧版 AlOCR 专用模型（从 git 历史恢复，仅 ONNX 后端可用）。
+# alocr_en_v2_6 为英文数字/字母识别模型（PP-OCRv4 结构），
+# alocr_cn_v3 为简体中文识别模型（PP-OCRv5 结构）。
+ALOCR_EN_V2_6_MODEL = "bin/ocr_models/azur_lane/alocr-en-us-v2.6.nvc.onnx"
+ALOCR_EN_DICT = "bin/ocr_models/azur_lane/en_dict.txt"
+ALOCR_CN_V3_MODEL = "bin/ocr_models/zh-CN/alocr-zh-cn-v3.dtk.onnx"
+ALOCR_CN_DICT = "bin/ocr_models/zh-CN/cn.txt"
+
 # 各逻辑模型的三档参数。azur_lane/azur_lane_jp 使用受限 en 字典，
 # 其余使用完整字典。
 ONNX_MODEL_PARAMS = {
@@ -94,6 +102,7 @@ ONNX_MODEL_PARAMS = {
         "lite": (PPOCR_V6_LITE_MODEL, PPOCR_V6_TINY_EN_RESTRICTED_DICT, OCRVersion.PPOCRV6),
         "standard": (PPOCR_V6_STANDARD_MODEL, PPOCR_V6_EN_RESTRICTED_DICT, OCRVersion.PPOCRV6),
         "pro": (PPOCR_V6_PRO_MODEL, PPOCR_V6_EN_RESTRICTED_DICT, OCRVersion.PPOCRV6),
+        "alocr_en_v2_6": (ALOCR_EN_V2_6_MODEL, ALOCR_EN_DICT, OCRVersion.PPOCRV4),
     },
     "azur_lane_jp": {
         "lite": (PPOCR_V6_LITE_MODEL, PPOCR_V6_TINY_EN_RESTRICTED_DICT, OCRVersion.PPOCRV6),
@@ -109,6 +118,7 @@ ONNX_MODEL_PARAMS = {
         "lite": (PPOCR_V6_LITE_MODEL, PPOCR_V6_TINY_DICT, OCRVersion.PPOCRV6),
         "standard": (PPOCR_V6_STANDARD_MODEL, PPOCR_V6_FULL_DICT, OCRVersion.PPOCRV6),
         "pro": (PPOCR_V6_PRO_MODEL, PPOCR_V6_FULL_DICT, OCRVersion.PPOCRV6),
+        "alocr_cn_v3": (ALOCR_CN_V3_MODEL, ALOCR_CN_DICT, OCRVersion.PPOCRV5),
     },
     "jp": {
         "lite": (PPOCR_V6_LITE_MODEL, PPOCR_V6_TINY_DICT, OCRVersion.PPOCRV6),

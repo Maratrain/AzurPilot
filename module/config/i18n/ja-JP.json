@@ -792,19 +792,21 @@
     },
     "OcrModelVersionEnglish": {
       "name": "OCR 英語モデルバージョン",
-      "help": "英語 OCR モデルの階層を選択します。lite は最軽量で最速、standard はバランス型、pro は最高精度です。auto は standard を使用します。この項目は英語 Azur Lane モデルに適用されます。",
+      "help": "英語 OCR モデルの階層を選択します。lite は最軽量で最速、standard はバランス型、pro は最高精度です。auto は standard を使用します。alocr_en_v2_6 は旧版 AlOCR 英語モデル（ONNX バックエンドのみ）です。この項目は英語 Azur Lane モデルに適用されます。",
       "auto": "自動推奨",
       "lite": "Lite（軽量）",
       "standard": "Standard（標準）",
-      "pro": "Pro（高精度）"
+      "pro": "Pro（高精度）",
+      "alocr_en_v2_6": "AlOCR v2.6（旧版）"
     },
     "OcrModelVersionChinese": {
       "name": "OCR 中国語モデルバージョン",
-      "help": "簡体中国語 OCR モデルの階層を選択します。lite は最軽量で最速、standard はバランス型、pro は最高精度です。auto は standard を使用します。この項目は cnocr/中国語モデルに適用されます。",
+      "help": "簡体中国語 OCR モデルの階層を選択します。lite は最軽量で最速、standard はバランス型、pro は最高精度です。auto は standard を使用します。alocr_cn_v3 は旧版 AlOCR 中国語モデル（ONNX バックエンドのみ）です。この項目は cnocr/中国語モデルに適用されます。",
       "auto": "自動推奨",
       "lite": "Lite（軽量）",
       "standard": "Standard（標準）",
-      "pro": "Pro（高精度）"
+      "pro": "Pro（高精度）",
+      "alocr_cn_v3": "AlOCR v3（旧版）"
     },
     "OcrModelVersionJapanese": {
       "name": "OCR 日本語モデルバージョン",

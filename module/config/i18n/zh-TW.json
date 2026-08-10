@@ -792,19 +792,21 @@
     },
     "OcrModelVersionEnglish": {
       "name": "OCR 英文模型版本",
-      "help": "選擇英文 OCR 模型檔位。lite 輕量最快，standard 均衡，pro 精度最高。auto 使用 standard。此項影響英文 Azur Lane 模型。",
+      "help": "選擇英文 OCR 模型檔位。lite 輕量最快，standard 均衡，pro 精度最高。auto 使用 standard。alocr_en_v2_6 為舊版 AlOCR 專用英文模型，僅 ONNX 後端可用。此項影響英文 Azur Lane 模型。",
       "auto": "自動推薦",
       "lite": "Lite 輕量",
       "standard": "Standard 標準",
-      "pro": "Pro 高精度"
+      "pro": "Pro 高精度",
+      "alocr_en_v2_6": "AlOCR v2.6（舊版）"
     },
     "OcrModelVersionChinese": {
       "name": "OCR 簡中模型版本",
-      "help": "選擇簡體中文 OCR 模型檔位。lite 輕量最快，standard 均衡，pro 精度最高。auto 使用 standard。此項影響 cnocr/中文模型。",
+      "help": "選擇簡體中文 OCR 模型檔位。lite 輕量最快，standard 均衡，pro 精度最高。auto 使用 standard。alocr_cn_v3 為舊版 AlOCR 專用中文模型，僅 ONNX 後端可用。此項影響 cnocr/中文模型。",
       "auto": "自動推薦",
       "lite": "Lite 輕量",
       "standard": "Standard 標準",
-      "pro": "Pro 高精度"
+      "pro": "Pro 高精度",
+      "alocr_cn_v3": "AlOCR v3（舊版）"
     },
     "OcrModelVersionJapanese": {
       "name": "OCR 日文模型版本",

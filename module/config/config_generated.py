@@ -131,8 +131,8 @@ class GeneratedConfig:
     Optimization_OcrDevice = 'auto'  # auto, qnn_npu, openvino_npu, openvino_gpu, gpu, openvino_cpu, cpu, ane
     Optimization_OcrBackend = 'auto'  # auto, onnxruntime, ncnn
     Optimization_OcrWindowsMlVendorEp = True  # True, False
-    Optimization_OcrModelVersionEnglish = 'auto'  # auto, lite, standard, pro
-    Optimization_OcrModelVersionChinese = 'auto'  # auto, lite, standard, pro
+    Optimization_OcrModelVersionEnglish = 'auto'  # auto, lite, standard, pro, alocr_en_v2_6
+    Optimization_OcrModelVersionChinese = 'auto'  # auto, lite, standard, pro, alocr_cn_v3
     Optimization_OcrModelVersionJapanese = 'auto'  # auto, lite, standard, pro
     Optimization_OcrModelVersionTraditionalChinese = 'auto'  # auto, lite, standard, pro
     Optimization_ScreenshotInterval = 0.3
