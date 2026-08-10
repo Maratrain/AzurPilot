@@ -7,9 +7,20 @@ import subprocess
 import zipfile
 from pathlib import Path
 
+# Cloudflare Worker 单文件上限 25MB，24MB 留出余量
+MAX_PACK_BYTES = 24 * 1024 * 1024
+
 
 def run_git(*args):
     return subprocess.check_output(["git", *args], text=True).strip()
+
+
+def fmt_bytes(n):
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1024:
+            return f"{n:.1f} {unit}"
+        n /= 1024
+    return f"{n:.1f} TB"
 
 
 def build_pack(latest, old, output_dir):
@@ -36,6 +47,15 @@ def build_pack(latest, old, output_dir):
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zipped:
         zipped.write(pack, pack.name)
         zipped.write(idx, idx.name)
+
+    size = zip_path.stat().st_size
+    if size > MAX_PACK_BYTES:
+        # 超出 Worker 单文件存储上限，生成也无法上传，直接清理
+        for path in (zip_path, pack, idx):
+            path.chmod(stat.S_IWRITE)
+            path.unlink()
+        print(f"  skip {old}.zip ({fmt_bytes(size)} > {fmt_bytes(MAX_PACK_BYTES)})")
+        return None
 
     return zip_path
 
@@ -78,11 +98,19 @@ def main():
     )
 
     latest_dir = output / latest
+    skipped = 0
     for old in old_commits:
         latest_dir.mkdir(parents=True, exist_ok=True)
-        build_pack(latest=latest, old=old, output_dir=latest_dir)
+        if build_pack(latest=latest, old=old, output_dir=latest_dir) is None:
+            skipped += 1
     cleanup_pack_artifacts(latest_dir)
 
+    print(f"Generated {len(old_commits) - skipped} update pack(s)")
+    if skipped > 0:
+        print(
+            f"Skipped {skipped} update pack(s) larger than "
+            f"{fmt_bytes(MAX_PACK_BYTES)} (Cloudflare Worker file limit)"
+        )
     print("*" * 20)
 
 
