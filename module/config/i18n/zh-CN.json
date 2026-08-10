@@ -694,8 +694,8 @@
       "help": "登录 SSH 的用户名，例如: root"
     },
     "RemoteSSHPublicKey": {
-      "name": "SSH 公钥",
-      "help": "SSH 登录所需的公钥内容（如果需要）"
+      "name": "SSH 私钥",
+      "help": "SSH 登录所需的私钥内容（如果需要）"
     },
     "RemoteStartCommand": {
       "name": "远程启动指令",
@@ -6010,8 +6010,8 @@
       "help": "登录 SSH 的用户名，例如: root"
     },
     "RemoteSSHPublicKey": {
-      "name": "访问公钥",
-      "help": "SSH 登录所需的公钥内容（如果需要）"
+      "name": "访问私钥",
+      "help": "SSH 登录所需的私钥内容（如果需要）"
     },
     "RemoteStartCommand": {
       "name": "远程启动命令",

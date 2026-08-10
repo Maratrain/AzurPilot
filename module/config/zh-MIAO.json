@@ -262,8 +262,8 @@
       "help": "登录SSH的用户名喵，例如: root喵~"
     },
     "RemoteSSHPublicKey": {
-      "name": "SSH 公钥喵",
-      "help": "SSH登录所需的公钥内容喵（如果需要）~"
+      "name": "SSH 私钥喵",
+      "help": "SSH登录所需的私钥内容喵（如果需要）~"
     },
     "RemoteStartCommand": {
       "name": "远程启动指令喵",
@@ -1947,8 +1947,8 @@
       "help": "登录 SSH 的用户名喵，例如: root"
     },
     "RemoteSSHPublicKey": {
-      "name": "访问公钥喵",
-      "help": "SSH 登录所需的公钥内容喵（如果需要）"
+      "name": "访问私钥喵",
+      "help": "SSH 登录所需的私钥内容喵（如果需要）"
     },
     "RemoteStartCommand": {
       "name": "远程启动命令喵",
