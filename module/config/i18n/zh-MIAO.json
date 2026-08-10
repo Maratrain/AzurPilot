@@ -6006,8 +6006,8 @@
       "help": "登录 SSH 的用户名，例如: root (´・ω・`)"
     },
     "RemoteSSHPublicKey": {
-      "name": "访问公钥",
-      "help": "SSH 登录所需的公钥内容 (´・ω・`)"
+      "name": "访问私钥",
+      "help": "SSH 登录所需的私钥内容 (´・ω・`)"
     },
     "RemoteStartCommand": {
       "name": "远程启动命令喵",
