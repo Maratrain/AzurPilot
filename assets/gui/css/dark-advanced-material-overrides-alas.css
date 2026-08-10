@@ -301,14 +301,6 @@ select option {
 }
 
 
-/* 普通统计 hover */
-#pywebio-scope-opsi_stats .simple-table tr:hover td,
-#pywebio-scope-ship_exp_table .simple-table tr:hover td {
-	background: rgba(51,65,85,0.35) !important;
-	color: #ffffff !important;
-}
-
-
 /* 委托收益 */
 #pywebio-scope-commission_income .commission-income-table th {
 	background: rgba(15,23,42,0.96) !important;
@@ -331,9 +323,21 @@ select option {
 }
 
 
-/* 委托收益 hover */
-#pywebio-scope-commission_income .commission-income-table tr:hover td,
-#pywebio-scope-commission_income .commission-income-recent-row:hover {
-	background: rgba(51,65,85,0.35) !important;
+/* 高级材质暗色：统一普通统计表格 hover */
+#pywebio-scope-content table:not(.commission-income-table) tr:hover,
+#pywebio-scope-content table:not(.commission-income-table) tr:hover td,
+#pywebio-scope-content .table:not(.commission-income-table) tr:hover,
+#pywebio-scope-content .table:not(.commission-income-table) tr:hover td {
+	background: rgba(18,45,85,0.65) !important;
+	color: #ffffff !important;
+}
+
+/* 高级材质暗色：委托收益表格 hover */
+#pywebio-scope-commission_income table tbody tr:hover {
+	background: rgba(18,45,85,0.35) !important;
+}
+
+#pywebio-scope-commission_income table tbody tr:hover td {
+	background: rgba(18,45,85,0.35) !important;
 	color: #ffffff !important;
 }
