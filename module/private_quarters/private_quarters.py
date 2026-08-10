@@ -64,9 +64,9 @@ class PrivateQuarters(PQInteract, PQShop):
     # Key: str, server name
     # Value: list[str]
     not_supported_filter = {
-        'cn': ('nakhimov'),
+        'cn': (),
         'en': (),
-        'jp': ('nakhimov'),
+        'jp': ('nakhimov',),
         'tw': ('taihou', 'nakhimov'),
     }
 
