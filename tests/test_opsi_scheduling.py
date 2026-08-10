@@ -1,12 +1,13 @@
-from contextlib import nullcontext
-from types import SimpleNamespace
 import unittest
+from contextlib import contextmanager, nullcontext
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from module.campaign.os_run import OSCampaignRun
 from module.config.config import TaskEnd
 from module.os.tasks.prevent_action_point_overflow import OpsiPreventActionPointOverflow
 from module.os.tasks.scheduling import OpsiScheduling
+from module.os_handler.action_point import ActionPointLimit
 
 
 class SmartSchedulingConfig:
@@ -31,6 +32,76 @@ class SmartSchedulingConfig:
     @staticmethod
     def task_stop():
         raise TaskEnd
+
+
+class MeowPreserveConfig:
+    """提供智能调度代跑短猫时的共享行动力保留状态。"""
+
+    def __init__(self):
+        self.OS_ACTION_POINT_PRESERVE = 180
+
+    @contextmanager
+    def temporary(self, **kwargs):
+        backup = {key: getattr(self, key) for key in kwargs}
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        try:
+            yield
+        finally:
+            for key, value in backup.items():
+                setattr(self, key, value)
+
+    @staticmethod
+    def task_stop():
+        raise AssertionError('达到短猫保留值不应停止智能调度')
+
+
+class SchedulingMeowHarness:
+    """复现短猫达到自身阈值后异常冒泡的最小调度环境。"""
+
+    TASK_NAME_MEOWFFICER_FARMING = OpsiScheduling.TASK_NAME_MEOWFFICER_FARMING
+
+    def __init__(self):
+        self.config = MeowPreserveConfig()
+        self.executed_task_name = None
+
+    def run_meowfficer_farming_once(self, ap_preserve):
+        self.config.OS_ACTION_POINT_PRESERVE = ap_preserve
+        raise ActionPointLimit(total=5985, preserve=ap_preserve)
+
+    def _run_with_opsi_task_context(self, task_name, func, **kwargs):
+        self.executed_task_name = task_name
+        return func(**kwargs)
+
+    def run_scheduled_meowfficer_farming(self, ap_preserve):
+        return OpsiScheduling._run_scheduled_meowfficer_farming(self, ap_preserve)
+
+
+class SchedulingMeowCostLimitHarness(SchedulingMeowHarness):
+    def run_meowfficer_farming_once(self, ap_preserve):
+        self.config.OS_ACTION_POINT_PRESERVE = ap_preserve
+        raise ActionPointLimit(current=15, total=15, cost=120)
+
+
+class TestSmartSchedulingMeowPreserve(unittest.TestCase):
+    def test_returns_to_scheduling_and_restores_global_preserve_at_meow_limit(self):
+        scheduling = SchedulingMeowHarness()
+
+        scheduling.run_scheduled_meowfficer_farming(ap_preserve=6000)
+
+        self.assertEqual(
+            scheduling.executed_task_name,
+            OpsiScheduling.TASK_NAME_MEOWFFICER_FARMING,
+        )
+        self.assertEqual(scheduling.config.OS_ACTION_POINT_PRESERVE, 180)
+
+    def test_propagates_real_ap_shortage_and_still_restores_global_preserve(self):
+        scheduling = SchedulingMeowCostLimitHarness()
+
+        with self.assertRaises(ActionPointLimit):
+            scheduling.run_scheduled_meowfficer_farming(ap_preserve=6000)
+
+        self.assertEqual(scheduling.config.OS_ACTION_POINT_PRESERVE, 180)
 
 
 class TestSmartSchedulingExploreDelay(unittest.TestCase):
