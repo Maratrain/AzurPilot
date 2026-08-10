@@ -197,59 +197,77 @@ class HomeMixin(WebUIMixinBase):
                 onclick=_disable,
             )
     def init_wallpaper(self):
+        """异步获取壁纸 URL，页面先渲染不阻塞。
+
+        壁纸 URL 在后台线程中获取，获取成功后通过 JS 动态注入 CSS 变量，
+        避免网络请求阻塞页面首次渲染。
+        """
         if getattr(self, "wallpaper_url", None):
             return
 
-        MAX_SIZE = 1 * 1024 * 1024  # 1MB
-        MAX_RETRIES = 20
+        # 标记为空字符串，避免重复触发
+        self.wallpaper_url = ""
 
-        for attempt in range(1, MAX_RETRIES + 1):
-            try:
-                response = requests.get(
-                    "https://api.lolicon.app/setu/v2",
-                    params={
-                        "r18": 0,
-                        "num": 1,
-                        "size": "original",
-                        "excludeAI": True,
-                        "aspectRatio": "gt1",
-                        "dsc": False,
-                        "tag": "碧蓝航线|AzurLane|Azur Lane|アズールレーン",
-                    },
-                    timeout=10,
-                )
-                response.raise_for_status()
+        def _fetch_wallpaper():
+            MAX_SIZE = 1 * 1024 * 1024  # 1MB
+            MAX_RETRIES = 20
 
-                data = response.json()["data"][0]
-                image_url = data["urls"]["original"]
-
-                # 检查图片大小，超过 1MB 重新请求
-                head = requests.head(image_url, timeout=5, allow_redirects=True)
-                content_length = int(head.headers.get("Content-Length", 0))
-                if content_length > MAX_SIZE:
-                    logger.info(
-                        f"[WebUI] 背景图过大 ({content_length / 1024 / 1024:.1f}MB)，第 {attempt} 次重试"
+            for attempt in range(1, MAX_RETRIES + 1):
+                try:
+                    response = requests.get(
+                        "https://api.lolicon.app/setu/v2",
+                        params={
+                            "r18": 0,
+                            "num": 1,
+                            "size": "original",
+                            "excludeAI": True,
+                            "aspectRatio": "gt1",
+                            "dsc": False,
+                            "tag": "碧蓝航线|AzurLane|Azur Lane|アズールレーン",
+                        },
+                        timeout=10,
                     )
-                    if attempt < MAX_RETRIES:
-                        continue
-                    logger.info(
-                        f"[WebUI] 背景图连续 {MAX_RETRIES} 次超过限制，跳过"
+                    response.raise_for_status()
+
+                    data = response.json()["data"][0]
+                    image_url = data["urls"]["original"]
+
+                    # 检查图片大小，超过 1MB 重新请求
+                    head = requests.head(image_url, timeout=5, allow_redirects=True)
+                    content_length = int(head.headers.get("Content-Length", 0))
+                    if content_length > MAX_SIZE:
+                        logger.info(
+                            f"[WebUI] 背景图过大 ({content_length / 1024 / 1024:.1f}MB)，第 {attempt} 次重试"
+                        )
+                        if attempt < MAX_RETRIES:
+                            continue
+                        logger.info(
+                            f"[WebUI] 背景图连续 {MAX_RETRIES} 次超过限制，跳过"
+                        )
+                        return
+
+                    self.wallpaper_url = image_url
+                    logger.info(f"[WebUI] 当前背景图: {self.wallpaper_url}")
+
+                    # 通过 JS 动态注入壁纸，触发浏览器异步加载图片
+                    css_value = f'url("{image_url}")'
+                    run_js(
+                        'document.documentElement.style.setProperty('
+                        '"--alas-apple-bg-image", '
+                        f'{json.dumps(css_value)}'
+                        ');'
                     )
-                    self.wallpaper_url = ""
                     return
 
-                self.wallpaper_url = image_url
-                logger.info(
-                    f"[WebUI] 当前背景图: {self.wallpaper_url}"
-                )
-                return
+                except Exception:
+                    if attempt == MAX_RETRIES:
+                        logger.info(
+                            f"[WebUI] 获取背景图连续 {MAX_RETRIES} 次失败，已跳过"
+                        )
 
-            except Exception as e:
-                if attempt == MAX_RETRIES:
-                    self.wallpaper_url = ""
-                    logger.info(
-                        f"[WebUI] 获取背景图连续 {MAX_RETRIES} 次失败，已跳过"
-                    )
+        thread = threading.Thread(target=_fetch_wallpaper, daemon=True)
+        register_thread(thread)
+        thread.start()
 
     def download_wallpaper(self):
         """
