@@ -10423,7 +10423,7 @@
       },
       "DynamicProgramming": {
         "type": "checkbox",
-        "value": false
+        "value": true
       },
       "TierValueRatio": {
         "type": "input",
