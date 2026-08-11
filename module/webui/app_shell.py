@@ -34,8 +34,15 @@ class AppShellMixin(WebUIMixinBase):
     """WebUI会话外壳"""
 
     def initial(self) -> None:
-        self.ALAS_MENU = read_file(filepath_args("menu", self.alas_mod))
-        self.ALAS_ARGS = read_file(filepath_args("args", self.alas_mod))
+        from module.webui.app_cache import get_cached_menu_args
+
+        menu, args = get_cached_menu_args(
+            self.alas_mod,
+            read_file,
+            filepath_args,
+        )
+        self.ALAS_MENU = menu
+        self.ALAS_ARGS = args
 
     def __init__(self) -> None:
         super().__init__()

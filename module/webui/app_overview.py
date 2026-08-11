@@ -32,7 +32,7 @@ class OverviewMixin(WebUIMixinBase):
 
     @use_scope("content", clear=True)
     def alas_overview(self) -> None:
-        self.init_menu(name="Overview")
+        self.init_menu(name="Overview", skip_clear=True)
         self.set_title(t(f"Gui.MenuAlas.Overview"))
         self._overview_snapshot = None
 
@@ -253,7 +253,7 @@ class OverviewMixin(WebUIMixinBase):
 
     @use_scope("content", clear=True)
     def alas_daemon_overview(self, task: str) -> None:
-        self.init_menu(name=task)
+        self.init_menu(name=task, skip_clear=True)
         self.set_title(t(f"Task.{task}.name"))
 
         log = RichLog("log")

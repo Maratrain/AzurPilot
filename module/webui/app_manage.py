@@ -350,7 +350,7 @@ def app_manage(gui: "AlasGUI") -> None:
 
     @use_scope("content", clear=True)
     def _show_new():
-        gui.init_menu(name="ManageNew")
+        gui.init_menu(name="ManageNew", skip_clear=True)
         gui.set_title(t("Gui.AppManage.TitleNew"))
         put_scope("manage_add_form")
         with use_scope("manage_add_form"):

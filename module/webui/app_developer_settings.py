@@ -18,7 +18,7 @@ class DeveloperSettingsMixin(WebUIMixinBase):
 
     @use_scope("content", clear=True)
     def dev_setting(self) -> None:
-        self.init_menu(name="Setting")
+        self.init_menu(name="Setting", skip_clear=True)
         self.set_title(t("Gui.MenuDevelop.Setting"))
         put_scope("develop_detail")
         put_html(

@@ -43,16 +43,19 @@ class InstanceMixin(WebUIMixinBase):
             return
         self._active_aside = config_name
         self.init_aside(name=config_name)
-        clear("content")
         self.alas_name = config_name
         self.alas_mod = get_config_mod(config_name)
         self.alas = ProcessManager.get_manager(config_name)
-        self.alas_config = load_config(config_name)
+
+        # 使用缓存配置，避免每次切换重新 read_file + config_update + write_file
+        from module.webui.app_cache import get_cached_config
+
+        self.alas_config = get_cached_config(config_name, load_config)
+
         if hasattr(self, "state_switch"):
             try:
                 self.state_switch.switch()
             except Exception:
-                # best-effort: ignore if switch not ready
                 pass
         self.initial()
         self.alas_set_menu()
@@ -126,7 +129,7 @@ class InstanceMixin(WebUIMixinBase):
     @use_scope("content", clear=True)
     def ui_import_legacy(self) -> None:
         """管理菜单：导入旧 AzurPilot 数据。"""
-        self.init_menu(name="ManageImportLegacy")
+        self.init_menu(name="ManageImportLegacy", skip_clear=True)
         self.set_title(t("Gui.AppManage.ImportLegacy"))
 
         def import_legacy_upload():
@@ -238,9 +241,8 @@ class InstanceMixin(WebUIMixinBase):
             return
         self._set_manage_mode(True)
         self._active_aside = "Manage"
-        self.init_aside(expand_menu=False)
+        self.init_aside(expand_menu=False, name="Manage")
         self.init_menu()
-        self.active_button("aside", "Manage")
         self.set_title(t("Gui.AppManage.PageTitle"))
         self.alas_name = ""
         if hasattr(self, "alas"):

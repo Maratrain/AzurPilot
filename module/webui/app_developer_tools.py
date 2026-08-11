@@ -102,7 +102,7 @@ class DeveloperToolsMixin(WebUIMixinBase):
 
     @use_scope("content", clear=True)
     def dev_utils(self) -> None:
-        self.init_menu(name="Utils")
+        self.init_menu(name="Utils", skip_clear=True)
         self.set_title(t("Gui.MenuDevelop.Utils"))
         put_scope("develop_detail")
         put_button(

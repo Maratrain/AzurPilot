@@ -30,7 +30,7 @@ class DeveloperUpdateMixin(WebUIMixinBase):
 
     @use_scope("content", clear=True)
     def dev_update(self) -> None:
-        self.init_menu(name="Update")
+        self.init_menu(name="Update", skip_clear=True)
         self.set_title(t("Gui.MenuDevelop.Update"))
 
         put_scope("updater_info")

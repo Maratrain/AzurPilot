@@ -77,11 +77,21 @@ class TaskConfigMixin(WebUIMixinBase):
     @use_scope("menu", clear=True)
     def alas_set_menu(self) -> None:
         """渲染任务菜单及配置搜索入口。"""
+        # 如果菜单和搜索入口已渲染且数据未变，仅调用 alas_overview 更新概览，
+        # 跳过重建数百个 put_button 和数千条搜索索引。
+        if getattr(self, "_menu_rendered", False):
+            data_sig = (id(self.ALAS_MENU), id(self.ALAS_ARGS), lang.LANG, self.alas_name)
+            if getattr(self, "_menu_data_sig", None) == data_sig:
+                self.alas_overview()
+                return
+            self._menu_data_sig = data_sig
+
         put_scope("task_config_search")
         put_scope("task_config_search_results")
         put_scope("task_config_menu_items")
         self._render_config_search_control()
         self._render_task_menu_items()
+        self._menu_rendered = True
         self.alas_overview()
 
     @use_scope("task_config_menu_items", clear=True)
@@ -384,7 +394,7 @@ class TaskConfigMixin(WebUIMixinBase):
         Set arg groups from dict
         """
         config = self.alas_config.read_file(self.alas_name)
-        self.init_menu(name=task)
+        self.init_menu(name=task, skip_clear=True)
         self.set_title(t(f"Task.{task}.name"))
 
         group_outputs: List[Output] = []

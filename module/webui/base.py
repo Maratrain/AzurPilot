@@ -65,6 +65,7 @@ class Frame(Base):
         侧边栏按钮点击时的初始化回调。
 
         展开菜单并高亮指定按钮。菜单由目标页面准备完成后替换。
+        合并 WebSocket 调用以减少网络往返。
 
         Args:
             expand_menu: 是否展开菜单。
@@ -72,32 +73,82 @@ class Frame(Base):
         """
         self.visible = True
         self.task_handler.remove_pending_task()
+        js_parts = []
         if expand_menu:
-            self.expand_menu()
+            js_parts.append(
+                "$('.container-menu-collapsed').removeClass('container-menu-collapsed');\n"
+                "$('#pywebio-scope-content').addClass('container-content-collapsed');\n"
+            )
         if name:
-            self.active_button("aside", name)
+            js_parts.append(
+                "$('button.btn-aside').removeClass('btn-aside-active');\n"
+                "$('div[style*=\"--aside-" + name + "--\"]>button').addClass('btn-aside-active');\n"
+            )
             set_localstorage("aside", name)
+        if js_parts:
+            run_js("".join(js_parts))
 
-    def init_menu(self, collapse_menu: bool = True, name: str = None) -> None:
+    def init_menu(self, collapse_menu: bool = True, name: str = None, *, skip_clear: bool = False) -> None:
         """
         菜单按钮点击时的初始化回调。
 
         清空内容区域，折叠菜单，并高亮指定按钮。
+        将多次 WebSocket 往返合并为尽可能少的调用。
 
         Args:
             collapse_menu: 是否折叠菜单。
             name: 需要高亮的按钮名称（标签）。
+            skip_clear: 如果调用方已通过 @use_scope("content", clear=True) 清空，
+                可设 True 跳过重复 clear，减少一次 WebSocket 往返。
         """
         self.visible = True
         self.page = name
         self.task_handler.remove_pending_task()
         with self._page_lock:
-            self.cleanup_client_resources("__apChartCleanups", "__resourceChartCleanups")
-            clear("content")
-        if collapse_menu:
-            self.collapse_menu()
-        if name:
-            self.active_button("menu", name)
+            js_parts = []
+
+            js_parts.append(
+                "(function () {\n"
+                "  var keys = " + json.dumps(["__apChartCleanups", "__resourceChartCleanups"]) + ";\n"
+                "  keys.forEach(function (key) {\n"
+                "    var cleanups = window[key];\n"
+                "    if (!cleanups) return;\n"
+                "    Object.keys(cleanups).forEach(function (id) {\n"
+                "      if (typeof cleanups[id] === 'function') cleanups[id]();\n"
+                "    });\n"
+                "  });\n"
+                "})();\n"
+            )
+
+            if collapse_menu:
+                js_parts.append(
+                    "$('#pywebio-scope-menu').addClass('container-menu-collapsed');\n"
+                    "$('.container-content-collapsed').removeClass('container-content-collapsed');\n"
+                )
+
+            if name:
+                js_parts.append(
+                    "$('button.btn-menu').removeClass('btn-menu-active');\n"
+                    "$('div[style*=\"--menu-" + name + "--\"]>button').addClass('btn-menu-active');\n"
+                )
+
+            if js_parts:
+                run_js("".join(js_parts))
+
+            # clear("content") 也是阻塞的 WebSocket 调用。默认仍执行以兼容旧调用方；
+            # @use_scope("content", clear=True) 已清空的调用方可传 skip_clear=True 跳过。
+            if not skip_clear:
+                clear("content")
+
+    @staticmethod
+    def init_aside_menu(name: str) -> None:
+        """展开菜单并高亮 aside 按钮（合并为一次 WebSocket）。"""
+        run_js(
+            "$('.container-menu-collapsed').removeClass('container-menu-collapsed');\n"
+            "$('#pywebio-scope-content').addClass('container-content-collapsed');\n"
+            "$('button.btn-aside').removeClass('btn-aside-active');\n"
+            "$('div[style*=\"--aside-" + name + "--\"]>button').addClass('btn-aside-active');\n"
+        )
 
     @staticmethod
     @use_scope("ROOT", clear=True)
