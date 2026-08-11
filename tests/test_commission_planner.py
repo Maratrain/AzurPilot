@@ -176,6 +176,51 @@ class TestCommissionTierFilter(unittest.TestCase):
             [[], [], [(0, daily)]],
         )
 
+    def test_first_filters_ignore_control_tokens_and_deduplicate(self):
+        urgent = commission('紧急魔方', 'urgent_cube')
+        daily = commission('每日资源', 'daily_resource')
+        extra = commission('额外石油', 'extra_oil')
+
+        COMMISSION_FILTER.load(
+            'Urgent > UrgentCube > tier > DailyResource > shortest > ExtraOil'
+        )
+
+        self.assertEqual(
+            COMMISSION_FILTER.apply_first([urgent, daily, extra], count=2),
+            [urgent],
+        )
+        self.assertEqual(
+            COMMISSION_FILTER.apply_first([urgent, daily, extra], count=3),
+            [urgent, daily],
+        )
+
+    def test_first_filters_apply_availability_check(self):
+        pending = selectable_commission('待执行', 'urgent_cube')
+        running = selectable_commission('运行中', 'urgent_cube')
+        running.status = 'running'
+
+        COMMISSION_FILTER.load('UrgentCube')
+
+        self.assertEqual(
+            COMMISSION_FILTER.apply_first(
+                [pending, running],
+                count=1,
+                func=lambda value: value.status == 'pending',
+            ),
+            [pending],
+        )
+
+    def test_default_high_value_filter_count_stops_at_rule_18(self):
+        rule_18 = commission('第十八条规则', 'extra_cube', duration=5)
+        rule_19 = commission('第十九条规则', 'urgent_box', duration=1)
+
+        COMMISSION_FILTER.load(DICT_FILTER_PRESET['cube_24h'])
+
+        self.assertEqual(
+            COMMISSION_FILTER.apply_first([rule_18, rule_19], count=18),
+            [rule_18],
+        )
+
     def test_running_commission_no_longer_has_start_deadline(self):
         value = object.__new__(Commission)
         value.valid = True
@@ -288,6 +333,28 @@ class TestCommissionAlgorithmSwitch(unittest.TestCase):
 
                 self.assertEqual(daily_choose.grids, [])
                 self.assertEqual(urgent_choose.grids, [allowed])
+
+    def test_high_value_count_uses_first_rules_and_pending_status(self):
+        urgent = selectable_commission('高价值紧急委托', 'urgent_cube')
+        daily = selectable_commission('高价值每日委托', 'daily_resource')
+        extra = selectable_commission('低价值额外委托', 'extra_oil')
+        running = selectable_commission('运行中的高价值委托', 'urgent_cube')
+        running.status = 'running'
+
+        worker = object.__new__(RewardCommission)
+        worker.config = SimpleNamespace(
+            Commission_PresetFilter='custom',
+            Commission_CustomFilter=(
+                'UrgentCube > tier > DailyResource > shortest > ExtraOil'
+            ),
+            Commission_Blacklist='',
+            Commission_DoMajorCommission=True,
+        )
+        worker.daily = SelectedGrids([daily, extra])
+        worker.urgent = SelectedGrids([urgent, running])
+
+        self.assertEqual(worker._commission_high_value_count(2), 2)
+        self.assertEqual(worker._commission_high_value_count(1), 1)
 
 
 class TestCommissionValueModel(unittest.TestCase):

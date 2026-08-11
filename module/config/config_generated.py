@@ -297,6 +297,8 @@ class GeneratedConfig:
     GemsFarming_AllowLowVanguardLevel = False
     GemsFarming_DelayTaskIFNoFlagship = False
     GemsFarming_CommissionLimit = False
+    GemsFarming_HighValueCommissionFilterCount = 32
+    GemsFarming_HighValueCommissionReserve = 2
     GemsFarming_VanguardLevelMin = 1
     GemsFarming_VanguardLevelMax = 125
 

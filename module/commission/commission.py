@@ -192,6 +192,40 @@ class RewardCommission(UI, InfoHandler):
                 return True
         return False
 
+    def _commission_filter_get(self):
+        """获取当前时段实际生效的委托过滤器。"""
+        preset = self.config.Commission_PresetFilter
+        if preset == 'custom':
+            return preset, self.config.Commission_CustomFilter
+
+        if f'{preset}_night' in DICT_FILTER_PRESET:
+            start_time = get_server_last_update('02:00')
+            end_time = get_server_last_update('21:00')
+            if start_time < end_time:
+                preset = f'{preset}_night'
+        if preset not in DICT_FILTER_PRESET:
+            logger.warning(f'[委托-过滤] 预设未找到: {preset}，使用默认预设')
+            preset = GeneratedConfig.Commission_PresetFilter
+        return preset, DICT_FILTER_PRESET[preset]
+
+    def _commission_high_value_count(self, filter_count):
+        """统计前若干条委托过滤规则匹配的待执行委托数量。"""
+        preset, string = self._commission_filter_get()
+        COMMISSION_FILTER.load(string)
+        total = self.daily.add_by_eq(self.urgent)
+        high_value = COMMISSION_FILTER.apply_first(
+            total.grids,
+            count=filter_count,
+            func=self._commission_check,
+        )
+        logger.info(
+            f'[委托-调度] 高价值过滤器: {preset} 前{filter_count}条，'
+            f'待执行委托: {len(high_value)}'
+        )
+        for comm in high_value:
+            logger.info(comm)
+        return len(high_value)
+
     def _commission_choose_legacy(self, daily, urgent):
         """按过滤器顺序贪心选择委托，保持默认传统行为。"""
         self.comm_choose = SelectedGrids([])
@@ -200,19 +234,7 @@ class RewardCommission(UI, InfoHandler):
         running_count = len([comm for comm in total if comm.status == 'running'])
         logger.attr('运行中', f'{running_count}/{self.max_commission}')
 
-        preset = self.config.Commission_PresetFilter
-        if preset == 'custom':
-            string = self.config.Commission_CustomFilter
-        else:
-            if f'{preset}_night' in DICT_FILTER_PRESET:
-                start_time = get_server_last_update('02:00')
-                end_time = get_server_last_update('21:00')
-                if start_time < end_time:
-                    preset = f'{preset}_night'
-            if preset not in DICT_FILTER_PRESET:
-                logger.warning(f'[委托-过滤] 预设未找到: {preset}，使用默认预设')
-                preset = GeneratedConfig.Commission_PresetFilter
-            string = DICT_FILTER_PRESET[preset]
+        preset, string = self._commission_filter_get()
         logger.attr('委托过滤器', preset)
 
         # tier 和 shortest 是实验模型控制标记，传统策略不把它们当作委托。
@@ -282,19 +304,7 @@ class RewardCommission(UI, InfoHandler):
         logger.attr('运行中', f'{running_count}/{self.max_commission}')
 
         # 加载过滤器字符串
-        preset = self.config.Commission_PresetFilter
-        if preset == 'custom':
-            string = self.config.Commission_CustomFilter
-        else:
-            if f'{preset}_night' in DICT_FILTER_PRESET:
-                start_time = get_server_last_update('02:00')
-                end_time = get_server_last_update('21:00')
-                if start_time < end_time:
-                    preset = f'{preset}_night'
-            if preset not in DICT_FILTER_PRESET:
-                logger.warning(f'[委托-过滤] 预设未找到: {preset}，使用默认预设')
-                preset = GeneratedConfig.Commission_PresetFilter
-            string = DICT_FILTER_PRESET[preset]
+        preset, string = self._commission_filter_get()
         logger.attr('委托过滤器', preset)
 
         # 旧配置没有 tier 时，每条规则仍视作独立层级。
@@ -1245,16 +1255,25 @@ class RewardCommission(UI, InfoHandler):
         ]
 
         if limit_tasks:
-            daily = self.daily.select(category_str='daily', status='pending').count
-            filtered_urgent = self.comm_choose.intersect_by_eq(self.urgent.select(status='pending')).count
-            filtered_extra = self.comm_choose.intersect_by_eq(self.daily.select(category_str='extra', status='pending')).count
-            logger.info(f'[委托-调度] 每日委托: {daily}, 过滤紧急: {filtered_urgent}, 过滤额外: {filtered_extra}')
             future = nearest_future(future_finish) if len(future_finish) else None
-            if daily > 0 and filtered_urgent >= 1:
-                for task in limit_tasks:
-                    logger.info(f"[委托-调度] 有待执行的每日委托，延迟任务 '{task}'")
-                    self.config.task_delay(minute=None if future else 120, target=future, task=task)
-            elif filtered_urgent >= 4:
-                for task in limit_tasks:
-                    logger.info(f"[委托-调度] 紧急委托过多，延迟任务 '{task}'")
-                    self.config.task_delay(minute=None if future else 120, target=future, task=task)
+            for task in limit_tasks:
+                filter_count = self.config.cross_get(f'{task}.GemsFarming.HighValueCommissionFilterCount')
+                reserve = self.config.cross_get(f'{task}.GemsFarming.HighValueCommissionReserve')
+                filter_count = max(int(filter_count), 1)
+                reserve = max(int(reserve), 1)
+                high_value_count = self._commission_high_value_count(filter_count)
+                if high_value_count >= reserve:
+                    logger.info(
+                        f"[委托-调度] 高价值委托达到保留量 {high_value_count}/{reserve}，"
+                        f"延迟任务 '{task}'"
+                    )
+                    self.config.task_delay(
+                        minute=None if future else 120,
+                        target=future,
+                        task=task,
+                    )
+                else:
+                    logger.info(
+                        f"[委托-调度] 高价值委托未达到保留量 {high_value_count}/{reserve}，"
+                        f"继续任务 '{task}'"
+                    )

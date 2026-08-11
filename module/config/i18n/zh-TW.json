@@ -1741,7 +1741,15 @@
     },
     "CommissionLimit": {
       "name": "防止緊急委託數量過多",
-      "help": "在7x24執行時防止緊急委託數量過多做不完每日委託，建議在委託過濾器僅選擇短時長高收益委託"
+      "help": "啟用後，委託排程會根據以下兩項設定保留高價值委託；達到保留量時延後刷緊急委託任務。"
+    },
+    "HighValueCommissionFilterCount": {
+      "name": "高價值委託過濾器數量",
+      "help": "將目前委託過濾器由前往後的前 X 條普通規則視為高價值規則。tier 和 shortest 等控制標記不計入數量。"
+    },
+    "HighValueCommissionReserve": {
+      "name": "高價值委託保留量",
+      "help": "委託執行後，若仍待執行且符合高價值規則的委託數量達到此值，則延後刷緊急委託任務。"
     },
     "VanguardLevelMin": {
       "name": "前排最低等級",

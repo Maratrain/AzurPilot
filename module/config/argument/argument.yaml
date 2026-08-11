@@ -548,6 +548,10 @@ GemsFarming:
   AllowLowVanguardLevel: false
   DelayTaskIFNoFlagship: false
   CommissionLimit: false
+  HighValueCommissionFilterCount:
+    type: input
+    value: 32
+  HighValueCommissionReserve: 2
   VanguardLevelMin:
     value: 1
     validate: [1, 125]

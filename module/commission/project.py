@@ -29,6 +29,41 @@ from module.reward.assets import *
 class CommissionFilter(Filter):
     """支持价值分层和最短耗时兜底的委托过滤器。"""
 
+    def apply_first(self, objs, count, func=None):
+        """应用前若干条普通委托过滤规则。
+
+        ``tier`` 和 ``shortest`` 仅用于控制委托选择策略，不代表具体的
+        委托类型，因此不占用高价值过滤器数量。被多条规则匹配的同一委托
+        只返回一次。
+
+        Args:
+            objs: 待匹配委托。
+            count: 从过滤器开头选取的普通规则数量。
+            func: 额外可用性检查函数。
+
+        Returns:
+            list: 按过滤器优先级排列且去重后的匹配委托。
+        """
+        count = max(int(count), 0)
+        out = []
+        applied = 0
+        for raw, parsed in zip(self.filter_raw, self.filter):
+            if self.is_preset(raw):
+                continue
+            if applied >= count:
+                break
+            applied += 1
+
+            for obj in objs:
+                if obj in out:
+                    continue
+                if self.apply_filter_to_obj(obj=obj, filter=parsed):
+                    out.append(obj)
+
+        if func is not None:
+            out = [obj for obj in out if func(obj)]
+        return out
+
     def apply_tiers(self, objs, func=None):
         """把过滤结果按价值层级分组。
 

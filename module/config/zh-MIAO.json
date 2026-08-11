@@ -1116,7 +1116,15 @@
     },
     "CommissionLimit": {
       "name": "防止紧急委托数量过多喵",
-      "help": "在7x24运行时防止紧急委托数量过多做不完每日委托喵，建议在委托过滤器仅选择短时长高收益委托喵"
+      "help": "启用后会按下面两项配置保留高价值委托，达到保留量时延后刷紧急委托任务喵。"
+    },
+    "HighValueCommissionFilterCount": {
+      "name": "高价值委托过滤器数量喵",
+      "help": "把当前委托过滤器最前面的 X 条普通规则当作高价值规则，tier 和 shortest 等控制标记不计数喵。"
+    },
+    "HighValueCommissionReserve": {
+      "name": "高价值委托保留量喵",
+      "help": "委托执行后，若剩余待执行的高价值委托达到此数量，就延后刷紧急委托任务喵。"
     },
     "VanguardLevelMin": {
       "name": "前排最低等级喵",

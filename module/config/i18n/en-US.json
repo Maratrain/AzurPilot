@@ -1728,8 +1728,16 @@
       "help": "When changing the flagship, if a white aircraft carrier that meets the conditions cannot be found, the mission will be postponed."
     },
     "CommissionLimit": {
-      "name": "Prevent the number of emergency commissions from being too large",
-      "help": "To prevent the number of emergency orders from being too large and unable to complete daily orders when running 7x24, it is recommended to select only short-term high-yield orders in the order filter."
+      "name": "Prevent Too Many Urgent Commissions",
+      "help": "When enabled, commission scheduling reserves high-value commissions according to the following settings and delays urgent-commission farming when the reserve threshold is reached."
+    },
+    "HighValueCommissionFilterCount": {
+      "name": "High-Value Commission Filter Count",
+      "help": "Treat the first X regular rules in the active commission filter as high-value rules. Control markers such as tier and shortest are not counted."
+    },
+    "HighValueCommissionReserve": {
+      "name": "High-Value Commission Reserve",
+      "help": "After starting commissions, delay urgent-commission farming when the number of pending commissions matching high-value rules reaches this value."
     },
     "VanguardLevelMin": {
       "name": "Vanguard Minimum Level",
