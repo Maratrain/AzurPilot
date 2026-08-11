@@ -15198,6 +15198,7 @@
         "option": [
           "None",
           "cheese",
+          "citrus_coffee",
           "strawberry_milkshake",
           "morning_light",
           "wake_up_call",
@@ -15210,6 +15211,7 @@
         "option": [
           "None",
           "cheese",
+          "citrus_coffee",
           "strawberry_milkshake",
           "morning_light",
           "wake_up_call",
@@ -15222,6 +15224,7 @@
         "option": [
           "None",
           "cheese",
+          "citrus_coffee",
           "strawberry_milkshake",
           "morning_light",
           "wake_up_call",
@@ -15234,6 +15237,7 @@
         "option": [
           "None",
           "cheese",
+          "citrus_coffee",
           "strawberry_milkshake",
           "morning_light",
           "wake_up_call",
@@ -15246,6 +15250,7 @@
         "option": [
           "None",
           "cheese",
+          "citrus_coffee",
           "strawberry_milkshake",
           "morning_light",
           "wake_up_call",
@@ -15485,9 +15490,17 @@
         "type": "input",
         "value": 300
       },
+      "ChickenFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
+      },
       "MinPork": {
         "type": "input",
         "value": 300
+      },
+      "PigFilter": {
+        "type": "textarea",
+        "value": "WorkerJuu"
       },
       "Milk": {
         "type": "checkbox",
