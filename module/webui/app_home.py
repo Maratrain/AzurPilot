@@ -171,15 +171,7 @@ class HomeMixin(WebUIMixinBase):
             put_markdown(
                 """
             AzurPilot 是基于上游项目 Alas (AzurLaneAutoScript) 的修改版本，采用 GPL-3.0 许可证，免费开源。如果你在任何渠道付费购买，那你一定是个大傻逼，请申请退款。
-            AzurPilot is a modified version based on the upstream project Alas (AzurLaneAutoScript), licensed under GPL-3.0, free and open-source. If you paid through any channel, please request a refund.
-            AzurPilotは上流プロジェクトAlas (AzurLaneAutoScript) の改変版で、GPL-3.0ライセンスの無料オープンソースです。購入された場合は、返金をリクエストしてください。
-            AzurPilot는 상류 프로젝트 Alas(AzurLaneAutoScript)의 수정 버전이며, GPL-3.0 라이선스의 무료 오픈 소스입니다. 구매하셨다면 환불을 요청해 주세요.
-            AzurPilot 是基於上游專案 Alas (AzurLaneAutoScript) 的修改版本，採用 GPL-3.0 許可證，免費開源。如果您透過任何管道付費購買，請申請退款。
 
-            上游项目 / Upstream / 上流プロジェクト / 상류 프로젝트 / 上游專案：`https://github.com/LmeSzinc/AzurLaneAutoScript`
-            本项目 / This project / 本プロジェクト / 본 프로젝트 / 本專案：`https://github.com/wess09/AzurPilot`
-
-            如需支持，请联系 / For support, please contact / サポートについてはこちらへ / 지원이 필요하면 아래로 / 如需支援請聯繫：`https://addgroup.nanoda.work/`
             """
             ).style("text-align: center")
 
