@@ -385,6 +385,7 @@ class Camera(MapOperation):
         """
         logger.info(f'[地图-摄像机] 确保边缘在视野内')
         record = []
+        no_change_count = 0
         x_swipe, y_swipe = np.multiply(swipe_limit, random_direction(self.config.MAP_ENSURE_EDGE_INSIGHT_CORNER))
 
         while 1:
@@ -400,7 +401,19 @@ class Camera(MapOperation):
 
             if len(record) > 0:
                 # 即使两条边缘可见也要滑动，以避免一些尴尬的相机位置。
-                self.map_swipe((x, y))
+                if x != 0 or y != 0:
+                    old_camera = self.camera
+                    self.map_swipe((x, y))
+                    logger.info(f'camera: {old_camera} -> {self.camera}')
+                    if self.camera == old_camera:
+                        no_change_count += 1
+                        logger.info(f'[地图-摄像机] 滑动后视角无变化({no_change_count}/3)')
+                    else:
+                        no_change_count = 0
+
+                if no_change_count >= 3:
+                    logger.info('[地图-摄像机] 连续3次滑动无变化，确认到达地图边缘')
+                    break
 
             record.append((x, y))
 
