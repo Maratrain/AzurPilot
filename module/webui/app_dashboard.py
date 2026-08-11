@@ -17,7 +17,6 @@ from module.webui.app_dependencies import (
     put_text,
     re,
     t,
-    time_delta,
     use_scope,
 )
 
@@ -143,7 +142,7 @@ class DashboardMixin(WebUIMixinBase):
                 value = "None"
                 delta = timedelta_to_text()
             else:
-                delta = timedelta_to_text(time_delta(value_time - time_now))
+                delta = timedelta_to_text({"s": round(abs((value_time - time_now).total_seconds()))})
 
             if group_name not in self._log.last_display_time.keys():
                 self._log.last_display_time[group_name] = ""
