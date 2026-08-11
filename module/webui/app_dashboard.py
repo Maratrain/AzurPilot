@@ -142,7 +142,13 @@ class DashboardMixin(WebUIMixinBase):
                 value = "None"
                 delta = timedelta_to_text()
             else:
-                delta = timedelta_to_text({"s": round(abs((value_time - time_now).total_seconds()))})
+                _s = int(abs((value_time - time_now).total_seconds()))
+                _m, _s = divmod(_s, 60)
+                _h, _m = divmod(_m, 60)
+                _d, _h = divmod(_h, 24)
+                _Y, _d = divmod(_d, 365)
+                _M, _d = divmod(_d, 30)
+                delta = timedelta_to_text({"Y": _Y, "M": _M, "D": _d, "h": _h, "m": _m, "s": _s})
 
             if group_name not in self._log.last_display_time.keys():
                 self._log.last_display_time[group_name] = ""
