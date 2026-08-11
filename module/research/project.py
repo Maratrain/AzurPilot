@@ -658,7 +658,7 @@ class ResearchProject:
             if prefix == 'D' and number == '349' and self.raw_series == 5:
                 number = '319'
 
-            if prefix in ['I1', 'U']:
+            if prefix in ['I1', 'U', '0']:
                 prefix = 'D'
             prefix = prefix.strip('I1')
             # LC-038-RF -> C-038-RF
@@ -672,9 +672,24 @@ class ResearchProject:
             suffix = suffix.replace('DC5', 'UL').replace('DC3', 'UL').replace('DC', 'UL')
             # D-075-UL1 -> D-075-UL
             suffix = suffix.replace('UL1', 'UL').replace('ULI', 'UL').replace('UL5', 'UL')
+            # D-037-ULC -> D-037-UL
+            suffix = suffix.replace('ULC', 'UL')
 
-            if suffix == 'U':
-                suffix = 'UL'
+            if len(suffix) > 2:
+                if 'UL' in suffix:
+                    suffix = 'UL'
+                elif 'MI' in suffix:
+                    suffix = 'MI'
+                elif 'RF' in suffix:
+                    suffix = 'RF'
+            elif len(suffix) == 1:
+                if suffix == 'U' or suffix == 'L':
+                    suffix = 'UL'
+                elif suffix == 'M' or suffix == 'I':
+                    suffix = 'MI'
+                elif suffix == 'R' or suffix == 'F':
+                    suffix = 'RF'
+
             # TW 服务器 OCR 错误，将 B 转换为 D
             if prefix == 'B' and number in ResearchProject.D_PROJECT_NUMBERS:
                 # 保留 B-397-RF，S7 D-397-MI 和 S* B-397-RF 共享 397
@@ -730,6 +745,15 @@ class ResearchProject:
                 if (data['series'] == series) and (data['name'] == name1):
                     self.name = name1
                     yield data
+
+        # 仅当编号在当前科研系列中唯一时，忽略类型和后缀进行兜底匹配
+        number = name[2:5]
+        candidates = [
+            data for data in LIST_RESEARCH_PROJECT
+            if (data['series'] == series) and (data['name'][2:5] == number)
+        ]
+        if len(candidates) == 1:
+            yield candidates[0]
 
         for data in LIST_RESEARCH_PROJECT:
             if (data['series'] == series) and (data['name'].rstrip('MIRFUL-') == name.rstrip('MIRFUL-')):
