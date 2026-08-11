@@ -209,8 +209,7 @@ class HomeMixin(WebUIMixinBase):
         self.wallpaper_url = ""
 
         def _fetch_wallpaper():
-            MAX_SIZE = 1 * 1024 * 1024  # 1MB
-            MAX_RETRIES = 20
+            MAX_RETRIES = 5
 
             for attempt in range(1, MAX_RETRIES + 1):
                 try:
@@ -232,24 +231,9 @@ class HomeMixin(WebUIMixinBase):
                     data = response.json()["data"][0]
                     image_url = data["urls"]["original"]
 
-                    # 检查图片大小，超过 1MB 重新请求
-                    head = requests.head(image_url, timeout=5, allow_redirects=True)
-                    content_length = int(head.headers.get("Content-Length", 0))
-                    if content_length > MAX_SIZE:
-                        logger.info(
-                            f"[WebUI] 背景图过大 ({content_length / 1024 / 1024:.1f}MB)，第 {attempt} 次重试"
-                        )
-                        if attempt < MAX_RETRIES:
-                            continue
-                        logger.info(
-                            f"[WebUI] 背景图连续 {MAX_RETRIES} 次超过限制，跳过"
-                        )
-                        return
-
                     self.wallpaper_url = image_url
                     logger.info(f"[WebUI] 当前背景图: {self.wallpaper_url}")
 
-                    # 通过 JS 动态注入壁纸，触发浏览器异步加载图片
                     css_value = f'url("{image_url}")'
                     run_js(
                         'document.documentElement.style.setProperty('
