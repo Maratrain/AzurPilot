@@ -3568,6 +3568,21 @@
       "help": "OpsiScheduling.MonthEndShopPurchase.help",
       "True": "True",
       "False": "False"
+    },
+    "BuyActionPointMode": {
+      "name": "Buy Action Point Mode",
+      "help": "Dedicated mode for buying action points, mutually exclusive with existing coin/AP scheduling. When enabled, will use oil to buy action points and execute corresponding tasks. Set weekly purchase limit in 'Opsi General -> Buy Action Point X times' first.",
+      "off": "Off",
+      "hazard1_leveling": "Hazard 1 Leveling",
+      "meowfficer_farming": "Meowfficer Farming"
+    },
+    "BuyActionPointUpperThreshold": {
+      "name": "Buy AP Upper Threshold",
+      "help": "Only for 'Meowfficer Farming' mode. When current AP exceeds this value, skip purchase and execute sea zone tasks directly. Default 200 (natural AP recovery cap)."
+    },
+    "BuyActionPointLowerThreshold": {
+      "name": "Buy AP Lower Threshold",
+      "help": "Only for 'Meowfficer Farming' mode. When current AP falls below this value, stop executing sea zone tasks and return to purchase step. Default 100."
     }
   },
   "OpsiPreventActionPointOverflow": {

@@ -417,18 +417,6 @@
     "EmulatorManager": {
       "name": "模拟器管理器",
       "help": "提供手动重启模拟器的入口"
-    },
-    "BattlePass": {
-      "name": "大月卡Plus",
-      "help": ""
-    },
-    "CoreShop": {
-      "name": "核心兑换Plus",
-      "help": ""
-    },
-    "MeowfficerTrain": {
-      "name": "指挥喵训练Plus",
-      "help": ""
     }
   },
   "Scheduler": {
@@ -3580,6 +3568,21 @@
       "help": "月末清理行动力时是否执行大世界商店购买。关闭后月末清理循环将跳过商店购买步骤。",
       "True": "True",
       "False": "False"
+    },
+    "BuyActionPointMode": {
+      "name": "买行动力模式",
+      "help": "购买行动力专用模式，与现有黄币/行动力调度互斥。开启后将用石油购买行动力并执行对应任务。需先在「大世界通用设置 → 买行动力X次」设置每周购买上限。",
+      "off": "关闭",
+      "hazard1_leveling": "侵蚀1练级",
+      "meowfficer_farming": "短猫补黄币"
+    },
+    "BuyActionPointUpperThreshold": {
+      "name": "买行动力上限阈值",
+      "help": "仅「短猫补黄币」模式使用。当前真实行动力超过此值时跳过购买，直接执行海域任务。默认 200（大世界行动力自然回复上限）。"
+    },
+    "BuyActionPointLowerThreshold": {
+      "name": "买行动力下限阈值",
+      "help": "仅「短猫补黄币」模式使用。当前真实行动力低于此值时停止执行海域任务，回到购买步骤。默认 100。"
     }
   },
   "OpsiPreventActionPointOverflow": {

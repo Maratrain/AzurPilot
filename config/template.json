@@ -1938,7 +1938,8 @@
       "DoMajorCommission": false,
       "GemNotify": false,
       "CommissionNotifyReward": false,
-      "CommissionNotifyRewardStatistics": true
+      "CommissionNotifyRewardStatistics": true,
+      "CommissionNotifyRewardCube": false
     },
     "Storage": {
       "Storage": {}
@@ -2781,7 +2782,10 @@
       "MonthEndActionPointCleanupEnable": false,
       "MonthEndActionPointCleanupDays": 0,
       "MonthEndActionPointPreserve": 0,
-      "MonthEndShopPurchase": true
+      "MonthEndShopPurchase": true,
+      "BuyActionPointMode": "off",
+      "BuyActionPointUpperThreshold": 200,
+      "BuyActionPointLowerThreshold": 100
     },
     "Storage": {
       "Storage": {}

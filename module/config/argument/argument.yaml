@@ -1231,6 +1231,14 @@ OpsiScheduling:
   MonthEndShopPurchase:
     value: true
     option: [true, false]
+  # ===== 新增：买行动力双模式 =====
+  BuyActionPointMode:
+    value: "off"
+    option: ["off", hazard1_leveling, meowfficer_farming]
+  BuyActionPointUpperThreshold:
+    value: 200
+  BuyActionPointLowerThreshold:
+    value: 100
 OpsiPreventActionPointOverflow:
   Task:
     value: OpsiScheduling

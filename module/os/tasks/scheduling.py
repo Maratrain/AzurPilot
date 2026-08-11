@@ -30,7 +30,7 @@ from datetime import timedelta
 from module.config.config import Function, name_to_function
 from module.config.deep import deep_get
 from module.config.time_source import now as current_time
-from module.config.utils import get_os_reset_remain
+from module.config.utils import get_os_reset_remain, server_time_offset
 
 from module.logger import logger
 from module.os.map import OSMap
@@ -88,6 +88,19 @@ class CoinTaskMixin:
     # 各任务的配置路径常量（集中管理，避免硬编码）
     CONFIG_PATH_MEOW_AP_PRESERVE = 'OpsiMeowfficerFarming.OpsiMeowfficerFarming.ActionPointPreserve'
     CONFIG_PATH_CL1_MIN_AP_RESERVE = 'OpsiHazard1Leveling.OpsiHazard1Leveling.MinimumActionPointReserve'
+
+    # ==================== 买行动力功能相关常量 ====================
+    # 买行动力功能状态键（持久化到 OpsiScheduling.Storage.Storage）
+    STATE_KEY_BUY_AP_COUNT = 'BuyActionPointCount'       # 本周已购买行动力次数（int）
+    STATE_KEY_BUY_AP_WEEK_ID = 'BuyActionPointWeekId'    # 上次购买时所在的 ISO 周标识（str，如 "2026-W32"）
+    # 买行动力模式常量（与 argument.yaml 中 BuyActionPointMode.option 对应）
+    BUY_AP_MODE_OFF = 'off'
+    BUY_AP_MODE_HAZARD1 = 'hazard1_leveling'
+    BUY_AP_MODE_MEOWFFICER = 'meowfficer_farming'
+    # 买行动力配置路径
+    CONFIG_PATH_BUY_AP_MODE = 'OpsiScheduling.OpsiScheduling.BuyActionPointMode'
+    CONFIG_PATH_BUY_AP_UPPER = 'OpsiScheduling.OpsiScheduling.BuyActionPointUpperThreshold'
+    CONFIG_PATH_BUY_AP_LOWER = 'OpsiScheduling.OpsiScheduling.BuyActionPointLowerThreshold'
     
     # 耄耋相接任务名称
     TASK_NAME_MEOWFFICER_FARMING = 'OpsiMeowfficerFarming'
@@ -746,7 +759,529 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         1. 黄币管理 - 当黄币不足时代理执行补充任务
         2. 行动力监控 - 监控行动力并发送阈值通知
         3. 任务协调 - 统一决定并代理执行子任务
+        4. 买行动力模式 - 与现有调度互斥的两种买行动力工作模式
     """
+
+    # ==================== 买行动力模式：配置读取 ====================
+
+    def _get_buy_action_point_mode(self):
+        """
+        读取买行动力模式。
+
+        Returns:
+            str: 'off' / 'hazard1_leveling' / 'meowfficer_farming'
+        """
+        return self.config.cross_get(
+            keys=self.CONFIG_PATH_BUY_AP_MODE,
+            default=self.BUY_AP_MODE_OFF,
+        )
+
+    def _is_buy_action_point_hazard1_mode(self):
+        """判断是否是功能1（侵蚀1练级）模式。"""
+        return self._get_buy_action_point_mode() == self.BUY_AP_MODE_HAZARD1
+
+    def _is_buy_action_point_meowfficer_mode(self):
+        """判断是否是功能2（短猫补黄币）模式。"""
+        return self._get_buy_action_point_mode() == self.BUY_AP_MODE_MEOWFFICER
+
+    def _is_buy_action_point_mode_active(self):
+        """判断是否启用了买行动力模式（任何一种）。"""
+        return self._is_buy_action_point_hazard1_mode() \
+            or self._is_buy_action_point_meowfficer_mode()
+
+    def _get_buy_action_point_upper_threshold(self):
+        """
+        读取买行动力上限阈值（仅功能2使用）。
+
+        Returns:
+            int: 当前真实行动力超过此值时跳过购买，默认 200
+        """
+        value = self.config.cross_get(
+            keys=self.CONFIG_PATH_BUY_AP_UPPER,
+            default=200,
+        )
+        try:
+            return max(1, int(value or 200))
+        except (TypeError, ValueError):
+            return 200
+
+    def _get_buy_action_point_lower_threshold(self):
+        """
+        读取买行动力下限阈值（仅功能2使用）。
+
+        Returns:
+            int: 当前真实行动力低于此值时停止执行海域任务，回到购买步骤，默认 100
+        """
+        value = self.config.cross_get(
+            keys=self.CONFIG_PATH_BUY_AP_LOWER,
+            default=100,
+        )
+        try:
+            return max(0, int(value or 100))
+        except (TypeError, ValueError):
+            return 100
+
+    # ==================== 买行动力模式：计数器管理 ====================
+
+    def _get_current_purchase_week_id(self):
+        """
+        获取行动力购买周期的周标识（基于服务器时间）。
+
+        行动力购买次数每周一刷新。返回 ISO 周标识字符串，如 "2026-W32"。
+        跨周时通过比较周标识判断是否需要重置计数器。
+
+        Returns:
+            str: 当前服务器时间所在的 ISO 周标识
+        """
+        diff = server_time_offset()
+        server_now = current_time() - diff
+        iso_year, iso_week, _ = server_now.isocalendar()
+        return f'{iso_year}-W{iso_week:02d}'
+
+    def _get_buy_action_point_count(self):
+        """
+        读取本周已购买行动力次数。
+
+        跨周时会自动重置为 0。
+
+        Returns:
+            int: 本周已购买次数
+        """
+        self._reset_buy_action_point_count_if_new_week()
+        count = self._get_smart_scheduling_state_value(
+            self.STATE_KEY_BUY_AP_COUNT,
+            default=0,
+        )
+        try:
+            return int(count or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def _set_buy_action_point_count(self, count):
+        """
+        写入本周已购买行动力次数，并同步周标识。
+
+        Args:
+            count (int): 已购买次数
+        """
+        self._set_smart_scheduling_state_value(
+            self.STATE_KEY_BUY_AP_COUNT,
+            int(count),
+        )
+        self._set_smart_scheduling_state_value(
+            self.STATE_KEY_BUY_AP_WEEK_ID,
+            self._get_current_purchase_week_id(),
+        )
+
+    def _reset_buy_action_point_count_if_new_week(self):
+        """
+        检测跨周时重置购买计数器。
+
+        与 _reset_month_end_cleanup_first_run_if_new_month() 类似的模式：
+        比较持久化的周标识与当前周标识，不一致时重置计数器。
+        """
+        current_week_id = self._get_current_purchase_week_id()
+        stored_week_id = self._get_smart_scheduling_state_value(
+            self.STATE_KEY_BUY_AP_WEEK_ID,
+        )
+        if stored_week_id != current_week_id:
+            logger.info(
+                f'[大世界-买行动力] 检测到跨周 ({stored_week_id} -> {current_week_id})，'
+                f'重置购买计数器'
+            )
+            self._set_smart_scheduling_state_value(
+                self.STATE_KEY_BUY_AP_COUNT,
+                0,
+            )
+            self._set_smart_scheduling_state_value(
+                self.STATE_KEY_BUY_AP_WEEK_ID,
+                current_week_id,
+            )
+
+    def _sync_buy_action_point_count_with_game(self):
+        """
+        从游戏 OCR 同步本周已购买行动力次数。
+
+        进入买行动力模式时调用，确保持久化计数器与游戏一致。
+        游戏显示"剩余购买次数"，反推已购买次数 = 5 - remain。
+
+        Returns:
+            int: 同步后的已购买次数
+        """
+        self.action_point_enter()
+        self.action_point_safe_get()
+        try:
+            remain = self.action_point_get_buy_remain()
+            buy_max = 5
+            actual_count = max(0, buy_max - remain)
+        finally:
+            self.action_point_quit()
+
+        self._reset_buy_action_point_count_if_new_week()
+        self._set_buy_action_point_count(actual_count)
+        logger.info(
+            f'[大世界-买行动力] 同步购买计数: 已购买 {actual_count} 次 '
+            f'(游戏剩余 {remain})'
+        )
+        return actual_count
+
+    # ==================== 买行动力模式：购买与优先级表 ====================
+
+    def _buy_one_action_point(self):
+        """
+        买一次行动力（使用石油）。
+
+        进入行动力弹窗，调用 action_point_buy 完成一次购买，然后退出弹窗。
+        action_point_buy 内部已处理：
+            - 月末封锁周（不购买）
+            - 游戏内剩余购买次数（OCR 识别 buy_remain = 5 - remain）
+            - 用户设置的 BuyActionPointLimit 上限
+            - 石油是否足够（保留 OilLimit 后再购买）
+        成功购买后递增持久化计数器，用于动态优先级表判断。
+
+        Returns:
+            bool: True 表示购买成功；False 表示未购买（已达上限/月末封锁/石油不足）。
+
+        Pages:
+            in: page_os
+            out: page_os
+        """
+        self.action_point_enter()
+        self.action_point_safe_get()
+        try:
+            success = self.action_point_buy(
+                preserve=self.config.OpsiGeneral_OilLimit
+            )
+        finally:
+            self.action_point_quit()
+
+        if success:
+            current_count = self._get_buy_action_point_count()
+            new_count = current_count + 1
+            self._set_buy_action_point_count(new_count)
+            logger.info(
+                f'[大世界-买行动力] 购买一次行动力成功，'
+                f'本周已购买 {new_count} 次'
+            )
+        else:
+            logger.info('[大世界-买行动力] 本次未购买行动力')
+
+        return success
+
+    def _get_priority_table_for_buy_count(self, buy_count):
+        """
+        根据本次购买次数返回智能调度+优先级表。
+
+        仅功能2（短猫补黄币）使用。优先级表已根据用户最终确认的顺序：
+            第 1 次: 隐秘海域 > 耄耋相接
+            第 2-4 次: 隐秘海域 > 深渊坐标 > 耄耋相接
+            第 5 次: 隐秘海域 > 深渊坐标 > 塞壬要塞 > 耄耋相接
+
+        Args:
+            buy_count (int): 已购买次数（1 表示第 1 次，5 表示第 5 次）。
+
+        Returns:
+            list[str]: 任务名称优先级列表，从高到低。
+        """
+        if buy_count <= 1:
+            return [
+                self.TASK_NAME_OBSCURE,
+                self.TASK_NAME_MEOWFFICER_FARMING,
+            ]
+        elif buy_count <= 4:
+            return [
+                self.TASK_NAME_OBSCURE,
+                self.TASK_NAME_ABYSSAL,
+                self.TASK_NAME_MEOWFFICER_FARMING,
+            ]
+        else:
+            # buy_count >= 5
+            return [
+                self.TASK_NAME_OBSCURE,
+                self.TASK_NAME_ABYSSAL,
+                self.TASK_NAME_STRONGHOLD,
+                self.TASK_NAME_MEOWFFICER_FARMING,
+            ]
+
+    def _get_filtered_priority_table(self, priority_table):
+        """
+        根据智能调度+中已启用的任务过滤优先级表。
+
+        用户在智能调度+中关闭的任务会被跳过，即使优先级表中位置靠前也不执行。
+        例如：第 1 次购买行动力，优先级为"隐秘海域>耄耋相接"，
+        但用户未启用隐秘海域时，过滤后只剩 [耄耋相接]。
+
+        Args:
+            priority_table (list[str]): 原始优先级表。
+
+        Returns:
+            list[str]: 过滤后的优先级表（只包含已启用的任务，保持原顺序）。
+        """
+        enabled_tasks = self._get_enabled_coin_tasks()
+        filtered = [task for task in priority_table if task in enabled_tasks]
+        skipped = [task for task in priority_table if task not in enabled_tasks]
+        if skipped:
+            skipped_names = '、'.join(
+                self.TASK_NAMES.get(task, task) for task in skipped
+            )
+            logger.info(
+                f'[大世界-买行动力] 智能调度+未启用以下任务，已从优先级表跳过: {skipped_names}'
+            )
+        return filtered
+
+    # ==================== 买行动力模式：主循环 ====================
+
+    def _run_buy_action_point_mode(self):
+        """
+        买行动力模式总入口。
+
+        由 run_smart_scheduling_once 在检测到 BuyActionPointMode 启用时分发到此。
+        与现有的黄币/行动力调度逻辑互斥。
+
+        流程:
+            1. 同步持久化计数器与游戏内剩余购买次数（防重启状态不一致）
+            2. 读取 OpsiGeneral.BuyActionPointLimit 作为本周购买上限
+            3. 检查是否已达上限，是则延迟到服务器刷新
+            4. 根据模式分发到对应主循环
+
+        Pages:
+            in: page_os
+            out: page_os
+        """
+        logger.hr('大世界-买行动力模式', level=1)
+
+        # 同步购买计数器与游戏内剩余次数（重启后可能不一致）
+        self._sync_buy_action_point_count_with_game()
+
+        buy_limit = self.config.OpsiGeneral_BuyActionPointLimit
+        if buy_limit <= 0:
+            logger.warning(
+                '[大世界-买行动力] OpsiGeneral.BuyActionPointLimit 为 0，'
+                '未配置每周购买上限'
+            )
+            self.notify_push(
+                title='[AzurPilot] 大世界-买行动力未配置上限',
+                content='请在「大世界通用设置 → 买行动力X次」中设置每周购买上限（大于 0）',
+            )
+            self._delay_smart_scheduling_to_server_update('未配置购买上限')
+            return
+
+        current_count = self._get_buy_action_point_count()
+        if current_count >= buy_limit:
+            logger.info(
+                f'[大世界-买行动力] 已达本周购买上限 {buy_limit} 次'
+                f'（已购买 {current_count} 次），延迟到服务器刷新'
+            )
+            self._delay_smart_scheduling_to_server_update('已达本周购买上限')
+            return
+
+        logger.info(
+            f'[大世界-买行动力] 本周已购买 {current_count}/{buy_limit} 次，'
+            f'剩余 {buy_limit - current_count} 次'
+        )
+
+        if self._is_buy_action_point_hazard1_mode():
+            self._run_buy_ap_hazard1_loop(buy_limit)
+        elif self._is_buy_action_point_meowfficer_mode():
+            self._run_buy_ap_meowfficer_loop(buy_limit)
+
+    def _run_buy_ap_hazard1_loop(self, buy_limit):
+        """
+        功能1：买行动力全部去侵蚀1练级。
+
+        流程: 买1次行动力 → 持续侵蚀1练级直到行动力耗尽 → 检查上限 → 继续买下一次
+
+        - 不使用 200/100 阈值检查，使用现有 OS_ACTION_POINT_PRESERVE 机制
+        - 每次购买只买1次，子任务执行期间临时禁用 BuyActionPointLimit
+          （防止 handle_action_point 自动购买 5 次）
+        - 行动力耗尽由 ActionPointLimit 异常判断
+
+        Args:
+            buy_limit (int): 本周购买行动力上限。
+
+        Pages:
+            in: page_os
+            out: page_os
+        """
+        logger.info('[大世界-买行动力] 进入功能1：侵蚀1练级模式')
+
+        cl1_ap_preserve = self._get_effective_cl1_ap_preserve()
+        logger.info(
+            f'[大世界-买行动力] 侵蚀1练级行动力保留值: {cl1_ap_preserve}'
+        )
+
+        while True:
+            current_count = self._get_buy_action_point_count()
+            if current_count >= buy_limit:
+                logger.info(
+                    f'[大世界-买行动力] 已达本周购买上限 {buy_limit} 次，'
+                    f'退出功能1主循环'
+                )
+                break
+
+            buy_round = current_count + 1
+            logger.info(
+                f'[大世界-买行动力] 准备第 {buy_round}/{buy_limit} 次购买行动力'
+                f'（用于侵蚀1练级）'
+            )
+            if not self._buy_one_action_point():
+                logger.warning(
+                    '[大世界-买行动力] 购买失败（石油不足/月末封锁/已达游戏内上限），'
+                    '退出功能1主循环'
+                )
+                break
+
+            # 临时禁用 BuyActionPointLimit，持续练级直到行动力耗尽
+            # 这样 handle_action_point 不会自动购买，只会抛出 ActionPointLimit
+            logger.info(
+                f'[大世界-买行动力] 第 {buy_round} 次购买完成，'
+                f'开始侵蚀1练级，持续消耗行动力'
+            )
+            with self.config.temporary(OpsiGeneral_BuyActionPointLimit=0):
+                while True:
+                    try:
+                        self._run_scheduled_hazard1_leveling(cl1_ap_preserve)
+                    except ActionPointLimit as e:
+                        logger.info(
+                            f'[大世界-买行动力] 侵蚀1练级行动力已耗尽: {e}，'
+                            f'准备购买下一次行动力'
+                        )
+                        break
+
+        logger.info('[大世界-买行动力] 功能1主循环结束')
+        self._delay_smart_scheduling_to_server_update('功能1主循环结束')
+
+    def _run_buy_ap_meowfficer_loop(self, buy_limit):
+        """
+        功能2：买行动力去短猫/耄耋相接补充黄币。
+
+        流程:
+            1. 检查当前行动力
+               - 超过上限阈值（默认 200）：跳过购买，直接执行海域任务
+               - 否则：买一次行动力
+            2. 按动态优先级表执行海域任务（一次购买可执行多个海域）
+            3. 检查行动力是否低于下限阈值（默认 100）
+               - 是：回到步骤1（继续购买）
+               - 否：继续执行下一个海域任务
+            4. 达上限或所有海域无可执行内容时退出
+
+        动态优先级表（按购买次数）:
+            第 1 次: 隐秘海域 > 耄耋相接
+            第 2-4 次: 隐秘海域 > 深渊坐标 > 耄耋相接
+            第 5 次: 隐秘海域 > 深渊坐标 > 塞壬要塞 > 耄耋相接
+
+        Args:
+            buy_limit (int): 本周购买行动力上限。
+
+        Pages:
+            in: page_os
+            out: page_os
+        """
+        logger.info('[大世界-买行动力] 进入功能2：短猫补黄币模式')
+
+        upper_threshold = self._get_buy_action_point_upper_threshold()
+        lower_threshold = self._get_buy_action_point_lower_threshold()
+        logger.info(
+            f'[大世界-买行动力] 阈值配置: 上限={upper_threshold}（超过则跳过购买），'
+            f'下限={lower_threshold}（低于则回购买）'
+        )
+
+        while True:
+            current_count = self._get_buy_action_point_count()
+            if current_count >= buy_limit:
+                logger.info(
+                    f'[大世界-买行动力] 已达本周购买上限 {buy_limit} 次，'
+                    f'退出功能2主循环'
+                )
+                break
+
+            # 步骤1：检查当前行动力，决定是否需要购买
+            _, current_ap = self._get_scheduling_action_point()
+            if current_ap >= upper_threshold:
+                logger.info(
+                    f'[大世界-买行动力] 当前行动力 {current_ap} >= 上限阈值 {upper_threshold}，'
+                    f'跳过购买直接执行海域任务'
+                )
+            else:
+                buy_round = current_count + 1
+                logger.info(
+                    f'[大世界-买行动力] 当前行动力 {current_ap} < 上限阈值 {upper_threshold}，'
+                    f'准备第 {buy_round}/{buy_limit} 次购买行动力'
+                )
+                if not self._buy_one_action_point():
+                    logger.warning(
+                        '[大世界-买行动力] 购买失败（石油不足/月末封锁/已达游戏内上限），'
+                        '退出功能2主循环'
+                    )
+                    break
+
+            # 步骤2：按动态优先级表执行海域任务
+            buy_count = self._get_buy_action_point_count()
+            priority_table = self._get_priority_table_for_buy_count(buy_count)
+            filtered_table = self._get_filtered_priority_table(priority_table)
+            if not filtered_table:
+                logger.warning(
+                    '[大世界-买行动力] 智能调度+未启用任何海域任务，无法执行功能2'
+                )
+                self.notify_push(
+                    title='[AzurPilot] 大世界-买行动力未启用海域任务',
+                    content='请至少启用耄耋相接、隐秘海域、深渊坐标或塞壬要塞中的一项',
+                )
+                self._delay_smart_scheduling_to_server_update('未启用海域任务')
+                return
+
+            task_names = '、'.join(
+                self.TASK_NAMES.get(task, task) for task in filtered_table
+            )
+            logger.info(
+                f'[大世界-买行动力] 第 {buy_count} 次购买后优先级表: {task_names}'
+            )
+
+            # 临时禁用 BuyActionPointLimit，防止子任务自动购买
+            executed_any = False
+            with self.config.temporary(OpsiGeneral_BuyActionPointLimit=0):
+                for task_name in filtered_table:
+                    # 每次执行前检查行动力是否低于下限阈值
+                    _, ap_now = self._get_scheduling_action_point()
+                    if ap_now < lower_threshold:
+                        logger.info(
+                            f'[大世界-买行动力] 行动力 {ap_now} < 下限阈值 {lower_threshold}，'
+                            f'停止执行海域任务，回到购买步骤'
+                        )
+                        break
+
+                    task_display = self.TASK_NAMES.get(task_name, task_name)
+                    logger.info(f'[大世界-买行动力] 执行海域任务: {task_display}')
+                    try:
+                        success = self._run_scheduled_coin_task_once(task_name, 0)
+                    except ActionPointLimit as e:
+                        logger.warning(
+                            f'[大世界-买行动力] {task_display} 行动力不足: {e}，'
+                            f'回到购买步骤'
+                        )
+                        break
+
+                    if success:
+                        executed_any = True
+                        logger.info(
+                            f'[大世界-买行动力] {task_display} 执行完成'
+                        )
+                    else:
+                        logger.info(
+                            f'[大世界-买行动力] {task_display} 无可执行内容，'
+                            f'尝试下一个任务'
+                        )
+
+            if not executed_any:
+                logger.warning(
+                    '[大世界-买行动力] 所有海域任务均无可执行内容，'
+                    f'退出功能2主循环'
+                )
+                self._delay_smart_scheduling_to_server_update('所有海域任务无可执行内容')
+                return
+
+        logger.info('[大世界-买行动力] 功能2主循环结束')
+        self._delay_smart_scheduling_to_server_update('功能2主循环结束')
 
     def _make_opsi_task_function(self, task_name):
         """从当前配置数据构造临时代跑任务对象。"""
@@ -969,6 +1504,15 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
             self.is_running_prevent_action_point_overflow_task()
             and self._delay_smart_scheduling_for_opsi_explore()
         ):
+            return
+
+        # 买行动力模式：与现有黄币/行动力调度互斥，仅由主调度（OpsiScheduling）执行。
+        # 防溢出任务代跑时不进入买行动力模式，避免循环购买打断防溢出逻辑。
+        if (
+            self._is_buy_action_point_mode_active()
+            and not self.is_running_prevent_action_point_overflow_task()
+        ):
+            self._run_buy_action_point_mode()
             return
 
         yellow_coins = self.get_yellow_coins()

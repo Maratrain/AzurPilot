@@ -417,18 +417,6 @@
     "EmulatorManager": {
       "name": "模拟器管理器",
       "help": "提供手动重启模拟器的入口喵~ (=^･ω･^=)"
-    },
-    "BattlePass": {
-      "name": "大月卡喵",
-      "help": "领取大月卡奖励喵~ (´・ω・`)"
-    },
-    "CoreShop": {
-      "name": "核心兑换喵",
-      "help": "到核心商店兑换需要的物品喵~ (・ω・)"
-    },
-    "MeowfficerTrain": {
-      "name": "指挥喵训练喵",
-      "help": "安排指挥喵训练，别让小猫偷懒喵~ (=^･ω･^=)"
     }
   },
   "Scheduler": {
@@ -2009,6 +1997,10 @@
     "CommissionNotifyRewardStatistics": {
       "name": "钻石推送详情喵",
       "help": "开启后，AzurPilot在推送本次委托获取钻石数量的同时推送当日/本周/本月的钻石获取数量喵。 (´・ω・`)"
+    },
+    "CommissionNotifyRewardCube": {
+      "name": "Commission.CommissionNotifyRewardCube.name",
+      "help": "Commission.CommissionNotifyRewardCube.help"
     }
   },
   "Tactical": {
@@ -3576,6 +3568,21 @@
       "help": "OpsiScheduling.MonthEndShopPurchase.help",
       "True": "True",
       "False": "False"
+    },
+    "BuyActionPointMode": {
+      "name": "买行动力模式喵~",
+      "help": "购买行动力专用模式喵，与现有黄币/行动力调度互斥喵~ 开启后将用石油购买行动力并执行对应任务喵。需先在「大世界通用设置 → 买行动力X次」设置每周购买上限喵~",
+      "off": "关闭喵",
+      "hazard1_leveling": "侵蚀1练级喵",
+      "meowfficer_farming": "短猫补黄币喵"
+    },
+    "BuyActionPointUpperThreshold": {
+      "name": "买行动力上限阈值喵~",
+      "help": "仅「短猫补黄币」模式使用喵~ 当前真实行动力超过此值时跳过购买，直接执行海域任务喵。默认 200（大世界行动力自然回复上限）喵~"
+    },
+    "BuyActionPointLowerThreshold": {
+      "name": "买行动力下限阈值喵~",
+      "help": "仅「短猫补黄币」模式使用喵~ 当前真实行动力低于此值时停止执行海域任务，回到购买步骤喵。默认 100 喵~"
     }
   },
   "OpsiPreventActionPointOverflow": {

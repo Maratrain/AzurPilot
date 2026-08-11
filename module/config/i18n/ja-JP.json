@@ -417,18 +417,6 @@
     "EmulatorManager": {
       "name": "エミュレータマネージャー",
       "help": "エミュレータを手動で再起動するためのエントリポイントを提供します。"
-    },
-    "MeowfficerTrain": {
-      "name": "オフニャ訓練Plus",
-      "help": ""
-    },
-    "BattlePass": {
-      "name": "シーズンパスPlus",
-      "help": ""
-    },
-    "CoreShop": {
-      "name": "コアショップPlus",
-      "help": ""
     }
   },
   "Scheduler": {
@@ -2009,6 +1997,10 @@
     "CommissionNotifyRewardStatistics": {
       "name": "ダイヤモンド通知の詳細",
       "help": "オンにすると、AzurPilotは今回の委託で取得したダイヤモンドの数量と同時に、当日／今週／今月のダイヤモンド取得数量も通知します"
+    },
+    "CommissionNotifyRewardCube": {
+      "name": "Commission.CommissionNotifyRewardCube.name",
+      "help": "Commission.CommissionNotifyRewardCube.help"
     }
   },
   "Tactical": {
@@ -3576,6 +3568,21 @@
       "help": "OpsiScheduling.MonthEndShopPurchase.help",
       "True": "True",
       "False": "False"
+    },
+    "BuyActionPointMode": {
+      "name": "行動力購入モード",
+      "help": "行動力購入専用モード。既存のコイン/行動力スケジューリングと排他。有効化すると石油で行動力を購入し対応任務を実行。事前に「大世界一般設定 → 行動力X回購入」で週間購入上限を設定してください。",
+      "off": "オフ",
+      "hazard1_leveling": "危険1練級",
+      "meowfficer_farming": "指揮猫牧場"
+    },
+    "BuyActionPointUpperThreshold": {
+      "name": "行動力購入上限閾値",
+      "help": "「指揮猫牧場」モードのみ使用。現在行動力がこの値を超えると購入をスキップし海域任務を直接実行。デフォルト200（大世界行動力自然回復上限）。"
+    },
+    "BuyActionPointLowerThreshold": {
+      "name": "行動力購入下限閾値",
+      "help": "「指揮猫牧場」モードのみ使用。現在行動力がこの値を下回ると海域任務の実行を停止し購入ステップに戻る。デフォルト100。"
     }
   },
   "OpsiPreventActionPointOverflow": {

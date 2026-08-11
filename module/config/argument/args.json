@@ -14060,6 +14060,23 @@
           true,
           false
         ]
+      },
+      "BuyActionPointMode": {
+        "type": "select",
+        "value": "off",
+        "option": [
+          "off",
+          "hazard1_leveling",
+          "meowfficer_farming"
+        ]
+      },
+      "BuyActionPointUpperThreshold": {
+        "type": "input",
+        "value": 200
+      },
+      "BuyActionPointLowerThreshold": {
+        "type": "input",
+        "value": 100
       }
     },
     "Storage": {

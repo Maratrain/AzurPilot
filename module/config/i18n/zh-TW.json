@@ -417,18 +417,6 @@
     "EmulatorManager": {
       "name": "模擬器管理器",
       "help": "提供手動重啟模擬器的入口"
-    },
-    "BattlePass": {
-      "name": "大月卡Plus",
-      "help": ""
-    },
-    "CoreShop": {
-      "name": "核心兌換Plus",
-      "help": ""
-    },
-    "MeowfficerTrain": {
-      "name": "指揮喵訓練Plus",
-      "help": ""
     }
   },
   "Scheduler": {
@@ -2009,6 +1997,10 @@
     "CommissionNotifyRewardStatistics": {
       "name": "鑽石推送詳情",
       "help": "開啟後，AzurPilot在推送本次委託獲取鑽石數量的同時推送當日/本週/本月的鑽石獲取數量"
+    },
+    "CommissionNotifyRewardCube": {
+      "name": "Commission.CommissionNotifyRewardCube.name",
+      "help": "Commission.CommissionNotifyRewardCube.help"
     }
   },
   "Tactical": {
@@ -3576,6 +3568,21 @@
       "help": "OpsiScheduling.MonthEndShopPurchase.help",
       "True": "True",
       "False": "False"
+    },
+    "BuyActionPointMode": {
+      "name": "買行動力模式",
+      "help": "購買行動力專用模式，與現有黃幣/行動力調度互斥。開啟後將用石油購買行動力並執行對應任務。需先在「大世界通用設定 → 買行動力X次」設定每週購買上限。",
+      "off": "關閉",
+      "hazard1_leveling": "侵蝕1練級",
+      "meowfficer_farming": "短貓補黃幣"
+    },
+    "BuyActionPointUpperThreshold": {
+      "name": "買行動力上限閾值",
+      "help": "僅「短貓補黃幣」模式使用。當前真實行動力超過此值時跳過購買，直接執行海域任務。預設 200（大世界行動力自然回覆上限）。"
+    },
+    "BuyActionPointLowerThreshold": {
+      "name": "買行動力下限閾值",
+      "help": "僅「短貓補黃幣」模式使用。當前真實行動力低於此值時停止執行海域任務，回到購買步驟。預設 100。"
     }
   },
   "OpsiPreventActionPointOverflow": {
