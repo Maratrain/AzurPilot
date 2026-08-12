@@ -107,6 +107,11 @@ class Camera(MapOperation):
         Returns:
             bool: 相机是否移动了。
         """
+        vector = np.array(vector)
+
+        if np.all(vector == 0):
+            logger.debug('[地图-摄像机] 跳过无效滑动: (0,0)')
+            return False
         logger.info('[地图-摄像机] 地图滑动: %s' % str(vector))
         self._prev_view = copy.copy(self.view)
         self._prev_swipe = vector
@@ -402,9 +407,9 @@ class Camera(MapOperation):
             if len(record) > 0:
                 # 即使两条边缘可见也要滑动，以避免一些尴尬的相机位置。
                 if x != 0 or y != 0:
-                    old_camera = self.camera
+                    old_location = self.view.center_loca
                     self.map_swipe((x, y))
-                    if self.camera == old_camera:
+                    if self.view.center_loca == old_location:
                         no_change_count += 1
                         logger.info(f'[地图-摄像机] 滑动后视角无变化({no_change_count}/3)')
                     else:
@@ -440,7 +445,15 @@ class Camera(MapOperation):
 
         while 1:
             vector = np.array(location) - self.camera
+
+            if np.all(vector == 0):
+                break
+
             swipe = tuple(np.min([np.abs(vector), swipe_limit], axis=0) * np.sign(vector))
+
+            if swipe == (0, 0):
+                break
+
             has_swiped = self.map_swipe(swipe)
 
             if not has_swiped:
