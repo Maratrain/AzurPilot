@@ -256,7 +256,8 @@ def app():
     )
     args, _ = parser.parse_known_args()
 
-    initial_style_names = _initial_style_names(AlasGUI.theme)
+    initial_theme = State.deploy_config.Theme
+    initial_style_names = _initial_style_names(initial_theme)
     initial_css_files = (
         INITIAL_WEBUI_CSS,
         *(
@@ -264,7 +265,7 @@ def app():
             for name in initial_style_names[1:]
         ),
     )
-    initial_loading_css = _initial_loading_css(AlasGUI.theme)
+    initial_loading_css = _initial_loading_css(initial_theme)
     lang.LANG = State.deploy_config.Language
     key = args.key if is_webui_password_set(args.key) else State.deploy_config.Password
     key, password_error = ensure_public_webui_password(key)
