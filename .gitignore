@@ -32,6 +32,7 @@ debug_ocr/
 PaddleOCR
 .trae
 docs/
+.claude
 # Created by .ignore support plugin (hsz.mobi)
 
 ### JetBrains template
