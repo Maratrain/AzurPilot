@@ -1282,13 +1282,13 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
 
             # 临时禁用 BuyActionPointLimit，防止子任务自动购买
             executed_any = False
+            # 复用步骤1已查询的行动力，避免 for 循环首任务重复弹窗
+            for_ap = current_ap
             with self.config.temporary(OpsiGeneral_BuyActionPointLimit=0):
                 for task_name in filtered_table:
-                    # 每次执行前检查行动力是否低于下限阈值
-                    _, ap_now = self._get_scheduling_action_point()
-                    if ap_now < lower_threshold:
+                    if for_ap < lower_threshold:
                         logger.info(
-                            f'[大世界-买行动力] 行动力 {ap_now} < 下限阈值 {lower_threshold}，'
+                            f'[大世界-买行动力] 行动力 {for_ap} < 下限阈值 {lower_threshold}，'
                             f'停止执行海域任务，回到购买步骤'
                         )
                         break
@@ -1314,6 +1314,9 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                             f'[大世界-买行动力] {task_display} 无可执行内容，'
                             f'尝试下一个任务'
                         )
+
+                    # 仅子任务执行后才重新查询行动力，跳过 for 循环首次的冗余弹窗
+                    _, for_ap = self._get_scheduling_action_point()
 
             if not executed_any:
                 logger.warning(
@@ -1411,25 +1414,13 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
             self.config.task_stop()
 
         logger.info('[大世界-智能调度+] 执行一轮耄耋相接')
-        # 耄耋相接会通过共享的手动配置项控制本轮行动力下限。
-        # 代跑结束后必须恢复，否则其保留值会泄漏到后续侵蚀 1 调度。
-        with self.config.temporary(
-            OS_ACTION_POINT_PRESERVE=self.config.OS_ACTION_POINT_PRESERVE,
-        ):
-            try:
-                self._run_with_opsi_task_context(
-                    self.TASK_NAME_MEOWFFICER_FARMING,
-                    self.run_meowfficer_farming_once,
-                    ap_preserve=ap_preserve,
-                )
-            except ActionPointLimit as e:
-                if ap_preserve > 0 and getattr(e, 'preserve', None) == ap_preserve:
-                    logger.info(
-                        f'[大世界-智能调度+] 耄耋相接已达到行动力保留值 '
-                        f'({e.total} <= {ap_preserve})，返回智能调度+'
-                    )
-                    return
-                raise
+# 智能调度上下文外层已查询行动力，跳过子任务内的冗余弹窗
+        self._run_with_opsi_task_context(
+            self.TASK_NAME_MEOWFFICER_FARMING,
+            self.run_meowfficer_farming_once,
+            ap_preserve=ap_preserve,
+            ap_checked=True,
+        )
 
     def handle_first_auto_search(self, run):
         """由智能调度+决策是否执行 os_init 阶段跳过的首次自律寻敌。"""
