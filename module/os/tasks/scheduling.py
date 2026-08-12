@@ -898,12 +898,37 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                 current_week_id,
             )
 
+    def _is_buy_action_point_ocr_valid(self):
+        """
+        验证购买剩余次数 OCR 区域是否成功提取到文字像素。
+
+        返回 True 时 action_point_get_buy_remain() 的结果可信；
+        返回 False 时 OCR 未识别到内容，返回的 0 是失败回退值，不可信。
+
+        Returns:
+            bool: True 表示 OCR 成功识别到文字。
+        """
+        from module.base.utils import crop, extract_letters
+        import numpy as np
+        from module.os_handler.assets import ACTION_POINT_BUY_REMAIN
+
+        letter = (148, 247, 99) if server.server != 'jp' else (255, 255, 255)
+        area = ACTION_POINT_BUY_REMAIN.area
+        cropped = crop(self.device.image, area)
+        extracted = extract_letters(cropped, letter=letter, threshold=128)
+        text_pixel_count = int(np.sum(extracted > 0))
+        return text_pixel_count > 20
+
     def _sync_buy_action_point_count_with_game(self):
         """
         从游戏 OCR 同步本周已购买行动力次数。
 
         进入买行动力模式时调用，确保持久化计数器与游戏一致。
         游戏显示"剩余购买次数"，反推已购买次数 = 5 - remain。
+
+        OCR 失败保护：如果 OCR 区域没有提取到文字像素，
+        则认为 OCR 未成功识别（返回的 0 是失败回退值），
+        保留持久化计数器的值，不覆盖。
 
         Returns:
             int: 同步后的已购买次数
@@ -912,12 +937,20 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         self.action_point_safe_get()
         try:
             remain = self.action_point_get_buy_remain()
-            buy_max = 5
-            actual_count = max(0, buy_max - remain)
+            ocr_valid = self._is_buy_action_point_ocr_valid()
         finally:
             self.action_point_quit()
 
+        if not ocr_valid:
+            stored_count = self._get_buy_action_point_count()
+            logger.warning(
+                f'[大世界-买行动力] OCR 未能识别购买剩余次数（区域无文字像素），'
+                f'保留持久化计数器值 {stored_count}'
+            )
+            return stored_count
+
         self._reset_buy_action_point_count_if_new_week()
+        actual_count = max(0, 5 - remain)
         self._set_buy_action_point_count(actual_count)
         logger.info(
             f'[大世界-买行动力] 同步购买计数: 已购买 {actual_count} 次 '
