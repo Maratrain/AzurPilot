@@ -955,6 +955,13 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         self._reset_buy_action_point_count_if_new_week()
         actual_count = max(0, 5 - remain)
         self._set_buy_action_point_count(actual_count)
+
+        # 同步更新行动力缓存，后续 _get_scheduling_action_point 无需重复弹窗
+        self._ap_cache = (
+            int(getattr(self, '_action_point_total', 0) or 0),
+            int(getattr(self, '_action_point_current', 0) or 0),
+            current_time(),
+        )
         logger.info(
             f'[大世界-买行动力] 同步购买计数: 已购买 {actual_count} 次 '
             f'(游戏剩余 {remain})'
@@ -1077,8 +1084,12 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         流程:
             1. 同步持久化计数器与游戏内剩余购买次数（防重启状态不一致）
             2. 读取 OpsiGeneral.BuyActionPointLimit 作为本周购买上限
-            3. 检查是否已达上限，是则延迟到服务器刷新
+            3. 检查是否已达上限，是则返回 False（不延迟，交由正常调度接管）
             4. 根据模式分发到对应主循环
+
+        Returns:
+            bool: True 表示已延迟到服务器刷新（正常调度无需继续）；
+                  False 表示买行动力模式自然结束，正常调度应接管剩余行动力。
 
         Pages:
             in: page_os
@@ -1108,16 +1119,15 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                     content='请在「大世界通用设置 → 买行动力X次」中设置每周购买上限（大于 0）',
                 )
                 self._delay_smart_scheduling_to_server_update('未配置购买上限')
-                return
+                return True
 
         current_count = self._get_buy_action_point_count()
         if current_count >= buy_limit:
             logger.info(
                 f'[大世界-买行动力] 已达本周购买上限 {buy_limit} 次'
-                f'（已购买 {current_count} 次），延迟到服务器刷新'
+                f'（已购买 {current_count} 次），买行动力模式结束，剩余行动力交由正常调度'
             )
-            self._delay_smart_scheduling_to_server_update('已达本周购买上限')
-            return
+            return False
 
         logger.info(
             f'[大世界-买行动力] 本周已购买 {current_count}/{buy_limit} 次，'
@@ -1125,9 +1135,11 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         )
 
         if self._is_buy_action_point_hazard1_mode():
-            self._run_buy_ap_hazard1_loop(buy_limit)
+            return self._run_buy_ap_hazard1_loop(buy_limit)
         elif self._is_buy_action_point_meowfficer_mode():
-            self._run_buy_ap_meowfficer_loop(buy_limit)
+            return self._run_buy_ap_meowfficer_loop(buy_limit)
+
+        return False
 
     def _run_buy_ap_hazard1_loop(self, buy_limit):
         """
@@ -1193,7 +1205,7 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                         break
 
         logger.info('[大世界-买行动力] 功能1主循环结束')
-        self._delay_smart_scheduling_to_server_update('功能1主循环结束')
+        return False
 
     def _run_buy_ap_meowfficer_loop(self, buy_limit):
         """
@@ -1322,18 +1334,17 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
 
                     # 仅子任务成功执行后才重新查询行动力，"无内容"跳过刷新避免冗余弹窗
                     if success:
-                        _, for_ap = self._get_scheduling_action_point()
+                        _, for_ap = self._get_scheduling_action_point(force_refresh=True)
 
             if not executed_any:
                 logger.warning(
                     '[大世界-买行动力] 所有海域任务均无可执行内容，'
                     f'退出功能2主循环'
                 )
-                self._delay_smart_scheduling_to_server_update('所有海域任务无可执行内容')
-                return
+                return False
 
         logger.info('[大世界-买行动力] 功能2主循环结束')
-        self._delay_smart_scheduling_to_server_update('功能2主循环结束')
+        return False
 
     def _make_opsi_task_function(self, task_name):
         """从当前配置数据构造临时代跑任务对象。"""
@@ -1395,21 +1406,35 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                 self.config._bind_task_override = previous_bind
                 self.config.bind(previous_bind)
 
-    def _get_scheduling_action_point(self):
+    def _get_scheduling_action_point(self, force_refresh=False):
         """
         读取智能调度+决策所需的行动力。
+
+        缓存机制：最近一次 OCR 读取后 60 秒内直接复用缓存值，不再弹窗。
+        跨任务执行后（如海域/练级）必须使用 force_refresh=True 强制刷新。
 
         Returns:
             tuple[int, int]: (总行动力, 当前真实行动力)
         """
+        cache_ttl_seconds = 60
+        cached = getattr(self, '_ap_cache', (None, None, None))
+        cached_total, cached_current, cached_at = cached
+        if (
+            not force_refresh
+            and cached_at is not None
+            and cached_total is not None
+            and (current_time() - cached_at).total_seconds() < cache_ttl_seconds
+        ):
+            return cached_total, cached_current
+
         self.action_point_enter()
         self.action_point_safe_get()
         self.action_point_quit()
+        total_ap = int(getattr(self, '_action_point_total', 0) or 0)
+        current_ap = int(getattr(self, '_action_point_current', 0) or 0)
+        self._ap_cache = (total_ap, current_ap, current_time())
         self.check_and_notify_action_point_threshold()
-        return (
-            int(getattr(self, '_action_point_total', 0) or 0),
-            int(getattr(self, '_action_point_current', 0) or 0),
-        )
+        return total_ap, current_ap
 
     def _run_scheduled_meowfficer_farming(self, ap_preserve):
         """
@@ -1479,6 +1504,8 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
     def _run_scheduled_hazard1_leveling(self, ap_preserve):
         """
         由智能调度+执行一轮侵蚀 1 练级。
+
+        ap_checked=True 表示已确认行动力充足（>=120），跳过 action_point_set 弹窗。
         """
         if not hasattr(self, 'run_hazard1_leveling_once'):
             logger.error('[大世界-智能调度+] 当前实例不支持执行侵蚀 1 练级')
@@ -1486,6 +1513,17 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
 
         logger.info('[大世界-智能调度+] 执行一轮侵蚀 1 练级')
         self.handle_first_auto_search(run=False)
+
+        # 检查缓存行动力是否充足（>=120 且缓存 < 60 秒）
+        cached = getattr(self, '_ap_cache', (None, None, None))
+        _, cached_current, cached_at = cached
+        ap_checked = (
+            cached_at is not None
+            and cached_current is not None
+            and cached_current >= 120
+            and (current_time() - cached_at).total_seconds() < 60
+        )
+
         if hasattr(self, 'os_check_leveling'):
             self._run_with_opsi_task_context(
                 self.TASK_NAME_HAZARD1_LEVELING,
@@ -1495,6 +1533,7 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
             self.TASK_NAME_HAZARD1_LEVELING,
             self.run_hazard1_leveling_once,
             ap_preserve=ap_preserve,
+            ap_checked=ap_checked,
         )
 
     def _run_scheduled_coin_task_once(self, task_name, ap_preserve):
@@ -1566,8 +1605,9 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
             self._is_buy_action_point_mode_active()
             and not self.is_running_prevent_action_point_overflow_task()
         ):
-            self._run_buy_action_point_mode()
-            return
+            bought_delay = self._run_buy_action_point_mode()
+            if bought_delay:
+                return
 
         yellow_coins = self.get_yellow_coins()
         total_ap, current_ap = self._get_scheduling_action_point()
@@ -2014,7 +2054,7 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
             logger.hr(f'大世界-月末清理 第{round_num}轮', level=3)
 
             # 检查行动力是否已降到保留值
-            total_ap, current_ap = self._get_scheduling_action_point()
+            total_ap, current_ap = self._get_scheduling_action_point(force_refresh=True)
             if total_ap <= month_end_preserve:
                 logger.info(
                     f'[大世界-月末清理] 总行动力 {total_ap} <= 保留值 {month_end_preserve}，'
@@ -2060,7 +2100,7 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                 break
 
         # 月末清理结束，刷新行动力并通知
-        total_ap, current_ap = self._get_scheduling_action_point()
+        total_ap, current_ap = self._get_scheduling_action_point(force_refresh=True)
         logger.info(
             f'[大世界-月末清理] 清理结束: 总行动力={total_ap}, '
             f'当前行动力={current_ap}, 保留值={month_end_preserve}'
