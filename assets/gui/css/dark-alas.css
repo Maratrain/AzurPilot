@@ -30,6 +30,10 @@
     color: #dfdcfb;
 }
 
+.btn-aside {
+    color: #dfdcfb;
+}
+
 .btn-aside:hover,
 .btn-aside-active {
     background-color: #3e3b6a;
