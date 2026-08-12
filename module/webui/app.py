@@ -266,11 +266,14 @@ def app():
         ),
     )
     initial_loading_css = _initial_loading_css(initial_theme)
-    # PyWebIO 页面模板按 theme 加载 bs-theme/<theme>.min.css 并设置 body class，
-    # 需与 set_theme() 的映射保持一致，否则首次渲染仍会使用默认亮色主题。
+    # 通过直接调用 webconfig(theme=...) 设置 PyWebIO 全局主题配置，
+    # 使 render_page() 在首次渲染时加载正确的 bs-theme/<theme>.min.css。
+    # 不在 @webconfig 装饰器内设置 theme，避免 theme 固定为启动时的值，
+    # 确保运行时 set_theme() 切换主题后下次渲染能用新主题。
     # 注意 PyWebIO 仅提供 dark/default/minty/sketchy/yeti 主题，没有 light.min.css，
     # 因此 light 与其他主题统一回退到 default（default.min.css 即亮色主题）。
     pywebio_theme = "dark" if initial_theme == "dark" else "default"
+    webconfig(theme=pywebio_theme)
     lang.LANG = State.deploy_config.Language
     key = args.key if is_webui_password_set(args.key) else State.deploy_config.Password
     key, password_error = ensure_public_webui_password(key)
@@ -352,7 +355,6 @@ def app():
         css_file=initial_css_files,
         css_style=initial_loading_css,
         js_code=INITIAL_LOADING_JS,
-        theme=pywebio_theme,
     )
     def index() -> None:
         _run_gui()
@@ -361,7 +363,6 @@ def app():
         css_file=initial_css_files,
         css_style=initial_loading_css,
         js_code=INITIAL_LOADING_JS,
-        theme=pywebio_theme,
     )
     def manage() -> None:
         _run_gui(initial_page="manage")

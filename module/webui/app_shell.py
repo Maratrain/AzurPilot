@@ -344,6 +344,21 @@ class AppShellMixin(WebUIMixinBase):
         """)
 
         run_js(f"""
+        (function() {{
+            var link = document.querySelector('link[href*="bs-theme/"]');
+            if (link) {{
+                link.href = link.href.replace(
+                    /bs-theme\\/\\S+\\.min\\.css/,
+                    'bs-theme/{pywebio_theme}.min.css'
+                );
+            }}
+            document.body.className = document.body.className
+                .replace(/webio-theme-\\S+/g, '')
+                + ' webio-theme-{pywebio_theme}';
+        }})();
+        """)
+
+        run_js(f"""
         window.dispatchEvent(
             new CustomEvent(
                 "alas-theme-change",
