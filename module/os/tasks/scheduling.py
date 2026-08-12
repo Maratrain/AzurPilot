@@ -1315,8 +1315,9 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                             f'尝试下一个任务'
                         )
 
-                    # 仅子任务执行后才重新查询行动力，跳过 for 循环首次的冗余弹窗
-                    _, for_ap = self._get_scheduling_action_point()
+                    # 仅子任务成功执行后才重新查询行动力，"无内容"跳过刷新避免冗余弹窗
+                    if success:
+                        _, for_ap = self._get_scheduling_action_point()
 
             if not executed_any:
                 logger.warning(
