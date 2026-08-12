@@ -1087,20 +1087,28 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         logger.hr('大世界-买行动力模式', level=1)
 
         # 同步购买计数器与游戏内剩余次数（重启后可能不一致）
-        self._sync_buy_action_point_count_with_game()
+        sync_result = self._sync_buy_action_point_count_with_game()
 
         buy_limit = self.config.OpsiGeneral_BuyActionPointLimit
         if buy_limit <= 0:
-            logger.warning(
-                '[大世界-买行动力] OpsiGeneral.BuyActionPointLimit 为 0，'
-                '未配置每周购买上限'
-            )
-            self.notify_push(
-                title='[AzurPilot] 大世界-买行动力未配置上限',
-                content='请在「大世界通用设置 → 买行动力X次」中设置每周购买上限（大于 0）',
-            )
-            self._delay_smart_scheduling_to_server_update('未配置购买上限')
-            return
+            # 检查是否是暂停恢复导致的临时覆盖残留
+            if sync_result > 0:
+                logger.info(
+                    f'[大世界-买行动力] 检测到 BuyActionPointLimit 为 0（临时覆盖残留），'
+                    f'本周已购买 {sync_result} 次，按游戏上限 5 次恢复'
+                )
+                buy_limit = 5
+            else:
+                logger.warning(
+                    '[大世界-买行动力] OpsiGeneral.BuyActionPointLimit 为 0，'
+                    '未配置每周购买上限'
+                )
+                self.notify_push(
+                    title='[AzurPilot] 大世界-买行动力未配置上限',
+                    content='请在「大世界通用设置 → 买行动力X次」中设置每周购买上限（大于 0）',
+                )
+                self._delay_smart_scheduling_to_server_update('未配置购买上限')
+                return
 
         current_count = self._get_buy_action_point_count()
         if current_count >= buy_limit:
