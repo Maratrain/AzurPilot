@@ -909,6 +909,7 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
             bool: True 表示 OCR 成功识别到文字。
         """
         from module.base.utils import crop, extract_letters
+        from module.config import server
         import numpy as np
         from module.os_handler.assets import ACTION_POINT_BUY_REMAIN
 
