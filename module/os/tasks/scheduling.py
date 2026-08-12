@@ -936,6 +936,8 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
         """
         self.action_point_enter()
         self.action_point_safe_get()
+        # 必须选中石油按钮，否则 OCR 区域读到的是药箱数量而非购买剩余次数
+        self.action_point_set_button(0)
         try:
             remain = self.action_point_get_buy_remain()
             ocr_valid = self._is_buy_action_point_ocr_valid()
