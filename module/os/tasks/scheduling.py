@@ -1258,6 +1258,11 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                     )
                     break
 
+                # 购买成功后 OCR 已读到新行动力，使用缓存值避免重复弹窗
+                current_ap = int(
+                    getattr(self, '_action_point_current', current_ap) or current_ap
+                )
+
             # 步骤2：按动态优先级表执行海域任务
             buy_count = self._get_buy_action_point_count()
             priority_table = self._get_priority_table_for_buy_count(buy_count)
