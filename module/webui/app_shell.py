@@ -30,6 +30,50 @@ from module.webui.app_dependencies import (
 from module.webui.app_types import WebUIMixinBase
 
 
+def _reload_theme_css(theme: str) -> None:
+    """切换主题时移除旧主题注入的 <style>，并重新注入当前主题 CSS。
+
+    旧主题的 !important 规则（如 dark-alas 的 #pywebio-scope-aside button
+    { color: ... !important }）会残留在 DOM 中，即使新主题 CSS 后加载，
+    !important 相同优先级的情况下，后加载的规则才生效。但 add_css_files
+    的注入追踪会阻止重新注入，因此需要手动删除旧 <style> 并重置追踪。
+    """
+    from module.webui.app_dependencies import local
+    from module.webui.utils import add_css_files, filepath_css
+
+    # 先删除旧主题注入的 <style> 元素
+    run_js("""
+    var ids = document.querySelectorAll(
+        'style[id^="alas-css-light-alas-"],' +
+        'style[id^="alas-css-dark-alas-"],' +
+        'style[id^="alas-css-advanced-material-alas-"],' +
+        'style[id^="alas-css-dark-advanced-material-overrides-alas-"]'
+    );
+    for (var i = 0; i < ids.length; i++) {
+        ids[i].parentNode.removeChild(ids[i]);
+    }
+    """)
+
+    injected_styles = getattr(local, "webui_injected_styles", None)
+    if injected_styles is not None:
+        injected_styles.discard(filepath_css("light-alas"))
+        injected_styles.discard(filepath_css("dark-alas"))
+        injected_styles.discard(filepath_css("advanced-material-alas"))
+        injected_styles.discard(filepath_css("dark-advanced-material-overrides-alas"))
+
+    if theme == "dark":
+        add_css_files((filepath_css("dark-alas"),))
+    elif theme == "advanced_material":
+        add_css_files((filepath_css("advanced-material-alas"),))
+    elif theme == "dark_advanced_material":
+        add_css_files((
+            filepath_css("advanced-material-alas"),
+            filepath_css("dark-advanced-material-overrides-alas"),
+        ))
+    else:
+        add_css_files((filepath_css("light-alas"),))
+
+
 class AppShellMixin(WebUIMixinBase):
     """WebUI会话外壳"""
 
@@ -357,6 +401,10 @@ class AppShellMixin(WebUIMixinBase):
                 + ' webio-theme-{pywebio_theme}';
         }})();
         """)
+
+        # 清空会话注入追踪中的主题 CSS 记录，然后重新调用 load_webui_styles
+        # 为当前主题注入正确的 CSS。旧主题残留的 !important 规则会被新 CSS 覆盖。
+        _reload_theme_css(theme)
 
         run_js(f"""
         window.dispatchEvent(
