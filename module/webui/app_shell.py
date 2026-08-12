@@ -328,9 +328,9 @@ class AppShellMixin(WebUIMixinBase):
         State.deploy_config.Theme = theme
         State.theme = theme
 
-        pywebio_theme = theme if theme in ("default", "dark", "light") else "dark"
-        if theme in ("advanced_material", "dark_advanced_material"):
-            pywebio_theme = "default"
+        # PyWebIO 仅提供 dark/default 等主题，没有 light.min.css，
+        # 因此 light 统一回退到 default（default.min.css 即亮色主题）。
+        pywebio_theme = "dark" if theme == "dark" else "default"
 
         webconfig(theme=pywebio_theme)
 
