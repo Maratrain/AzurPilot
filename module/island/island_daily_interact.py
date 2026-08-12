@@ -551,7 +551,9 @@ class IslandDailyInteract(Island):
 
     def _click_optional_interact_or_complete(self, interact_button, complete_button, label, timeout=8):
         for _ in self.loop(timeout=timeout):
-            if self.appear_then_click(interact_button, interval=2):
+            # 交互按钮用模板匹配而非纯颜色检测：已完成状态下同一区域可能被
+            # “管理苗圃”等浅色选项行占据，颜色检测会误判为未完成并误点卡住。
+            if self.appear_then_click(interact_button, offset=(20, 20), interval=2):
                 logger.info(f'[岛屿-每日周任务] 点击{label}')
                 return 'clicked'
             if self.appear(complete_button, offset=(20, 20)):

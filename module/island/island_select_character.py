@@ -16,7 +16,10 @@ class SelectCharacter(UI):
     def __init__(self, *args, **kwargs):
         UI.__init__(self, *args, **kwargs)
         self.select_character_grid = ButtonGrid(
-            origin=(58, 141),
+            # 头像左上角位于单元格偏移 (33, 45) 处，
+            # 与 _cell_button_from_portrait() 的锚点偏移保持一致。
+            # 仅识别可靠可读的前两行，第三行不参与网格判定。
+            origin=(58, 112),
             delta=(140, 180),
             button_shape=(120, 160),
             grid_shape=(6, 2),
@@ -27,7 +30,7 @@ class SelectCharacter(UI):
         self.unavailable_characters = set()
 
         # 定义状态检测区域（相对于每个角色按钮）
-        self.character_area_relative = (25, 38, 125, 92)
+        self.character_area_relative = (25, 38, 125, 96)
         self.working_area_relative = (15, 92, 105, 121)
         self.stamina_area_relative = (18, 165, 58, 182)
         self.stamina_ocr_area_relative = (0, 165, 80, 184)
@@ -710,6 +713,8 @@ class SelectCharacter(UI):
                 )
                 # 点击目标直接用头像匹配框，避免固定网格在滚动偏移下点错位置
                 char_info["button"] = portrait_button
+                # 选中状态检测以重建单元格为基准（头像框与单元格偏移不同）
+                char_info["cell_button"] = cell_button
                 checked = self._check_character_strict(char_info, stamina_threshold)
                 if checked is None:
                     self.unavailable_characters.add(char_name)
@@ -742,11 +747,13 @@ class SelectCharacter(UI):
             return False
 
         row, col = char_info["grid_position"]
-        # 滚动回退路径携带头像匹配框作为点击目标，网格路径使用固定网格
+        # 滚动回退路径携带头像匹配框作为点击目标，网格路径使用固定网格；
+        # 选中状态检测以重建单元格为基准，避免头像框偏移导致确认失败
         button = char_info.get("button") or self.select_character_grid[row, col]
+        status_button = char_info.get("cell_button") or button
         for attempt in range(5):
             screenshot = self.device.screenshot()
-            if self._check_selected_status(screenshot, button):
+            if self._check_selected_status(screenshot, status_button):
                 return True
             self.device.click(button)
             self.device.sleep(0.3)

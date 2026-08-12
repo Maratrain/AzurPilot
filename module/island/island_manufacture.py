@@ -23,26 +23,18 @@ FIXED_SELECT_SHEPHERD_PURSE = Button(
 
 
 # 季节限定手工产品配置（按 SEASONAL_ITEMS['handmade'] 的键引用）
+# 注意：清单中的部分物品（如夏季茉莉精油、秋季花束）有意不在此配置内，
+# 即季节定义保留但工厂不实际制作。
 SEASONAL_HANDMADE_ITEMS = {
     'shepherd_purse': {
         'name': 'shepherd_purse', 'template': TEMPLATE_SHEPHERD_PURSE,
         'var_name': 'shepherd_purse', 'selection': FIXED_SELECT_SHEPHERD_PURSE,
         'selection_check': FIXED_SELECT_SHEPHERD_PURSE, 'post_action': POST_SHEPHERD_PURSE,
     },
-    'jasmine_oil': {
-        'name': 'jasmine_oil', 'template': TEMPLATE_JASMINE_OIL,
-        'var_name': 'jasmine_oil', 'selection': SELECT_JASMINE_OIL,
-        'selection_check': SELECT_JASMINE_OIL_CHECK, 'post_action': POST_JASMINE_OIL,
-    },
     'summer_bouquet': {
         'name': 'summer_bouquet', 'template': TEMPLATE_SUMMER_BOUQUET,
         'var_name': 'summer_bouquet', 'selection': SELECT_SUMMER_BOUQUET,
         'selection_check': SELECT_SUMMER_BOUQUET_CHECK, 'post_action': POST_SUMMER_BOUQUET,
-    },
-    'autumn_bouquet': {
-        'name': 'autumn_bouquet', 'template': TEMPLATE_AUTUMN_BOUQUET,
-        'var_name': 'autumn_bouquet', 'selection': SELECT_AUTUMN_BOUQUET,
-        'selection_check': SELECT_AUTUMN_BOUQUET_CHECK, 'post_action': POST_AUTUMN_BOUQUET,
     },
 }
 
@@ -380,7 +372,7 @@ class IslandManufacture(IslandShopBase):
         leather_stock = self.warehouse_counts.get('leather', 0)
         # 构建产品选择列表（按优先级）
         product_list = []
-        # 优先生产当前季节的限定手工品（荠菜干、秋季花束等）
+        # 优先生产当前季节的限定手工品（荠菜干、夏季花束等）
         seasonal_names = []
         if hasattr(self, 'season_config') and self.season_config.is_seasonal_enabled:
             seasonal_names = self.season_config.get_seasonal_items('handmade') or []
