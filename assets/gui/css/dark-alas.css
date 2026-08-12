@@ -30,14 +30,16 @@
     color: #dfdcfb;
 }
 
-.btn-aside {
-    color: #dfdcfb;
+#pywebio-scope-aside button,
+#pywebio-scope-aside .btn-aside {
+    color: #dfdcfb !important;
 }
 
-.btn-aside:hover,
-.btn-aside-active {
-    background-color: #3e3b6a;
-    color: #dfdcfb;
+#pywebio-scope-aside button:hover,
+#pywebio-scope-aside .btn-aside:hover,
+#pywebio-scope-aside .btn-aside-active {
+    background-color: #3e3b6a !important;
+    color: #dfdcfb !important;
 }
 
 .btn-off {
