@@ -55,8 +55,8 @@ Arguments:
 """
 CONFIG = 'alas2'
 FOLDER = './screenshots/record'
-NAME = 'haorenlichade_m_zhanlie'
-NODE = 'F4'
+NAME = 'haorenlichade_m_qianting'
+NODE = 'E6'
 
 if __name__ == '__main__':
     for folder in [FOLDER, os.path.join(FOLDER, NAME)]:
