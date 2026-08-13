@@ -32,6 +32,7 @@ import module.config.server as server
 from module.base.button import Button
 from module.base.timer import Timer
 from module.base.utils import color_similarity_2d, crop
+from module.config.deep import deep_get
 from module.handler.assets import *
 from module.logger import logger
 from module.map.assets import *
@@ -177,6 +178,33 @@ class LoginHandler(UI):
             self._user_agreement_timer.reset()
             return True
 
+    def _login_wait_timeout(self):
+        """
+        获取登录等待阶段允许画面保持静态的最大秒数。
+
+        对应配置项 Restart.LoginWaitTimeout，仅作用于 app_restart()/app_start()
+        之后的登录等待阶段；正常任务仍使用 device 原始卡死检测阈值。
+
+        直接读取跨任务配置路径 Restart.Restart.LoginWaitTimeout，而非依赖当前
+        绑定的任务，确保在非 Restart 任务（如大世界、未知页面恢复）触发的
+        登录等待中也能读到用户配置值。
+
+        Returns:
+            float: 登录等待宽容时间（秒），配置非法时回退默认 30 秒。
+        """
+        value = deep_get(self.config.data, 'Restart.Restart.LoginWaitTimeout', default=30)
+        try:
+            timeout = float(value)
+        except (TypeError, ValueError):
+            timeout = -1.0
+        if not (timeout > 0):
+            logger.warning(f'[登录] Restart.LoginWaitTimeout 配置非法（{value!r}），回退默认 30 秒')
+            return 30.0
+        if timeout > 3600:
+            logger.warning(f'[登录] Restart.LoginWaitTimeout 超过上限（{value!r}），按 3600 秒处理')
+            return 3600.0
+        return timeout
+
     def handle_app_login(self):
         """
         处理应用登录流程。
@@ -191,8 +219,15 @@ class LoginHandler(UI):
         """
         logger.info('[登录] 处理应用登录')
         self.device.screenshot_interval_set(1.0)
+        login_wait_timeout = self._login_wait_timeout()
+        logger.info(f'[登录] 登录等待宽容时间 {login_wait_timeout:g} 秒')
         try:
-            self._handle_app_login()
+            # 登录等待阶段放宽卡死检测，避免后台模拟器慢启动时
+            # 静态画面超过默认 30 秒就被误判为 GameStuckError 而陷入重启循环。
+            with self.device.stuck_timeout_override(
+                    image_stuck=login_wait_timeout,
+                    long_wait=max(login_wait_timeout, self.device.stuck_timer_long.limit)):
+                self._handle_app_login()
         finally:
             self.device.screenshot_interval_set()
 

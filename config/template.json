@@ -196,7 +196,8 @@
     },
     "Restart": {
       "RandomDelay": "5, 50",
-      "ClearCache": false
+      "ClearCache": false,
+      "LoginWaitTimeout": 30
     },
     "Storage": {
       "Storage": {}

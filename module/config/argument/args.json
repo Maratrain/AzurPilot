@@ -943,6 +943,14 @@
           true,
           false
         ]
+      },
+      "LoginWaitTimeout": {
+        "type": "input",
+        "value": 30,
+        "validate": [
+          1,
+          3600
+        ]
       }
     },
     "Storage": {

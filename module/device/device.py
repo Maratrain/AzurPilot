@@ -5,6 +5,7 @@
 # 负责整合截图、点击、输入功能，并由于内置了防卡死检测和点击频率控制，能有效提高脚本自动化运行的稳定性。
 import collections
 import sys
+from contextlib import contextmanager
 
 import cv2
 from lxml import etree
@@ -334,6 +335,34 @@ class Device(Screenshot, Control, AppControl, Input):
         self.stuck_timer.reset()
         self.stuck_timer_long.reset()
         self._stuck_image_timer.clear()
+
+    @contextmanager
+    def stuck_timeout_override(self, image_stuck=None, long_wait=None):
+        """
+        临时覆盖卡死检测的超时阈值，退出上下文后自动恢复。
+
+        用于登录等待等已知会长时间保持静态画面的场景（如后台模拟器慢启动），
+        避免 _stuck_image_timer 过早触发 GameStuckError 造成重启死循环。
+
+        Args:
+            image_stuck (int | float): 截图无变化判卡死的时间上限，None 表示不修改。
+            long_wait (int | float): 长等待判卡死的时间上限，None 表示不修改。
+
+        Yields:
+            None
+        """
+        overrides = []
+        if image_stuck is not None:
+            overrides.append((self._stuck_image_timer, self._stuck_image_timer.limit))
+            self._stuck_image_timer.limit = image_stuck
+        if long_wait is not None:
+            overrides.append((self.stuck_timer_long, self.stuck_timer_long.limit))
+            self.stuck_timer_long.limit = long_wait
+        try:
+            yield
+        finally:
+            for timer_obj, limit in overrides:
+                timer_obj.limit = limit
 
     def _check_image_stuck(self):
         if self.image is None:

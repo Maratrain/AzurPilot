@@ -88,6 +88,9 @@ Restart:
     type: checkbox
     value: false
     option: [true, false]
+  LoginWaitTimeout:
+    value: 30
+    validate: [1, 3600]
 Emulator:
   Serial:
     value: auto

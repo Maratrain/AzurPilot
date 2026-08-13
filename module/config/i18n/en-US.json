@@ -477,6 +477,10 @@
       "help": "When restarting the game client, delete external cache files under /sdcard/Android/data/<package>/cache/ after force-stopping the app.",
       "True": "Enabled",
       "False": "Disabled"
+    },
+    "LoginWaitTimeout": {
+      "name": "Login wait timeout",
+      "help": "Maximum time (seconds) to wait for login/startup to complete after the game restarts.\nIncrease this if the game starts slowly when the emulator runs in the background, to avoid false stuck detection and restart loops.\nDefault 30 seconds; only affects the post-restart login wait phase."
     }
   },
   "Emulator": {
