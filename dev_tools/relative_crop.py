@@ -13,17 +13,35 @@ from module.base.utils import load_image
 
 class Config:
     """
-    Paste the config of map file here
+    粘贴 campaign/event_20260813_cn/a1.py 的生成配置。
+    注意：MAP_SIREN_TEMPLATE 暂时用 'DD'（已存在的通用模板），
+    否则 grids.predict() 会因为找不到 TEMPLATE_SIREN_emotion_qz 抛 ScriptError。
+    做好 emotion_qz 专属模板后可改回 ['emotion_qz']。
     """
-    pass
+    MAP_SIREN_TEMPLATE = ['DD']
+    MOVABLE_ENEMY_TURN = (2,)
+    MAP_HAS_SIREN = True
+    MAP_HAS_MOVABLE_ENEMY = True
+    MAP_HAS_MAP_STORY = False
+    MAP_HAS_FLEET_STEP = True
+    MAP_HAS_AMBUSH = False
+    MAP_HAS_MYSTERY = False
+    MAP_CHAPTER_SWITCH_20241219 = True
+    STAGE_ENTRANCE = ['half', '20240725']
+    MAP_HAS_MODE_SWITCH = True
+    STAGE_INCREASE_AB = True
+    MAP_WALK_USE_CURRENT_FLEET = True
 
-from module.os.config import OSConfig
-cfg = AzurLaneConfig('alas').merge(OSConfig())
+
+# 使用用户现有的配置（alas2.json），避免自动创建 alas.json
+cfg = AzurLaneConfig('alas2')
+# 合并地图文件的配置，使 predict 能标记塞壬格子
+cfg = cfg.merge(Config())
 
 # Folder to save temp images
 folder = './screenshots/relative_crop'
-# Put Screenshot here
-file = './screenshots/123.png'
+# Put Screenshot here（把 A1 图、含塞壬的截图放到这里）
+file = './screenshots/1.png'
 
 i = load_image(file)
 grids = View(cfg)
