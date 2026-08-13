@@ -13,12 +13,9 @@ from module.base.utils import load_image
 
 class Config:
     """
-    粘贴 campaign/event_20260813_cn/a1.py 的生成配置。
-    注意：MAP_SIREN_TEMPLATE 暂时用 'DD'（已存在的通用模板），
-    否则 grids.predict() 会因为找不到 TEMPLATE_SIREN_emotion_qz 抛 ScriptError。
-    做好 emotion_qz 专属模板后可改回 ['emotion_qz']。
+    粘贴 campaign/event_20260813_cn/d1.py 的生成配置。
     """
-    MAP_SIREN_TEMPLATE = ['DD']
+    MAP_SIREN_TEMPLATE = ['haorenlichade_m_zhanlie']
     MOVABLE_ENEMY_TURN = (2,)
     MAP_HAS_SIREN = True
     MAP_HAS_MOVABLE_ENEMY = True
@@ -41,7 +38,7 @@ cfg = cfg.merge(Config())
 # Folder to save temp images
 folder = './screenshots/relative_crop'
 # Put Screenshot here（把 A1 图、含塞壬的截图放到这里）
-file = './screenshots/1.png'
+file = './screenshots/266F9A78004631A264669859C3BDFF8D.png'
 
 i = load_image(file)
 grids = View(cfg)
