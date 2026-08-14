@@ -101,35 +101,35 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 'filter': 'farm',
                 'threshold': self.farm_threshold,
                 'items': [
-                    {'name': 'wheat', 'template': TEMPLATE_WHEAT, 'var_name': 'wheat',
+                    {'cn_name': '小麦', 'name': 'wheat', 'template': TEMPLATE_WHEAT, 'var_name': 'wheat',
                      'selection': SELECT_WHEAT, 'selection_check': SELECT_WHEAT_CHECK,
                      'post_action': POST_WHEAT, 'category': 'farm', 'seed_number': 99,
                      'shop': SHOP_SEED_WHEAT},
-                    {'name': 'corn', 'template': TEMPLATE_CORN, 'var_name': 'corn',
+                    {'cn_name': '玉米', 'name': 'corn', 'template': TEMPLATE_CORN, 'var_name': 'corn',
                      'selection': SELECT_CORN, 'selection_check': SELECT_CORN_CHECK,
                      'post_action': POST_CORN, 'category': 'farm', 'seed_number': 99,
                      'shop': SHOP_SEED_CORN},
-                    {'name': 'rice', 'template': TEMPLATE_RICE, 'var_name': 'rice',
+                    {'cn_name': '水稻', 'name': 'rice', 'template': TEMPLATE_RICE, 'var_name': 'rice',
                      'selection': SELECT_RICE, 'selection_check': SELECT_RICE_CHECK,
                      'post_action': POST_RICE, 'category': 'farm', 'seed_number': 45,
                      'shop': SHOP_SEED_RICE},
-                    {'name': 'chinese_cabbage', 'template': TEMPLATE_CHINESE_CABBAGE, 'var_name': 'chinese_cabbage',
+                    {'cn_name': '白菜', 'name': 'chinese_cabbage', 'template': TEMPLATE_CHINESE_CABBAGE, 'var_name': 'chinese_cabbage',
                      'selection': SELECT_CHINESE_CABBAGE, 'selection_check': SELECT_CHINESE_CABBAGE_CHECK,
                      'post_action': POST_CHINESE_CABBAGE, 'category': 'farm', 'seed_number': 99,
                      'shop': SHOP_SEED_CHINESE_CABBAGE},
-                    {'name': 'potato', 'template': TEMPLATE_POTATO, 'var_name': 'potato',
+                    {'cn_name': '土豆', 'name': 'potato', 'template': TEMPLATE_POTATO, 'var_name': 'potato',
                      'selection': SELECT_POTATO, 'selection_check': SELECT_POTATO_CHECK,
                      'post_action': POST_POTATO, 'category': 'farm', 'seed_number': 36,
                      'shop': SHOP_SEED_POTATO},
-                    {'name': 'soybean', 'template': TEMPLATE_SOYBEAN, 'var_name': 'soybean',
+                    {'cn_name': '大豆', 'name': 'soybean', 'template': TEMPLATE_SOYBEAN, 'var_name': 'soybean',
                      'selection': SELECT_SOYBEAN, 'selection_check': SELECT_SOYBEAN_CHECK,
                      'post_action': POST_SOYBEAN, 'category': 'farm', 'seed_number': 45,
                      'shop': SHOP_SEED_SOYBEAN},
-                    {'name': 'pasture', 'template': TEMPLATE_PASTURE, 'var_name': 'pasture',
+                    {'cn_name': '牧草', 'name': 'pasture', 'template': TEMPLATE_PASTURE, 'var_name': 'pasture',
                      'selection': SELECT_PASTURE, 'selection_check': SELECT_PASTURE_CHECK,
                      'post_action': POST_PASTURE, 'category': 'farm', 'seed_number': 99,
                      'shop': SHOP_SEED_PASTURE},
-                    {'name': 'coffee_bean', 'template': TEMPLATE_COFFEE_BEAN, 'var_name': 'coffee_bean',
+                    {'cn_name': '咖啡豆', 'name': 'coffee_bean', 'template': TEMPLATE_COFFEE_BEAN, 'var_name': 'coffee_bean',
                      'selection': SELECT_COFFEE_BEAN, 'selection_check': SELECT_COFFEE_BEAN_CHECK,
                      'post_action': POST_COFFEE_BEAN, 'category': 'farm', 'seed_number': 36,
                      'shop': SHOP_SEED_COFFEE_BEAN},
@@ -139,41 +139,41 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 'filter': 'orchard',
                 'threshold': self.orchard_threshold,
                 'items': [
-                    {'name': 'apple', 'template': TEMPLATE_APPLE, 'var_name': 'apple',
+                    {'cn_name': '苹果', 'name': 'apple', 'template': TEMPLATE_APPLE, 'var_name': 'apple',
                      'selection': SELECT_APPLE, 'selection_check': SELECT_APPLE_CHECK,
                      'post_action': POST_APPLE, 'category': 'orchard', 'seed_number': 20,
                      'shop': SHOP_SEED_APPLE},
-                    {'name': 'citrus', 'template': TEMPLATE_CITRUS, 'var_name': 'citrus',
+                    {'cn_name': '柑橘', 'name': 'citrus', 'template': TEMPLATE_CITRUS, 'var_name': 'citrus',
                      'selection': SELECT_CITRUS, 'selection_check': SELECT_CITRUS_CHECK,
                      'post_action': POST_CITRUS, 'category': 'orchard', 'seed_number': 20,
                      'shop': SHOP_SEED_CITRUS},
-                    {'name': 'banana', 'template': TEMPLATE_BANANA, 'var_name': 'banana',
+                    {'cn_name': '香蕉', 'name': 'banana', 'template': TEMPLATE_BANANA, 'var_name': 'banana',
                      'selection': SELECT_BANANA, 'selection_check': SELECT_BANANA_CHECK,
                      'post_action': POST_BANANA, 'category': 'orchard', 'seed_number': 16,
                      'shop': SHOP_SEED_BANANA},
-                    {'name': 'mango', 'template': TEMPLATE_MANGO, 'var_name': 'mango',
+                    {'cn_name': '芒果', 'name': 'mango', 'template': TEMPLATE_MANGO, 'var_name': 'mango',
                      'selection': SELECT_MANGO, 'selection_check': SELECT_MANGO_CHECK,
                      'post_action': POST_MANGO, 'category': 'orchard', 'seed_number': 16,
                      'shop': SHOP_SEED_MANGO},
-                    {'name': 'lemon', 'template': TEMPLATE_LEMON, 'var_name': 'lemon',
+                    {'cn_name': '柠檬', 'name': 'lemon', 'template': TEMPLATE_LEMON, 'var_name': 'lemon',
                      'selection': SELECT_LEMON, 'selection_check': SELECT_LEMON_CHECK,
                      'post_action': POST_LEMON, 'category': 'orchard', 'seed_number': 28,
                      'shop': SHOP_SEED_LEMON},
-                    {'name': 'avocado', 'template': TEMPLATE_AVOCADO, 'var_name': 'avocado',
+                    {'cn_name': '牛油果', 'name': 'avocado', 'template': TEMPLATE_AVOCADO, 'var_name': 'avocado',
                      'selection': SELECT_AVOCADO, 'selection_check': SELECT_AVOCADO_CHECK,
                      'post_action': POST_AVOCADO, 'category': 'orchard', 'seed_number': 16,
                      'shop': SHOP_SEED_AVOCADO},
-                    {'name': 'rubber', 'template': TEMPLATE_RUBBER, 'var_name': 'rubber',
+                    {'cn_name': '橡胶', 'name': 'rubber', 'template': TEMPLATE_RUBBER, 'var_name': 'rubber',
                      'selection': SELECT_RUBBER, 'selection_check': SELECT_RUBBER_CHECK,
                      'post_action': POST_RUBBER, 'category': 'orchard', 'seed_number': 16,
                      'shop': SHOP_SEED_RUBBER},
                     # 秋季限定（坠香果园）：秋月梨、柿子
                     # 4x1 种植：每次派遣只消耗 4 颗种子（果园其他作物每单至少 4x4=16 颗）
-                    {'name': 'pear', 'template': TEMPLATE_PEAR, 'var_name': 'pear',
+                    {'cn_name': '秋月梨', 'name': 'pear', 'template': TEMPLATE_PEAR, 'var_name': 'pear',
                      'selection': SELECT_PEAR, 'selection_check': SELECT_PEAR_CHECK,
                      'post_action': POST_PEAR, 'category': 'orchard', 'seed_number': 4,
                      'batch_4x1': True, 'shop': SHOP_SEED_PEAR},
-                    {'name': 'persimmon', 'template': TEMPLATE_PERSIMMON, 'var_name': 'persimmon',
+                    {'cn_name': '柿子', 'name': 'persimmon', 'template': TEMPLATE_PERSIMMON, 'var_name': 'persimmon',
                      'selection': SELECT_PERSIMMON, 'selection_check': SELECT_PERSIMMON_CHECK,
                      'post_action': POST_PERSIMMON, 'category': 'orchard', 'seed_number': 4,
                      'batch_4x1': True, 'shop': SHOP_SEED_PERSIMMON},
@@ -183,39 +183,39 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 'filter': 'nursery',
                 'threshold': self.nursery_threshold,
                 'items': [
-                    {'name': 'carrot', 'template': TEMPLATE_CARROT, 'var_name': 'carrot',
+                    {'cn_name': '胡萝卜', 'name': 'carrot', 'template': TEMPLATE_CARROT, 'var_name': 'carrot',
                      'selection': SELECT_CARROT, 'selection_check': SELECT_CARROT_CHECK,
                      'post_action': POST_CARROT, 'category': 'nursery', 'seed_number': 33,
                      'shop': SHOP_SEED_CARROT},
-                    {'name': 'onion', 'template': TEMPLATE_ONION, 'var_name': 'onion',
+                    {'cn_name': '洋葱', 'name': 'onion', 'template': TEMPLATE_ONION, 'var_name': 'onion',
                      'selection': SELECT_ONION, 'selection_check': SELECT_ONION_CHECK,
                      'post_action': POST_ONION, 'category': 'nursery', 'seed_number': 12,
                      'shop': SHOP_SEED_ONION},
-                    {'name': 'flax', 'template': TEMPLATE_FLAX, 'var_name': 'flax',
+                    {'cn_name': '亚麻', 'name': 'flax', 'template': TEMPLATE_FLAX, 'var_name': 'flax',
                      'selection': SELECT_FLAX, 'selection_check': SELECT_FLAX_CHECK,
                      'post_action': POST_FLAX, 'category': 'nursery', 'seed_number': 33,
                      'shop': SHOP_SEED_FLAX},
-                    {'name': 'strawberry', 'template': TEMPLATE_STRAWBERRY, 'var_name': 'strawberry',
+                    {'cn_name': '草莓', 'name': 'strawberry', 'template': TEMPLATE_STRAWBERRY, 'var_name': 'strawberry',
                      'selection': SELECT_STRAWBERRY, 'selection_check': SELECT_STRAWBERRY_CHECK,
                      'post_action': POST_STRAWBERRY, 'category': 'nursery', 'seed_number': 12,
                      'shop': SHOP_SEED_STRAWBERRY},
-                    {'name': 'cotton', 'template': TEMPLATE_COTTON, 'var_name': 'cotton',
+                    {'cn_name': '棉花', 'name': 'cotton', 'template': TEMPLATE_COTTON, 'var_name': 'cotton',
                      'selection': SELECT_COTTON, 'selection_check': SELECT_COTTON_CHECK,
                      'post_action': POST_COTTON, 'category': 'nursery', 'seed_number': 21,
                      'shop': SHOP_SEED_COTTON},
-                    {'name': 'tea', 'template': TEMPLATE_TEA, 'var_name': 'tea',
+                    {'cn_name': '茶叶', 'name': 'tea', 'template': TEMPLATE_TEA, 'var_name': 'tea',
                      'selection': SELECT_TEA, 'selection_check': SELECT_TEA_CHECK,
                      'post_action': POST_TEA, 'category': 'nursery', 'seed_number': 12,
                      'shop': SHOP_SEED_TEA},
-                    {'name': 'lavender', 'template': TEMPLATE_LAVENDER, 'var_name': 'lavender',
+                    {'cn_name': '薰衣草', 'name': 'lavender', 'template': TEMPLATE_LAVENDER, 'var_name': 'lavender',
                      'selection': SELECT_LAVENDER, 'selection_check': SELECT_LAVENDER_CHECK,
                      'post_action': POST_LAVENDER, 'category': 'nursery', 'seed_number': 12,
                      'shop': SHOP_SEED_LAVENDER},
-                    {'name': 'pineapple', 'template': TEMPLATE_PINEAPPLE, 'var_name': 'pineapple',
+                    {'cn_name': '菠萝', 'name': 'pineapple', 'template': TEMPLATE_PINEAPPLE, 'var_name': 'pineapple',
                      'selection': SELECT_PINEAPPLE, 'selection_check': SELECT_PINEAPPLE_CHECK,
                      'post_action': POST_PINEAPPLE, 'category': 'nursery', 'seed_number': 12,
                      'shop': SHOP_SEED_PINEAPPLE},
-                    {'name': 'asparagus', 'template': TEMPLATE_ASPARAGUS, 'var_name': 'asparagus',
+                    {'cn_name': '芦笋', 'name': 'asparagus', 'template': TEMPLATE_ASPARAGUS, 'var_name': 'asparagus',
                      'selection': SELECT_ASPARAGUS, 'selection_check': SELECT_ASPARAGUS_CHECK,
                      'post_action': POST_ASPARAGUS, 'category': 'nursery', 'seed_number': 12,
                      'shop': SHOP_SEED_ASPARAGUS},
@@ -269,12 +269,12 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 # === 季节限定：不在当季的果园作物（如秋季的秋月梨/柿子）不列入补种计划 ===
                 if category == 'orchard' and hasattr(self, 'season_config'):
                     if not self._is_orchard_crop_in_season(item_name):
-                        logger.info(f"[岛屿-农田] 跳过非当季果园作物: {item_name}")
+                        logger.info(f"[岛屿-农田] 跳过非当季果园作物: {self._item_cn(item_name)}")
                         continue
                 # === 季节限定：不在当季的作物不列入补种计划 ===
                 if category == 'nursery' and hasattr(self, 'season_config'):
                     if not self._is_nursery_crop_in_season(item_name):
-                        logger.info(f"[岛屿-农田] 跳过非当季苗圃作物: {item_name}")
+                        logger.info(f"[岛屿-农田] 跳过非当季苗圃作物: {self._item_cn(item_name)}")
                         continue
                 if count < threshold:
                     self.to_plant_lists[category].append(item_name)
@@ -341,7 +341,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
             count = self.ocr_item_quantity(image, item_config['template'])
             results[item_config['name']] = count
             setattr(self, item_config['var_name'], count)
-            logger.info(f"{item_config['name']}: {count}")
+            logger.info(f"{item_config.get('cn_name', item_config['name'])}: {count}")
         return results
 
     def post_plant_check(self, category):
@@ -459,7 +459,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                         self.back_to_postmanage_from_dispatch()
                         return False
                 else:
-                    logger.warning(f"[岛屿-农田] {product}种植派遣无可用角色: {character_filter}")
+                    logger.warning(f"[岛屿-农田] {self._item_cn(product)}种植派遣无可用角色: {character_filter}")
                     self.back_to_postmanage_from_dispatch()
                     return False
                 continue
@@ -469,7 +469,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                             item_button=seed_config['shop'],
                             required_quantity=seed_config['seed_number'],
                             shop_check=ISLAND_SHOP_SEED_TAB_CHECK,
-                            item_name=f"{product}种子",
+                            item_name=f"{self._item_cn(product)}种子",
                     ):
                         continue
                     self.device.sleep(0.3)
@@ -480,7 +480,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 else:
                     return self._handle_select_product_failure(product)
         else:
-            logger.warning(f"[岛屿-农田] {product}种植派遣超时")
+            logger.warning(f"[岛屿-农田] {self._item_cn(product)}种植派遣超时")
             self.back_to_postmanage_from_dispatch()
             return False
 
@@ -507,9 +507,9 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         self.check_inventory_and_prepare_lists()
 
         logger.info("[岛屿-农田] \n当前库存统计:")
-        logger.info(f"[岛屿-农田] 农场库存: {self.inventory_counts['farm']}")
-        logger.info(f"[岛屿-农田] 果园库存: {self.inventory_counts['orchard']}")
-        logger.info(f"[岛屿-农田] 苗圃库存: {self.inventory_counts['nursery']}")
+        logger.info(f"[岛屿-农田] 农场库存: {self._inv_cn(self.inventory_counts['farm'])}")
+        logger.info(f"[岛屿-农田] 果园库存: {self._inv_cn(self.inventory_counts['orchard'])}")
+        logger.info(f"[岛屿-农田] 苗圃库存: {self._inv_cn(self.inventory_counts['nursery'])}")
 
         self.goto_postmanage()
         self.post_manage_mode(POST_MANAGE_PRODUCTION)
