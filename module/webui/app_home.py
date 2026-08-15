@@ -63,17 +63,6 @@ class HomeMixin(WebUIMixinBase):
             set_localstorage("aside", "Home")
             go_app("index", new_window=False)
 
-        if self.wallpaper_url:
-            put_html(
-                f"""
-                <style>
-                :root {{
-                    --alas-apple-bg-image: url("{self.wallpaper_url}");
-                }}
-                </style>
-                """
-            )
-
         with use_scope("content"):
             put_text("Select your language / 选择语言").style(
                 "text-align: center; font-weight: 600"
@@ -374,6 +363,16 @@ class HomeMixin(WebUIMixinBase):
         # setup gui
         set_env(title="AzurPilot", output_animation=False)
         load_webui_styles(theme=self.theme, is_mobile=self.is_mobile)
+        # 通过 JS 直接设置根元素 CSS 变量，确保所有页面生效
+        if self.wallpaper_url:
+            run_js(
+                f"""
+                document.documentElement.style.setProperty(
+                    '--alas-apple-bg-image',
+                    'url(' + {json.dumps(self.wallpaper_url)} + ')'
+                );
+                """
+            )
         if localstorage is None:
             localstorage = get_localstorage_values(("clarity_notice_shown", "aside"))
         aside = localstorage.get("aside")
