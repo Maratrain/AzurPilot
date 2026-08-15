@@ -1,9 +1,3 @@
-"""自动生成的配置类。
-
-由 config_updater.py 自动生成，包含所有配置项的默认值定义。
-提供 IDE 自动补全支持，不应手动修改此文件。
-"""
-
 # 此文件是配置系统的更新器。
 # 负责读取配置定义、生成 config_generated.py 以及处理配置的版本迁移、i18n 生成等核心管理任务。
 import datetime
@@ -360,9 +354,11 @@ class GeneratedConfig:
     Commission_CustomFilter = 'DailyEvent > Gem-4 > Gem-2 > Gem-8 > ExtraCube-0:30\n> UrgentCube-1:30 > UrgentCube-1:45 > UrgentCube-3\n> ExtraDrill-5:20 > ExtraDrill-2 > ExtraDrill-3:20\n> UrgentCube-2:15 > UrgentCube-4\n> ExtraDrill-1 > UrgentCube-6 > ExtraCube-1:30\n> ExtraDrill-2:40 > ExtraDrill-0:20\n> Major > DailyChip > DailyResource\n> ExtraPart-0:30 > ExtraOil-1 > UrgentBox-6\n> ExtraCube-3 > ExtraPart-1 > UrgentBox-3\n> ExtraCube-4 > ExtraPart-1:30 > ExtraOil-4\n> UrgentBox-1 > ExtraCube-5 > UrgentBox-1\n> ExtraCube-8 > ExtraOil-8\n> UrgentDrill-4 > UrgentDrill-2:40 > UrgentDrill-2\n> UrgentDrill-1 > UrgentDrill-1:30 > UrgentDrill-1:10\n> Extra-0:20 > Extra-0:30 > Extra-1:00 > Extra-1:30 > Extra-2:00\n> shortest'
     Commission_Blacklist = None
     Commission_DoMajorCommission = False
-    Commission_GemNotify = False  # False, True
-    Commission_CommissionNotifyReward = False
-    Commission_CommissionNotifyRewardStatistics = True
+    Commission_NotifyReward = True
+    Commission_NotifyRewardStatistics = True
+    Commission_GemNotify = True
+    Commission_GemStatistics = False
+    Commission_GemStatisticsPeriod = 'month'  # today, week, month
 
     # 配置组 `Tactical`
     Tactical_TacticalFilter = 'SameT4 > SameT3 > SameT2 > SameT1\n> BlueT2 > YellowT2 > RedT2\n> BlueT3 > YellowT3 > RedT3\n> BlueT4 > YellowT4 > RedT4\n> BlueT1 > YellowT1 > RedT1\n> first'

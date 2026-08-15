@@ -1102,7 +1102,7 @@
       "coalition_20250626": "The Neon City Investigator",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "Light & Shadow Fashion Shoot!",
-      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
+      "coalition_20260723": "Authentic Horror Story",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "The Solomon Ranger Rerun",
       "event_20200326_cn": "Microlayer Medley",
@@ -1999,17 +1999,28 @@
       "name": "Make the main commission (1200 oil/1000 oil commission)",
       "help": "The 1200 oil commission is now obsolete and the yield is very low. It is recommended to close it."
     },
-    "GemNotify": {
-      "name": "Gem Commission Execution Notification",
-      "help": "Send the current running Gem Commission list after a new Gem Commission starts"
-    },
-    "CommissionNotifyReward": {
-      "name": "Successful Commission Gem Notification",
+    "NotifyReward": {
+      "name": "Commission Reward Notification",
       "help": "Note: Please enable and configure Error Notification Settings; otherwise, this feature will not take effect."
     },
-    "CommissionNotifyRewardStatistics": {
-      "name": "Gem Notification Details",
-      "help": "After enabling, AzurPilot will notify the number of diamonds obtained from the current commission, as well as the total diamonds obtained for the day/week/month."
+    "NotifyRewardStatistics": {
+      "name": "Reward Notification Details",
+      "help": "When enabled, AzurPilot will notify the gems obtained from this commission and the total gems for today/week/month"
+    },
+    "GemNotify": {
+      "name": "Gem Commission Execution Notification",
+      "help": "After a new Gem Commission starts, send the list of all currently running Gem Commissions"
+    },
+    "GemStatistics": {
+      "name": "Gem Commission Statistics Details",
+      "help": "When enabled, include gem commission statistics (success rate, total rewards) in reward notification"
+    },
+    "GemStatisticsPeriod": {
+      "name": "Gem Commission Statistics Period",
+      "help": "Statistical period for gem commission rewards",
+      "today": "Today",
+      "week": "This Week",
+      "month": "This Month"
     }
   },
   "Tactical": {

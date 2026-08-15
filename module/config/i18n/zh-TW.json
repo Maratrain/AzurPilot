@@ -417,18 +417,6 @@
     "EmulatorManager": {
       "name": "模擬器管理器",
       "help": "提供手動重啟模擬器的入口"
-    },
-    "BattlePass": {
-      "name": "大月卡Plus",
-      "help": ""
-    },
-    "CoreShop": {
-      "name": "核心兌換Plus",
-      "help": ""
-    },
-    "MeowfficerTrain": {
-      "name": "指揮喵訓練Plus",
-      "help": ""
     }
   },
   "Scheduler": {
@@ -1114,7 +1102,7 @@
       "coalition_20250626": "迷彩都市的尋蹤者",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "光影風尚-拍攝進行時",
-      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
+      "coalition_20260723": "Authentic Horror Story",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "斯圖爾特的硝煙",
       "event_20200326_cn": "Microlayer Medley",
@@ -2011,17 +1999,28 @@
       "name": "做主要委託（1200油/1000油委託）",
       "help": "1200油委託現在已經過時，收益很低，建議關閉"
     },
-    "GemNotify": {
-      "name": "Commission.GemNotify.name",
-      "help": "Commission.GemNotify.help"
-    },
-    "CommissionNotifyReward": {
-      "name": "委託成功獲取鑽石推送",
+    "NotifyReward": {
+      "name": "委託獎勵推送",
       "help": "注意，請啟用並設定「錯誤推送設定」，否則此功能將不會生效。"
     },
-    "CommissionNotifyRewardStatistics": {
-      "name": "鑽石推送詳情",
+    "NotifyRewardStatistics": {
+      "name": "獎勵推送詳情",
       "help": "開啟後，AzurPilot在推送本次委託獲取鑽石數量的同時推送當日/本週/本月的鑽石獲取數量"
+    },
+    "GemNotify": {
+      "name": "鑽石委託執行通知",
+      "help": "開始新的鑽石委託後，推送當前所有正在執行中的鑽石委託列表"
+    },
+    "GemStatistics": {
+      "name": "鑽石委託統計詳情",
+      "help": "開啟後，在獎勵推送中附帶鑽石委託統計（成功率、累計報酬等）"
+    },
+    "GemStatisticsPeriod": {
+      "name": "鑽石委託統計週期",
+      "help": "鑽石委託統計的統計週期",
+      "today": "今日",
+      "week": "本周",
+      "month": "本月"
     }
   },
   "Tactical": {

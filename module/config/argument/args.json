@@ -6118,24 +6118,22 @@
         "value": "campaign_main",
         "option": [
           "coalition_20230323",
-          "coalition_20260122",
           "coalition_20260723"
         ],
         "option_cn": [
           "coalition_20260723"
         ],
         "option_en": [
-          "coalition_20260122"
+          "coalition_20260723"
         ],
         "option_jp": [
-          "coalition_20260122"
+          "coalition_20260723"
         ],
         "option_tw": [
           "coalition_20230323"
         ],
         "option_bold": [
           "coalition_20230323",
-          "coalition_20260122",
           "coalition_20260723"
         ]
       },
@@ -6421,24 +6419,22 @@
         "value": "campaign_main",
         "option": [
           "coalition_20230323",
-          "coalition_20260122",
           "coalition_20260723"
         ],
         "option_cn": [
           "coalition_20260723"
         ],
         "option_en": [
-          "coalition_20260122"
+          "coalition_20260723"
         ],
         "option_jp": [
-          "coalition_20260122"
+          "coalition_20260723"
         ],
         "option_tw": [
           "coalition_20230323"
         ],
         "option_bold": [
           "coalition_20230323",
-          "coalition_20260122",
           "coalition_20260723"
         ]
       },
@@ -10177,24 +10173,22 @@
         "value": "campaign_main",
         "option": [
           "coalition_20230323",
-          "coalition_20260122",
           "coalition_20260723"
         ],
         "option_cn": [
           "coalition_20260723"
         ],
         "option_en": [
-          "coalition_20260122"
+          "coalition_20260723"
         ],
         "option_jp": [
-          "coalition_20260122"
+          "coalition_20260723"
         ],
         "option_tw": [
           "coalition_20230323"
         ],
         "option_bold": [
           "coalition_20230323",
-          "coalition_20260122",
           "coalition_20260723"
         ]
       },
@@ -10509,17 +10503,30 @@
         "type": "checkbox",
         "value": false
       },
-      "GemNotify": {
-        "type": "checkbox",
-        "value": false
-      },
-      "CommissionNotifyReward": {
-        "type": "checkbox",
-        "value": false
-      },
-      "CommissionNotifyRewardStatistics": {
+      "NotifyReward": {
         "type": "checkbox",
         "value": true
+      },
+      "NotifyRewardStatistics": {
+        "type": "checkbox",
+        "value": true
+      },
+      "GemNotify": {
+        "type": "checkbox",
+        "value": true
+      },
+      "GemStatistics": {
+        "type": "checkbox",
+        "value": false
+      },
+      "GemStatisticsPeriod": {
+        "type": "select",
+        "value": "month",
+        "option": [
+          "today",
+          "week",
+          "month"
+        ]
       }
     },
     "Storage": {

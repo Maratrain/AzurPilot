@@ -677,15 +677,21 @@ Commission:
     type: textarea
     value: ""
   DoMajorCommission: false
-  GemNotify:
-    type: checkbox
-    value: false
-  CommissionNotifyReward:
-    type: checkbox
-    value: false
-  CommissionNotifyRewardStatistics:
+  NotifyReward:
     type: checkbox
     value: true
+  NotifyRewardStatistics:
+    type: checkbox
+    value: true
+  GemNotify:
+    type: checkbox
+    value: true
+  GemStatistics:
+    type: checkbox
+    value: false
+  GemStatisticsPeriod:
+    value: month
+    option: [today, week, month]
 Tactical:
   TacticalFilter: |-
     SameT4 > SameT3 > SameT2 > SameT1

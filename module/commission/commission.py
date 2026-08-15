@@ -21,7 +21,7 @@
 """
 
 import copy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from scipy import signal
 
 from module.base.timer import Timer
@@ -778,10 +778,7 @@ class RewardCommission(UI, InfoHandler):
             in: page_commission
             out: page_commission
         """
-        if not hasattr(self, '_running_gem_commissions'):
-            self._running_gem_commissions = []
         self._commission_scan_all()
-        has_new_gem_commission = False
         logger.hr('Commission run', level=1)
         if self.daily_choose:
             for comm in self.daily_choose:
@@ -796,27 +793,65 @@ class RewardCommission(UI, InfoHandler):
                 self._commission_ensure_mode('urgent')
                 self._commission_swipe_to_top()
                 self.handle_info_bar()
-                if self._commission_find_and_start(comm, is_urgent=True):
+                found = self._commission_find_and_start(comm, is_urgent=True)
+                if found:
                     comm.convert_to_running()
                     if comm.is_gem_commission:
-                        has_new_gem_commission = True
-                        new_comm = copy.deepcopy(comm)
-                        if not any(
-                            c.name == new_comm.name
-                            and c.create_time == new_comm.create_time
-                            for c in self._running_gem_commissions
-                        ):
-                            self._running_gem_commissions.append(new_comm)
+                        try:
+                            from module.statistics.cl1_database import db as cl1_db
+                            cl1_db.add_running_gem_commission(
+                                instance=self.config.config_name,
+                                commission={
+                                    "name": comm.name,
+                                    "create_time": comm.create_time.isoformat(),
+                                    "finish_time": comm.finish_time.isoformat(),
+                                    "duration": int(
+                                        comm.duration.total_seconds() // 3600
+                                    ),
+                                },
+                            )
+                            if self.config.Commission_GemNotify:
+                                self._send_gem_commission_notify()
+                        except Exception as e:
+                            logger.warning(f'记录钻石委托持久化失败: {e}')
                 self._commission_mode_reset()
-        if has_new_gem_commission and self.config.Commission_GemNotify:
-            try:
-                self._send_gem_commission_notify()
-            except Exception as e:
-                logger.warning(
-                    f'Gem commission notification failed: {e}'
-                )
+
+        # 同步紧急委托列表中已 running 状态的钻石委托到数据库
+        self._sync_running_gem_commissions()
+
         if not self.daily_choose and not self.urgent_choose:
             logger.info('[委托-执行] 没有选择任何委托')
+
+    def _sync_running_gem_commissions(self):
+        """同步紧急委托列表中已 running 状态的钻石委托到数据库。
+
+        urgent_choose 只包含 available 状态的委托，running 状态的
+        钻石委托不会被写入数据库。此方法遍历 self.urgent 全量列表，
+        将 running 状态的钻石委托补充写入数据库（去重由数据库层保证）。
+        """
+        try:
+            from module.statistics.cl1_database import db as cl1_db
+        except Exception:
+            return
+
+        for comm in self.urgent:
+            if comm.is_gem_commission and comm.status == 'running':
+                try:
+                    cl1_db.add_running_gem_commission(
+                        instance=self.config.config_name,
+                        commission={
+                            "name": comm.name,
+                            "create_time": comm.create_time.isoformat(),
+                            "finish_time": comm.finish_time.isoformat(),
+                            "duration": int(
+                                comm.duration.total_seconds() // 3600
+                            ),
+                        },
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f'同步钻石委托运行列表失败: {e}'
+                    )
 
     def _record_commission_income(self):
         """
@@ -909,18 +944,48 @@ class RewardCommission(UI, InfoHandler):
             if merged_items:
                 instance = self.config.config_name
                 cl1_db.add_commission_income(instance, merged_items, commission_count=1)
+                gem_count = merged_items.get("Gem", 0)
+
+                # 钻石委托结算：弹出运行列表中最早完成的记录并统计
+                # 无论是否收到钻石都记录（收到钻石=成功，未收到=失败）
+                try:
+                    commission = cl1_db.pop_running_gem_commission(instance)
+                    if commission:
+                        finish_str = commission.get("finish_time", "")
+                        create_str = commission.get("create_time", "")
+                        try:
+                            finish_dt = datetime.fromisoformat(finish_str)
+                            create_dt = datetime.fromisoformat(create_str)
+                            duration_hour = int(
+                                (finish_dt - create_dt).total_seconds() // 3600
+                            )
+                        except Exception:
+                            duration_hour = commission.get("duration", 0)
+
+                        if duration_hour in (2, 4, 8):
+                            cl1_db.add_gem_commission(
+                                instance,
+                                duration_hour=duration_hour,
+                                reward=gem_count,
+                            )
+                        else:
+                            logger.warning(
+                                f'Unknown gem commission duration: {duration_hour}h'
+                            )
+                except Exception as e:
+                    logger.warning(f'钻石委托统计记录失败: {e}')
+
                 item_str = ', '.join([f'{k}x{v}' for k, v in merged_items.items()])
                 logger.info(f'Commission income recorded: {item_str} (instance={instance})')
 
                 # ===============================
                 # 推送开关
                 # ===============================
-                if self.config.Commission_CommissionNotifyReward:
+                if self.config.Commission_NotifyReward:
                     reward_stats = None
-                    if self.config.Commission_CommissionNotifyRewardStatistics:
+                    if self.config.Commission_NotifyRewardStatistics:
                         reward_stats = cl1_db.get_commission_reward_stats(instance)
 
-                    gem_count = merged_items.get("Gem", 0)
                     cube_count = merged_items.get("Cube", 0)
                     tracked = []
 
@@ -954,8 +1019,24 @@ class RewardCommission(UI, InfoHandler):
                     # 推送主逻辑
                     # ===============================
                     if tracked:
-
                         msg = '\n'.join(tracked)
+
+                        # 钻石委托统计（开启时附带）
+                        if gem_count > 0 and self.config.Commission_GemStatistics:
+                            try:
+                                gem_stats = cl1_db.get_gem_commission_stats(
+                                    instance,
+                                    period=self.config.Commission_GemStatisticsPeriod,
+                                )
+                                gem_entries = cl1_db.get_gem_commissions(instance)
+                                msg += self._format_gem_statistics(
+                                    gem_stats,
+                                    gem_entries,
+                                    self.config.Commission_GemStatisticsPeriod,
+                                )
+                            except Exception as e:
+                                logger.warning(f'钻石委托统计读取失败: {e}')
+
                         webui_msg = msg.replace('\n\n', '\n')
 
                         # ===============================
@@ -1149,7 +1230,20 @@ class RewardCommission(UI, InfoHandler):
         raise RequestHumanTakeover
 
     def _get_gem_reward(self, comm):
+        """根据委托时长返回预计钻石收益。
+
+        优先使用 comm.duration，当 OCR 识别失败（duration 为 0）时，
+        用 finish_time - create_time 推算时长。
+        """
         hour = int(comm.duration.total_seconds() // 3600)
+
+        if hour == 0:
+            try:
+                hour = int(
+                    (comm.finish_time - comm.create_time).total_seconds() // 3600
+                )
+            except Exception:
+                pass
 
         return {
             2: '💎10~20',
@@ -1170,47 +1264,199 @@ class RewardCommission(UI, InfoHandler):
             return f'{hours}小时{minutes}分钟'
         return f'{minutes}分钟'
 
-    def _send_gem_commission_notify(self):
+    def _get_remaining_time_str(self, finish_time_str):
+        finish_time = datetime.fromisoformat(finish_time_str)
+        remaining = finish_time - current_time()
 
-        instance = self.config.config_name
+        if remaining.total_seconds() <= 0:
+            return '已完成'
 
-        now = current_time()
+        hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+        minutes, _ = divmod(remainder, 60)
 
-        commissions = [
-            comm
-            for comm in self._running_gem_commissions
-            if comm.finish_time > now
+        if hours:
+            return f'{hours}小时{minutes}分钟'
+        return f'{minutes}分钟'
+
+    def _get_gem_reward_str(self, duration_hour):
+        return {
+            2: '💎10~20',
+            4: '💎25~40',
+            8: '💎50~80',
+        }.get(duration_hour, '未知')
+
+    def _format_gem_statistics(self, stats, entries, period='month'):
+        """格式化钻石委托统计信息，返回可直接拼接的文本。
+
+        Args:
+            stats: get_gem_commission_stats() 返回的字典，
+                   结构为 {duration: {count, success, reward, rate}}。
+            entries: 原始钻石委托记录列表，用于找到实际第一条记录日期。
+            period: 统计周期（today / week / month），用于标题格式。
+        """
+
+        now = datetime.now()
+        today = now.date()
+        week_start = today - timedelta(days=today.weekday())
+        month_start = today.replace(day=1)
+
+        if period == 'today':
+            ts_filter = lambda d: d == today
+        elif period == 'week':
+            ts_filter = lambda d: week_start <= d <= today
+        else:
+            ts_filter = lambda d: d >= month_start
+
+        # 从周期范围内的 entries 中找到第一条记录日期作为统计开始日
+        first_ts = None
+        for entry in entries:
+            try:
+                ts = datetime.fromisoformat(entry.get("ts", ""))
+                if not ts_filter(ts.date()):
+                    continue
+                if first_ts is None or ts < first_ts:
+                    first_ts = ts
+            except Exception:
+                continue
+
+        has_data = first_ts is not None
+
+        if period == 'today':
+            title = f'{today.month}.{today.day}'
+        elif period == 'week':
+            if has_data:
+                start = first_ts.date()
+                if start < week_start:
+                    start = week_start
+                title = (
+                    f'{start.month}.{start.day}~{today.month}.{today.day}'
+                )
+            else:
+                title = (
+                    f'{week_start.month}.{week_start.day}~{today.month}.{today.day}'
+                )
+        else:
+            if has_data:
+                start = first_ts.date()
+                if start < month_start:
+                    start = month_start
+                title = (
+                    f'{start.month}.{start.day}~{today.month}.{today.day}'
+                )
+            else:
+                title = (
+                    f'{month_start.month}.{month_start.day}~{today.month}.{today.day}'
+                )
+
+        lines = [
+            '',
+            '━━━━━━━━━━━━',
+            f'💎钻石委托统计{title}',
+            '',
         ]
 
-        if not commissions:
-            return
+        commission_names = {
+            2: 'BIW/NYB要员护卫',
+            4: 'BIW/NYB度假护卫',
+            8: 'BIW/NYB巡视护卫',
+        }
 
-        self._running_gem_commissions = commissions
-        commissions.sort(key=lambda comm: comm.finish_time)
+        total_count = 0
+        total_success = 0
+        total_reward = 0
 
-        lines = []
+        for hour in (2, 4, 8):
+            item = stats[hour]
 
-        for index, comm in enumerate(commissions, 1):
+            total_count += item['count']
+            total_success += item['success']
+            total_reward += item['reward']
 
-            lines.append(
-                f'{index}. {comm.name}\n'
-                f'接取时间：{comm.create_time:%Y-%m-%d %H:%M:%S}\n'
-                f'预计完成：{comm.finish_time:%Y-%m-%d %H:%M:%S}\n'
-                f'剩余时间：{self._get_remaining_time(comm)}\n'
-                f'预计收益：{self._get_gem_reward(comm)}'
+            avg_reward = (
+                item['reward'] / item['success']
+                if item['success']
+                else 0
             )
 
-        content = '\n\n'.join(lines)
+            lines.extend([
+                f'{commission_names[hour]}（{hour}小时）',
+                f'成功：{item["success"]} / {item["count"]}（{item["rate"]:.1f}%）',
+                f'累计：💎{item["reward"]}',
+                f'平均：💎{avg_reward:.1f}/次成功',
+                '',
+            ])
+
+        total_rate = (
+            total_success * 100 / total_count
+            if total_count
+            else 0
+        )
+
+        avg_total = (
+            total_reward / total_success
+            if total_success
+            else 0
+        )
+
+        lines.extend([
+            '━━━━━━━━━━━━',
+            '总计',
+            f'成功：{total_success} / {total_count}（{total_rate:.1f}%）',
+            f'累计：💎{total_reward}',
+            f'平均：💎{avg_total:.1f}/次成功',
+        ])
+
+        return '\n'.join(lines)
+
+    def _send_gem_commission_notify(self):
+        """推送当前执行中的钻石委托列表。
+
+        从数据库中读取运行中的钻石委托（保证时间戳稳定），
+        按完成时间排序后通过 OnePush 和 WebUI 推送通知。
+        没有运行中的钻石委托时静默返回。
+        """
+        instance = self.config.config_name
+        now = current_time()
+
+        try:
+            from module.statistics.cl1_database import db as cl1_db
+            db_commissions = cl1_db.get_running_gem_commissions(instance)
+        except Exception as e:
+            logger.warning(f'读取钻石委托数据库失败: {e}')
+            return
+
+        if not db_commissions:
+            return
+
+        db_commissions = [
+            c for c in db_commissions
+            if datetime.fromisoformat(c['finish_time']) > now
+        ]
+
+        if not db_commissions:
+            return
+
+        db_commissions.sort(key=lambda c: c['finish_time'])
+
+        content = '当前钻石委托执行列表\n'
+        content += '\n\n'.join(
+            f'{idx}. {c["name"]}\n'
+            f'接取时间：{datetime.fromisoformat(c["create_time"]):%Y-%m-%d %H:%M:%S}\n'
+            f'预计完成：{datetime.fromisoformat(c["finish_time"]):%Y-%m-%d %H:%M:%S}\n'
+            f'剩余时间：{self._get_remaining_time_str(c["finish_time"])}\n'
+            f'预计收益：{self._get_gem_reward_str(c["duration"])}'
+            for idx, c in enumerate(db_commissions, 1)
+        )
 
         handle_notify(
             self.config.Error_OnePushConfig,
-            title=f'AzurPilot <{instance}> 当前钻石委托执行列表！',
+            title=f'AzurPilot <{instance}> 新的钻石委托开始执行',
             content=content,
         )
 
         notify_webui(
             instance,
-            title=f'{instance} 当前钻石委托执行列表！',
+            title=f'{instance} 新的钻石委托开始执行',
             content=content,
         )
 

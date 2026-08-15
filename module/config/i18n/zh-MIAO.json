@@ -417,18 +417,6 @@
     "EmulatorManager": {
       "name": "模拟器管理器",
       "help": "提供手动重启模拟器的入口喵~ (=^･ω･^=)"
-    },
-    "BattlePass": {
-      "name": "大月卡喵",
-      "help": "领取大月卡奖励喵~ (´・ω・`)"
-    },
-    "CoreShop": {
-      "name": "核心兑换喵",
-      "help": "到核心商店兑换需要的物品喵~ (・ω・)"
-    },
-    "MeowfficerTrain": {
-      "name": "指挥喵训练喵",
-      "help": "安排指挥喵训练，别让小猫偷懒喵~ (=^･ω･^=)"
     }
   },
   "Scheduler": {
@@ -1114,7 +1102,7 @@
       "coalition_20250626": "The Neon City Investigator",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "Light & Shadow Fashion Shoot!",
-      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
+      "coalition_20260723": "Authentic Horror Story",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "The Solomon Ranger Rerun",
       "event_20200326_cn": "Microlayer Medley",
@@ -2011,17 +1999,28 @@
       "name": "做主要委托 (1200油/1000油)",
       "help": "1200油委现已过时收益低，建议关闭喵。 (´・ω・`)"
     },
-    "GemNotify": {
-      "name": "钻石委托执行通知喵",
-      "help": "开始新的钻石委托后，把当前正在执行的钻石委托列表推给主人喵~"
-    },
-    "CommissionNotifyReward": {
+    "NotifyReward": {
       "name": "委托成功获取钻石推送喵",
       "help": "注意，请开启错误推送设置并配置，否则此功能不生效喵。 (´・ω・`)"
     },
-    "CommissionNotifyRewardStatistics": {
+    "NotifyRewardStatistics": {
       "name": "钻石推送详情喵",
       "help": "开启后，AzurPilot在推送本次委托获取钻石数量的同时推送当日/本周/本月的钻石获取数量喵。 (´・ω・`)"
+    },
+    "GemNotify": {
+      "name": "钻石委托执行通知喵",
+      "help": "开始新的钻石委托后，把当前所有正在执行中的钻石委托列表推给主人喵~"
+    },
+    "GemStatistics": {
+      "name": "钻石委托统计详情喵",
+      "help": "开启后，委托奖励推送附带钻石委托成功率、平均收益等统计信息喵~"
+    },
+    "GemStatisticsPeriod": {
+      "name": "统计周期喵",
+      "help": "钻石委托统计的时间范围喵~",
+      "today": "今日喵",
+      "week": "本周喵",
+      "month": "本月喵"
     }
   },
   "Tactical": {
