@@ -6,7 +6,7 @@ from module.logger import logger
 MAP = CampaignMap('D1')
 MAP.shape = 'I7'
 MAP.camera_data = ['D2', 'D5', 'F2', 'F5']
-MAP.camera_data_spawn_point = ['D2', 'F2']
+MAP.camera_data_spawn_point = ['F2', 'D2']
 MAP.map_data = """
     ME ++ -- SP -- SP -- ++ ++
     -- -- -- -- -- -- -- ME ++
@@ -45,7 +45,7 @@ A7, B7, C7, D7, E7, F7, G7, H7, I7, \
 
 class Config:
     # ===== Start of generated config =====
-    MAP_SIREN_TEMPLATE = ['haorenlichade_m_zhanlie']
+    MAP_SIREN_TEMPLATE = ['BonhommeRichard_BB', 'BonhommeRichard_CV']
     MOVABLE_ENEMY_TURN = (2,)
     MAP_HAS_SIREN = True
     MAP_HAS_MOVABLE_ENEMY = True
@@ -53,12 +53,28 @@ class Config:
     MAP_HAS_FLEET_STEP = True
     MAP_HAS_AMBUSH = False
     MAP_HAS_MYSTERY = False
+    # ===== End of generated config =====
+
     MAP_CHAPTER_SWITCH_20241219 = True
     STAGE_ENTRANCE = ['half', '20240725']
     MAP_HAS_MODE_SWITCH = True
     STAGE_INCREASE_AB = True
     MAP_WALK_USE_CURRENT_FLEET = True
-    # ===== End of generated config =====
+    INTERNAL_LINES_FIND_PEAKS_PARAMETERS = {
+        'height': (80, 255 - 17),
+        'width': (0.9, 10),
+        'prominence': 10,
+        'distance': 35,
+    }
+    EDGE_LINES_FIND_PEAKS_PARAMETERS = {
+        'height': (255 - 17, 255),
+        'prominence': 10,
+        'distance': 50,
+        'wlen': 1000
+    }
+    MAP_SWIPE_MULTIPLY = (1.136, 1.158)
+    MAP_SWIPE_MULTIPLY_MINITOUCH = (1.099, 1.119)
+    MAP_SWIPE_MULTIPLY_MAATOUCH = (1.067, 1.086)
 
 
 class Campaign(CampaignBase):

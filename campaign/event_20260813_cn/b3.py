@@ -7,7 +7,7 @@ from .b1 import Config as ConfigBase
 MAP = CampaignMap('B3')
 MAP.shape = 'I9'
 MAP.camera_data = ['D4', 'D6', 'F4', 'F6']
-MAP.camera_data_spawn_point = ['F4', 'D4']
+MAP.camera_data_spawn_point = ['D4']
 MAP.map_data = """
     ++ ++ ++ -- ++ -- ++ ++ ++
     -- ++ -- ++ ++ ++ -- ++ --
@@ -52,7 +52,7 @@ A9, B9, C9, D9, E9, F9, G9, H9, I9, \
 
 class Config(ConfigBase):
     # ===== Start of generated config =====
-    MAP_SIREN_TEMPLATE = ['haorenlichade_m_zhanlie']
+    MAP_SIREN_TEMPLATE = ['BonhommeRichard_BB', 'BonhommeRichard_CV']
     MOVABLE_ENEMY_TURN = (2,)
     MAP_HAS_SIREN = True
     MAP_HAS_MOVABLE_ENEMY = True
@@ -60,11 +60,6 @@ class Config(ConfigBase):
     MAP_HAS_FLEET_STEP = True
     MAP_HAS_AMBUSH = False
     MAP_HAS_MYSTERY = False
-    MAP_CHAPTER_SWITCH_20241219 = True
-    STAGE_ENTRANCE = ['half', '20240725']
-    MAP_HAS_MODE_SWITCH = True
-    STAGE_INCREASE_AB = True
-    MAP_WALK_USE_CURRENT_FLEET = True
     # ===== End of generated config =====
 
 

@@ -2410,10 +2410,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -2930,10 +2930,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -3882,10 +3882,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -4325,10 +4325,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -4768,10 +4768,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -6116,7 +6116,6 @@
         "type": "state",
         "value": "campaign_main",
         "option": [
-          "coalition_20230323",
           "coalition_20260723"
         ],
         "option_cn": [
@@ -6129,10 +6128,9 @@
           "coalition_20260723"
         ],
         "option_tw": [
-          "coalition_20230323"
+          "coalition_20260723"
         ],
         "option_bold": [
-          "coalition_20230323",
           "coalition_20260723"
         ]
       },
@@ -6417,7 +6415,6 @@
         "type": "state",
         "value": "campaign_main",
         "option": [
-          "coalition_20230323",
           "coalition_20260723"
         ],
         "option_cn": [
@@ -6430,10 +6427,9 @@
           "coalition_20260723"
         ],
         "option_tw": [
-          "coalition_20230323"
+          "coalition_20260723"
         ],
         "option_bold": [
-          "coalition_20230323",
           "coalition_20260723"
         ]
       },
@@ -7621,10 +7617,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -8081,10 +8077,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -8541,10 +8537,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -9001,10 +8997,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -9451,10 +9447,10 @@
           "event_20260813_cn"
         ],
         "option_en": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_jp": [
-          "event_20260625_cn"
+          "event_20260813_cn"
         ],
         "option_tw": [
           "event_20260625_cn"
@@ -10171,7 +10167,6 @@
         "type": "select",
         "value": "campaign_main",
         "option": [
-          "coalition_20230323",
           "coalition_20260723"
         ],
         "option_cn": [
@@ -10184,10 +10179,9 @@
           "coalition_20260723"
         ],
         "option_tw": [
-          "coalition_20230323"
+          "coalition_20260723"
         ],
         "option_bold": [
-          "coalition_20230323",
           "coalition_20260723"
         ]
       },
