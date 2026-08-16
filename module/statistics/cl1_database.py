@@ -1717,16 +1717,15 @@ class Cl1Database:
         month = datetime.now().strftime("%Y-%m")
         data = self.get_stats(instance, month)
         commissions = data.get("running_gem_commissions", [])
-        # 去重：同 name + create_time 不重复添加
-        if not any(
-            c.get("name") == commission.get("name")
-            and c.get("create_time") == commission.get("create_time")
-            for c in commissions
-        ):
-            commissions.append(commission)
-            commissions.sort(key=lambda item: item.get("finish_time", ""))
-            data["running_gem_commissions"] = commissions
-            self.save_stats(instance, month, data)
+        # 同名钻石委托已存在就跳过（name 级保护）。
+        # _sync_running_gem_commissions 会因时间戳细微差异（1 秒）生成不同的
+        # finish_time，所以不做 finish_time 级去重。
+        if any(c.get("name") == commission.get("name") for c in commissions):
+            return
+        commissions.append(commission)
+        commissions.sort(key=lambda item: item.get("finish_time", ""))
+        data["running_gem_commissions"] = commissions
+        self.save_stats(instance, month, data)
 
     def pop_running_gem_commission(
         self,

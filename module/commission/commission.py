@@ -827,31 +827,43 @@ class RewardCommission(UI, InfoHandler):
 
         urgent_choose 只包含 available 状态的委托，running 状态的
         钻石委托不会被写入数据库。此方法遍历 self.urgent 全量列表，
-        将 running 状态的钻石委托补充写入数据库（去重由数据库层保证）。
+        将 running 状态的钻石委托补充写入数据库（同名委托已存在则跳过）。
         """
         try:
             from module.statistics.cl1_database import db as cl1_db
         except Exception:
             return
 
+        # 查询当前月数据库已有的运行中钻石委托，防止重复写入
+        try:
+            existing = cl1_db.get_running_gem_commissions(
+                self.config.config_name
+            )
+        except Exception:
+            return
+        existing_names = {c.get("name") for c in existing}
+
         for comm in self.urgent:
-            if comm.is_gem_commission and comm.status == 'running':
-                try:
-                    cl1_db.add_running_gem_commission(
-                        instance=self.config.config_name,
-                        commission={
-                            "name": comm.name,
-                            "create_time": comm.create_time.isoformat(),
-                            "finish_time": comm.finish_time.isoformat(),
-                            "duration": int(
-                                comm.duration.total_seconds() // 3600
-                            ),
-                        },
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f'同步钻石委托运行列表失败: {e}'
-                    )
+            if not comm.is_gem_commission or comm.status != 'running':
+                continue
+            if comm.name in existing_names:
+                continue
+            try:
+                cl1_db.add_running_gem_commission(
+                    instance=self.config.config_name,
+                    commission={
+                        "name": comm.name,
+                        "create_time": comm.create_time.isoformat(),
+                        "finish_time": comm.finish_time.isoformat(),
+                        "duration": int(
+                            comm.duration.total_seconds() // 3600
+                        ),
+                    },
+                )
+            except Exception as e:
+                logger.warning(
+                    f'同步钻石委托运行列表失败: {e}'
+                )
 
     def _record_commission_income(self):
         """
