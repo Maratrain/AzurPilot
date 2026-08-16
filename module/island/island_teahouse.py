@@ -13,6 +13,7 @@ from datetime import timedelta
 from module.config.time_source import now as current_time
 from module.logger import logger
 from module.base.button import Button
+from module.exception import GameStuckError
 from module.island.island_season import SEASONAL_ITEMS
 from module.ocr.ocr import Duration, Digit
 
@@ -36,7 +37,7 @@ FIXED_SELECT_CHRYSANTHEMUM_TEA = Button(
 SEASONAL_DRINK_CONFIG = {
     'spring_flower_tea': {
         'name': 'spring_flower_tea', 'cn_name': '迎春花茶',
-        'template': TEMPLATE_APPLE_JUICE, 'post_action': POST_APPLE_JUICE,
+        'template': TEMPLATE_WINTER_JASMINE_TEA, 'post_action': POST_WINTER_JASMINE_TEA,
         'selection': FIXED_SELECT_SPRING_FLOWER_TEA, 'selection_check': FIXED_SELECT_SPRING_FLOWER_TEA,
     },
     'carrot_pear_juice': {
@@ -86,13 +87,13 @@ class IslandTeahouse(IslandShopBase):
             if 'spring_flower_tea' in seasonal_items:
                 self.seasonal_high_priority_drink = {
                     'name': 'spring_flower_tea', 'cn_name': '迎春花茶',
-                    'template': TEMPLATE_APPLE_JUICE, 'post_action': POST_APPLE_JUICE,
+                    'template': TEMPLATE_WINTER_JASMINE_TEA, 'post_action': POST_WINTER_JASMINE_TEA,
                     'selection': FIXED_SELECT_SPRING_FLOWER_TEA, 'selection_check': FIXED_SELECT_SPRING_FLOWER_TEA,
                 }
             elif 'watermelon_juice' in seasonal_items:
                 self.seasonal_high_priority_drink = {
                     'name': 'watermelon_juice', 'cn_name': '西瓜汁',
-                    'template': TEMPLATE_APPLE_JUICE, 'post_action': POST_APPLE_JUICE,
+                    'template': TEMPLATE_WATERMELON_JUICE, 'post_action': POST_WATERMELON_JUICE,
                     'selection': FIXED_SELECT_SPRING_FLOWER_TEA, 'selection_check': FIXED_SELECT_SPRING_FLOWER_TEA,
                 }
             elif 'chrysanthemum_tea' in seasonal_items:
@@ -243,7 +244,7 @@ class IslandTeahouse(IslandShopBase):
                         for name, target in self.post_products
                     ]
                     logger.info(
-                        f"季节餐品自动切换: {spring_item}({cn_name}) -> {seasonal_item}"
+                        f"季节餐品自动切换: {self._item_cn(spring_item)}({cn_name}) -> {self._item_cn(seasonal_item)}"
                         f"（当前季节: {self.season_config.season_name}）"
                     )
             else:
@@ -252,7 +253,7 @@ class IslandTeahouse(IslandShopBase):
                     if name != spring_item
                 ]
                 logger.info(
-                    f"季节餐品自动移除: {spring_item}({cn_name})"
+                    f"季节餐品自动移除: {self._item_cn(spring_item)}({cn_name})"
                     f"（{self.season_config.season_name} 无对应槽位的季节餐品）"
                 )
 
@@ -273,23 +274,22 @@ class IslandTeahouse(IslandShopBase):
         return self.warehouse_counts
 
     def check_special_materials(self, product, batch_size):
-        """覆盖：检查特殊材料（蜂蜜）限制"""
+        """覆盖：检查特殊材料（蜂蜜）限制。
+
+        蜂蜜只用于制作蜂蜜柠檬水（每 1 个）与草莓蜂蜜冰沙（每 4 个），
+        不直接参与阳光蜜水等套餐；套餐原料由父类按套餐组成检查。
+        """
         if batch_size <= 0:
             return 0
 
-        # sunny_honey需要honey_lemon或蜂蜜
-        if product == 'sunny_honey':
-            # 计算可用原材料：蜂蜜 + honey_lemon库存
-            honey_available = self.fresh_honey
-            honey_lemon_available = self.warehouse_counts.get('honey_lemon', 0)
-            total_available = honey_available + honey_lemon_available
-
-            max_by_material = min(batch_size, total_available)
-            return max_by_material
-
-        # honey_lemon需要蜂蜜
+        # 蜂蜜柠檬水需要 1 个蜂蜜
         if product == 'honey_lemon':
             max_by_honey = min(batch_size, self.fresh_honey)
+            return max_by_honey
+
+        # 草莓蜂蜜冰沙需要 4 个蜂蜜
+        if product == 'strawberry_honey':
+            max_by_honey = min(batch_size, self.fresh_honey // 4)
             return max_by_honey
 
         return batch_size
@@ -309,8 +309,7 @@ class IslandTeahouse(IslandShopBase):
             self.device.sleep(0.5)
             time_work = Duration(ISLAND_WORKING_TIME)
             # 进入商品选择界面（处理选人 + 选商品）
-            while 1:
-                self.device.screenshot()
+            for _ in self.loop(timeout=120, skip_first=False):
                 if self.appear(ISLAND_SELECT_CHARACTER_CHECK, offset=1):
                     # 选择厨师
                     if self.select_character(character_list=self.chef_config):
@@ -318,23 +317,22 @@ class IslandTeahouse(IslandShopBase):
                             self.back_to_postmanage_from_dispatch()
                             return 0
                     else:
-                        logger.warning(f"[岛屿-白熊饮品] {product}生产派遣无可用角色: {self.chef_config}")
+                        logger.warning(f"[岛屿-白熊饮品] {self._item_cn(product)}生产派遣无可用角色: {self.chef_config}")
                         self.back_to_postmanage_from_dispatch()
                         return 0
                     continue
                 if self.appear(ISLAND_SELECT_PRODUCT_CHECK, offset=1):
                     # 在商品列表界面，点击固定位置，不检测图标
                     self.device.click(self.seasonal_high_priority_drink['selection'])
-                    self.device.sleep(0.5)
                     break
                 # 点击进入选择
                 if self.appear_then_click(ISLAND_POST_SELECT, offset=1):
-                    self.device.sleep(0.3)
                     continue
-                self.device.sleep(0.3)
+            else:
+                raise GameStuckError(f"{self._item_cn(product)}生产派遣流程超时")
             # 检查材料并下单
             if self.produce_check():
-                logger.warning(f"[岛屿-白熊饮品] 原料不足，无法生产 spring_flower_tea")
+                logger.warning(f"[岛屿-白熊饮品] 原料不足，无法生产 {self._item_cn(product)}")
                 self.device.click(ISLAND_BACK)
                 self.device.sleep(0.5)
                 return 0
@@ -357,7 +355,7 @@ class IslandTeahouse(IslandShopBase):
             setattr(self, time_var_name, finish_time)
             self.posts[post_id]['status'] = 'working'
             self.deduct_materials(product, actual_number)
-            logger.info(f"[岛屿-白熊饮品] 已安排生产：{product} x{actual_number}")
+            logger.info(f"[岛屿-白熊饮品] 已安排生产：{self._item_cn(product)} x{actual_number}")
             self.post_close()
             return actual_number
 
@@ -396,31 +394,25 @@ class IslandTeahouse(IslandShopBase):
             self.post_manage_swipe(self.post_manage_swipe_count)
 
             # 计算当前总库存
-            self.current_totals = {}
-            all_product_names = set(name for name, _ in self.post_products)
-            for item in all_product_names | set(self.post_check_meal.keys()) | set(
-                    self.warehouse_counts.keys()):
-                self.current_totals[item] = self.post_check_meal.get(item, 0) + self.warehouse_counts.get(item, 0)
+            self.current_totals = self._rebuild_current_totals({})
 
             # ============ 调试信息 ============
             logger.info(f"[岛屿-白熊饮品] === 调试信息 ===")
-            logger.info(f"[岛屿-白熊饮品] 仓库库存: {self.warehouse_counts}")
-            logger.info(f"[岛屿-白熊饮品] 生产中库存: {self.post_check_meal}")
-            logger.info(f"[岛屿-白熊饮品] 当前总库存: {self.current_totals}")
-            logger.info(f"[岛屿-白熊饮品] 基础需求配置（共{len(self.post_products)}个槽位）: {self.post_products}")
+            logger.info(f"[岛屿-白熊饮品] 仓库库存: {self._inv_cn(self.warehouse_counts)}")
+            logger.info(f"[岛屿-白熊饮品] 生产中库存: {self._inv_cn(self.post_check_meal)}")
+            logger.info(f"[岛屿-白熊饮品] 当前总库存: {self._inv_cn(self.current_totals)}")
+            logger.info(f"[岛屿-白熊饮品] 基础需求配置（共{len(self.post_products)}个槽位）: {self._products_cn(self.post_products)}")
             logger.info("===============")
 
-            # 保存原始库存，retry 时恢复
-            _orig_totals = dict(self.current_totals)
             self._compute_base_demands()
 
-            logger.info(f"[岛屿-白熊饮品] 待完成备餐: {self.to_post_products}")
-            logger.info(f"[岛屿-白熊饮品] 当前剩余库存: {self.current_totals}")
+            logger.info(f"[岛屿-白熊饮品] 待完成备餐: {self._inv_cn(self.to_post_products)}")
+            logger.info(f"[岛屿-白熊饮品] 当前剩余库存: {self._inv_cn(self.current_totals)}")
 
             # ============ 处理套餐分解 ============
             if self.to_post_products:
                 self.to_post_products = self.process_meal_requirements(self.to_post_products)
-                logger.info(f"[岛屿-白熊饮品] 基础需求生产计划: {self.to_post_products}")
+                logger.info(f"[岛屿-白熊饮品] 基础需求生产计划: {self._inv_cn(self.to_post_products)}")
 
             # ================================================================
             #  阶段：高优先级季节饮品（受「迎春花茶」开关控制）
@@ -433,13 +425,13 @@ class IslandTeahouse(IslandShopBase):
                 logger.info(f"[岛屿-白熊饮品] 阶段：高优先级季节饮品 — {drink_cn}")
                 temp_products = self.to_post_products.copy()
                 self.to_post_products = {drink_name: self.POST_PRODUCE_LIMIT}
-                logger.info(f"[岛屿-白熊饮品] 单独安排{drink_cn}生产: {self.to_post_products}")
+                logger.info(f"[岛屿-白熊饮品] 单独安排{drink_cn}生产: {self._inv_cn(self.to_post_products)}")
 
                 self.schedule_production()
 
                 # 恢复剩余的基础需求生产计划
                 self.to_post_products = temp_products
-                logger.info(f"[岛屿-白熊饮品] 剩余基础需求生产计划: {self.to_post_products}")
+                logger.info(f"[岛屿-白熊饮品] 剩余基础需求生产计划: {self._inv_cn(self.to_post_products)}")
             else:
                 logger.info("[岛屿-白熊饮品] 迎春花茶优先生产已关闭，直接处理基础需求")
 
@@ -455,9 +447,7 @@ class IslandTeahouse(IslandShopBase):
                 if _loop_count > self._MAX_FILL_LOOP:
                     logger.warning(f"[岛屿-白熊饮品] [循环] 已达最大迭代次数 {self._MAX_FILL_LOOP}，强制退出")
                     break
-                self.current_totals = dict(_orig_totals)
-                for name, qty in _produced_pass.items():
-                    self.current_totals[name] = self.current_totals.get(name, 0) + qty
+                self.current_totals = self._rebuild_current_totals(_produced_pass)
 
                 self._compute_base_demands(force_skip=_force_skip_run)
                 if not self.to_post_products:
@@ -465,7 +455,7 @@ class IslandTeahouse(IslandShopBase):
                     break
 
                 self.to_post_products = self.process_meal_requirements(self.to_post_products)
-                logger.info(f"[岛屿-白熊饮品] 基础需求生产计划: {self.to_post_products}")
+                logger.info(f"[岛屿-白熊饮品] 基础需求生产计划: {self._inv_cn(self.to_post_products)}")
 
                 prev_pass_total = sum(_produced_pass.values())
                 self._schedule_and_track(_produced_pass)
@@ -474,21 +464,19 @@ class IslandTeahouse(IslandShopBase):
                     logger.info("[岛屿-白熊饮品] [循环] 当前缺口排产失败，切换严格模式扫描")
 
                     self.to_post_products = {}
-                    self.current_totals = dict(_orig_totals)
-                    for name, qty in _produced_pass.items():
-                        self.current_totals[name] = self.current_totals.get(name, 0) + qty
+                    self.current_totals = self._rebuild_current_totals(_produced_pass)
                     self._compute_base_demands(check_materials=True)
                     if not self.to_post_products:
                         break
                     self.to_post_products = self.process_meal_requirements(self.to_post_products)
-                    logger.info(f"[岛屿-白熊饮品] 基础需求生产计划（严格模式）: {self.to_post_products}")
+                    logger.info(f"[岛屿-白熊饮品] 基础需求生产计划（严格模式）: {self._inv_cn(self.to_post_products)}")
 
                     strict_prev_total = sum(_produced_pass.values())
                     self._schedule_and_track(_produced_pass)
 
                     if sum(_produced_pass.values()) == strict_prev_total and self.to_post_products:
                         stuck_now = set(self.to_post_products.keys())
-                        logger.info(f"[岛屿-白熊饮品] [循环] 严格模式也无产出，强制跳过: {stuck_now}")
+                        logger.info(f"[岛屿-白熊饮品] [循环] 严格模式也无产出，强制跳过: {sorted(self._item_cn(k) for k in stuck_now)}")
                         _force_skip_run.update(stuck_now)
                         self.to_post_products = {}
                     continue
@@ -504,7 +492,7 @@ class IslandTeahouse(IslandShopBase):
                 for post_id in idle_posts_after_basic:
                     post_num = post_id[-1]
                     time_var_name = f'{self.time_prefix}{post_num}'
-                    logger.info(f"[岛屿-白熊饮品] 尝试生产常驻餐品 {away_cook}")
+                    logger.info(f"[岛屿-白熊饮品] 尝试生产常驻餐品 {self._item_cn(away_cook)}")
                     batch_size = self.POST_PRODUCE_LIMIT
                     batch_size = self.get_max_producible(away_cook, batch_size)
                     if batch_size > 0:
@@ -513,12 +501,12 @@ class IslandTeahouse(IslandShopBase):
                             time_var_name=time_var_name
                         )
                         if result == 0:
-                            logger.info(f"[岛屿-白熊饮品] 常驻餐品 {away_cook} 原料不足，保持岗位空闲")
+                            logger.info(f"[岛屿-白熊饮品] 常驻餐品 {self._item_cn(away_cook)} 原料不足，保持岗位空闲")
                             break
                         else:
-                            logger.info(f"[岛屿-白熊饮品] 已为岗位 {post_id} 安排常驻餐品 {away_cook} x{batch_size}")
+                            logger.info(f"[岛屿-白熊饮品] 已为岗位 {post_id} 安排常驻餐品 {self._item_cn(away_cook)} x{batch_size}")
                     else:
-                        logger.info(f"[岛屿-白熊饮品] 生产 {away_cook} 的材料不足，跳过岗位 {post_id}")
+                        logger.info(f"[岛屿-白熊饮品] 生产 {self._item_cn(away_cook)} 的材料不足，跳过岗位 {post_id}")
                         break
             elif idle_posts_after_basic:
                 logger.info(f"[岛屿-白熊饮品] 有 {len(idle_posts_after_basic)} 个空闲岗位，但未设置常驻餐品，保持空闲")
@@ -538,69 +526,52 @@ class IslandTeahouse(IslandShopBase):
             raise GameBugError("检测到岛屿ERROR1，需要重启")
 
     def deduct_materials(self, product, number):
-        """覆盖：扣除前置材料，包括蜂蜜和套餐原材料"""
+        """覆盖：扣除前置材料（蜂蜜柠檬水与草莓蜂蜜冰沙消耗蜂蜜）"""
         # 先调用父类方法扣除套餐原材料
         super().deduct_materials(product, number)
 
-        # sunny_honey套餐需要扣除原材料
-        if product == 'sunny_honey':
-            # sunny_honey需要honey_lemon和strawberry_lemon各1个
-            # honey_lemon可以通过蜂蜜制作，所以优先扣除蜂蜜，不够再扣除honey_lemon
+        # 蜂蜜柠檬水需要 1 个蜂蜜
+        if product == 'honey_lemon':
+            deducted = min(number, self.fresh_honey)
+            self.fresh_honey = max(0, self.fresh_honey - number)
+            if 'fresh_honey' in self.warehouse_counts:
+                self.warehouse_counts['fresh_honey'] = self.fresh_honey
+            logger.info(f"[岛屿-白熊饮品] 扣除蜂蜜：{self._item_cn('fresh_honey')} -{deducted} (用于制作{self._item_cn('honey_lemon')})")
 
-            honey_needed = number
-            honey_lemon_needed = number
-
-            # 优先扣除蜂蜜
-            if self.fresh_honey >= honey_needed:
-                self.fresh_honey -= honey_needed
-                logger.info(f"[岛屿-白熊饮品] 扣除蜂蜜：fresh_honey -{honey_needed} (用于制作sunny_honey)")
-            else:
-                # 蜂蜜不足，扣除honey_lemon
-                remaining_needed = honey_needed - self.fresh_honey
-                if self.fresh_honey > 0:
-                    logger.info(f"[岛屿-白熊饮品] 扣除蜂蜜：fresh_honey -{self.fresh_honey} (用于制作sunny_honey)")
-                    self.fresh_honey = 0
-
-                # 扣除honey_lemon库存
-                if 'honey_lemon' in self.warehouse_counts:
-                    available_honey_lemon = min(remaining_needed, self.warehouse_counts['honey_lemon'])
-                    if available_honey_lemon > 0:
-                        self.warehouse_counts['honey_lemon'] -= available_honey_lemon
-                        logger.info(f"[岛屿-白熊饮品] 扣除honey_lemon：honey_lemon -{available_honey_lemon} (用于制作sunny_honey)")
+        # 草莓蜂蜜冰沙需要 4 个蜂蜜
+        if product == 'strawberry_honey':
+            deducted = min(number * 4, self.fresh_honey)
+            self.fresh_honey = max(0, self.fresh_honey - number * 4)
+            if 'fresh_honey' in self.warehouse_counts:
+                self.warehouse_counts['fresh_honey'] = self.fresh_honey
+            logger.info(f"[岛屿-白熊饮品] 扣除蜂蜜：{self._item_cn('fresh_honey')} -{deducted} (用于制作{self._item_cn('strawberry_honey')})")
 
     def apply_special_material_constraints(self, requirements):
-        """覆盖：根据蜂蜜库存调整需求"""
-        result = requirements.copy()
+        """覆盖：根据蜂蜜库存调整需求。
 
-        # 首先处理honey_lemon的需求
+        蜂蜜只用于蜂蜜柠檬水（每 1 个）与草莓蜂蜜冰沙（每 4 个）；
+        两者按顺序共享蜂蜜：先满足蜂蜜柠檬水，剩余蜂蜜再分配给草莓蜂蜜冰沙。
+        阳光蜜水的原料（草莓蜜沁 + 蜂蜜柠檬水）由基类套餐需求分解处理。
+        """
+        result = requirements.copy()
+        remaining_honey = self.fresh_honey
+
+        # 处理蜂蜜柠檬水的需求（每 1 个蜂蜜）
         if 'honey_lemon' in result and result['honey_lemon'] > 0:
             honey_lemon_needed = result['honey_lemon']
-            max_honey_lemon = min(honey_lemon_needed, self.fresh_honey)
-
+            max_honey_lemon = min(honey_lemon_needed, remaining_honey)
             if max_honey_lemon < honey_lemon_needed:
-                logger.info(f"[岛屿-白熊饮品] 蜂蜜不足：honey_lemon需求从{honey_lemon_needed}调整为{max_honey_lemon}")
-
+                logger.info(f"[岛屿-白熊饮品] 蜂蜜不足：{self._item_cn('honey_lemon')}需求从{honey_lemon_needed}调整为{max_honey_lemon}")
             result['honey_lemon'] = max_honey_lemon
+            remaining_honey -= max_honey_lemon
 
-        # 处理sunny_honey的需求
-        if 'sunny_honey' in result and result['sunny_honey'] > 0:
-            sunny_honey_needed = result['sunny_honey']
-
-            # sunny_honey需要honey_lemon，每个需要1个蜂蜜
-            # 但honey_lemon的需求可能已经在上面调整过
-            honey_lemon_for_sunny = sunny_honey_needed
-
-            # 计算可用于sunny_honey的蜂蜜
-            # 减去已经分配给honey_lemon的蜂蜜
-            honey_allocated = result.get('honey_lemon', 0)
-            honey_remaining = max(0, self.fresh_honey - honey_allocated)
-
-            max_sunny_honey = min(sunny_honey_needed, honey_remaining)
-
-            if max_sunny_honey < sunny_honey_needed:
-                logger.info(f"[岛屿-白熊饮品] 蜂蜜不足：sunny_honey需求从{sunny_honey_needed}调整为{max_sunny_honey}")
-
-            result['sunny_honey'] = max_sunny_honey
+        # 处理草莓蜂蜜冰沙的需求（每 4 个蜂蜜）
+        if 'strawberry_honey' in result and result['strawberry_honey'] > 0:
+            strawberry_honey_needed = result['strawberry_honey']
+            max_strawberry_honey = min(strawberry_honey_needed, remaining_honey // 4)
+            if max_strawberry_honey < strawberry_honey_needed:
+                logger.info(f"[岛屿-白熊饮品] 蜂蜜不足：{self._item_cn('strawberry_honey')}需求从{strawberry_honey_needed}调整为{max_strawberry_honey}")
+            result['strawberry_honey'] = max_strawberry_honey
 
         return result
 

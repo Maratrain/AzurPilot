@@ -9,12 +9,7 @@ NCNN 是一个为移动端优化的高性能神经网络推理框架，
 - 输出：CTC 解码的文本序列
 - 模型文件：.param（网络结构）+ .bin（权重数据）+ 字典文件
 
-支持的模型：
-- azur_lane: 英文数字识别（碧蓝航线专用）
-- azur_lane_jp: 日文服务器专用
-- cn: 中文识别
-- jp: 日文识别
-- tw: 繁体中文识别
+所有逻辑模型统一使用通用 PP-OCRv6 的 ncnn 转换版本，仅字典不同。
 
 注意：ncnn 后端不支持文本检测，需要配合 ONNX 检测模型使用。
 """
@@ -55,55 +50,58 @@ class NcnnRecModelSpec:
     disable_fp16: bool = False
 
 
+# PP-OCRv6 三档 ncnn 转换模型：lite(tiny) / standard(small) / pro(medium)。
+def _ncnn_spec(name, param, bin, keys):
+    return NcnnRecModelSpec(
+        name=name,
+        param_path=MODEL_ROOT / param,
+        bin_path=MODEL_ROOT / bin,
+        keys_path=REPO_ROOT / "bin/ocr_models/ppocr-v6" / keys,
+        output_name=OUTPUT_NAME,
+        disable_fp16=True,
+    )
+
+
+PPOCR_V6_LITE = _ncnn_spec("lite", "ppocr_v6_lite.param", "ppocr_v6_lite.bin", "ppocrv6_tiny_dict.txt")
+PPOCR_V6_STANDARD = _ncnn_spec("standard", "ppocr_v6_standard.param", "ppocr_v6_standard.bin", "ppocrv6_dict.txt")
+PPOCR_V6_PRO = _ncnn_spec("pro", "ppocr_v6_pro.param", "ppocr_v6_pro.bin", "ppocrv6_dict.txt")
+# azur_lane/azur_lane_jp 使用受限 en 字典，将非 en 输出静默过滤。
+PPOCR_V6_LITE_EN = _ncnn_spec("lite", "ppocr_v6_lite.param", "ppocr_v6_lite.bin", "ppocrv6_tiny_en_restricted_dict.txt")
+PPOCR_V6_STANDARD_EN = _ncnn_spec("standard", "ppocr_v6_standard.param", "ppocr_v6_standard.bin", "ppocrv6_en_restricted_dict.txt")
+PPOCR_V6_PRO_EN = _ncnn_spec("pro", "ppocr_v6_pro.param", "ppocr_v6_pro.bin", "ppocrv6_en_restricted_dict.txt")
+
+# MODEL_SPECS[逻辑模型][档位] -> NcnnRecModelSpec。
 MODEL_SPECS = {
-    "azur_lane": NcnnRecModelSpec(
-        name="azur_lane",
-        param_path=MODEL_ROOT / "azur_lane.param",
-        bin_path=MODEL_ROOT / "azur_lane.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/azur_lane/ppocrv6_azurlane_dict.txt",
-        output_name=OUTPUT_NAME,
-        disable_fp16=True,
-    ),
-    "azur_lane_jp": NcnnRecModelSpec(
-        name="azur_lane_jp",
-        param_path=MODEL_ROOT / "azur_lane_jp.param",
-        bin_path=MODEL_ROOT / "azur_lane_jp.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/azur_lane_jp/ppocrv6_azurlane_jp_dict.txt",
-        output_name=OUTPUT_NAME,
-        disable_fp16=True,
-    ),
-    "ppocr_v6": NcnnRecModelSpec(
-        name="ppocr_v6",
-        param_path=MODEL_ROOT / "jp.param",
-        bin_path=MODEL_ROOT / "jp.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
-        output_name=OUTPUT_NAME,
-        disable_fp16=True,
-    ),
-    "cn": NcnnRecModelSpec(
-        name="cn",
-        param_path=MODEL_ROOT / "cn.param",
-        bin_path=MODEL_ROOT / "cn.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/zh-CN/ppocrv6_cn_dict.txt",
-        output_name=OUTPUT_NAME,
-        disable_fp16=True,
-    ),
-    "jp": NcnnRecModelSpec(
-        name="jp",
-        param_path=MODEL_ROOT / "jp.param",
-        bin_path=MODEL_ROOT / "jp.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
-        output_name=OUTPUT_NAME,
-        disable_fp16=True,
-    ),
-    "tw": NcnnRecModelSpec(
-        name="tw",
-        param_path=MODEL_ROOT / "tw.param",
-        bin_path=MODEL_ROOT / "tw.bin",
-        keys_path=REPO_ROOT / "bin/ocr_models/ppocr-v6/ppocrv6_dict.txt",
-        output_name=OUTPUT_NAME,
-        disable_fp16=True,
-    ),
+    "azur_lane": {
+        "lite": PPOCR_V6_LITE_EN,
+        "standard": PPOCR_V6_STANDARD_EN,
+        "pro": PPOCR_V6_PRO_EN,
+    },
+    "azur_lane_jp": {
+        "lite": PPOCR_V6_LITE_EN,
+        "standard": PPOCR_V6_STANDARD_EN,
+        "pro": PPOCR_V6_PRO_EN,
+    },
+    "ppocr_v6": {
+        "lite": PPOCR_V6_LITE,
+        "standard": PPOCR_V6_STANDARD,
+        "pro": PPOCR_V6_PRO,
+    },
+    "cn": {
+        "lite": PPOCR_V6_LITE,
+        "standard": PPOCR_V6_STANDARD,
+        "pro": PPOCR_V6_PRO,
+    },
+    "jp": {
+        "lite": PPOCR_V6_LITE,
+        "standard": PPOCR_V6_STANDARD,
+        "pro": PPOCR_V6_PRO,
+    },
+    "tw": {
+        "lite": PPOCR_V6_LITE,
+        "standard": PPOCR_V6_STANDARD,
+        "pro": PPOCR_V6_PRO,
+    },
 }
 
 MODEL_ALIASES = {
@@ -246,12 +244,15 @@ class RecPreprocessor:
 
 
 class NcnnRecOCR:
-    def __init__(self, model_name: str, device: str = "cpu", gpu_index: int = -1):
+    def __init__(self, model_name: str, device: str = "cpu", gpu_index: int = -1, version: str = "standard"):
         normalized_name = normalize_model_name(model_name)
-        if normalized_name not in MODEL_SPECS:
+        specs = MODEL_SPECS.get(normalized_name)
+        if specs is None:
             raise ValueError(f"Unsupported ncnn OCR model: {model_name}")
+        if version not in specs:
+            version = "standard"
 
-        self.spec = MODEL_SPECS[normalized_name]
+        self.spec = specs[version]
         self.device = device
         self.gpu_index = gpu_index
         self.use_vulkan = False

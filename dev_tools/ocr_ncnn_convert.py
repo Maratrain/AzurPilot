@@ -1,4 +1,4 @@
-"""使用 pnnx 将当前 OCR ONNX 识别模型转换为 ncnn 模型。"""
+"""使用 pnnx 将通用 PP-OCRv6 识别模型转换为 ncnn 模型。"""
 
 from __future__ import annotations
 
@@ -28,24 +28,8 @@ class ConvertSpec:
 
 
 MODEL_SPECS = {
-    "azur_lane": ConvertSpec(
-        name="azur_lane",
-        onnx_path=MODEL_ROOT / "azur_lane/ap_azurlane-v6.5_small_rec_nvidia.onnx",
-    ),
-    "azur_lane_jp": ConvertSpec(
-        name="azur_lane_jp",
-        onnx_path=MODEL_ROOT / "azur_lane_jp/ap_azurlane_jp-v6_small_rec_nvidia.onnx",
-    ),
-    "cn": ConvertSpec(
-        name="cn",
-        onnx_path=MODEL_ROOT / "zh-CN/ap_zh-cn-v6.1_small_rec_dcu.onnx",
-    ),
-    "jp": ConvertSpec(
-        name="jp",
-        onnx_path=MODEL_ROOT / "ppocr-v6/PP-OCRv6_small_rec.onnx",
-    ),
-    "tw": ConvertSpec(
-        name="tw",
+    "ppocr_v6": ConvertSpec(
+        name="ppocr_v6",
         onnx_path=MODEL_ROOT / "ppocr-v6/PP-OCRv6_small_rec.onnx",
     ),
 }

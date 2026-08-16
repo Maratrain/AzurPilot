@@ -1,14 +1,15 @@
 """OCR 模型实例的懒加载管理。
 
 提供全局共享的 OCR 模型实例集合 `OCR_MODEL`，通过 `cached_property`
-实现按需加载。每个模型对应一种语言的识别能力：
+实现按需加载。各逻辑名称统一使用通用 PP-OCRv6 识别模型，
+仅保留不同入口以便按语言上下文选择：
 
-- azur_lane: 碧蓝航线英文数字识别（游戏 UI 中的等级、时间、数量等）
-- azur_lane_jp: 日文服务器专用识别模型
+- azur_lane: 游戏 UI 数字/字母识别的默认入口
+- azur_lane_jp: 日服运行的 azur_lane 入口
 - ppocr_v6: 通用 PP-OCRv6 识别模型
-- cnocr: 中文识别（中+英混合文本）
-- jp: 日文识别
-- tw: 繁体中文识别
+- cnocr: 中文文本识别入口（别名 cn）
+- jp: 日文识别入口
+- tw: 繁体中文识别入口
 
 使用示例:
     >>> from module.ocr.models import OCR_MODEL

@@ -44,7 +44,7 @@ A7, B7, C7, D7, E7, F7, G7, H7, I7, \
 
 class Config:
     # ===== Start of generated config =====
-    MAP_SIREN_TEMPLATE = ['emotion_qz']
+    MAP_SIREN_TEMPLATE = []
     MOVABLE_ENEMY_TURN = (2,)
     MAP_HAS_SIREN = True
     MAP_HAS_MOVABLE_ENEMY = True
@@ -52,12 +52,28 @@ class Config:
     MAP_HAS_FLEET_STEP = True
     MAP_HAS_AMBUSH = False
     MAP_HAS_MYSTERY = False
+    # ===== End of generated config =====
+
     MAP_CHAPTER_SWITCH_20241219 = True
     STAGE_ENTRANCE = ['half', '20240725']
     MAP_HAS_MODE_SWITCH = True
     STAGE_INCREASE_AB = True
-    MAP_WALK_USE_CURRENT_FLEET = True
-    # ===== End of generated config =====
+    MAP_SIREN_HAS_BOSS_ICON_SMALL = True
+    INTERNAL_LINES_FIND_PEAKS_PARAMETERS = {
+        'height': (80, 255 - 17),
+        'width': (0.9, 10),
+        'prominence': 10,
+        'distance': 35,
+    }
+    EDGE_LINES_FIND_PEAKS_PARAMETERS = {
+        'height': (255 - 17, 255),
+        'prominence': 10,
+        'distance': 50,
+        'wlen': 1000
+    }
+    MAP_SWIPE_MULTIPLY = (1.207, 1.229)
+    MAP_SWIPE_MULTIPLY_MINITOUCH = (1.167, 1.189)
+    MAP_SWIPE_MULTIPLY_MAATOUCH = (1.133, 1.153)
 
 
 class Campaign(CampaignBase):

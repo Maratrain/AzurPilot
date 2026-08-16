@@ -792,38 +792,37 @@
     },
     "OcrModelVersionEnglish": {
       "name": "OCR English Model Version",
-      "help": "Choose the English OCR model version. Auto uses the recommended English AlOCR v2.6 model. This affects the English Azur Lane model; ncnn ignores this setting.",
+      "help": "Choose the English OCR model tier. Lite is lightest and fastest, Standard is balanced, Pro is highest accuracy. Auto uses Standard. alocr_en_v2_6 is the legacy AlOCR English model (ONNX backend only). This affects the English Azur Lane model.",
       "auto": "Auto Recommended",
-      "alocr_en_900k": "alocr_en_900k",
-      "azur_lane_v6_6": "English v6.6 (Azur Lane)",
-      "azur_lane_v6_5": "English v6.5 (Azur Lane)",
-      "ppocr_v6": "Generic PP-OCRv6",
-      "alocr_en_v2_6": "English AlOCR v2.6",
-      "alocr_en_v2_0": "English AlOCR v2.0",
-      "alocr_en_v1_0": "English AlOCR v1.0"
+      "lite": "Lite",
+      "standard": "Standard",
+      "pro": "Pro",
+      "alocr_en_v2_6": "AlOCR v2.6 (Legacy)"
     },
     "OcrModelVersionChinese": {
       "name": "OCR Chinese Model Version",
-      "help": "Choose the Simplified Chinese OCR model version. Auto uses the recommended Chinese v6.1 model. This affects cnocr/Chinese models; ncnn ignores this setting.",
+      "help": "Choose the Simplified Chinese OCR model tier. Lite is lightest and fastest, Standard is balanced, Pro is highest accuracy. Auto uses Standard. alocr_cn_v3 is the legacy AlOCR Chinese model (ONNX backend only). This affects cnocr/Chinese models.",
       "auto": "Auto Recommended",
-      "cn_v6_1": "Chinese v6.1",
-      "cn_v6": "Chinese v6",
-      "ppocr_v6": "Generic PP-OCRv6",
-      "alocr_cn_v3": "Chinese AlOCR v3",
-      "alocr_cn_v2_5": "Chinese AlOCR v2.5"
+      "lite": "Lite",
+      "standard": "Standard",
+      "pro": "Pro",
+      "alocr_cn_v3": "AlOCR v3 (Legacy)"
     },
     "OcrModelVersionJapanese": {
       "name": "OCR Japanese Model Version",
-      "help": "Choose the Japanese OCR model version. Auto uses the Japanese Azur Lane v6 model. This affects Japanese models; ncnn ignores this setting.",
+      "help": "Choose the Japanese OCR model tier. Lite is lightest and fastest but does not support Japanese, Standard is balanced, Pro is highest accuracy. Auto uses Standard. This affects Japanese models.",
       "auto": "Auto Recommended",
-      "azur_lane_jp_v6": "Japanese v6 (Azur Lane JP)",
-      "ppocr_v6": "Generic PP-OCRv6"
+      "lite": "Lite",
+      "standard": "Standard",
+      "pro": "Pro"
     },
     "OcrModelVersionTraditionalChinese": {
       "name": "OCR Traditional Chinese Model Version",
-      "help": "Choose the Traditional Chinese OCR model version. Currently only the generic PP-OCRv6 model is available; this separate setting is kept for future models. ncnn ignores this setting.",
+      "help": "Choose the Traditional Chinese OCR model tier. Lite is lightest and fastest, Standard is balanced, Pro is highest accuracy. Auto uses Standard.",
       "auto": "Auto Recommended",
-      "ppocr_v6": "Generic PP-OCRv6"
+      "lite": "Lite",
+      "standard": "Standard",
+      "pro": "Pro"
     },
     "ScreenshotInterval": {
       "name": "Slow Down Screenshot Speed to X Seconds per Frame",
@@ -1102,7 +1101,7 @@
       "coalition_20250626": "The Neon City Investigator",
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "Light & Shadow Fashion Shoot!",
-      "coalition_20260723": "怪谈纪实：逃离白夜山庄",
+      "coalition_20260723": "Authentic Horror Story",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "The Solomon Ranger Rerun",
       "event_20200326_cn": "Microlayer Medley",
@@ -1188,7 +1187,7 @@
       "event_20260417_cn": "Vacation Lane – Beachside Brilliance",
       "event_20260520_cn": "Alliance Before the Hagiobull",
       "event_20260625_cn": "Miracle by Midnight",
-      "event_20260813_cn": "沉溺于星光之城",
+      "event_20260813_cn": "Depths of the Astrarium",
       "raid_20200624": "Air Raid Drills with Essex Rerun",
       "raid_20210708": "Cross Wave rerun",
       "raid_20220127": "Mystery Investigation",
@@ -1999,17 +1998,28 @@
       "name": "Make the main commission (1200 oil/1000 oil commission)",
       "help": "The 1200 oil commission is now obsolete and the yield is very low. It is recommended to close it."
     },
-    "GemNotify": {
-      "name": "Gem Commission Execution Notification",
-      "help": "Send the current running Gem Commission list after a new Gem Commission starts"
-    },
-    "CommissionNotifyReward": {
-      "name": "Successful Commission Gem Notification",
+    "NotifyReward": {
+      "name": "Commission Reward Notification",
       "help": "Note: Please enable and configure Error Notification Settings; otherwise, this feature will not take effect."
     },
-    "CommissionNotifyRewardStatistics": {
-      "name": "Gem Notification Details",
-      "help": "After enabling, AzurPilot will notify the number of diamonds obtained from the current commission, as well as the total diamonds obtained for the day/week/month."
+    "NotifyRewardStatistics": {
+      "name": "Reward Notification Details",
+      "help": "When enabled, AzurPilot will notify the gems obtained from this commission and the total gems for today/week/month"
+    },
+    "GemNotify": {
+      "name": "Gem Commission Execution Notification",
+      "help": "After a new Gem Commission starts, send the list of all currently running Gem Commissions"
+    },
+    "GemStatistics": {
+      "name": "Gem Commission Statistics Details",
+      "help": "When enabled, include gem commission statistics (success rate, total rewards) in reward notification"
+    },
+    "GemStatisticsPeriod": {
+      "name": "Gem Commission Statistics Period",
+      "help": "Statistical period for gem commission rewards",
+      "today": "Today",
+      "week": "This Week",
+      "month": "This Month"
     }
   },
   "Tactical": {
@@ -3644,7 +3654,7 @@
     },
     "WorkerFilter": {
       "name": "Farm Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "MinFarm": {
       "name": "Crop Stock Threshold",
@@ -3675,7 +3685,7 @@
     },
     "WorkerFilter": {
       "name": "Orchard Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "MinOrchard": {
       "name": "Fruit Stock Threshold",
@@ -3712,7 +3722,7 @@
     },
     "WorkerFilter": {
       "name": "Nursery Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "MinNursery": {
       "name": "Nursery Crop Stock Threshold",
@@ -3741,7 +3751,7 @@
     },
     "ChickenFilter": {
       "name": "Chicken Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "MinPork": {
       "name": "Pork Stock Threshold",
@@ -3749,7 +3759,7 @@
     },
     "PigFilter": {
       "name": "Pig Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "Milk": {
       "name": "Raise Cattle",
@@ -3757,7 +3767,7 @@
     },
     "RancherFilter": {
       "name": "Character Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "Wool": {
       "name": "Raise Sheep",
@@ -3765,7 +3775,7 @@
     },
     "WoolWorkerFilter": {
       "name": "Sheep Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     }
   },
   "IslandFishery": {
@@ -3822,7 +3832,7 @@
     },
     "RancherFilter": {
       "name": "Character Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     }
   },
   "IslandMine": {
@@ -3849,7 +3859,7 @@
     },
     "WorkerFilter": {
       "name": "Mine Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "MinCopper": {
       "name": "Copper Ore Min Stock",
@@ -3896,7 +3906,7 @@
     },
     "WorkerFilter": {
       "name": "Forest Worker Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "MinElegant": {
       "name": "Elegant Wood Min Stock",
@@ -3918,7 +3928,7 @@
     },
     "WorkerFilter": {
       "name": "Gathering Worker Filter",
-      "help": "Connect with >. Up to 3 characters, mapped to gathering slots 1-3.\nConnect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nDaily gathering cannot use WorkerJuu; it will be ignored if entered.\nOnly recognizes the first two rows in default order. If the specified character is unavailable, that slot falls back to the existing gathering logic."
+      "help": "Connect with >. Up to 3 characters, mapped to gathering slots 1-3.\nConnect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nDaily gathering cannot use WorkerJuu; it will be ignored if entered.\nOnly recognizes the first two rows in default order. If the specified character is unavailable, that slot falls back to the existing gathering logic."
     }
   },
   "IslandRestaurant": {
@@ -3934,7 +3944,7 @@
     },
     "ChefFilter": {
       "name": "Chef Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "DoubleBambooShoots": {
       "name": "Prioritize Seasonal Dish",
@@ -4153,7 +4163,7 @@
   "IslandTeahouse": {
     "_info": {
       "name": "Polar Bear Drinks",
-      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime.\nPlease craft honey products manually.\nSpring Flower Tea and Fresh Pineapple Juice in meals will automatically switch to corresponding seasonal meals based on the current season."
+      "help": "Meals are produced sequentially from 1 to 8. The production target is the Meal X quantity option. The next item is only executed after the previous one is fully satisfied. Later items will not affect the completion of earlier items during runtime.\nHoney drinks support automatic production; make sure honey stock is sufficient.\nSpring Flower Tea and Fresh Pineapple Juice in meals will automatically switch to corresponding seasonal meals based on the current season."
     },
     "PostNumber": {
       "name": "Position Count",
@@ -4163,7 +4173,7 @@
     },
     "ChefFilter": {
       "name": "Chef Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "Seasonal": {
       "name": "Prioritize Seasonal Drink",
@@ -4374,7 +4384,7 @@
     },
     "ChefFilter": {
       "name": "Chef Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "Meal1": {
       "name": "Meal 1",
@@ -4545,7 +4555,7 @@
     },
     "ChefFilter": {
       "name": "Chef Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "Meal1": {
       "name": "Meal 1",
@@ -4734,7 +4744,7 @@
     },
     "ChefFilter": {
       "name": "Chef Filter",
-      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
+      "help": "Connect with >, e.g. ChaoHo > NewJersey > Amagi_chan\nSaratoga > Akashi > Tashkent > YingSwei\nLeMalin > Unicorn > Shimakaze > Cheshire\nChenHai > WilliamDPorter\nHelena > Friedrich > Atago\nYixian > August > Eugen > Hood > Javelin > Laffey > Explorer > Navigator > OceanCrosser > FeiYun > Takao > Anchorage > Belfast > ChangFeng > Mogador > RoyalFortune > DaVinci\nOnly recognizes the first two rows in default order. If the specified character is unavailable, falls back to WorkerJuu."
     },
     "Friedrich": {
       "name": "Friedrich",
@@ -5118,7 +5128,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Char2": {
       "name": "Character 2",
@@ -5156,7 +5167,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Product1": {
       "name": "Product 1",
@@ -5282,7 +5294,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Char2": {
       "name": "Character 2",
@@ -5320,7 +5333,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Product1": {
       "name": "Product 1",
@@ -5458,7 +5472,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Char2": {
       "name": "Character 2",
@@ -5496,7 +5511,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Product1": {
       "name": "Product 1",
@@ -5594,7 +5610,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Char2": {
       "name": "Character 2",
@@ -5632,7 +5649,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Product1": {
       "name": "Product 1",
@@ -5735,7 +5753,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Char2": {
       "name": "Character 2",
@@ -5773,7 +5792,8 @@
       "Belfast": "Belfast",
       "ChangFeng": "Chang Feng",
       "Mogador": "Mogador",
-      "RoyalFortune": "Royal Fortune"
+      "RoyalFortune": "Royal Fortune",
+      "DaVinci": "Da Vinci"
     },
     "Product1": {
       "name": "Product 1",

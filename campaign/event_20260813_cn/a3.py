@@ -6,7 +6,7 @@ from .a1 import Config as ConfigBase
 
 MAP = CampaignMap('A3')
 MAP.shape = 'G9'
-MAP.camera_data = ['D2', 'D6', 'D7']
+MAP.camera_data = ['D2', 'D4', 'D7']
 MAP.camera_data_spawn_point = ['D7']
 MAP.map_data = """
     -- ME ++ ++ ++ ME --
@@ -51,7 +51,7 @@ A9, B9, C9, D9, E9, F9, G9, \
 
 class Config(ConfigBase):
     # ===== Start of generated config =====
-    MAP_SIREN_TEMPLATE = ['emotion_qz']
+    MAP_SIREN_TEMPLATE = []
     MOVABLE_ENEMY_TURN = (2,)
     MAP_HAS_SIREN = True
     MAP_HAS_MOVABLE_ENEMY = True
@@ -59,12 +59,11 @@ class Config(ConfigBase):
     MAP_HAS_FLEET_STEP = True
     MAP_HAS_AMBUSH = False
     MAP_HAS_MYSTERY = False
-    MAP_CHAPTER_SWITCH_20241219 = True
-    STAGE_ENTRANCE = ['half', '20240725']
-    MAP_HAS_MODE_SWITCH = True
-    STAGE_INCREASE_AB = True
-    MAP_WALK_USE_CURRENT_FLEET = True
     # ===== End of generated config =====
+
+    MAP_SWIPE_MULTIPLY = (1.007, 1.026)
+    MAP_SWIPE_MULTIPLY_MINITOUCH = (0.974, 0.992)
+    MAP_SWIPE_MULTIPLY_MAATOUCH = (0.946, 0.963)
 
 
 class Campaign(CampaignBase):

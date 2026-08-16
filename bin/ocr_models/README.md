@@ -1,52 +1,20 @@
 # OCR 模型
-感谢 www.scnet.cn 提供算力支持 基于 paddleocr
 
-## V1.0
-v1.0 zh-cn&en-us
-针对碧蓝航线字体进行训练
-zh-cn 准确率 97% 有边缘符号问题
-en-us 准确率 98.6% 会出现负号问题
-训练信息:
-异构加速卡BW 64G
-NVIDIA Tesla A800 80G
-训练时间: 2h
+统一使用通用 PP-OCRv6 识别模型，所有语言（azur_lane、cn、jp、tw 等逻辑名称）共用同一套识别模型与字典。各服务器的语言差异通过运行时服务器切换（server.py）处理，不再需要专用模型。
 
-## V2.0
-v2.0 zh-cn&en-us
-针对碧蓝航线字体 + Alas 截图的特殊性进行训练(灰度化)
-中文模型相对 v1.0 准确率降低
-en-us 准确率 99.8% 几乎没有错误
-训练信息:
-NVIDIA Tesla A800 80G
-训练时间: 2h
+## 目录结构
 
-## V2.5
-v2.5 zh-cn
-修复2.0模型的问题
-准确率达到 98.52%
-推理速度仅需 10ms
-训练信息:
-异构加速卡BW 64G
-NVIDIA Tesla A800 80G
-训练时间: 5h
+| 目录 | 内容 |
+|---|---|
+| `ppocr-v6/` | ONNX 识别模型 `PP-OCRv6_small_rec.onnx` + 通用字典 `ppocrv6_dict.txt` |
+| `det/` | 文本检测模型（medium/small/tiny 三档），仅 `.det()` 场景使用 |
+| `ncnn/` | 从 `ppocr-v6/PP-OCRv6_small_rec.onnx` 转换的 ncnn 运行时模型（`ppocr_v6.param/bin`） |
 
-## V2.6
-v2.6 en
-准确率提升
-训练集优化
-99.782%
-v3 zh-cn
-准确率提升
-准确率达到 99.78%
-训练信息:
-异构加速卡BW 64G
-训练时间: 2h
+## ncnn 模型
 
-## ncnn
-`ncnn/` 目录保存从现有 ONNX 识别模型转换得到的运行时模型。
-当前 `azur_lane`、`azur_lane_jp`、`ppocr_v6`、`cn`、`jp`、`tw` 单行识别已迁移到
-ncnn CPU / Vulkan。模型通过 pnnx 从 ONNX 转换，固定输入 shape 为
+ncnn 模型通过 pnnx 从 ONNX 识别模型转换，固定输入 shape 为
 `[1,3,48,320]`，运行时输入 blob 为 `in0`，输出 blob 为 `out0`。
+所有逻辑模型共用这一份 `ppocr_v6.param/bin`。
 
 重新生成：
 
@@ -54,28 +22,21 @@ ncnn CPU / Vulkan。模型通过 pnnx 从 ONNX 转换，固定输入 shape 为
 uv run python -m dev_tools.ocr_ncnn_convert
 ```
 
-## zh—CN Model
+## 检测模型
 
-v6 模型准确率相对老版本降低
-v6.1 模型准确率追赶老版本
+文本检测使用 PP-OCRv6 系列检测模型（`det/` 目录），检测 + 识别流水线在
+ncnn 和 ONNX 后端有不同实现。
 
-┏━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━┓
-┃ Model ┃ Dataset   ┃            Accuracy ┃  Avg Time ┃ Rating    ┃ Status ┃
-┡━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━┩
-│ EN    │ sets_num  │   81.20% (812/1000) │ 10.452 ms │ Very Fast │ Error  │
-├───────┼───────────┼─────────────────────┼───────────┼───────────┼────────┤
-│ CN    │ sets_zhcn │ 100.00% (1000/1000) │ 10.561 ms │ Very Fast │  PASS  │
-└───────┴───────────┴─────────────────────┴───────────┴───────────┴────────┘
+## 旧版 AlOCR 专用模型（可选）
 
-## en—US Model
+从 git 历史恢复的旧版 AlOCR 专用识别模型，作为 `OcrModelVersionEnglish` /
+`OcrModelVersionChinese` 的可选版本在 GUI 中提供：
 
-v6-v6.4 模型准确率较差
-v6.5 中文能力完全退化
+| 目录 | 内容 |
+|---|---|
+| `azur_lane/alocr-en-us-v2.6.nvc.onnx` | 旧版 AlOCR v2.6 英文数字/字母识别模型（PP-OCRv4 结构，仅 ONNX 后端） |
+| `azur_lane/en_dict.txt` | 上述英文模型的字典 |
+| `zh-CN/alocr-zh-cn-v3.dtk.onnx` | 旧版 AlOCR v3 简体中文识别模型（PP-OCRv5 结构，仅 ONNX 后端） |
+| `zh-CN/cn.txt` | 上述中文模型的字典 |
 
-┏━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┓
-┃ Model ┃ Dataset   ┃            Accuracy ┃  Avg Time ┃ Rating     ┃ Status ┃
-┡━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━┩
-│ EN    │ sets_num  │ 100.00% (1000/1000) │  9.458 ms │ Ultra Fast │  PASS  │
-├───────┼───────────┼─────────────────────┼───────────┼────────────┼────────┤
-│ CN    │ sets_zhcn │     5.30% (53/1000) │ 10.582 ms │ Very Fast  │ Error  │
-└───────┴───────────┴─────────────────────┴───────────┴────────────┴────────┘
+默认仍使用 PP-OCRv6（`standard`），需要时可在 GUI 中单独切换为旧版模型。
