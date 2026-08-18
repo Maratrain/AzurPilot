@@ -410,9 +410,9 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
             if self.appear(FLEET_WITHDRAW_BOSS, offset=(30, 30)):
                 self.withdraw()
                 break
-            # 限制SWITCH_OVER点击次数，防止GameTooManyClickError
-            # SWITCH_OVER点击后需要处理AUTO_SEARCH_MAP_OPTION_OFF才能恢复自动搜索
-            if switch_over_clicked < 2 and self.appear_then_click(SWITCH_OVER, interval=2):
+            # 只点击一次SWITCH_OVER切换舰队，然后处理自律选项开启自动搜索
+            # 点击多次会导致GameTooManyClickError
+            if switch_over_clicked < 1 and self.appear_then_click(SWITCH_OVER, interval=2):
                 switch_over_clicked += 1
                 continue
             # 处理自动搜索地图选项（关闭AUTO_SEARCH_MAP_OPTION_OFF，开启自动搜索）
