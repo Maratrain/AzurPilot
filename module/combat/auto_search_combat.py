@@ -326,9 +326,9 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                 self._withdraw = True
                 break
             # D评价结算界面（BATTLE_STATUS_D / EXP_INFO_D）
-            # S/A/B评价的动画过渡帧可能短暂误匹配D评价模板，
+            # S/A/B/C评价的动画过渡帧可能短暂误匹配D评价模板，
             # 但只有真正的沉船才会出现OPTS_INFO_D弹窗。
-            # 此处不设置 _withdraw，让后续S/A/B评价条件覆盖误匹配。
+            # 此处不设置 _withdraw，让后续S/A/B/C评价条件覆盖误匹配。
             # 真正的D评价会先被上方OPTS_INFO_D捕获。
             if self.appear(BATTLE_STATUS_D) or self.appear(EXP_INFO_D):
                 break
@@ -339,10 +339,14 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                 self._withdraw = True
                 confirm_timer.reset()
                 break
-            if self.appear(BATTLE_STATUS_A) or self.appear(BATTLE_STATUS_B) \
-                    or self.appear(EXP_INFO_A) or self.appear(EXP_INFO_B):
+            # A/B/C评价：自动搜索中非S评价意味着有舰船沉没，扣减沉船心情（10点）
+            # S评价不扣减额外沉船心情，仅保留进入战斗时的基础扣减（2点）
+            # 设置_shipwreck_emotion_reduced防止C评价后续出现OPTS_INFO_D时重复扣减
+            if self.appear(BATTLE_STATUS_A) or self.appear(BATTLE_STATUS_B) or self.appear(BATTLE_STATUS_C) \
+                    or self.appear(EXP_INFO_A) or self.appear(EXP_INFO_B) or self.appear(EXP_INFO_C):
                 if emotion_reduce:
                     self.emotion.reduce(fleet_index, shipwreck=True)
+                    self._shipwreck_emotion_reduced = True
                 break
             if self.appear(BATTLE_STATUS_S) or self.appear(EXP_INFO_S) \
                     or self.appear(GET_MISSION) or self.is_auto_search_running():
@@ -379,18 +383,40 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
         处理舰队切换操作：仅撤退当前战败舰队，切换到另一队继续战斗。
         包含超时保护，避免UI异常时无限循环。
 
+        沉船后舰队切换流程可能为：
+        EXP_INFO_D → FLEET_SWITCH_CONFIRM(延迟出现) → SWITCH_OVER/FLEET_WITHDRAW → 自动搜索恢复
+        FLEET_SWITCH_CONFIRM可能在结算画面过渡后才延迟出现，
+        因此在此方法中也需要检测，避免错过点击时机。
+
+        SWITCH_OVER点击后，游戏可能显示AUTO_SEARCH_MAP_OPTION_OFF，
+        需要点击它开启自动搜索，否则is_auto_search_running()一直返回False，
+        导致SWITCH_OVER被反复点击触发GameTooManyClickError。
+
         Returns:
             bool: True表示切换成功，False表示超时。
         """
         timeout = Timer(10, count=20).start()
+        switch_over_clicked = 0
         while 1:
             self.device.screenshot()
+            # 舰队切换完成，自动搜索恢复运行
+            if self.is_auto_search_running():
+                break
+            # FLEET_SWITCH_CONFIRM可能在结算过渡后延迟出现
+            if self.appear_then_click(FLEET_SWITCH_CONFIRM, offset=(30, 30)):
+                continue
             if self.appear_then_click(FLEET_WITHDRAW, offset=(30, 30)):
                 break
             if self.appear(FLEET_WITHDRAW_BOSS, offset=(30, 30)):
                 self.withdraw()
                 break
-            if self.appear_then_click(SWITCH_OVER, interval=2):
+            # 限制SWITCH_OVER点击次数，防止GameTooManyClickError
+            # SWITCH_OVER点击后需要处理AUTO_SEARCH_MAP_OPTION_OFF才能恢复自动搜索
+            if switch_over_clicked < 2 and self.appear_then_click(SWITCH_OVER, interval=2):
+                switch_over_clicked += 1
+                continue
+            # 处理自动搜索地图选项（关闭AUTO_SEARCH_MAP_OPTION_OFF，开启自动搜索）
+            if self.handle_auto_search_map_option():
                 continue
             if timeout.reached():
                 logger.warning('舰队切换超时，改为撤退')

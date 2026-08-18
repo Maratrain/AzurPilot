@@ -449,6 +449,35 @@ class Emotion:
         self.record()
         self.show()
 
+    def emergency_reset(self):
+        """心情清零保底。计算模式下出现红脸弹窗时调用。
+
+        将所有舰队的心情值重置为0，强制下次任务等待心情恢复。
+        这是计算模式下的异常保底措施，正常情况下不应被调用——
+        计算模式会在进入战役前预检心情并延迟任务，红脸弹窗仅在
+        ALAS计算错误或用户手动操作后才可能出现。
+
+        重置内容：
+        - FleetEmotion.current 设为 0
+        - config 中的 Value 设为 0
+        - config 中的 Record 设为当前时间（从0开始恢复计时）
+        - _fractional_seconds 清零（丢弃未满1点的恢复余数）
+        """
+        if self.using_public:
+            fleets = [self.public_fleet]
+        else:
+            fleets = self.fleets
+
+        with self.config.multi_set():
+            for fleet in fleets:
+                fleet.current = 0
+                fleet._fractional_seconds = 0
+                record_time = current_time().replace(microsecond=0)
+                setattr(self.config, fleet.value_name, 0)
+                setattr(self.config, fleet.value_name.replace('Value', 'Record'),
+                        record_time)
+        logger.info('[心情-保底] 已将所有舰队心情清零')
+
     @cached_property
     def bug_threshold(self):
         """
