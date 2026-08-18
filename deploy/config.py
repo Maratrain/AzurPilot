@@ -45,6 +45,7 @@ class ConfigModel:
     EnableReload: bool = True
     CheckUpdateInterval: int = 5
     AutoRestartTime: str = "03:50"
+    HideUpdateNotice: bool = False
 
     # 杂项
     DiscordRichPresence: bool = False

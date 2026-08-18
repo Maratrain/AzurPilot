@@ -25,8 +25,8 @@ class ApiClient:
     CL1_DATA_PATH = '/api/telemetry'
     ANNOUNCEMENT_PATH = '/api/get/announcement'
 
-    # 公告检查间隔（秒），1.5分钟 = 90秒
-    ANNOUNCEMENT_CHECK_INTERVAL = 90
+    # 公告检查间隔（秒），5分钟 = 300秒
+    ANNOUNCEMENT_CHECK_INTERVAL = 300
     
     @classmethod
     def _get_endpoints(cls, path: str) -> List[str]:

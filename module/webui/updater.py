@@ -30,6 +30,7 @@ class Updater(DeployConfig, GitManager):
         self.state = 0
         self.event: threading.Event = None
         self._update_lock = threading.Lock()
+        self._last_check_time: float = 0.0
 
     def alas_kill(self):
         import os
@@ -215,9 +216,18 @@ class Updater(DeployConfig, GitManager):
             logger.exception(e)
             self.state = 0
 
-    def check_update(self):
+    def check_update(self, force=False):
+        self.read()
+        check_interval = int(self.CheckUpdateInterval) * 60
+        # 降低请求频率：非手动检查时，间隔时间内复用上次结果，避免重复请求导致 429
+        now = time.time()
+        if not force and check_interval <= 0:
+            return
+        if not force and now - self._last_check_time < check_interval:
+            return
         if self.state in (0, "failed", "finish"):
             self.state = "checking"
+            self._last_check_time = now
             threading.Thread(
                 target=self._check_update_thread,
                 daemon=True

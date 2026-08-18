@@ -6462,7 +6462,9 @@
       "WebuiSSLKey": "SSL キーファイル",
       "WebuiSSLKeyHelp": "WebUI HTTPS 用の SSL キーです。証明書とセットで設定してください。",
       "WebuiSSLCert": "SSL 証明書ファイル",
-      "WebuiSSLCertHelp": "WebUI HTTPS 用の SSL 証明書です。キーとセットで設定してください。"
+      "WebuiSSLCertHelp": "WebUI HTTPS 用の SSL 証明書です。キーとセットで設定してください。",
+      "HideUpdateNotice": "更新通知を非表示",
+      "HideUpdateNoticeHelp": "有効にすると、更新が検出されても右下に通知が表示されなくなります。"
     },
     "StartupRun": {
       "Title": "起動時に自動実行",

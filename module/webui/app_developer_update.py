@@ -98,7 +98,7 @@ class DeveloperUpdateMixin(WebUIMixinBase):
                 put_text(t("Gui.Update.UpToDate"), scope="updater_state")
                 put_button(
                     t("Gui.Button.CheckUpdate"),
-                    onclick=updater.check_update,
+                    onclick=lambda: updater.check_update(force=True),
                     color="info",
                     scope="updater_btn",
                 )
@@ -203,7 +203,101 @@ class DeveloperUpdateMixin(WebUIMixinBase):
         update_table()
         self.task_handler.add(updater_switch.g(), delay=0.5, pending_delete=True)
 
+        self._render_hide_update_notice_setting()
+
         updater.check_update()
+
+
+    def _render_hide_update_notice_setting(self) -> None:
+        scope_id = "hide-update-notice"
+        switch_id = f"switch-{scope_id}"
+        status_id = f"status-{scope_id}"
+        put_html(
+            f'''
+            <div class="startup-run-panel">
+              <div class="startup-run-row">
+                <div>
+                  <div class="startup-run-title">{t("Gui.DeploySetting.HideUpdateNotice")}</div>
+                  <div class="startup-run-desc">{t("Gui.DeploySetting.HideUpdateNoticeHelp")}</div>
+                </div>
+                <label class="launcher-switch" title="{t("Gui.DeploySetting.HideUpdateNotice")}">
+                  <input id="{switch_id}" type="checkbox" disabled>
+                </label>
+              </div>
+              <div id="{status_id}" class="startup-run-status">{t("Gui.StartupRun.Loading")}</div>
+            </div>
+            '''
+        )
+        run_js(
+            f'''
+            (function(){{
+              const switchEl = document.getElementById({json.dumps(switch_id)});
+              const statusEl = document.getElementById({json.dumps(status_id)});
+              const text = {{
+                loading: {json.dumps(t("Gui.StartupRun.Loading"))},
+                enabled: {json.dumps(t("Gui.StartupRun.Enabled"))},
+                disabled: {json.dumps(t("Gui.StartupRun.Disabled"))},
+                setting: {json.dumps(t("Gui.StartupRun.Setting"))},
+                failed: {json.dumps(t("Gui.StartupRun.Failed"))},
+                unavailable: {json.dumps(t("Gui.StartupRun.Unavailable"))}
+              }};
+
+              async function refresh() {{
+                switchEl.disabled = true;
+                statusEl.textContent = text.loading;
+                try {{
+                  const resp = await fetch("/api/deploy/settings", {{cache: "no-store"}});
+                  const result = await resp.json();
+                  if (!result.success) {{
+                    throw new Error(result.error || "unknown error");
+                  }}
+                  let value = false;
+                  for (const group of (result.data.groups || [])) {{
+                    const field = (group.fields || []).find(item => item.key === "HideUpdateNotice");
+                    if (field) {{
+                      value = field.value === true;
+                      break;
+                    }}
+                  }}
+                  switchEl.checked = value;
+                  switchEl.disabled = false;
+                  statusEl.textContent = value ? text.enabled : text.disabled;
+                }} catch (err) {{
+                  statusEl.textContent = text.unavailable + ": " + (err.message || err);
+                }}
+              }}
+
+              switchEl.addEventListener("change", async function() {{
+                const target = switchEl.checked;
+                switchEl.disabled = true;
+                statusEl.textContent = text.setting;
+                try {{
+                  const resp = await fetch("/api/deploy/settings", {{
+                    method: "POST",
+                    headers: {{
+                      "Content-Type": "application/json"
+                    }},
+                    body: JSON.stringify({{values: {{HideUpdateNotice: target}}}})
+                  }});
+                  const result = await resp.json();
+                  if (!result.success) {{
+                    throw new Error(result.error || "unknown error");
+                  }}
+                  switchEl.checked = target;
+                  statusEl.textContent = target ? text.enabled : text.disabled;
+              }} catch (err) {{
+                switchEl.checked = !target;
+                statusEl.textContent = text.failed + ": " + (err.message || err);
+                setTimeout(refresh, 1600);
+                return;
+              }}
+              switchEl.disabled = false;
+              }});
+
+              refresh();
+            }})();
+            '''
+        )
 
     def _render_startup_run_setting(self) -> None:
         instance = self.alas_name or DEFAULT_CONFIG_NAME

@@ -1,6 +1,7 @@
 """WebUI首页和会话运行"""
 import requests
 from module.webui.app_dependencies import (
+    State,
     Switch,
     _t,
     alas_instance,
@@ -432,6 +433,8 @@ class HomeMixin(WebUIMixinBase):
 
         def show_update_toast():
             if self._update_notified:
+                return
+            if State.deploy_config.HideUpdateNotice:
                 return
             self._update_notified = True
 

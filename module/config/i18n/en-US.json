@@ -6462,7 +6462,9 @@
       "WebuiSSLKey": "SSL Key File",
       "WebuiSSLKeyHelp": "SSL key path for WebUI HTTPS. Must be set together with the certificate.",
       "WebuiSSLCert": "SSL Certificate File",
-      "WebuiSSLCertHelp": "SSL certificate path for WebUI HTTPS. Must be set together with the key."
+      "WebuiSSLCertHelp": "SSL certificate path for WebUI HTTPS. Must be set together with the key.",
+      "HideUpdateNotice": "Hide Update Notice",
+      "HideUpdateNoticeHelp": "When enabled, the bottom-right update notice will not appear when an update is detected."
     },
     "StartupRun": {
       "Title": "Auto-run on Startup",

@@ -6462,7 +6462,9 @@
       "WebuiSSLKey": "SSL 密钥文件",
       "WebuiSSLKeyHelp": "WebUI HTTPS 使用的 SSL 密钥路径，需和证书同时设置。",
       "WebuiSSLCert": "SSL 证书文件",
-      "WebuiSSLCertHelp": "WebUI HTTPS 使用的 SSL 证书路径，需和密钥同时设置。"
+      "WebuiSSLCertHelp": "WebUI HTTPS 使用的 SSL 证书路径，需和密钥同时设置。",
+      "HideUpdateNotice": "隐藏更新提示",
+      "HideUpdateNoticeHelp": "开启后检测到更新时不再在右下角弹出提示。"
     },
     "StartupRun": {
       "Title": "启动时自动运行",

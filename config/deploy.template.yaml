@@ -133,6 +133,11 @@ Deploy:
     # [默认] 08:00
     # [Default] 08:00
     AutoRestartTime: 08:00
+    # 隐藏更新提示
+    # Hide update notice
+    # [默认] false
+    # [Default] false
+    HideUpdateNotice: false
 
   Misc:
     # 启用 Discord 富状态展示

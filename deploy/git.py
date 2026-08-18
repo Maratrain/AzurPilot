@@ -1,4 +1,5 @@
 import requests
+import time
 
 from deploy.config import DeployConfig, ExecutionError
 from deploy.git_over_cdn.client import GitOverCdnClient
@@ -89,12 +90,32 @@ class GitManager(DeployConfig):
 
     @staticmethod
     def cloud_auto_update_enabled():
+        # 结果缓存，避免多次调用同一接口导致 429
+        now = time.time()
+        last = getattr(GitManager, '_cloud_control_last_check', 0.0)
+        cached = getattr(GitManager, '_cloud_control_cached', None)
+        if cached is not None and now - last < 300:
+            return cached
+
         logger.info(f'Check cloud update control: {CLOUD_UPDATE_CONTROL_URL}')
         try:
             resp = requests.get(CLOUD_UPDATE_CONTROL_URL, timeout=5, headers={'User-Agent': 'alas AzurPilot'})
+            if resp.status_code == 429:
+                # 请求过快被限流，跳过本次检查并延长冷却，避免继续触发 429
+                logger.warning('Cloud update control returned 429, skipped this check')
+                GitManager._cloud_control_cached = None
+                GitManager._cloud_control_last_check = now
+                return None
             resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logger.warning(f'Cloud update control HTTP error: {e}')
+            GitManager._cloud_control_cached = None
+            GitManager._cloud_control_last_check = now
+            return None
         except Exception as e:
             logger.warning(f'Failed to check cloud update control: {e}')
+            GitManager._cloud_control_cached = None
+            GitManager._cloud_control_last_check = now
             return None
 
         text = resp.text.strip()
@@ -105,12 +126,18 @@ class GitManager(DeployConfig):
 
         if data is True or (isinstance(data, str) and data.lower() in ('true', 'ture')):
             logger.info('Cloud update control is enabled')
+            GitManager._cloud_control_cached = True
+            GitManager._cloud_control_last_check = now
             return True
         if data is False or (isinstance(data, str) and data.lower() in ('false', 'fales')):
             logger.info('Cloud update control is disabled')
+            GitManager._cloud_control_cached = False
+            GitManager._cloud_control_last_check = now
             return False
 
         logger.info(f'Cloud update control is inaccessible: {text}')
+        GitManager._cloud_control_cached = None
+        GitManager._cloud_control_last_check = now
         return None
 
     def cloud_update_access_failed(self, fatal=True):
