@@ -743,6 +743,18 @@
       "name": "Device restart threshold not detected",
       "help": "The number of times the device cannot be detected in a row triggers a restart."
     },
+    "WatchdogTaskTimeout": {
+      "name": "Task Stuck Watchdog Timeout (min)",
+      "help": "If a single task runs longer than this, the watchdog treats it as a logic loop (e.g. unskippable story, pathfinding loop) and force-restarts the emulator.\n0 = disabled; 99999 = virtually unlimited.\nDefault 120 min (2h)."
+    },
+    "WatchdogLogTimeout": {
+      "name": "Log Heartbeat Timeout (sec)",
+      "help": "During task execution, if no log is output for this duration, the main thread is considered stuck in an I/O call (e.g. u2 HTTP, ADB shell) and the emulator is force-killed.\nDefault 300 sec (5 min)."
+    },
+    "RestartOperationTimeout": {
+      "name": "Restart Operation Timeout (sec)",
+      "help": "Hard timeout for a single app_stop/app_start operation during game restart. If exceeded, the emulator or atx-agent is considered stuck and an emulator restart is triggered.\nDefault 120 sec."
+    },
     "LlmAnalysis": {
       "name": "Enable LLM Error Analysis",
       "help": "Automatically use LLM to analyze errors when they occur."

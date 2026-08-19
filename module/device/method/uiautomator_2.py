@@ -105,7 +105,12 @@ def retry(func):
             '_app_start_u2_am', '_app_start_u2_monkey',
             'screenshot_uiautomator2',
             'app_current_uiautomator2',
+            'app_stop_uiautomator2',
         ]:
+            # 这些函数失败说明设备连接已断开，应触发重启而非人工介入
+            # app_stop_uiautomator2 失败属于应用重启失败，按项目规则
+            # 必须抛 EmulatorNotRunningError 触发模拟器重启，
+            # 而非 RequestHumanTakeover（会被错误地视为不可恢复）
             logger.critical(f'[设备-U2] 重试 {func.__name__}() 失败')
             raise EmulatorNotRunningError
 

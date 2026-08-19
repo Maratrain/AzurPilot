@@ -16,6 +16,7 @@
 # 基于原版 login.py 增加了智能的游戏重启逻辑
 # 用于处理登录流程中的各种弹窗、公告以及在应用崩溃时执行重启恢复操作。
 # 最后更新: 2025-08-25 20:41
+import threading
 import time
 
 import numpy as np
@@ -48,6 +49,14 @@ RESTART_FIRST_TRY_WAIT_SECONDS = 30
 RESTART_SUBSEQUENT_TRY_WAIT_SECONDS = 20
 RESTART_OBSERVE_SECONDS = 180
 RESTART_OBSERVE_INTERVAL = 15
+# 单次 app_stop/app_start 操作的硬超时秒数。
+# 仅作为配置读取失败的兜底默认值；实际值从配置 Error.RestartOperationTimeout
+# 读取，可在 WebUI「调试设置」中修改。
+# atx-agent 自恢复可能耗时 70 秒以上，给 120 秒余量；超过则判定模拟器或
+# atx-agent 卡死，立即抛出 EmulatorNotRunningError 触发模拟器重启，
+# 避免 u2 调用无限挂起导致 LoginWaitTimeout / GameStuckRestart 等保护机制
+# （依赖 screenshot() 中的 stuck_record_check）均无法触发的死锁。
+RESTART_OPERATION_TIMEOUT = 120
 
 
 class LoginHandler(UI):
@@ -205,6 +214,36 @@ class LoginHandler(UI):
             return 3600.0
         return timeout
 
+    def _restart_operation_timeout(self):
+        """
+        获取 app_stop/app_start 操作的硬超时秒数。
+
+        对应配置项 Alas.Error.RestartOperationTimeout，超时则判定模拟器或
+        atx-agent 卡死，立即抛出 EmulatorNotRunningError 触发模拟器重启。
+
+        Returns:
+            int: 超时秒数，配置非法时回退默认 120 秒。
+        """
+        value = deep_get(
+            self.config.data, 'Alas.Error.RestartOperationTimeout',
+            default=RESTART_OPERATION_TIMEOUT,
+        )
+        try:
+            timeout = int(value)
+        except (TypeError, ValueError):
+            logger.warning(
+                f'[重启] Alas.Error.RestartOperationTimeout 配置非法（{value!r}），'
+                f'回退默认 {RESTART_OPERATION_TIMEOUT} 秒'
+            )
+            return RESTART_OPERATION_TIMEOUT
+        if not (timeout > 0):
+            logger.warning(
+                f'[重启] Alas.Error.RestartOperationTimeout 配置非法（{value!r}），'
+                f'回退默认 {RESTART_OPERATION_TIMEOUT} 秒'
+            )
+            return RESTART_OPERATION_TIMEOUT
+        return timeout
+
     def handle_app_login(self):
         """
         处理应用登录流程。
@@ -249,18 +288,87 @@ class LoginHandler(UI):
     #     # self.ensure_no_unfinished_campaign()
     #     self.config.task_delay(server_update=True)
 
+    def _call_with_restart_deadline(self, func, *, timeout, operation_name):
+        """带硬超时调用设备操作，超时判定模拟器或 atx-agent 卡死。
+
+        app_restart() 流程中的 app_stop/app_start 底层依赖 uiautomator2 的
+        HTTP 请求（self.u2.app_stop / self.u2.shell 等）。当 atx-agent 异常
+        或模拟器真正卡死时，这些调用可能长时间挂起且不抛出异常
+        （u2 内部的 atx-agent 自恢复可能耗时 70 秒以上，并可能进入无限
+        内部重试而不向上抛出异常）。此时 LoginWaitTimeout、
+        GameStuckRestart 等保护机制均无法触发——它们依赖 screenshot()
+        中的 stuck_record_check，而 app_restart 流程不调用截图。
+
+        本方法在独立守护线程中执行操作，主线程在 timeout 后立即抛出
+        EmulatorNotRunningError，由上层调度器（alas.py 中的
+        EmulatorNotRunningError 处理分支）触发 _try_restart_emulator()
+        杀掉并重启模拟器。模拟器重启会同时杀死 atx-agent 进程，残留线程
+        的 HTTP 连接将被重置，daemon 线程会快速失败退出，不会影响新设备。
+
+        Args:
+            func: 无参数的可调用对象，通常为 self.device.app_stop 等。
+            timeout (int | float): 超时秒数。
+            operation_name (str): 操作名称，用于日志。
+
+        Raises:
+            EmulatorNotRunningError: 操作超时。
+            Exception: 操作本身抛出的异常会被原样向上抛出。
+        """
+        result = [None]
+        exception = [None]
+
+        def worker():
+            try:
+                result[0] = func()
+            except BaseException as e:
+                exception[0] = e
+
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout)
+
+        if thread.is_alive():
+            logger.critical(
+                f'[重启] {operation_name} 超过 {timeout}s 未完成，'
+                f'判定模拟器或 atx-agent 卡死，触发模拟器重启'
+            )
+            from module.exception import EmulatorNotRunningError
+            raise EmulatorNotRunningError(
+                f'[重启] {operation_name} 超过 {timeout}s 未完成，'
+                f'判定模拟器或 atx-agent 卡死'
+            )
+
+        if exception[0] is not None:
+            raise exception[0]
+        return result[0]
+
     def app_restart(self):
         logger.hr('应用重启')
         is_restart_success = False
 
+        # 从配置读取硬超时（秒），配置非法时回退默认 120 秒
+        op_timeout = self._restart_operation_timeout()
+        logger.info(f'[重启] app_stop/app_start 硬超时 {op_timeout} 秒')
+
         clear_cache = getattr(self.config, 'Restart_ClearCache', False)
         for i in range(RESTART_TRIES):
             logger.info(f"[重启] 应用重启尝试 {i + 1}/{RESTART_TRIES}...")
-            self.device.app_stop()
+            # 用硬超时包装 app_stop/app_start，防止 atx-agent 异常时
+            # u2 HTTP 调用无限挂起导致 LoginWaitTimeout/GameStuckRestart
+            # 等保护机制（依赖 screenshot() 中的 stuck_record_check）失效
+            self._call_with_restart_deadline(
+                self.device.app_stop,
+                timeout=op_timeout,
+                operation_name='应用停止',
+            )
             if clear_cache:
                 self.device.app_clear()
             self.device.sleep(3)
-            self.device.app_start()
+            self._call_with_restart_deadline(
+                self.device.app_start,
+                timeout=op_timeout,
+                operation_name='应用启动',
+            )
             wait_seconds = RESTART_FIRST_TRY_WAIT_SECONDS if i == 0 else RESTART_SUBSEQUENT_TRY_WAIT_SECONDS
             logger.info(f"[重启] 等待 {wait_seconds} 秒让应用启动和稳定...")
             self.device.sleep(wait_seconds)

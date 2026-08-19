@@ -743,6 +743,18 @@
       "name": "检测不到设备重启阈值",
       "help": "连续多少次触发重启喵。"
     },
+    "WatchdogTaskTimeout": {
+      "name": "Error.WatchdogTaskTimeout.name",
+      "help": "Error.WatchdogTaskTimeout.help"
+    },
+    "WatchdogLogTimeout": {
+      "name": "Error.WatchdogLogTimeout.name",
+      "help": "Error.WatchdogLogTimeout.help"
+    },
+    "RestartOperationTimeout": {
+      "name": "Error.RestartOperationTimeout.name",
+      "help": "Error.RestartOperationTimeout.help"
+    },
     "LlmAnalysis": {
       "name": "启用 LLM 错误分析喵",
       "help": "发生异常时调用LLM分析原因给建议喵~ (ΦωΦ)"

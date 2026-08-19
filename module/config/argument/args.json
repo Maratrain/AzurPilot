@@ -486,6 +486,30 @@
           10
         ]
       },
+      "WatchdogTaskTimeout": {
+        "type": "input",
+        "value": 120,
+        "validate": [
+          0,
+          99999
+        ]
+      },
+      "WatchdogLogTimeout": {
+        "type": "input",
+        "value": 300,
+        "validate": [
+          60,
+          1800
+        ]
+      },
+      "RestartOperationTimeout": {
+        "type": "input",
+        "value": 120,
+        "validate": [
+          10,
+          600
+        ]
+      },
       "LlmAnalysis": {
         "type": "checkbox",
         "value": true
