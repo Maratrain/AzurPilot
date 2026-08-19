@@ -792,7 +792,7 @@
     },
     "OcrModelVersionEnglish": {
       "name": "OCR英文模型版本喵",
-      "help": "选择英文OCR模型档位喵。lite轻量最快喵，standard均衡喵，pro精度最高喵。auto使用standard喵。alocr_en_v2_6为旧版AlOCR专用英文模型喵，仅ONNX后端可用喵。该项影响英文Azur Lane模型。",
+      "help": "选择英文OCR模型档位喵。lite轻量最快喵，standard均衡喵，pro精度最高喵。auto使用旧版alocr_en_v2_6喵。alocr_en_v2_6为旧版AlOCR专用英文模型喵，仅ONNX后端可用喵。该项影响英文Azur Lane模型。",
       "auto": "自动推荐喵",
       "lite": "Lite 轻量喵",
       "standard": "Standard 标准喵",
@@ -801,7 +801,7 @@
     },
     "OcrModelVersionChinese": {
       "name": "OCR中文模型版本喵",
-      "help": "选择简体中文OCR模型档位喵。lite轻量最快喵，standard均衡喵，pro精度最高喵。auto使用standard喵。alocr_cn_v3为旧版AlOCR专用中文模型喵，仅ONNX后端可用喵。该项影响cnocr/中文模型。",
+      "help": "选择简体中文OCR模型档位喵。lite轻量最快喵，standard均衡喵，pro精度最高喵。auto使用旧版alocr_cn_v3喵。alocr_cn_v3为旧版AlOCR专用中文模型喵，仅ONNX后端可用喵。该项影响cnocr/中文模型。",
       "auto": "自动推荐喵",
       "lite": "Lite 轻量喵",
       "standard": "Standard 标准喵",

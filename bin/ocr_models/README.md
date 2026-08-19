@@ -39,4 +39,5 @@ ncnn 和 ONNX 后端有不同实现。
 | `zh-CN/alocr-zh-cn-v3.dtk.onnx` | 旧版 AlOCR v3 简体中文识别模型（PP-OCRv5 结构，仅 ONNX 后端） |
 | `zh-CN/cn.txt` | 上述中文模型的字典 |
 
-默认仍使用 PP-OCRv6（`standard`），需要时可在 GUI 中单独切换为旧版模型。
+英文和简体中文的 `auto` 档位默认使用对应旧版模型；日文和繁体中文仍默认使用
+PP-OCRv6（`standard`）。需要时可在 GUI 中手动切换模型版本。

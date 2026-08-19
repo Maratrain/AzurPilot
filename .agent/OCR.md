@@ -53,15 +53,19 @@ alwaysApply: true
 
 **逐段分析**：
 
-- `L23-33`：导入 RapidOCR 依赖。失败时调用 `handle_ocr_error()` 提示安装 VC++ 运行库。
-- `L39-67`：`RecOnlyOCR` — 仅加载识别模型，跳过检测和分类。`_initialize()` 重写。
-- `L69-70`：全局配置加载。
-- `L73-132`：OCR 工作队列 — `_OcrJob`（任务封装）、`_ocr_queue`（队列）、`_ocr_worker_loop()`（工作线程）。`_run_ocr_queued()` 将 OCR 操作排队到单线程执行，避免并发问题。
-- `L135-186`：`_get_onnx_model_params()` — ONNX 模型参数。4 种语言：cn、jp、tw、en。`_create_ocr()` 创建 OCR 实例，支持 ONNX/ncnn 后端。
-- `L189-213`：`_get_model()` — 惰性加载模型。全局变量 `_cn_model`/`_en_model`/`_jp_model`/`_tw_model`。
-- `L216-293`：检测模型 — `DetOnlyOCR`（仅检测）、`_create_det_ocr_for_onnx()`（ONNX 全流程）、`_create_det_ocr_for_ncnn()`（ncnn 检测）。`_get_det_model()` 惰性加载。
-- `L296-310`：`reset_ocr_model()` — 重置所有 OCR 模型，释放内存。
-- `L313-970`：`AlOcr` 类 — `__init__()` 惰性初始化。`init()` 加载模型。`ocr()` 文本识别。`det()` 检测+识别，返回 `(text, box, score)` 列表。`ocr_for_single_lines()` 批量识别。`atomic_ocr()` 带字母白名单过滤。`_save_debug_image()`/`_save_det_debug()` 调试图保存。集成 `windows_ml.create_onnx_session()` 设备选择。
+- `L38-58`：`handle_ocr_error()` — OCR 依赖加载失败统一处理，提示安装 VC++ 运行库并抛出 `RequestHumanTakeover`。
+- `L61-71`：导入 RapidOCR 依赖与 `NcnnRecOCR`/`supports_ncnn_model`。失败时调用 `handle_ocr_error()`。
+- `L74-142`：模型路径常量与 `ONNX_MODEL_PARAMS` — 6 个逻辑模型（azur_lane、azur_lane_jp、ppocr_v6、cn、jp、tw）各含 lite/standard/pro 三档 PP-OCRv6 模型 + 旧版 AlOCR 专用模型（alocr_en_v2_6/alocr_cn_v3）；`DEFAULT_ONNX_MODEL_VERSION` 对英文和简体中文默认使用对应旧版模型，其余语言默认 standard 档。azur_lane/azur_lane_jp 使用受限 en 字典。
+- `L145-177`：`RecOnlyOCR` — 仅加载识别模型，跳过检测和分类（`_initialize()` 重写）。
+- `L180-181`：全局配置加载（`AzurLaneConfig`）。
+- `L184-243`：OCR 工作队列 — `_OcrJob`（任务封装）、`_ocr_queue`（队列）、`_ocr_worker_loop()`（后台线程 `AlOcrQueue`）、`_ensure_ocr_worker()`、`_run_ocr_queued()`（将 OCR 操作排队到单线程执行，避免并发问题）。
+- `L246-276`：`_resolve_onnx_model_version()`/`_get_onnx_model_params()` — 按配置选择 ONNX 识别模型版本。
+- `L279-308`：`_configure_windows_ml_sessions()` — 将 RapidOCR 创建的 CPU session 替换为 `windows_ml.create_onnx_session()` 选定的设备。
+- `L311-345`：`_create_ocr()` — 创建 OCR 实例，支持 ncnn/ONNX 后端分支。
+- `L349-366`：`_model_cache` + `_model_cache_key()` + `_get_model()` — 惰性加载，按 (名称, 后端, 设备, 版本) 组合键缓存。
+- `L369-467`：检测模型 — `DetOnlyOCR`（仅检测）、`_create_det_ocr_for_onnx()`（ONNX 全流程）、`_create_det_ocr_for_ncnn()`（ncnn 检测）、`_get_det_model()` 惰性加载。
+- `L470-497`：`release_ocr_models()` — 在 OCR 工作线程中释放模型缓存；`reset_ocr_model()` 重置所有 OCR 模型，释放内存。
+- `L500-759`：`AlOcr` 类 — `__init__()` 惰性初始化（L516-525）。`init()`/`_ensure_loaded()` 加载模型（L527-533）。`_save_debug_image()` 调试保存，限制 100 个文件（L540-587）。`ocr()` 文本识别（L589-606）。`det()` 检测+识别，返回 `(text, box, score)` 列表（L608-713），ncnn 后端用 RapidOCR 检测 + ncnn 识别，ONNX 后端一次调用完整流水线。`ocr_for_single_lines()` 批量识别（L718-736）。`set_cand_alphabet()`/`atomic_ocr()` 系列带字母白名单过滤（L738-759）。
 
 ### 2.3 ncnn_ocr.py（393 行）
 

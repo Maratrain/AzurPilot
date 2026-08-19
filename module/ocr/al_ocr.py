@@ -133,10 +133,10 @@ ONNX_MODEL_PARAMS = {
 }
 
 DEFAULT_ONNX_MODEL_VERSION = {
-    "azur_lane": "standard",
+    "azur_lane": "alocr_en_v2_6",
     "azur_lane_jp": "standard",
     "ppocr_v6": "standard",
-    "cn": "standard",
+    "cn": "alocr_cn_v3",
     "jp": "standard",
     "tw": "standard",
 }
