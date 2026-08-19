@@ -743,17 +743,25 @@
       "name": "Device restart threshold not detected",
       "help": "The number of times the device cannot be detected in a row triggers a restart."
     },
-    "WatchdogTaskTimeout": {
-      "name": "Task Stuck Watchdog Timeout (min)",
-      "help": "If a single task runs longer than this, the watchdog treats it as a logic loop (e.g. unskippable story, pathfinding loop) and force-restarts the emulator.\n0 = disabled; 99999 = virtually unlimited.\nDefault 120 min (2h)."
+    "WatchdogEnable": {
+      "name": "Watchdog Master Switch",
+      "help": "What's a watchdog? It's a bodyguard running in the background. Turn it on to enable the checks below; turn it off and nothing below matters. Default off."
     },
-    "WatchdogLogTimeout": {
-      "name": "Log Heartbeat Timeout (sec)",
-      "help": "During task execution, if no log is output for this duration, the main thread is considered stuck in an I/O call (e.g. u2 HTTP, ADB shell) and the emulator is force-killed.\nDefault 300 sec (5 min)."
+    "WatchdogTaskEnable": {
+      "name": "Auto-restart if task runs too long",
+      "help": "When enabled, if a task runs too long (e.g. stuck on an unskippable story, pathfinding loop), the emulator is force-restarted to break out of it.\nRequires the master switch above to be on. Default off."
+    },
+    "WatchdogTaskTimeout": {
+      "name": "How long before a task is considered stuck (min)",
+      "help": "How many minutes a task can run before it's considered stuck. If exceeded, the emulator is force-restarted.\n0 = never trigger; 99999 = basically never.\nDefault 120 min (2 hours)."
+    },
+    "RestartOperationTimeoutEnable": {
+      "name": "Game restart timeout protection",
+      "help": "When enabled, if a step during game restart (stopping/starting the game) gets stuck for longer than the timeout below, the emulator is considered dead and gets restarted.\nWhen disabled, this check is skipped.\nDefault off."
     },
     "RestartOperationTimeout": {
-      "name": "Restart Operation Timeout (sec)",
-      "help": "Hard timeout for a single app_stop/app_start operation during game restart. If exceeded, the emulator or atx-agent is considered stuck and an emulator restart is triggered.\nDefault 120 sec."
+      "name": "How long before game restart is considered stuck (sec)",
+      "help": "During game restart, if stopping or starting the game is stuck for longer than this many seconds, the emulator is considered dead and gets restarted.\nRequires 'Game restart timeout protection' above to be on.\nDefault 120 sec."
     },
     "LlmAnalysis": {
       "name": "Enable LLM Error Analysis",
@@ -6029,11 +6037,15 @@
     },
     "ScheduledEmulatorRestart": {
       "name": "Restart the emulator regularly",
-      "help": "Once enabled, the emulator will automatically restart at specified intervals to avoid memory leaks or lagging caused by long-term running. The restart will wait until the current task is completed before executing it."
+      "help": "Restart the emulator every so often to prevent it from getting slow or leaky after running for a long time.\nNote: By default, it waits for the current task to finish before restarting."
+    },
+    "ForceScheduledRestart": {
+      "name": "Restart on schedule (don't wait for task)",
+      "help": "When enabled, restarts the emulator right on schedule, without waiting for the current task to finish.\nBut if a sensitive task is currently running, it will still wait for it to finish.\nRequires 'Restart the emulator regularly' above to be on. Default off."
     },
     "RestartIntervalHours": {
-      "name": "Restart interval (hours)",
-      "help": "Automatically restart the emulator every few hours."
+      "name": "How often to restart (hours)",
+      "help": "How many hours between emulator restarts."
     }
   },
   "EmulatorManager": {

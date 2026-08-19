@@ -214,6 +214,22 @@ class LoginHandler(UI):
             return 3600.0
         return timeout
 
+    def _restart_operation_timeout_enabled(self):
+        """
+        检查是否启用了重启操作硬超时保护。
+
+        对应配置项 Alas.Error.RestartOperationTimeoutEnable，默认关闭。
+        关闭时 app_stop/app_start 不做硬超时检查，回退原有行为。
+
+        Returns:
+            bool: True 表示启用硬超时保护。
+        """
+        value = deep_get(
+            self.config.data, 'Alas.Error.RestartOperationTimeoutEnable',
+            default=False,
+        )
+        return bool(value)
+
     def _restart_operation_timeout(self):
         """
         获取 app_stop/app_start 操作的硬超时秒数。
@@ -346,29 +362,40 @@ class LoginHandler(UI):
         logger.hr('应用重启')
         is_restart_success = False
 
-        # 从配置读取硬超时（秒），配置非法时回退默认 120 秒
-        op_timeout = self._restart_operation_timeout()
-        logger.info(f'[重启] app_stop/app_start 硬超时 {op_timeout} 秒')
+        # 检查是否启用了重启操作硬超时保护
+        op_timeout_enabled = self._restart_operation_timeout_enabled()
+        if op_timeout_enabled:
+            op_timeout = self._restart_operation_timeout()
+            logger.info(f'[重启] app_stop/app_start 硬超时保护已启用，超时 {op_timeout} 秒')
+        else:
+            op_timeout = None
+            logger.info('[重启] app_stop/app_start 硬超时保护未启用，回退原有行为')
 
         clear_cache = getattr(self.config, 'Restart_ClearCache', False)
         for i in range(RESTART_TRIES):
             logger.info(f"[重启] 应用重启尝试 {i + 1}/{RESTART_TRIES}...")
-            # 用硬超时包装 app_stop/app_start，防止 atx-agent 异常时
-            # u2 HTTP 调用无限挂起导致 LoginWaitTimeout/GameStuckRestart
-            # 等保护机制（依赖 screenshot() 中的 stuck_record_check）失效
-            self._call_with_restart_deadline(
-                self.device.app_stop,
-                timeout=op_timeout,
-                operation_name='应用停止',
-            )
+            # 启用硬超时时，用 _call_with_restart_deadline 包装 app_stop/app_start，
+            # 防止 atx-agent 异常时 u2 HTTP 调用无限挂起导致
+            # LoginWaitTimeout/GameStuckRestart 等保护机制失效
+            if op_timeout_enabled:
+                self._call_with_restart_deadline(
+                    self.device.app_stop,
+                    timeout=op_timeout,
+                    operation_name='应用停止',
+                )
+            else:
+                self.device.app_stop()
             if clear_cache:
                 self.device.app_clear()
             self.device.sleep(3)
-            self._call_with_restart_deadline(
-                self.device.app_start,
-                timeout=op_timeout,
-                operation_name='应用启动',
-            )
+            if op_timeout_enabled:
+                self._call_with_restart_deadline(
+                    self.device.app_start,
+                    timeout=op_timeout,
+                    operation_name='应用启动',
+                )
+            else:
+                self.device.app_start()
             wait_seconds = RESTART_FIRST_TRY_WAIT_SECONDS if i == 0 else RESTART_SUBSEQUENT_TRY_WAIT_SECONDS
             logger.info(f"[重启] 等待 {wait_seconds} 秒让应用启动和稳定...")
             self.device.sleep(wait_seconds)

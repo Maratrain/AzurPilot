@@ -486,6 +486,14 @@
           10
         ]
       },
+      "WatchdogEnable": {
+        "type": "checkbox",
+        "value": false
+      },
+      "WatchdogTaskEnable": {
+        "type": "checkbox",
+        "value": false
+      },
       "WatchdogTaskTimeout": {
         "type": "input",
         "value": 120,
@@ -494,13 +502,9 @@
           99999
         ]
       },
-      "WatchdogLogTimeout": {
-        "type": "input",
-        "value": 300,
-        "validate": [
-          60,
-          1800
-        ]
+      "RestartOperationTimeoutEnable": {
+        "type": "checkbox",
+        "value": false
       },
       "RestartOperationTimeout": {
         "type": "input",
@@ -736,6 +740,10 @@
     },
     "EmulatorManagement": {
       "ScheduledEmulatorRestart": {
+        "type": "checkbox",
+        "value": false
+      },
+      "ForceScheduledRestart": {
         "type": "checkbox",
         "value": false
       },

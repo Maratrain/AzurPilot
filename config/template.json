@@ -101,8 +101,10 @@
       "GameStuckThreshold": 3,
       "AdbOfflineRestart": false,
       "AdbOfflineThreshold": 3,
+      "WatchdogEnable": false,
+      "WatchdogTaskEnable": false,
       "WatchdogTaskTimeout": 120,
-      "WatchdogLogTimeout": 300,
+      "RestartOperationTimeoutEnable": false,
       "RestartOperationTimeout": 120,
       "LlmAnalysis": true,
       "LlmApiKey": null,
@@ -140,6 +142,7 @@
     },
     "EmulatorManagement": {
       "ScheduledEmulatorRestart": false,
+      "ForceScheduledRestart": false,
       "RestartIntervalHours": 4
     },
     "Storage": {

@@ -743,13 +743,21 @@
       "name": "检测不到设备重启阈值",
       "help": "连续多少次触发重启喵。"
     },
+    "WatchdogEnable": {
+      "name": "Error.WatchdogEnable.name",
+      "help": "Error.WatchdogEnable.help"
+    },
+    "WatchdogTaskEnable": {
+      "name": "Error.WatchdogTaskEnable.name",
+      "help": "Error.WatchdogTaskEnable.help"
+    },
     "WatchdogTaskTimeout": {
       "name": "Error.WatchdogTaskTimeout.name",
       "help": "Error.WatchdogTaskTimeout.help"
     },
-    "WatchdogLogTimeout": {
-      "name": "Error.WatchdogLogTimeout.name",
-      "help": "Error.WatchdogLogTimeout.help"
+    "RestartOperationTimeoutEnable": {
+      "name": "Error.RestartOperationTimeoutEnable.name",
+      "help": "Error.RestartOperationTimeoutEnable.help"
     },
     "RestartOperationTimeout": {
       "name": "Error.RestartOperationTimeout.name",
@@ -6030,6 +6038,10 @@
     "ScheduledEmulatorRestart": {
       "name": "定时重启模拟器",
       "help": "每隔指定时间自动重启模拟器，防内存泄漏卡顿，等当前任务完成再重启喵。 (´・ω・`)"
+    },
+    "ForceScheduledRestart": {
+      "name": "EmulatorManagement.ForceScheduledRestart.name",
+      "help": "EmulatorManagement.ForceScheduledRestart.help"
     },
     "RestartIntervalHours": {
       "name": "重启间隔",
