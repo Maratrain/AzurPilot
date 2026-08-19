@@ -848,6 +848,14 @@
       "stay_there": "停在原地发呆",
       "goto_main": "回主界面喵",
       "close_game": "关闭游戏喵"
+    },
+    "WhenSchedulerStopped": {
+      "name": "停止调度器后",
+      "help": "在 WebUI 停止调度器后执行的操作喵~",
+      "stay_there": "停在原地发呆",
+      "goto_main": "回主界面喵",
+      "close_game": "关闭游戏喵",
+      "close_emulator": "关闭模拟器喵"
     }
   },
   "DropRecord": {

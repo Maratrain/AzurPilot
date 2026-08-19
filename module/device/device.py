@@ -18,6 +18,7 @@ from module.device.pkg_resources import get_distribution
 _ = get_distribution
 
 from module.base.timer import Timer
+from module.base.utils import limit_in
 from module.config.time_source import now as current_time
 from module.config.utils import get_server_next_update
 from module.device.app_control import AppControl
@@ -87,7 +88,15 @@ class Device(Screenshot, Control, AppControl, Input):
     _prev_fingerprint = None
     _stuck_image_timer = Timer(30, count=0)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, auto_start_emulator=True, initialize_runtime=True, **kwargs):
+        """
+        初始化设备连接。
+
+        Args:
+            auto_start_emulator: 连接不到设备时是否自动启动模拟器。
+            initialize_runtime: 是否执行常规运行时初始化，包括配置修正、
+                基准测试和控制预热。仅供受限的收尾操作关闭。
+        """
         # 初始化模拟器管理平台
         self._platform = None
 
@@ -96,6 +105,8 @@ class Device(Screenshot, Control, AppControl, Input):
                 super().__init__(*args, **kwargs)
                 break
             except EmulatorNotRunningError:
+                if not auto_start_emulator:
+                    raise
                 if trial >= 3:
                     logger.critical('[Device] 错误 3 次尝试后未能启动模拟器')
                     raise RequestHumanTakeover
@@ -115,33 +126,54 @@ class Device(Screenshot, Control, AppControl, Input):
             # 回退到配置值；如果是 'auto'，后续检测会更新它
             self.package = getattr(self.config, 'Emulator_PackageName', 'auto')
 
-        # 自动填充模拟器信息
-        if IS_WINDOWS and self.config.EmulatorInfo_Emulator == 'auto':
-            _ = self.emulator_instance
+        if initialize_runtime:
+            # 自动填充模拟器信息
+            if IS_WINDOWS and self.config.EmulatorInfo_Emulator == 'auto':
+                _ = self.emulator_instance
 
-        # Mac 上提升运行中模拟器的优先级
-        if IS_MACINTOSH:
-            try:
-                self.platform.boost_running_emulator_priority()
-            except Exception as e:
-                logger.warning(f'[设备-模拟器] 提升模拟器优先级失败: {e}')
+            # Mac 上提升运行中模拟器的优先级
+            if IS_MACINTOSH:
+                try:
+                    self.platform.boost_running_emulator_priority()
+                except Exception as e:
+                    logger.warning(f'[设备-模拟器] 提升模拟器优先级失败: {e}')
 
-        self.screenshot_interval_set()
-        self.method_check()
+            self.screenshot_interval_set()
+            self.method_check()
 
-        # 自动选择最快的截图方式
-        if not self.config.is_template_config and self.config.Emulator_ScreenshotMethod == 'auto':
-            self.run_simple_screenshot_benchmark()
-        # 自动选择 OCR 设备
-        if not self.config.is_template_config and self.config.Optimization_OcrDevice == 'auto':
-            self.run_simple_ocr_benchmark()
+            # 自动选择最快的截图方式
+            if not self.config.is_template_config and self.config.Emulator_ScreenshotMethod == 'auto':
+                self.run_simple_screenshot_benchmark()
+            # 自动选择 OCR 设备
+            if not self.config.is_template_config and self.config.Optimization_OcrDevice == 'auto':
+                self.run_simple_ocr_benchmark()
 
-        # 提前初始化控制方式
-        if self.config.is_actual_task:
-            if self.config.Emulator_ControlMethod == 'MaaTouch':
-                self.early_maatouch_init()
-            if self.config.Emulator_ControlMethod == 'minitouch':
-                self.early_minitouch_init()
+            # 提前初始化控制方式
+            if self.config.is_actual_task:
+                if self.config.Emulator_ControlMethod == 'MaaTouch':
+                    self.early_maatouch_init()
+                if self.config.Emulator_ControlMethod == 'minitouch':
+                    self.early_minitouch_init()
+        else:
+            self._set_screenshot_interval_readonly()
+
+    @classmethod
+    def for_existing_device(cls, config):
+        """连接已运行的设备，不启动模拟器或修改配置。
+
+        用于调度器停止后的短暂收尾操作。连接失败会直接抛出
+        ``EmulatorNotRunningError``，调用方应记录后结束，不得转为启动流程。
+        """
+        return cls(config=config, auto_start_emulator=False, initialize_runtime=False)
+
+    def _set_screenshot_interval_readonly(self):
+        """按现有配置设置截图间隔，但不修正或写回配置。"""
+        interval = self.config.Optimization_ScreenshotInterval
+        maximum = 0.2 if self.config.Emulator_ScreenshotMethod in ['nemu_ipc', 'ldopengl'] else 0.3
+        interval = limit_in(interval, 0.001, maximum)
+        if self.config.Emulator_ScreenshotMethod == 'scrcpy':
+            interval = 0.1
+        self._screenshot_interval.limit = interval
 
     @property
     def platform(self):

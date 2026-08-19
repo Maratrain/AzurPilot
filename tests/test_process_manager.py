@@ -246,7 +246,10 @@ class TestProcessManagerRegistry(unittest.TestCase):
         starter_manager = ProcessManager("alas")
         old_process = Mock()
         old_process.pid = 12345
-        old_process.is_alive.side_effect = [True, False]
+        # 保持本地句柄存活直到 taskkill 完成，再让最终活性检查确认退出。
+        # _is_process_alive() 每次会探测两次，_stop_local_process() 还会
+        # 进行 terminate/kill 两级检查，因此必须提供完整状态序列。
+        old_process.is_alive.side_effect = [True, True, True, True, True, True, False]
         manager._process = old_process
 
         stop_entered = threading.Event()
@@ -397,3 +400,80 @@ class TestProcessManagerRegistry(unittest.TestCase):
         kill.assert_not_called()
         process.join.assert_called_once_with(timeout=0)
         self.assertIsNone(manager._process)
+
+    def test_stop_by_user_runs_action_after_confirmed_worker_stop(self):
+        manager = ProcessManager.get_manager("alas")
+
+        with (
+            patch.object(manager, "_stop_worker_locked", return_value=(True, True)),
+            patch.object(manager, "_run_manual_stop_action_locked") as action,
+        ):
+            self.assertTrue(manager.stop_by_user())
+
+        action.assert_called_once_with()
+
+    def test_stop_by_user_skips_action_when_worker_stop_fails(self):
+        manager = ProcessManager.get_manager("alas")
+
+        with (
+            patch.object(manager, "_stop_worker_locked", return_value=(False, True)),
+            patch.object(manager, "_run_manual_stop_action_locked") as action,
+        ):
+            self.assertFalse(manager.stop_by_user())
+
+        action.assert_not_called()
+
+    def test_stop_by_user_skips_action_without_a_confirmed_worker(self):
+        manager = ProcessManager.get_manager("alas")
+
+        with (
+            patch.object(manager, "_stop_worker_locked", return_value=(True, False)),
+            patch.object(manager, "_run_manual_stop_action_locked") as action,
+        ):
+            self.assertTrue(manager.stop_by_user())
+
+        action.assert_not_called()
+
+    def test_generic_stop_does_not_run_manual_stop_action(self):
+        manager = ProcessManager.get_manager("alas")
+
+        with (
+            patch.object(manager, "_stop_worker_locked", return_value=(True, True)),
+            patch.object(manager, "_run_manual_stop_action_locked") as action,
+        ):
+            self.assertTrue(manager.stop())
+
+        action.assert_not_called()
+
+    def test_manual_stop_action_uses_isolated_process_with_timeout(self):
+        manager = ProcessManager.get_manager("alas")
+        process = Mock()
+        process.is_alive.return_value = False
+        process.exitcode = 0
+
+        with patch("module.webui.process_manager.Process", return_value=process) as cls:
+            manager._run_manual_stop_action_locked()
+
+        cls.assert_called_once_with(
+            target=ProcessManager.run_manual_stop_action,
+            args=("alas",),
+        )
+        process.start.assert_called_once_with()
+        process.join.assert_called_once_with(
+            timeout=ProcessManager.MANUAL_STOP_ACTION_TIMEOUT
+        )
+
+    def test_manual_stop_action_timeout_terminates_helper(self):
+        manager = ProcessManager.get_manager("alas")
+        process = Mock()
+        process.is_alive.return_value = True
+
+        with (
+            patch("module.webui.process_manager.Process", return_value=process),
+            patch.object(
+                ProcessManager, "_terminate_manual_stop_action"
+            ) as terminate,
+        ):
+            manager._run_manual_stop_action_locked()
+
+        terminate.assert_called_once_with(process)

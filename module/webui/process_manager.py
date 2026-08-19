@@ -55,6 +55,7 @@ class ProcessManager:
     _managers_lock = threading.RLock()
     _lifecycle_locks: Dict[str, threading.RLock] = {}
     _lifecycle_locks_lock = threading.Lock()
+    MANUAL_STOP_ACTION_TIMEOUT = 30
 
     def __init__(self, config_name: str = DEFAULT_CONFIG_NAME) -> None:
         self.config_name = config_name
@@ -174,71 +175,146 @@ class ProcessManager:
     def stop(self) -> bool:
         """停止 worker 进程树，并返回是否确认全部结束。"""
         with self._get_lifecycle_lock(self.config_name):
-            process = self._process
-            local_process_alive = self._is_process_alive(process)
-
-            if local_process_alive:
-                pid, record, pid_verified = self._registered_worker(process.pid)
-            else:
-                pid, record, pid_verified = self._registered_worker()
-
-            # _registered_worker 可能已通过 join(0) 回收僵尸句柄，
-            # 或 worker 在此期间自然退出。同步本地活性状态，
-            # 避免因过时的 local_process_alive 误判 stop 失败。
-            if local_process_alive and not self._is_process_alive(self._process):
-                local_process_alive = False
-
-            stopped = pid is None and not local_process_alive
-            if pid is not None and not pid_verified:
-                # _registered_worker 可能已通过 join(0) 回收了僵尸句柄；
-                # 若句柄已被清理说明 worker 已确认退出，视为成功停止。
-                if self._is_process_alive(self._process):
-                    logger.error(
-                        f"[{self.config_name}] worker PID {pid} 身份无法确认，拒绝终止未知进程"
-                    )
-                    stopped = False
-                else:
-                    logger.info(
-                        f"[{self.config_name}] worker PID {pid} 本地句柄已回收，确认已退出"
-                    )
-                    stopped = True
-            elif pid is not None:
-                if local_process_alive and process is not None:
-                    # 优先使用本地 Process 句柄的 terminate/kill，
-                    # 比 taskkill 更可靠。
-                    stopped = ProcessManager._stop_local_process(process)
-                    if not stopped:
-                        # 本地句柄失败时回退到 taskkill 终止进程树
-                        stopped = self._kill_registered_process_tree(pid, record)
-                        if stopped:
-                            process.join(timeout=3)
-                            stopped = not self._is_process_alive(process)
-                else:
-                    stopped = self._kill_registered_process_tree(pid, record)
-                    if stopped and process is not None:
-                        process.join(timeout=3)
-                        stopped = not self._is_process_alive(process)
-            if stopped:
-                self._process = None
-                stopped = self._unregister_process()
-                if stopped and pid is not None:
-                    self.renderables.append(
-                        Text(f"[{self.config_name}] 已退出。原因：手动停止\n")
-                    )
-            if not stopped:
-                logger.error(f"[{self.config_name}] 停止工作进程失败 PID {pid}")
-            log_queue_handler = self.thd_log_queue_handler
-            if log_queue_handler is not None:
-                log_queue_handler.join(timeout=1)
-                if log_queue_handler.is_alive():
-                    logger.warning(
-                        "[WebUI-进程管理] 日志队列处理线程未在 1 秒内停止"
-                    )
+            stopped, _ = self._stop_worker_locked()
         if stopped:
             logger.info(f"[{self.config_name}] 已退出")
         else:
             logger.warning(f"[{self.config_name}] worker 未完全停止")
         return stopped
+
+    def stop_by_user(self) -> bool:
+        """停止 worker 后执行用户配置的收尾动作。
+
+        该入口仅供 WebUI 的停止按钮使用。更新、WebUI 清理和 MCP 仍调用
+        ``stop()``，从而避免非用户停止意外关闭游戏或模拟器。
+        """
+        with self._get_lifecycle_lock(self.config_name):
+            stopped, should_run_action = self._stop_worker_locked()
+            if stopped and should_run_action:
+                self._run_manual_stop_action_locked()
+
+        if stopped:
+            logger.info(f"[{self.config_name}] 已退出")
+        else:
+            logger.warning(f"[{self.config_name}] worker 未完全停止")
+        return stopped
+
+    def _stop_worker_locked(self) -> tuple[bool, bool]:
+        """在实例生命周期锁内终止 worker，并返回是否可执行收尾动作。"""
+        process = self._process
+        local_process_alive = self._is_process_alive(process)
+
+        if local_process_alive:
+            pid, record, pid_verified = self._registered_worker(process.pid)
+        else:
+            pid, record, pid_verified = self._registered_worker()
+
+        # 只有验证过的登记 worker 或当前存活的本地句柄才允许触发后续动作，
+        # 避免清理失效登记时关闭了无关实例的游戏或模拟器。
+        should_run_action = (pid is not None and pid_verified) or local_process_alive
+
+        # _registered_worker 可能已通过 join(0) 回收僵尸句柄，
+        # 或 worker 在此期间自然退出。同步本地活性状态，
+        # 避免因过时的 local_process_alive 误判 stop 失败。
+        if local_process_alive and not self._is_process_alive(self._process):
+            local_process_alive = False
+
+        stopped = pid is None and not local_process_alive
+        if pid is not None and not pid_verified:
+            # _registered_worker 可能已通过 join(0) 回收了僵尸句柄；
+            # 若句柄已被清理说明 worker 已确认退出，视为成功停止。
+            if self._is_process_alive(self._process):
+                logger.error(
+                    f"[{self.config_name}] worker PID {pid} 身份无法确认，拒绝终止未知进程"
+                )
+                stopped = False
+            else:
+                logger.info(
+                    f"[{self.config_name}] worker PID {pid} 本地句柄已回收，确认已退出"
+                )
+                stopped = True
+        elif pid is not None:
+            if local_process_alive and process is not None:
+                # 优先使用本地 Process 句柄的 terminate/kill，
+                # 比 taskkill 更可靠。
+                stopped = ProcessManager._stop_local_process(process)
+                if not stopped:
+                    # 本地句柄失败时回退到 taskkill 终止进程树
+                    stopped = self._kill_registered_process_tree(pid, record)
+                    if stopped:
+                        process.join(timeout=3)
+                        stopped = not self._is_process_alive(process)
+            else:
+                stopped = self._kill_registered_process_tree(pid, record)
+                if stopped and process is not None:
+                    process.join(timeout=3)
+                    stopped = not self._is_process_alive(process)
+        if stopped:
+            self._process = None
+            stopped = self._unregister_process()
+            if stopped and pid is not None:
+                self.renderables.append(
+                    Text(f"[{self.config_name}] exited. Reason: Manual stop\n")
+                )
+        if not stopped:
+            logger.error(f"[{self.config_name}] 停止工作进程失败 PID {pid}")
+        log_queue_handler = self.thd_log_queue_handler
+        if log_queue_handler is not None:
+            log_queue_handler.join(timeout=1)
+            if log_queue_handler.is_alive():
+                logger.warning(
+                    "[WebUI-进程管理] 日志队列处理线程未在 1 秒内停止"
+                )
+
+        return stopped, should_run_action
+
+    def _run_manual_stop_action_locked(self) -> None:
+        """在 worker 退出后运行独立收尾进程，并限制其最长运行时间。"""
+        process = Process(
+            target=ProcessManager.run_manual_stop_action,
+            args=(self.config_name,),
+        )
+        try:
+            process.start()
+        except Exception:
+            logger.exception(f"[{self.config_name}] 启动停止收尾进程失败")
+            return
+
+        process.join(timeout=self.MANUAL_STOP_ACTION_TIMEOUT)
+        try:
+            alive = process.is_alive()
+        except (OSError, ValueError, AssertionError):
+            alive = False
+        if alive:
+            logger.warning(
+                f"[{self.config_name}] 停止收尾动作超过 "
+                f"{self.MANUAL_STOP_ACTION_TIMEOUT} 秒，正在终止"
+            )
+            self._terminate_manual_stop_action(process)
+            return
+
+        exitcode = getattr(process, "exitcode", None)
+        if exitcode not in (None, 0):
+            logger.warning(f"[{self.config_name}] 停止收尾进程异常退出: {exitcode}")
+
+    @staticmethod
+    def _terminate_manual_stop_action(process: Process) -> None:
+        """终止超时的收尾进程，避免停止按钮无限阻塞。"""
+        try:
+            process.terminate()
+            process.join(timeout=1)
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=1)
+        except (OSError, ValueError, AssertionError):
+            logger.warning("[WebUI-进程管理] 终止停止收尾进程失败")
+
+    @staticmethod
+    def run_manual_stop_action(config_name: str) -> None:
+        """独立进程入口，延迟导入以避免 WebUI 父进程加载设备依赖。"""
+        from module.webui.scheduler_stop import run_stop_action
+
+        run_stop_action(config_name)
 
     @staticmethod
     def _is_process_alive(process: Process | None) -> bool:

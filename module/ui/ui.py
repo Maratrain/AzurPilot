@@ -186,12 +186,13 @@ class UI(InfoHandler):
         else:
             return self.appear(check_button, offset=offset)
 
-    def ui_get_current_page(self, skip_first_screenshot=True):
+    def ui_get_current_page(self, skip_first_screenshot=True, recover_unknown=True):
         """
         获取当前所在的 UI 页面。
 
         Args:
             skip_first_screenshot: 是否跳过首次截图。
+            recover_unknown: 未知页面时是否通过登录处理器重启游戏。
 
         Returns:
             Page: 当前页面对象。
@@ -254,6 +255,10 @@ class UI(InfoHandler):
                 self.device.get_orientation()
                 orientation_timer.reset()
 
+        if not recover_unknown:
+            logger.warning('[UI] 未知页面，已禁止自动重启游戏')
+            raise GamePageUnknownError('[UI] 无法识别当前页面')
+
         # 未知页面，需要手动切换
         logger.warning("[UI] 未知UI页面")
         logger.attr("模拟器截图方式", self.config.Emulator_ScreenshotMethod)
@@ -278,7 +283,8 @@ class UI(InfoHandler):
         login_handler.handle_app_login()
         return self.ui_get_current_page(skip_first_screenshot=True)
 
-    def ui_goto(self, destination, get_ship=True, offset=(30, 30), skip_first_screenshot=True):
+    def ui_goto(self, destination, get_ship=True, offset=(30, 30), skip_first_screenshot=True,
+                recover_unknown=True):
         """
         导航到目标页面，使用 A* 寻路算法找到最短路径。
 
@@ -287,6 +293,7 @@ class UI(InfoHandler):
             get_ship: 是否处理获得舰船的弹窗。
             offset: 匹配偏移量。
             skip_first_screenshot: 是否跳过首次截图。
+            recover_unknown: 导航超时时，未知页面是否允许重启游戏恢复。
         """
         # 初始化页面连接
         Page.init_connection(destination)
@@ -337,7 +344,10 @@ class UI(InfoHandler):
             if nav_timeout.reached():
                 logger.warning(f'[UI] 导航到 {destination} 超时，尝试检测当前页面并恢复')
                 Page.clear_connection()
-                current = self.ui_get_current_page(skip_first_screenshot=True)
+                current = self.ui_get_current_page(
+                    skip_first_screenshot=True,
+                    recover_unknown=recover_unknown,
+                )
                 if current == destination:
                     logger.info(f'[UI] 到达页面: {destination}')
                     return
@@ -353,19 +363,23 @@ class UI(InfoHandler):
         # 重置页面连接
         Page.clear_connection()
 
-    def ui_ensure(self, destination, skip_first_screenshot=True):
+    def ui_ensure(self, destination, skip_first_screenshot=True, recover_unknown=True):
         """
         确保当前在目标页面，若不在则导航过去。
 
         Args:
             destination (Page): 目标页面。
             skip_first_screenshot: 是否跳过首次截图。
+            recover_unknown: 未知页面时是否允许重启游戏恢复。
 
         Returns:
             bool: 是否发生了页面切换。
         """
         logger.hr("UI 确保页面")
-        self.ui_get_current_page(skip_first_screenshot=skip_first_screenshot)
+        self.ui_get_current_page(
+            skip_first_screenshot=skip_first_screenshot,
+            recover_unknown=recover_unknown,
+        )
         if self.ui_current == destination:
             logger.info("[UI] 已在 %s" % destination)
             return False
@@ -375,11 +389,22 @@ class UI(InfoHandler):
             return False
         else:
             logger.info("[UI] 导航到 %s" % destination)
-            self.ui_goto(destination, skip_first_screenshot=True)
+            self.ui_goto(
+                destination,
+                skip_first_screenshot=True,
+                recover_unknown=recover_unknown,
+            )
             return True
 
-    def ui_goto_main(self):
-        return self.ui_ensure(destination=page_main)
+    def ui_goto_main(self, recover_unknown=True):
+        """导航到主页面。
+
+        Args:
+            recover_unknown: 未知页面时是否允许重启游戏恢复。
+
+        Pages: in: any, out: page_main
+        """
+        return self.ui_ensure(destination=page_main, recover_unknown=recover_unknown)
 
     def ui_goto_campaign(self):
         return self.ui_ensure(destination=page_campaign)

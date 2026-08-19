@@ -848,6 +848,14 @@
       "stay_there": "停在原处",
       "goto_main": "前往主界面",
       "close_game": "关闭游戏"
+    },
+    "WhenSchedulerStopped": {
+      "name": "停止调度器后",
+      "help": "在 WebUI 中停止调度器后执行的操作",
+      "stay_there": "停在原处",
+      "goto_main": "前往主界面",
+      "close_game": "关闭游戏",
+      "close_emulator": "关闭模拟器"
     }
   },
   "DropRecord": {

@@ -606,6 +606,16 @@
           "goto_main",
           "close_game"
         ]
+      },
+      "WhenSchedulerStopped": {
+        "type": "select",
+        "value": "stay_there",
+        "option": [
+          "stay_there",
+          "goto_main",
+          "close_game",
+          "close_emulator"
+        ]
       }
     },
     "DropRecord": {

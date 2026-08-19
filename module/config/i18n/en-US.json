@@ -848,6 +848,14 @@
       "stay_there": "Stay in Place",
       "goto_main": "Go to Main Menu",
       "close_game": "Close Game"
+    },
+    "WhenSchedulerStopped": {
+      "name": "After Stopping Scheduler",
+      "help": "Action to perform after stopping the scheduler from the WebUI",
+      "stay_there": "Stay in Place",
+      "goto_main": "Go to Main Menu",
+      "close_game": "Close Game",
+      "close_emulator": "Close Emulator"
     }
   },
   "DropRecord": {

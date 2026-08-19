@@ -235,6 +235,9 @@ Optimization:
   WhenTaskQueueEmpty:
     value: goto_main
     option: [stay_there, goto_main, close_game]
+  WhenSchedulerStopped:
+    value: stay_there
+    option: [stay_there, goto_main, close_game, close_emulator]
 DropRecord:
   SaveFolder: ./screenshots
   AzurStatsID: null

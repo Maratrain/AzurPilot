@@ -848,6 +848,14 @@
       "stay_there": "その場で待機",
       "goto_main": "メイン画面に移動",
       "close_game": "ゲームを閉じる"
+    },
+    "WhenSchedulerStopped": {
+      "name": "スケジューラー停止後",
+      "help": "WebUI からスケジューラーを停止した後に実行する操作",
+      "stay_there": "その場で待機",
+      "goto_main": "メイン画面に移動",
+      "close_game": "ゲームを閉じる",
+      "close_emulator": "エミュレーターを閉じる"
     }
   },
   "DropRecord": {
