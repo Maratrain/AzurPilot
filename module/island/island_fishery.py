@@ -291,8 +291,7 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
         selection = item_config['selection']
         selection_check = item_config['selection_check']
         tab_check, tab_button = self._fishery_tab_buttons(item_config['tab'])
-        while 1:
-            self.device.screenshot()
+        for _ in self.loop(timeout=120, skip_first=False):
             if self.appear_then_click(ISLAND_POST_SELECT, offset=1):
                 self.device.sleep(0.5)
                 continue
@@ -324,6 +323,10 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
                     break
                 else:
                     return self._handle_select_product_failure(product)
+        else:
+            logger.warning(f"[岛屿-渔场] {self._item_cn(product)}养殖派遣超时")
+            self.back_to_postmanage_from_dispatch()
+            return False
 
         self.post_open(post_button)
         self.device.sleep(0.5)

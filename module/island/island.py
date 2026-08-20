@@ -953,7 +953,9 @@ class Island(SelectCharacter):
             logger.info(f"[岛屿] 购买 {self._item_cn(item_name)} x{quantity}")
 
         for _ in self.loop(timeout=10, skip_first=False):
-            if self.appear(ISLAND_SHOPPING_CHECK):
+            # 使用模板检测（offset=(1,1)）判断购买弹窗是否打开，
+            # 不能退化为颜色检测，避免商店 3D 背景像素恰好匹配导致误判
+            if self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1)):
                 break
             if self.appear_then_click(item_button, interval=1.2):
                 continue
@@ -961,19 +963,19 @@ class Island(SelectCharacter):
             logger.warning(f"[岛屿] 打开购买弹窗超时: {item_name or item_button}")
             return False
 
-        if self.appear(ISLAND_SHOPPING_CHECK):
+        if self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1)):
             self.set_buy_number(quantity)
 
         for _ in self.loop(timeout=15, skip_first=False):
             shop_visible = self.appear(shop_check, offset=1)
-            shopping_shown = self.appear(ISLAND_SHOPPING_CHECK)
+            shopping_shown = self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1))
             if shop_visible and not shopping_shown:
                 break
             if self.appear_then_click(ISLAND_SHOP_CONFIRM, interval=1):
                 # 点击确认后立即复检：弹窗或确认按钮消失都视为购买完成，退出避免重复点击
                 self.device.sleep(0.5)
                 self.device.screenshot()
-                if not self.appear(ISLAND_SHOP_CONFIRM) or not self.appear(ISLAND_SHOPPING_CHECK):
+                if not self.appear(ISLAND_SHOP_CONFIRM) or not self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1)):
                     break
                 continue
             if self.appear(ISLAND_SHOP_GET):

@@ -95,7 +95,7 @@ class IslandRancher(Island, WarehouseOCR, LoginHandler):
 
         logger.info(f"[岛屿-牧场] 加工 {self._item_cn(mill_item)} x{target}")
         for _ in self.loop(timeout=10, skip_first=False):
-            if self.appear(ISLAND_SHOPPING_CHECK):
+            if self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1)):
                 break
             if self.appear_then_click(mill_button, interval=0.3):
                 continue
@@ -103,7 +103,7 @@ class IslandRancher(Island, WarehouseOCR, LoginHandler):
             logger.warning(f"[岛屿-牧场] 打开磨坊加工弹窗超时: {self._item_cn(mill_item)}")
             return False
 
-        if self.appear(ISLAND_SHOPPING_CHECK):
+        if self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1)):
             self.set_buy_number(target)
 
         for _ in self.loop(timeout=15, skip_first=False):
