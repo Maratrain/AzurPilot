@@ -49,6 +49,8 @@ from module.webui.worker_registry import (
     unregister_worker,
 )
 
+_STOP_ACTION_UNSET = object()
+
 
 class ProcessManager:
     _processes: Dict[str, "ProcessManager"] = {}
@@ -182,12 +184,22 @@ class ProcessManager:
             logger.warning(f"[{self.config_name}] worker 未完全停止")
         return stopped
 
-    def stop_by_user(self) -> bool:
+    def stop_by_user(self, action: object = _STOP_ACTION_UNSET) -> bool:
         """停止 worker 后执行用户配置的收尾动作。
 
         该入口仅供 WebUI 的停止按钮使用。更新、WebUI 清理和 MCP 仍调用
         ``stop()``，从而避免非用户停止意外关闭游戏或模拟器。
+
+        ``stay_there`` 直接复用最初的强制停止路径，不启动收尾进程，确保
+        停止行为和响应速度与未引入停止后动作前完全一致。未传入动作时保留
+        旧调用行为，由独立收尾进程重新读取配置。
         """
+        if action is not _STOP_ACTION_UNSET:
+            from module.webui.scheduler_stop import normalize_stop_action
+
+            if normalize_stop_action(action) == "stay_there":
+                return self.stop()
+
         with self._get_lifecycle_lock(self.config_name):
             stopped, should_run_action = self._stop_worker_locked()
             if stopped and should_run_action:

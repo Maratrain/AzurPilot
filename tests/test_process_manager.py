@@ -401,7 +401,32 @@ class TestProcessManagerRegistry(unittest.TestCase):
         process.join.assert_called_once_with(timeout=0)
         self.assertIsNone(manager._process)
 
+    def test_stop_by_user_stay_there_uses_original_stop_path(self):
+        manager = ProcessManager.get_manager("alas")
+
+        with (
+            patch.object(manager, "stop", return_value=True) as stop,
+            patch.object(manager, "_stop_worker_locked") as stop_worker,
+            patch.object(manager, "_run_manual_stop_action_locked") as action,
+        ):
+            self.assertTrue(manager.stop_by_user("stay_there"))
+
+        stop.assert_called_once_with()
+        stop_worker.assert_not_called()
+        action.assert_not_called()
+
     def test_stop_by_user_runs_action_after_confirmed_worker_stop(self):
+        manager = ProcessManager.get_manager("alas")
+
+        with (
+            patch.object(manager, "_stop_worker_locked", return_value=(True, True)),
+            patch.object(manager, "_run_manual_stop_action_locked") as action,
+        ):
+            self.assertTrue(manager.stop_by_user("goto_main"))
+
+        action.assert_called_once_with()
+
+    def test_stop_by_user_without_action_keeps_legacy_config_resolution(self):
         manager = ProcessManager.get_manager("alas")
 
         with (
@@ -419,7 +444,7 @@ class TestProcessManagerRegistry(unittest.TestCase):
             patch.object(manager, "_stop_worker_locked", return_value=(False, True)),
             patch.object(manager, "_run_manual_stop_action_locked") as action,
         ):
-            self.assertFalse(manager.stop_by_user())
+            self.assertFalse(manager.stop_by_user("close_game"))
 
         action.assert_not_called()
 
@@ -430,7 +455,7 @@ class TestProcessManagerRegistry(unittest.TestCase):
             patch.object(manager, "_stop_worker_locked", return_value=(True, False)),
             patch.object(manager, "_run_manual_stop_action_locked") as action,
         ):
-            self.assertTrue(manager.stop_by_user())
+            self.assertTrue(manager.stop_by_user("close_emulator"))
 
         action.assert_not_called()
 
