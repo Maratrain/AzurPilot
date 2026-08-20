@@ -24,7 +24,8 @@
     min-height: 44px;
 }
 
-#pywebio-scope-content {
+#pywebio-scope-content,
+#pywebio-scope-statistics-content {
     padding: .25rem;
     margin: 0
 }

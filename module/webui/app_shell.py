@@ -8,6 +8,7 @@ from module.webui.app_dependencies import (
     alas_instance,
     clear,
     current_time,
+    datetime,
     filepath_args,
     put_buttons,
     put_html,
@@ -28,6 +29,29 @@ from module.webui.app_dependencies import (
 
 
 from module.webui.app_types import WebUIMixinBase
+
+
+VALID_WEBUI_THEMES = {
+    "default",
+    "dark",
+    "light",
+    "advanced_material",
+    "dark_advanced_material",
+}
+
+
+def normalize_webui_theme(theme: str) -> str:
+    """归一化历史主题名称，并为未知值回退到默认主题。"""
+    if theme == "apple":
+        return "advanced_material"
+    if theme not in VALID_WEBUI_THEMES:
+        return "default"
+    return theme
+
+
+def pywebio_theme_for(theme: str) -> str:
+    """返回与 AzurPilot 主题匹配的 PyWebIO Bootstrap 主题。"""
+    return "dark" if normalize_webui_theme(theme) == "dark" else "default"
 
 
 def _reload_theme_css(theme: str) -> None:
@@ -118,6 +142,9 @@ class AppShellMixin(WebUIMixinBase):
         self._simulator_logger_pm = None
         self._overview_log = None
         self._overview_log_config_name = None
+        self._statistics_cache_key = None
+        self._statistics_source_signature = None
+        self._statistics_refresh_pending = False
 
     @property
     def simulator(self):
@@ -217,7 +244,8 @@ class AppShellMixin(WebUIMixinBase):
     def set_aside(self) -> None:
         # TODO: 更新 put_icon_buttons()
 
-        current_date = current_time().date()
+        # 愚人节装饰只需要本机日历，不应在首屏请求线程同步等待 NTP。
+        current_date = datetime.now().date()
         if current_date.month == 4 and current_date.day == 1:
             self.af_flag = True
 
@@ -360,25 +388,12 @@ class AppShellMixin(WebUIMixinBase):
 
     @classmethod
     def set_theme(cls, theme="default") -> None:
-        if theme == "apple":
-            theme = "advanced_material"
-
-        if theme not in (
-            "default",
-            "dark",
-            "light",
-            "advanced_material",
-            "dark_advanced_material",
-        ):
-            theme = "default"
-
+        theme = normalize_webui_theme(theme)
         cls.theme = theme
         State.deploy_config.Theme = theme
         State.theme = theme
 
-        # PyWebIO 仅提供 dark/default 等主题，没有 light.min.css，
-        # 因此 light 统一回退到 default（default.min.css 即亮色主题）。
-        pywebio_theme = "dark" if theme == "dark" else "default"
+        pywebio_theme = pywebio_theme_for(theme)
 
         webconfig(theme=pywebio_theme)
 

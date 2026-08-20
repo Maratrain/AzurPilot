@@ -364,23 +364,8 @@ class HomeMixin(WebUIMixinBase):
         # setup gui
         set_env(title="AzurPilot", output_animation=False)
         load_webui_styles(theme=self.theme, is_mobile=self.is_mobile)
-        # 通过 JS 直接设置根元素 CSS 变量，确保所有页面生效
-        if self.wallpaper_url:
-            run_js(
-                f"""
-                document.documentElement.style.setProperty(
-                    '--alas-apple-bg-image',
-                    'url(' + {json.dumps(self.wallpaper_url)} + ')'
-                );
-                """
-            )
-        if localstorage is None:
-            localstorage = get_localstorage_values(("clarity_notice_shown", "aside"))
-        aside = localstorage.get("aside")
-        self._stored_aside = aside
-        show_clarity_notice = localstorage.get("clarity_notice_shown") != "1"
 
-        # OOBE 初次设置向导：无用户配置时引导完成基本设置
+        # OOBE 不依赖浏览器偏好，直接绘制，避免一次无意义的 WebSocket 往返。
         if is_oobe_needed():
             from module.webui.oobe import OOBEWizard
 
@@ -388,7 +373,14 @@ class HomeMixin(WebUIMixinBase):
             self._load_deferred_client_assets()
             return
 
+        # 先发送页面骨架，再读取恢复页面所需的 localStorage。即使浏览器端
+        # RPC 较慢，用户也能立即看到真实外壳，且该读取不再阻塞首条内容。
         self.mount_shell()
+        if localstorage is None:
+            localstorage = get_localstorage_values(("clarity_notice_shown", "aside"))
+        aside = localstorage.get("aside")
+        self._stored_aside = aside
+        show_clarity_notice = localstorage.get("clarity_notice_shown") != "1"
         restore_instance = initial_page == "home" and aside in alas_instance()
         if initial_page == "manage":
             self.ui_manage()

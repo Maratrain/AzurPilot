@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from urllib.parse import urljoin
 
+from pywebio import config
 from starlette.testclient import TestClient
 
 from module.webui.app import (
@@ -10,7 +11,12 @@ from module.webui.app import (
     _initial_loading_css,
     _initial_style_names,
 )
-from module.webui.fastapi import asgi_app
+from module.webui.app_shell import normalize_webui_theme, pywebio_theme_for
+from module.webui.fastapi import (
+    INITIAL_LOADING_STYLE_MARKER,
+    VERSIONED_STATIC_ASSET_CACHE_CONTROL,
+    asgi_app,
+)
 from module.webui.utils import Icon
 
 
@@ -57,6 +63,15 @@ class TestWebUIStaticAssets(unittest.TestCase):
         self.assertEqual(self.client.get("/static/config/deploy.yaml").status_code, 404)
         self.assertEqual(self.client.get("/static/.git/HEAD").status_code, 404)
 
+    def test_versioned_static_assets_are_cached_immutably(self):
+        response = self.client.get("/static/assets/gui/css/test.css?v=content-hash")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["cache-control"],
+            VERSIONED_STATIC_ASSET_CACHE_CONTROL,
+        )
+
     def test_relative_css_url_preserves_reverse_proxy_prefix(self):
         css_url = urljoin(
             "https://example.test/azur/", "static/assets/gui/css/alas.css"
@@ -100,10 +115,47 @@ class TestWebUIStaticAssets(unittest.TestCase):
     def test_initial_shell_uses_inline_loading_fallback(self):
         loading_css = _initial_loading_css("default")
 
-        self.assertIn("#pywebio-scope-ROOT:empty", loading_css)
+        self.assertIn(INITIAL_LOADING_STYLE_MARKER, loading_css)
+        self.assertIn("#pywebio-scope-ROOT:empty::before", loading_css)
+        self.assertNotIn("#pywebio-scope-ROOT > *", loading_css)
+        self.assertNotIn("visibility: hidden", loading_css)
         self.assertIn("alas-initial-ready", loading_css)
         self.assertIn("MutationObserver", INITIAL_LOADING_JS)
         self.assertIn("input-cards", INITIAL_LOADING_JS)
+        self.assertNotIn("stylesSettled", INITIAL_LOADING_JS)
+        self.assertNotIn("alas-initial-style-settled", INITIAL_LOADING_JS)
+
+    def test_initial_shell_paints_before_external_stylesheets(self):
+        @config(
+            css_file="static/assets/gui/css/test.css?v=content-hash",
+            css_style=_initial_loading_css("default"),
+            js_code=INITIAL_LOADING_JS,
+        )
+        def index():
+            return None
+
+        response = TestClient(asgi_app([index], cdn=False)).get("/")
+        html = response.text
+        stylesheet_tags = [
+            part.split(">", 1)[0]
+            for part in html.split('<link rel="stylesheet"')[1:]
+        ]
+
+        self.assertLess(
+            html.index(INITIAL_LOADING_STYLE_MARKER),
+            html.index('<link rel="stylesheet"'),
+        )
+        self.assertGreater(len(stylesheet_tags), 1)
+        self.assertTrue(
+            all('media="print"' in tag for tag in stylesheet_tags)
+        )
+        self.assertTrue(
+            all('onload=\'this.media="all"' in tag for tag in stylesheet_tags)
+        )
+        self.assertNotIn("data-alas-initial-style", html)
+        self.assertNotIn("alas-initial-style-settled", html)
+        self.assertIn("pywebio_static/css/markdown.min.css?v=", html)
+        self.assertIn("pywebio_static/js/jquery.min.js?v=", html)
 
     def test_initial_styles_are_loaded_before_websocket_output(self):
         self.assertEqual(
@@ -119,6 +171,12 @@ class TestWebUIStaticAssets(unittest.TestCase):
             ),
             _initial_style_names("dark_advanced_material"),
         )
+
+    def test_theme_is_normalized_before_initial_html_rendering(self):
+        self.assertEqual("advanced_material", normalize_webui_theme("apple"))
+        self.assertEqual("default", normalize_webui_theme("unknown"))
+        self.assertEqual("dark", pywebio_theme_for("dark"))
+        self.assertEqual("default", pywebio_theme_for("dark_advanced_material"))
 
     def test_header_icon_is_a_static_resource(self):
         self.assertIn("static/assets/spa/spa-icon-192x192.png", Icon.ALAS)

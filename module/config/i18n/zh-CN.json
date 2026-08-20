@@ -6519,6 +6519,7 @@
       "LoadApDataFailed": "加载体力数据失败: {e}",
       "NoApData": "暂无体力变化数据，运行侵蚀1任务后将自动记录",
       "Refresh": "刷新",
+      "NewDataAvailable": "有新的统计数据，点击刷新",
       "NoValidApData": "暂无有效体力数据",
       "ViewTitleLine": "分时曲线 (详细波动)",
       "ViewTitleDay": "天视图 ({day} 小时K线)",

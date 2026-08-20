@@ -89,15 +89,32 @@ class Frame(Base):
             name: 需要高亮的按钮名称（标签）。
         """
         self.visible = True
-        self.page = name
         self.task_handler.remove_pending_task()
         with self._page_lock:
-            self.cleanup_client_resources("__apChartCleanups", "__resourceChartCleanups")
+            self.page = name
             clear("content")
+        self.set_statistics_content_visible(name == "Stat")
         if collapse_menu:
             self.collapse_menu()
         if name:
             self.active_button("menu", name)
+
+    @staticmethod
+    def set_statistics_content_visible(visible: bool) -> None:
+        """在普通内容区与可复用的统计内容区之间切换。"""
+        run_js(
+            """
+            (function () {
+                var content = document.getElementById("pywebio-scope-content");
+                var statistics = document.getElementById(
+                    "pywebio-scope-statistics-content"
+                );
+                if (content) content.style.display = visible ? "none" : "";
+                if (statistics) statistics.style.display = visible ? "" : "none";
+            })();
+            """,
+            visible=visible,
+        )
 
     @staticmethod
     @use_scope("ROOT", clear=True)
@@ -117,6 +134,7 @@ class Frame(Base):
                 put_scope("aside"),
                 put_scope("menu"),
                 put_scope("content"),
+                put_scope("statistics-content").style("display: none;"),
             ],
         )
 
@@ -128,7 +146,7 @@ class Frame(Base):
     @staticmethod
     def collapse_menu() -> None:
         run_js(
-            f"""
+            """
             $("#pywebio-scope-menu").addClass("container-menu-collapsed");
             $(".container-content-collapsed").removeClass("container-content-collapsed");
         """
@@ -137,9 +155,10 @@ class Frame(Base):
     @staticmethod
     def expand_menu() -> None:
         run_js(
-            f"""
+            """
             $(".container-menu-collapsed").removeClass("container-menu-collapsed");
-            $("#pywebio-scope-content").addClass("container-content-collapsed");
+            $("#pywebio-scope-content, #pywebio-scope-statistics-content")
+                .addClass("container-content-collapsed");
         """
         )
 

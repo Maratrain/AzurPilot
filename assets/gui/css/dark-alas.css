@@ -210,7 +210,8 @@ pre.rich-traceback-code {
     background-color: #1e1e1e;
 }
 
-#pywebio-scope-content {
+#pywebio-scope-content,
+#pywebio-scope-statistics-content {
     background-color: #36393f;
 }
 

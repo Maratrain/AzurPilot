@@ -14,6 +14,8 @@ from pywebio.session.threadbased import ThreadBasedSession
 from rich.text import Text
 from starlette.websockets import WebSocketState
 
+from module.webui.app_home import HomeMixin
+from module.webui.app_shell import AppShellMixin
 from module.webui.app_task_config import TaskConfigMixin
 from module.webui.fastapi import (
     SafeWebSocketConnection,
@@ -187,6 +189,55 @@ class TestRichLogRendering(unittest.TestCase):
         log = RichLog("log")
 
         self.assertEqual("", log.render_many([]))
+
+
+class TestInitialRendering(unittest.TestCase):
+    def test_shell_is_sent_before_localstorage_roundtrip(self):
+        events = []
+
+        class StopAfterLocalStorage(Exception):
+            pass
+
+        def read_localstorage(keys):
+            events.append(("localstorage", keys))
+            raise StopAfterLocalStorage
+
+        gui = SimpleNamespace(
+            theme="default",
+            is_mobile=False,
+            mount_shell=lambda: events.append("shell"),
+        )
+        with (
+            patch("module.webui.app_home.set_env"),
+            patch("module.webui.app_home.load_webui_styles"),
+            patch("module.webui.app_home.is_oobe_needed", return_value=False),
+            patch(
+                "module.webui.app_home.get_localstorage_values",
+                side_effect=read_localstorage,
+            ),
+            self.assertRaises(StopAfterLocalStorage),
+        ):
+            HomeMixin.run(gui)
+
+        self.assertEqual(
+            ["shell", ("localstorage", ("clarity_notice_shown", "aside"))],
+            events,
+        )
+
+    def test_aside_date_does_not_trigger_network_time_refresh(self):
+        gui = SimpleNamespace(
+            af_flag=False,
+            refresh_aside_labels=lambda: None,
+            refresh_aside_instances=lambda force=False: None,
+        )
+        with (
+            patch("module.webui.app_shell.put_scope"),
+            patch(
+                "module.webui.app_shell.current_time",
+                side_effect=AssertionError("首屏不应读取网络时间"),
+            ),
+        ):
+            AppShellMixin.set_aside.__wrapped__(gui)
 
 
 class TestTaskConfigRendering(unittest.TestCase):

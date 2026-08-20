@@ -6519,6 +6519,7 @@
       "LoadApDataFailed": "加载体力数据失败: {e}",
       "NoApData": "暂无体力数据，运行侵蚀1任务后自动记录喵",
       "Refresh": "刷新喵",
+      "NewDataAvailable": "有新的统计数据喵，点击刷新",
       "NoValidApData": "暂无有效体力数据喵",
       "ViewTitleLine": "分时曲线 喵",
       "ViewTitleDay": "天视图 喵",

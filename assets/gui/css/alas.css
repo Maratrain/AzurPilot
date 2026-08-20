@@ -562,10 +562,27 @@ pre.rich-traceback-code {
     flex-shrink: 0;
 }
 
-#pywebio-scope-content {
+#pywebio-scope-content,
+#pywebio-scope-statistics-content {
     overflow: auto;
     padding: .625rem;
     flex-grow: 1;
+}
+
+#pywebio-scope-statistics-toolbar .statistics-refresh-pending {
+    position: relative;
+}
+
+#pywebio-scope-statistics-toolbar .statistics-refresh-pending::after {
+    position: absolute;
+    top: -.2rem;
+    right: -.2rem;
+    width: .65rem;
+    height: .65rem;
+    content: "";
+    background: #ff9800;
+    border: 2px solid currentColor;
+    border-radius: 50%;
 }
 
 #pywebio-scope-header {

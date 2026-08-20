@@ -5,11 +5,13 @@ Copy from pywebio.platform.fastapi
 import asyncio
 import logging
 import os
+import re
 from collections import deque
 from collections.abc import Mapping
 from typing import Any, cast
 
 import uvicorn
+from pywebio import __version__ as PYWEBIO_VERSION
 import pywebio.platform.fastapi as pywebio_fastapi
 from pywebio.platform.fastapi import (
     STATIC_PATH,
@@ -37,10 +39,98 @@ Disallow: /
 logger = logging.getLogger(__name__)
 
 STATIC_ASSET_CACHE_CONTROL = "no-cache"
+VERSIONED_STATIC_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable"
 NO_CACHE_CONTROL = "no-cache"
 HTTP_GZIP_MINIMUM_SIZE = 1024
 HTTP_GZIP_COMPRESS_LEVEL = 5
 WEBSOCKET_MAX_PENDING_MESSAGES = 2048
+INITIAL_LOADING_STYLE_MARKER = "alas-initial-loading-critical"
+
+_STYLESHEET_LINK_PATTERN = re.compile(rb'<link rel="stylesheet"[^>]*>')
+_PYWEBIO_ASSET_PATTERN = re.compile(
+    rb'(?P<url>(?:href|src)="pywebio_static/[^"?]+)(?P<quote>")'
+)
+_DEFERRED_STYLE_ATTRIBUTES = (
+    b' media="print" '
+    b'onload=\'this.media="all";this.onload=null\''
+)
+
+
+def _defer_stylesheet_link(match: re.Match[bytes]) -> bytes:
+    """将首屏样式改为非阻塞加载，且不让其状态阻塞真实内容。"""
+    tag = match.group(0)
+    if b" media=" in tag:
+        return tag
+    return tag.replace(
+        b'<link rel="stylesheet"',
+        b'<link rel="stylesheet"' + _DEFERRED_STYLE_ATTRIBUTES,
+        1,
+    )
+
+
+def _version_pywebio_asset(match: re.Match[bytes]) -> bytes:
+    """为 PyWebIO 自带静态资源补充包版本，允许安全长期缓存。"""
+    return (
+        match.group("url")
+        + b"?v="
+        + PYWEBIO_VERSION.encode("ascii")
+        + match.group("quote")
+    )
+
+
+def _optimize_initial_page(body: bytes) -> bytes:
+    """让加载骨架先于外部样式绘制，同时优先展示已到达的内容。"""
+    marker = INITIAL_LOADING_STYLE_MARKER.encode("ascii")
+    marker_position = body.find(marker)
+    if marker_position < 0:
+        return body
+
+    style_start = body.rfind(b"<style>", 0, marker_position)
+    style_end = body.find(b"</style>", marker_position)
+    first_stylesheet = body.find(b'<link rel="stylesheet"')
+    if style_start < 0 or style_end < 0 or first_stylesheet < 0:
+        return body
+
+    style_end += len(b"</style>")
+    if style_start > first_stylesheet:
+        critical_style = body[style_start:style_end]
+        body = body[:style_start] + body[style_end:]
+        first_stylesheet = body.find(b'<link rel="stylesheet"')
+        body = (
+            body[:first_stylesheet]
+            + critical_style
+            + b"\n    "
+            + body[first_stylesheet:]
+        )
+
+    body = _STYLESHEET_LINK_PATTERN.sub(_defer_stylesheet_link, body)
+    return _PYWEBIO_ASSET_PATTERN.sub(_version_pywebio_asset, body)
+
+
+def _optimize_initial_page_route(routes) -> None:
+    """包装 PyWebIO 的 HTML 路由，不影响同路径的 WebSocket 路由。"""
+    for index, route in enumerate(routes):
+        if not isinstance(route, Route) or route.path != "/":
+            continue
+
+        endpoint = route.endpoint
+
+        async def optimized_endpoint(request, original_endpoint=endpoint):
+            response = await original_endpoint(request)
+            body = getattr(response, "body", b"")
+            optimized = _optimize_initial_page(body)
+            if optimized != body:
+                response.body = optimized
+                response.headers["Content-Length"] = str(len(optimized))
+            return response
+
+        routes[index] = Route(
+            route.path,
+            optimized_endpoint,
+            methods=route.methods,
+            name=route.name,
+        )
+        return
 
 
 class HeaderMiddleware(BaseHTTPMiddleware):
@@ -54,8 +144,13 @@ class HeaderMiddleware(BaseHTTPMiddleware):
             200 <= response.status_code < 300 or response.status_code == 304
         )
         if request.method in {"GET", "HEAD"} and is_static_asset and is_cacheable_response:
-            # 部分静态资源没有内容哈希，必须在每次使用前重新验证。
-            response.headers["Cache-Control"] = STATIC_ASSET_CACHE_CONTROL
+            if "v" in request.query_params:
+                response.headers["Cache-Control"] = (
+                    VERSIONED_STATIC_ASSET_CACHE_CONTROL
+                )
+            else:
+                # 部分静态资源没有内容哈希，必须在每次使用前重新验证。
+                response.headers["Cache-Control"] = STATIC_ASSET_CACHE_CONTROL
         else:
             response.headers["Cache-Control"] = NO_CACHE_CONTROL
         response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
@@ -189,6 +284,7 @@ def asgi_app(
         allowed_origins=allowed_origins,
         check_origin=check_origin,
     )
+    _optimize_initial_page_route(routes)
     routes.insert(0, Route("/robots.txt", robots_txt, methods=["GET", "HEAD"]))
     if static_mounts:
         for mount_path, directory in static_mounts.items():

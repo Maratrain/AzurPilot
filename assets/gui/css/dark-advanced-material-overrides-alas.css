@@ -49,12 +49,15 @@ body {
 }
 
 #pywebio-scope-content,
+#pywebio-scope-statistics-content,
 #pywebio-scope-content .markdown-body,
+#pywebio-scope-statistics-content .markdown-body,
 #pywebio-scope-groups {
 	color: var(--alas-apple-text) !important;
 }
 
 #pywebio-scope-content .markdown-body,
+#pywebio-scope-statistics-content .markdown-body,
 #pywebio-scope-groups small,
 #pywebio-scope-groups .text-muted {
 	color: var(--alas-apple-text-secondary) !important;

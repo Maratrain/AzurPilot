@@ -131,7 +131,8 @@ body *:not(#pywebio-scope-log):not(#pywebio-scope-log *) {
 	font-family: var(--alas-font-stack) !important;
 }
 
-#pywebio-scope-content {
+#pywebio-scope-content,
+#pywebio-scope-statistics-content {
 	background-color: transparent !important;
 }
 

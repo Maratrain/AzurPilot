@@ -6519,6 +6519,7 @@
       "LoadApDataFailed": "Failed to load AP data: {e}",
       "NoApData": "No AP change data yet. Data will be recorded after running OpSi-1.",
       "Refresh": "Refresh",
+      "NewDataAvailable": "New statistics are available. Refresh to update.",
       "NoValidApData": "No valid AP data available.",
       "ViewTitleLine": "Intraday Line (Detailed Fluctuation)",
       "ViewTitleDay": "Day View ({day} Hourly Candles)",

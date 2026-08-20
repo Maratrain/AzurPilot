@@ -6519,6 +6519,7 @@
       "LoadApDataFailed": "載入體力資料失敗: {e}",
       "NoApData": "暫無體力變化資料，執行侵蝕1任務後將自動記錄",
       "Refresh": "重新整理",
+      "NewDataAvailable": "有新的統計資料，點擊重新整理",
       "NoValidApData": "暫無有效體力資料",
       "ViewTitleLine": "分時曲線 (詳細波動)",
       "ViewTitleDay": "天視圖 ({day} 小時K線)",

@@ -6519,6 +6519,7 @@
       "LoadApDataFailed": "APデータの読み込みに失敗しました: {e}",
       "NoApData": "AP変動データがありません。侵蝕1タスク実行後に自動記録されます",
       "Refresh": "更新",
+      "NewDataAvailable": "新しい統計データがあります。更新して反映します。",
       "NoValidApData": "有効なAPデータがありません",
       "ViewTitleLine": "分時チャート（詳細変動）",
       "ViewTitleDay": "日表示（{day} 時間足）",

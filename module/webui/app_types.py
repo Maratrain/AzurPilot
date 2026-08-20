@@ -34,6 +34,9 @@ class WebUIMixinBase:
         _overview_log_config_name: str | None
         _ap_chart_view: str
         _commission_income_period: str
+        _statistics_cache_key: Any
+        _statistics_source_signature: Any
+        _statistics_refresh_pending: bool
 
         def __getattr__(self, name: str) -> Any:
             """描述跨 Mixin 和 Frame 的动态成员解析。"""
