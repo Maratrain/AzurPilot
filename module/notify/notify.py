@@ -60,7 +60,7 @@ def handle_notify(_config: str, **kwargs) -> bool:
         if isinstance(notifier, Custom):
             if "method" not in config or config["method"] == "post":
                 config["datatype"] = "json"
-            if not ("data" in config or isinstance(config["data"], dict)):
+            if not isinstance(config.get("data"), dict):
                 config["data"] = {}
             if "title" in kwargs:
                 config["data"]["title"] = kwargs["title"]

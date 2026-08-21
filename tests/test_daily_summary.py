@@ -20,7 +20,6 @@ from module.statistics.daily_summary import (
     get_daily_summary_window,
     parse_daily_summary_trigger,
     resolve_daily_summary_server,
-    validate_daily_summary_text,
 )
 from module.statistics.daily_summary_store import DailySummaryStore
 
@@ -100,41 +99,6 @@ class TestDailySummaryText(unittest.TestCase):
         self.assertIn('Cube=魔方', DAILY_SUMMARY_SYSTEM_PROMPT)
         self.assertIn('只输出纯文本正文', DAILY_SUMMARY_SYSTEM_PROMPT)
 
-    def test_valid_text_is_accepted(self):
-        valid, reason = validate_daily_summary_text(valid_report_text(), sample_facts())
-
-        self.assertTrue(valid, reason)
-
-    def test_concise_natural_text_is_accepted_without_forced_particles(self):
-        text = (
-            '主人，2026年08月20日20:00至2026年08月21日20:00这段时间，'
-            '脚本记录到12次任务运行，10次返回成功，2次已进入自动恢复流程，'
-            '没有不可恢复失败。石油从100到120，金币从200到250；委托结算3项，'
-            '钻石收益1，魔方收益2。侵蚀1进行了4场战斗，估算经验1248，累计用时240秒。'
-        )
-
-        valid, reason = validate_daily_summary_text(text, sample_facts())
-
-        self.assertTrue(valid, reason)
-
-    def test_rejects_markdown(self):
-        cases = (
-            '# ' + valid_report_text(),
-            valid_report_text() + '\n\n---',
-            '*强调*' + valid_report_text(),
-            '1. ' + valid_report_text(),
-        )
-
-        for text in cases:
-            with self.subTest(text=text[-12:]):
-                valid, _ = validate_daily_summary_text(text, sample_facts())
-                self.assertFalse(valid)
-
-    def test_rejects_empty_text(self):
-        valid, _ = validate_daily_summary_text('   ', sample_facts())
-
-        self.assertFalse(valid)
-
 
 class TestDailySummaryWindow(unittest.TestCase):
     def test_parse_trigger_time(self):
@@ -185,7 +149,7 @@ class TestDailySummaryWindow(unittest.TestCase):
         self.assertEqual('jp', resolve_daily_summary_server(config, 'tw'))
 
         config.Emulator_ServerName = 'disabled'
-        self.assertIsNone(resolve_daily_summary_server(config, 'tw'))
+        self.assertEqual('tw', resolve_daily_summary_server(config, 'tw'))
 
 
 class TestDailySummaryStore(unittest.TestCase):

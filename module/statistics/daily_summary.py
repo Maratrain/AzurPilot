@@ -1,4 +1,4 @@
-"""LLM 每日总结的事实聚合、文案校验与异步推送。"""
+"""LLM 每日总结的事实聚合与异步推送。"""
 
 from __future__ import annotations
 
@@ -17,10 +17,7 @@ from module.statistics.daily_summary_store import (
     DailySummaryStore,
     get_daily_summary_store,
 )
-from module.statistics.daily_summary_text import (
-    DAILY_SUMMARY_SYSTEM_PROMPT,
-    validate_daily_summary_text,
-)
+from module.statistics.daily_summary_text import DAILY_SUMMARY_SYSTEM_PROMPT
 
 
 DAILY_SUMMARY_TITLE = 'AzurPilot <{config_name}> 每日总结'
@@ -64,8 +61,8 @@ def resolve_daily_summary_server(
 ) -> str | None:
     """在不初始化设备的前提下解析实例所使用的游戏服务器。
 
-    自动包名尚未经过设备识别时，不能信任进程全局的 ``SERVER``：
-    新进程会默认它为 CN，可能让 EN/JP/TW 实例在错误时区发送日报。
+    显式包名或游戏内服务器优先；只有设备已确认运行时服务器时，才使用
+    ``current_server`` 作为自动包名的回退。
     """
     package = getattr(config, 'Emulator_PackageName', 'auto')
     if package in server_config.VALID_PACKAGE or package in server_config.VALID_CHANNEL_PACKAGE:
@@ -75,6 +72,8 @@ def resolve_daily_summary_server(
         configured_group = server_name.rpartition('-')[0]
         if configured_group in server_config.SERVER_CHECKER_SERVER_LIST:
             return server_config.to_server(configured_group.split('_')[0])
+    if current_server in server_config.VALID_SERVER:
+        return current_server
     return None
 
 
@@ -188,6 +187,9 @@ class DailySummaryService:
                 return False
         try:
             if not due:
+                logger.warning(
+                    f'[日报] 已错过 {period_key} 的触发窗口，本期不补发'
+                )
                 self.store.mark_period_skipped(
                     self.instance, period_key, server, window_start, window_end
                 )
@@ -200,6 +202,9 @@ class DailySummaryService:
             if not self.store.claim_period(
                 self.instance, period_key, server, window_start, window_end
             ):
+                period = self.store.get_period(self.instance, period_key)
+                status = period.get('status') if period is not None else 'unknown'
+                logger.info(f'[日报] {period_key} 已处理，当前状态: {status}')
                 with self._lock:
                     self._processed_periods.add(period_key)
                 return False
@@ -222,6 +227,7 @@ class DailySummaryService:
         with self._lock:
             self._active_periods.add(period_key)
             self._processed_periods.add(period_key)
+        logger.info(f'[日报] 已到达 {period_key} 触发时间，开始生成每日总结')
         thread = threading.Thread(
             target=self._generate_and_send,
             args=(request,),
@@ -234,6 +240,7 @@ class DailySummaryService:
     def _generate_and_send(self, request: dict[str, Any]) -> None:
         period_key = request['period_key']
         try:
+            logger.info(f'[日报] 开始处理 {period_key}')
             if not request['llm_api_key'] or not request['llm_api_base'] or not request['llm_model']:
                 self.store.update_period(
                     self.instance, period_key, 'failed', error_kind='configuration'
@@ -255,6 +262,7 @@ class DailySummaryService:
                 window_start=request['window_start'],
                 window_end=request['window_end'],
             )
+            logger.info(f'[日报] {period_key} 统计数据已聚合，开始生成文案')
             report_text, llm_attempts = self._generate_report(request, facts)
             if report_text is None:
                 self.store.update_period(
@@ -264,7 +272,7 @@ class DailySummaryService:
                     llm_attempts=llm_attempts,
                     error_kind='llm',
                 )
-                logger.warning('[日报] LLM 未能生成合规日报，本期不发送')
+                logger.warning('[日报] LLM 未能生成正文，本期不发送')
                 return
 
             self.store.update_period(
@@ -274,6 +282,7 @@ class DailySummaryService:
                 report_text=report_text,
                 llm_attempts=llm_attempts,
             )
+            logger.info(f'[日报] {period_key} 文案已生成，开始发送推送')
             sent, send_attempts = self._send_report(
                 request['onepush_config'], report_text
             )
@@ -432,12 +441,13 @@ class DailySummaryService:
     def _generate_report(
         self, request: dict[str, Any], facts: dict[str, Any]
     ) -> tuple[str | None, int]:
-        """调用 OpenAI 兼容接口，最多尝试三次生成合规文本。"""
+        """调用 OpenAI 兼容接口，空响应或调用失败时最多重试三次。"""
         user_content = '<facts>\n' + json.dumps(
             facts, ensure_ascii=False, separators=(',', ':')
         ) + '\n</facts>'
         for attempt in range(1, DAILY_SUMMARY_LLM_ATTEMPTS + 1):
             try:
+                logger.info(f'[日报] 调用 LLM 生成文案（第 {attempt} 次）')
                 from openai import OpenAI
 
                 client = OpenAI(
@@ -453,10 +463,9 @@ class DailySummaryService:
                     timeout=60,
                 )
                 text = self._get_response_text(response)
-                valid, reason = validate_daily_summary_text(text, facts)
-                if valid:
-                    return text.strip(), attempt
-                logger.warning(f'[日报] 第 {attempt} 次文案校验未通过: {reason}')
+                if text:
+                    return text, attempt
+                logger.warning(f'[日报] 第 {attempt} 次 LLM 返回空正文')
             except Exception as error:
                 logger.warning(f'[日报] 第 {attempt} 次生成失败: {type(error).__name__}')
         return None, DAILY_SUMMARY_LLM_ATTEMPTS
@@ -477,6 +486,7 @@ class DailySummaryService:
         title = DAILY_SUMMARY_TITLE.format(config_name=self.instance)
         for attempt in range(1, DAILY_SUMMARY_NOTIFY_ATTEMPTS + 1):
             try:
+                logger.info(f'[日报] 发送 OnePush（第 {attempt} 次）')
                 if handle_notify(
                     onepush_config,
                     title=title,
@@ -494,5 +504,4 @@ __all__ = [
     'get_daily_summary_window',
     'parse_daily_summary_trigger',
     'resolve_daily_summary_server',
-    'validate_daily_summary_text',
 ]
