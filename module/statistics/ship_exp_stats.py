@@ -26,6 +26,7 @@ from typing import Any
 
 from module.os.ship_exp_data import LIST_SHIP_EXP
 from module.logger import logger
+from module.config.time_source import now as current_time
 
 
 class ShipExpStats:
@@ -91,7 +92,12 @@ class ShipExpStats:
         """战斗开始时调用（侵蚀1 / 耄耋相接等统一入口）"""
         self._battle_start_time = time.time()
     
-    def on_battle_end(self, fleet_index: int = 1, source: str = "cl1") -> float | None:
+    def on_battle_end(
+        self,
+        fleet_index: int = 1,
+        source: str = "cl1",
+        record_daily_summary: bool = False,
+    ) -> float | None:
         """
         战斗结束时调用
         
@@ -101,6 +107,7 @@ class ShipExpStats:
                 - "cl1": 侵蚀1练级
                 - "meow": 耄耋相接
                 - 其他值默认按 "cl1" 处理
+            record_daily_summary: 是否记录日报专用的精确侵蚀1事件
         
         Returns:
             本场战斗耗时(秒), 如果未记录开始时间则返回None
@@ -125,12 +132,21 @@ class ShipExpStats:
         avg_exp = self.AVG_EXP_PER_BATTLE
         
         # 每日经验效率用于侵蚀1练级预估，避免被耄耋相接耗时混入。
+        if source == "cl1" and record_daily_summary:
+            from module.statistics.daily_summary_store import get_daily_summary_store
+
+            get_daily_summary_store().record_cl1_battle_event(
+                instance=self._instance_name,
+                timestamp=current_time(),
+                duration_seconds=duration,
+                estimated_exp=avg_exp,
+            )
         if source == "cl1":
             self._update_daily_stats(exp_gained=avg_exp, battle_duration=duration)
 
         logger.info(f'{source.upper()} battle recorded: {duration:.1f}s, exp: {avg_exp}')
         return duration
-    
+
     def _record_battle_time(self, duration: float, source: str = "cl1") -> None:
         """记录单场战斗时间到样本
         
@@ -418,8 +434,22 @@ def save_ship_exp_data(
     )
 
 
+def get_cl1_interval_summary(
+    instance_name: str | None,
+    start: datetime,
+    end: datetime,
+) -> dict[str, Any]:
+    """便捷函数：获取指定实例的侵蚀1精确区间统计。"""
+    from module.statistics.daily_summary_store import get_daily_summary_store
+
+    return get_daily_summary_store().get_cl1_interval_summary(
+        instance=instance_name or 'default', start=start, end=end
+    )
+
+
 __all__ = [
     'ShipExpStats',
     'get_ship_exp_stats',
     'save_ship_exp_data',
+    'get_cl1_interval_summary',
 ]

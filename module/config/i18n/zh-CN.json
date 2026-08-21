@@ -780,6 +780,22 @@
       "help": "填写已购买服务支持的模型名称，请以 https://platform.deepseek.com/ 或 https://platform.xiaomimimo.com/ 平台展示为准。"
     }
   },
+  "DailySummary": {
+    "_info": {
+      "name": "每日总结",
+      "help": "每天在设定时间生成并推送运行总结。需要先在调试设置中配置 OnePush 和 LLM。"
+    },
+    "Enable": {
+      "name": "启用每日总结",
+      "help": "开启后，AzurPilot 会在设定时间生成并推送当日运行总结。",
+      "True": "开启",
+      "False": "关闭"
+    },
+    "TriggerTime": {
+      "name": "生成时间",
+      "help": "按游戏服务器时区生成日报的时间，格式为 HH:MM，例如 20:00。"
+    }
+  },
   "Optimization": {
     "_info": {
       "name": "优化设置",

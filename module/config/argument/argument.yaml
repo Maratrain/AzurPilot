@@ -211,6 +211,14 @@ Error:
   LlmModel:
     value: "mimo-v2.5-pro"
     valuetype: str
+DailySummary:
+  Enable:
+    type: checkbox
+    value: false
+    option: [true, false]
+  TriggerTime:
+    value: "20:00"
+    valuetype: str
 Optimization:
   OcrDevice:
     value: auto

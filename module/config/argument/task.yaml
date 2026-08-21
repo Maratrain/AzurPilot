@@ -6,6 +6,7 @@ Alas:
       - Emulator
       - EmulatorInfo
       - Error
+      - DailySummary
       - Optimization
       - DropRecord
       - EmulatorManagement

@@ -33,9 +33,87 @@ COMMISSION_ITEM_NAME_MAP = {
 
 def _parse_ts(ts_str: str) -> Optional[datetime]:
     try:
-        return datetime.fromisoformat(ts_str)
-    except Exception:
+        timestamp = datetime.fromisoformat(ts_str)
+    except (TypeError, ValueError):
         return None
+    return timestamp if timestamp.tzinfo is None else None
+
+
+def _validate_interval(start: datetime, end: datetime) -> None:
+    """校验日报区间使用的本地 naive datetime 参数。"""
+    if not isinstance(start, datetime) or not isinstance(end, datetime):
+        raise TypeError('start 和 end 必须是 datetime')
+    if start.tzinfo is not None or end.tzinfo is not None:
+        raise ValueError('start 和 end 必须是不带时区的本地时间')
+    if start > end:
+        raise ValueError('start 不能晚于 end')
+
+
+def _iter_months(start: datetime, end: datetime):
+    """按时间顺序枚举闭区间覆盖的月份，避免日报跨月漏算。"""
+    year, month = start.year, start.month
+    while (year, month) <= (end.year, end.month):
+        yield year, month
+        if month == 12:
+            year, month = year + 1, 1
+        else:
+            month += 1
+
+
+def _build_income_summary(entries: List[Dict[str, Any]], period: str) -> Dict[str, Any]:
+    """将已过滤的委托条目聚合为与既有统计页兼容的摘要。"""
+    totals: Dict[str, int] = {}
+    counts: Dict[str, int] = {}
+    total_commissions = 0
+
+    for entry in entries:
+        try:
+            commission_count = int(entry.get('commission_count', 1))
+        except (TypeError, ValueError):
+            commission_count = 0
+        total_commissions += commission_count
+
+        items = entry.get('items', {})
+        if not isinstance(items, dict):
+            continue
+        for item_name, amount in items.items():
+            mapped_name = COMMISSION_ITEM_NAME_MAP.get(item_name, item_name)
+            if mapped_name not in COMMISSION_TRACKED_ITEMS:
+                continue
+            try:
+                amount = int(amount)
+            except (TypeError, ValueError):
+                continue
+            totals[mapped_name] = totals.get(mapped_name, 0) + amount
+            counts[mapped_name] = counts.get(mapped_name, 0) + 1
+
+    items_summary = {}
+    detail_rows = []
+    for item_name in COMMISSION_TRACKED_ITEMS:
+        total = totals.get(item_name, 0)
+        count = counts.get(item_name, 0)
+        avg = round(total / count, 1) if count > 0 else 0
+        meta = COMMISSION_ITEM_META.get(item_name, {'color': '#888', 'order': 99})
+
+        items_summary[item_name] = {
+            'total': total,
+            'count': count,
+            'avg': avg,
+        }
+        detail_rows.append({
+            'name': item_name,
+            'color': meta['color'],
+            'total': total,
+            'count': count,
+            'avg': avg,
+        })
+
+    return {
+        'period': period,
+        'total_commissions': total_commissions,
+        'items': items_summary,
+        'detail_rows': detail_rows,
+    }
 
 
 def _filter_entries_by_period(
@@ -113,47 +191,49 @@ def get_commission_income_summary(
     entries = cl1_db.get_commission_income(instance, year, month)
     filtered = _filter_entries_by_period(entries, period, now)
 
-    totals: Dict[str, int] = {}
-    counts: Dict[str, int] = {}
-    total_commissions = 0
+    return _build_income_summary(filtered, period)
 
-    for entry in filtered:
-        total_commissions += entry.get('commission_count', 1)
-        items = entry.get('items', {})
-        for item_name, amount in items.items():
-            mapped_name = COMMISSION_ITEM_NAME_MAP.get(item_name, item_name)
-            if mapped_name not in COMMISSION_TRACKED_ITEMS:
-                continue
-            totals[mapped_name] = totals.get(mapped_name, 0) + int(amount)
-            counts[mapped_name] = counts.get(mapped_name, 0) + 1
 
-    items_summary = {}
-    detail_rows = []
-    for item_name in COMMISSION_TRACKED_ITEMS:
-        total = totals.get(item_name, 0)
-        count = counts.get(item_name, 0)
-        avg = round(total / count, 1) if count > 0 else 0
-        meta = COMMISSION_ITEM_META.get(item_name, {'color': '#888', 'order': 99})
+def get_commission_income_interval_summary(
+    instance: str,
+    start: datetime,
+    end: datetime,
+) -> Dict[str, Any]:
+    """获取指定日报区间内的委托收益，支持跨月聚合。
 
-        items_summary[item_name] = {
-            'total': total,
-            'count': count,
-            'avg': avg,
-        }
-        detail_rows.append({
-            'name': item_name,
-            'color': meta['color'],
-            'total': total,
-            'count': count,
-            'avg': avg,
-        })
+    原始委托条目按月份分库保存，因此会枚举 ``[start, end)`` 涵盖的
+    每个月并按时间戳二次过滤。返回结构沿用
+    :func:`get_commission_income_summary`，额外带上区间和原始结算条目数。
+    """
+    _validate_interval(start, end)
+    entries: List[Dict[str, Any]] = []
 
-    return {
-        'period': period,
-        'total_commissions': total_commissions,
-        'items': items_summary,
-        'detail_rows': detail_rows,
-    }
+    for year, month in _iter_months(start, end):
+        for entry in cl1_db.get_commission_income(instance, year, month):
+            timestamp = _parse_ts(entry.get('ts', ''))
+            if timestamp is not None and start <= timestamp < end:
+                entries.append(entry)
+
+    entries.sort(key=lambda entry: entry.get('ts', ''))
+    summary = _build_income_summary(entries, 'interval')
+    available = bool(entries)
+    if not available:
+        # 旧委托统计没有“本周期已检查但无结算”的心跳记录，空列表不能等同于零收益。
+        summary['total_commissions'] = None
+        for item in summary['items'].values():
+            item.update({'total': None, 'count': None, 'avg': None})
+        for item in summary['detail_rows']:
+            item.update({'total': None, 'count': None, 'avg': None})
+    summary.update({
+        'start': start.isoformat(),
+        'end': end.isoformat(),
+        'available': available,
+        'entry_count': len(entries) if available else None,
+        # 委托原始记录的 commission_count 即本次结算的委托数量。
+        # 保留既有 total_commissions，同时提供日报语义更直观的别名。
+        'settled_count': summary['total_commissions'] if available else None,
+    })
+    return summary
 
 
 def get_recent_commission_entries(

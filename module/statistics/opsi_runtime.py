@@ -59,7 +59,12 @@ def finish_battle_timer(config: Any, source: str | None) -> float | None:
 
         return get_ship_exp_stats(
             instance_name=instance_name_from_config(config)
-        ).on_battle_end(source=source)
+        ).on_battle_end(
+            source=source,
+            record_daily_summary=bool(
+                getattr(config, 'DailySummary_Enable', False)
+            ),
+        )
     except Exception:
         logger.debug(f"[统计-大世界] 结束 {source} 战斗计时失败", exc_info=True)
         return None

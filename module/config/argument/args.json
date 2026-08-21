@@ -532,6 +532,21 @@
         "valuetype": "str"
       }
     },
+    "DailySummary": {
+      "Enable": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "TriggerTime": {
+        "type": "input",
+        "value": "20:00",
+        "valuetype": "str"
+      }
+    },
     "Optimization": {
       "OcrDevice": {
         "type": "select",

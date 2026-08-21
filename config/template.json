@@ -111,6 +111,10 @@
       "LlmApiBase": "https://api.xiaomimimo.com/v1",
       "LlmModel": "mimo-v2.5-pro"
     },
+    "DailySummary": {
+      "Enable": false,
+      "TriggerTime": "20:00"
+    },
     "Optimization": {
       "OcrDevice": "auto",
       "OcrBackend": "auto",

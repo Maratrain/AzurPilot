@@ -780,6 +780,22 @@
       "help": "Enter a model name supported by your purchased service, as shown on https://platform.deepseek.com/ or https://platform.xiaomimimo.com/."
     }
   },
+  "DailySummary": {
+    "_info": {
+      "name": "Daily Summary",
+      "help": "Generate and push a daily automation summary at the configured time. Configure OnePush and LLM settings in Debug Settings first."
+    },
+    "Enable": {
+      "name": "Enable Daily Summary",
+      "help": "When enabled, AzurPilot generates and pushes the daily automation summary at the configured time.",
+      "True": "Enabled",
+      "False": "Disabled"
+    },
+    "TriggerTime": {
+      "name": "Generation Time",
+      "help": "Time to generate the report in the game server time zone. Use HH:MM, for example 20:00."
+    }
+  },
   "Optimization": {
     "_info": {
       "name": "Optimization Settings",

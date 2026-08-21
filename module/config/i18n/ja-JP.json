@@ -780,6 +780,22 @@
       "help": "購入済みサービスで利用できるモデル名を入力してください。利用可能な名称は https://platform.deepseek.com/ または https://platform.xiaomimimo.com/ の表示に従ってください。"
     }
   },
+  "DailySummary": {
+    "_info": {
+      "name": "日次サマリー",
+      "help": "設定した時刻に日次の実行サマリーを生成してプッシュ通知します。先にデバッグ設定で OnePush と LLM を設定してください。"
+    },
+    "Enable": {
+      "name": "日次サマリーを有効にする",
+      "help": "有効にすると、設定した時刻に AzurPilot が当日の実行サマリーを生成してプッシュ通知します。",
+      "True": "有効",
+      "False": "無効"
+    },
+    "TriggerTime": {
+      "name": "生成時刻",
+      "help": "ゲームサーバーのタイムゾーンでレポートを生成する時刻です。20:00 のように HH:MM 形式で入力してください。"
+    }
+  },
   "Optimization": {
     "_info": {
       "name": "最適化設定",

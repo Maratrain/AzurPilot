@@ -780,6 +780,22 @@
       "help": "填写已购买服务支持的模型名称，请以 https://platform.deepseek.com/ 或 https://platform.xiaomimimo.com/ 平台展示为准喵。"
     }
   },
+  "DailySummary": {
+    "_info": {
+      "name": "每日总结喵",
+      "help": "每天在设定时间生成并推送运行总结喵。需要先在调试设置里配置 OnePush 和 LLM 喵。"
+    },
+    "Enable": {
+      "name": "启用每日总结喵",
+      "help": "开启后，AzurPilot 会在设定时间生成并推送当天的运行总结喵。",
+      "True": "开启喵",
+      "False": "关闭喵"
+    },
+    "TriggerTime": {
+      "name": "生成时间喵",
+      "help": "按游戏服务器时区生成日报的时间，格式是 HH:MM，例如 20:00 喵。"
+    }
+  },
   "Optimization": {
     "_info": {
       "name": "优化魔法",

@@ -98,6 +98,62 @@ class AzurLaneAutoScript:
         self._watchdog_thread = None
         self._watchdog_task_start = 0.0  # 当前任务开始时间（monotonic）
         self._watchdog_task_name = ''    # 当前任务名
+        # 日报服务按需初始化；其运行完全不依赖设备连接。
+        self._daily_summary_service = None
+
+    def _get_daily_summary_service(self):
+        """惰性获取实例级日报服务，避免普通运行引入额外 I/O。"""
+        if getattr(self, '_daily_summary_service', None) is None:
+            from module.statistics.daily_summary import DailySummaryService
+
+            self._daily_summary_service = DailySummaryService(self.config_name)
+        return self._daily_summary_service
+
+    def _check_daily_summary(self):
+        """在任务间或空闲等待时检查日报，不影响调度器主流程。"""
+        try:
+            if not bool(getattr(self.config, 'DailySummary_Enable', False)):
+                return
+            self._get_daily_summary_service().check_due(
+                self.config,
+                current_server=getattr(self.config, 'SERVER', None),
+                now=current_time(),
+            )
+        except Exception as error:
+            logger.warning(f'[日报] 调度检查失败，已忽略: {type(error).__name__}')
+
+    def _record_daily_summary_task_start(self, task: str):
+        """为启用日报的实例记录任务开始，不向调度器传播存储错误。"""
+        try:
+            if not bool(getattr(self.config, 'DailySummary_Enable', False)):
+                return None
+            return self._get_daily_summary_service().store.record_task_start(
+                self.config_name, task, current_time()
+            )
+        except Exception as error:
+            logger.warning(f'[日报] 记录任务开始失败，已忽略: {type(error).__name__}')
+            return None
+
+    def _record_daily_summary_task_finish(
+        self, run_id, success, started_at: datetime
+    ):
+        """记录任务结果；日报存储异常不能改变既有错误恢复逻辑。"""
+        if run_id is None:
+            return
+        try:
+            if success is True:
+                status = 'success'
+            elif success == 'recoverable':
+                status = 'recoverable'
+            else:
+                status = 'failed'
+            finished_at = current_time()
+            duration = max(0.0, (finished_at - started_at).total_seconds())
+            self._get_daily_summary_service().store.record_task_finish(
+                self.config_name, run_id, finished_at, status, duration
+            )
+        except Exception as error:
+            logger.warning(f'[日报] 记录任务结果失败，已忽略: {type(error).__name__}')
 
     def _try_restart_emulator(self):
         """
@@ -1488,6 +1544,8 @@ class AzurLaneAutoScript:
         future = future + timedelta(seconds=1)
         self.config.start_watching()
         while 1:
+            # 空闲等待时也会跨越 20:00，必须在每轮检查日报而非只在主循环检查。
+            self._check_daily_summary()
             if current_time() > future:
                 return True
             if self.stop_event is not None:
@@ -1636,6 +1694,8 @@ class AzurLaneAutoScript:
                         logger.info('[Alas] 检测到更新事件')
                         logger.info(f"[Alas] [{self.config_name}] 已退出。原因: 更新 | Reason: Update")
                         break
+                # 日报只读取本地统计数据，不属于普通游戏任务，也不创建设备。
+                self._check_daily_summary()
                 # 检查游戏服务器维护
                 self.checker.wait_until_available()
                 if self.checker.is_recovered():
@@ -1664,6 +1724,8 @@ class AzurLaneAutoScript:
                 # 初始化设备并更改服务器
                 _ = self.device
                 self.device.config = self.config
+                # 自动包名会在设备初始化时写回配置；确认服务器后再尝试日报。
+                self._check_daily_summary()
                 # 跳过第一次重启
                 if self.is_first_task and task == 'Restart':
                     logger.info('[Alas] 调度器启动时跳过任务 `Restart`')
@@ -1702,12 +1764,18 @@ class AzurLaneAutoScript:
                 self._watchdog_active = True
                 self._watchdog_task_start = time.monotonic()
                 self._watchdog_task_name = task
+                task_started_at = current_time()
+                daily_summary_run_id = self._record_daily_summary_task_start(task)
+                success = None
                 try:
                     success = self.run(inflection.underscore(task))
                 finally:
                     self._watchdog_active = False
                     self._watchdog_task_start = 0.0
                     self._watchdog_task_name = ''
+                    self._record_daily_summary_task_finish(
+                        daily_summary_run_id, success, task_started_at
+                    )
                 logger.info(f'[Alas] 调度器: 结束任务 `{task}`')
                 self.is_first_task = False
 
