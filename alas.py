@@ -612,9 +612,19 @@ class AzurLaneAutoScript:
     def restart(self):
         from module.handler.login import LoginHandler
         if self.delay_due_restart():
-            return
-        LoginHandler(self.config, device=self.device).app_restart()
-        self.delay_next_restart()
+            # 延迟期间不计为失败，正常返回成功
+            return True
+        try:
+            LoginHandler(self.config, device=self.device).app_restart()
+        except Exception:
+            # app_restart 异常时清理延迟标记，避免 PrivateQuarters 等模块
+            # 误判仍在延迟窗口内而推迟执行
+            self.restart_delay_until = None
+            raise
+        else:
+            # 重启成功后清除延迟标记
+            self.restart_delay_until = None
+            self.delay_next_restart()
 
     def restart_random_delay_minutes(self):
         """获取每日重启的随机延后分钟数。"""
