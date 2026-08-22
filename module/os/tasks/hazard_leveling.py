@@ -157,7 +157,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
         if (
             self.config.is_task_enabled("OpsiAshBeacon")
             and not self._ash_fully_collected
-            and self.config.OpsiAshBeacon_EnsureFullyCollected
+            and self.config.cross_get("OpsiAshBeacon.OpsiAshBeacon.EnsureFullyCollected", True)
         ):
             logger.info("[大世界-侵蚀1练级] 余烬信标未收集满，暂时忽略行动力限制")
             self.config.OS_ACTION_POINT_PRESERVE = 0
