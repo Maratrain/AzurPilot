@@ -1380,6 +1380,27 @@ class AzurLaneAutoScript:
                     del_cached_property(self, 'config')
                     continue
 
+                # PrivateQuarters 守卫：当天 Restart 尚未执行时延迟 PrivateQuarters
+                # 避免在每日刷新前执行导致亲密度次数读取为 0/3
+                if task == 'PrivateQuarters':
+                    restart_next_run = self.config.cross_get(
+                        keys='Restart.Scheduler.NextRun'
+                    )
+                    now = current_time()
+                    if (
+                        isinstance(restart_next_run, datetime)
+                        and restart_next_run > now
+                        and restart_next_run.date() == now.date()
+                    ):
+                        new_run = (restart_next_run + timedelta(minutes=1))
+                        logger.info('[Alas] PrivateQuarters 等待 Restart 完成')
+                        logger.info(f'[Alas] 延迟 PrivateQuarters 到 {new_run}')
+                        self.config.cross_set(
+                            'PrivateQuarters.Scheduler.NextRun', new_run
+                        )
+                        del_cached_property(self, 'config')
+                        continue
+
                 # 运行
                 logger.info(f'[Alas] 调度器: 开始任务 `{task}`')
                 self.device.stuck_record_clear()
