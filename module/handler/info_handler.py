@@ -22,12 +22,10 @@ from module.base.base import ModuleBase
 from module.base.button import Button
 from module.base.timer import Timer
 from module.base.utils import *
-from module.combat.assets import BATTLE_PREPARATION
-from module.exception import CampaignEnd, GameNotRunningError, ScriptEnd
+from module.exception import GameNotRunningError
 from module.handler.assets import *
 from module.logger import logger
 from module.os_handler.assets import CLICK_SAFE_AREA as OS_CLICK_SAFE_AREA
-from module.ui.assets import BACK_ARROW
 from module.ui_white.assets import POPUP_CANCEL_WHITE, POPUP_CONFIRM_WHITE, POPUP_SINGLE_WHITE
 
 
@@ -216,38 +214,6 @@ class InfoHandler(ModuleBase):
         return appear
 
     def handle_combat_low_emotion(self):
-        """
-        处理低情绪出击警告弹窗（红脸弹窗）。
-
-        - ignore 模式（含 calculate_ignore）：点击确认继续出击
-        - calculate 模式（不含 ignore）：正常不应出现红脸弹窗（已预检），
-          若出现则视为异常，取消弹窗退出关卡、心情清零、延时任务
-
-        Returns:
-            bool: 是否处理了弹窗。calculate 模式下若触发保底会抛出 ScriptEnd。
-
-        Raises:
-            ScriptEnd: calculate 模式下出现红脸弹窗时，心情清零并延时后抛出。
-        """
-        # calculate 模式保底：正常不应出现红脸弹窗
-        # 若出现则可能是ALAS计算错误或用户手动操作，需异常处理
-        if self.emotion.is_calculate and not self.emotion.is_ignore:
-            if self.handle_popup_cancel('IGNORE_LOW_EMOTION'):
-                logger.warning('[心情-保底] 计算模式下出现红脸弹窗，'
-                               '可能是ALAS计算错误或用户手动操作')
-                logger.hr('心情异常保底')
-                # 退出关卡（弹窗已取消，阻止战斗）
-                # 捕获 withdraw() 抛出的 CampaignEnd，确保后续心情清零和延时被执行
-                try:
-                    self._emotion_emergency_exit()
-                except CampaignEnd:
-                    logger.info('[心情-保底] 撤退完成，已回到关卡页面')
-                # 心情清零，强制下次任务等待恢复
-                self.emotion.emergency_reset()
-                # 延时当前任务至下次服务器刷新
-                self.config.task_delay(server_update=True)
-                raise ScriptEnd('[心情-保底] 计算模式红脸弹窗，心情清零并延时')
-
         if not self.emotion.is_ignore:
             return False
 
@@ -256,45 +222,6 @@ class InfoHandler(ModuleBase):
             # 避免误点 AUTO_SEARCH_MAP_OPTION_OFF
             self.interval_reset(AUTO_SEARCH_MAP_OPTION_OFF)
         return result
-
-    def _emotion_emergency_exit(self):
-        """
-        红脸弹窗保底退出关卡。
-
-        取消弹窗后，依次处理战斗准备界面、自动搜索菜单、地图界面，
-        直到回到关卡选择页面或超时。用于 calculate 模式下出现红脸弹窗的
-        异常保底流程，确保游戏回到关卡选择页面后再延时任务。
-
-        Pages:
-            in: 红脸弹窗已取消，可能在战斗准备/地图/自动搜索菜单
-            out: is_in_stage() 或超时
-        """
-        timeout = Timer(30, count=60).start()
-        while 1:
-            self.device.screenshot()
-
-            if timeout.reached():
-                logger.warning('[心情-保底] 退出关卡超时')
-                break
-
-            if self.handle_popup_cancel('IGNORE_LOW_EMOTION'):
-                continue
-            if self.handle_story_skip():
-                continue
-            # 战斗准备界面：点击返回
-            if self.appear(BATTLE_PREPARATION, offset=(20, 20), interval=2):
-                self.device.click(BACK_ARROW)
-                continue
-            # 自动搜索菜单：退出
-            if self.handle_auto_search_exit():
-                continue
-            # 已回到关卡页面
-            if self.is_in_stage():
-                break
-            # 在地图中：撤退（withdraw 在 MapOperation 中，部分子类可能没有）
-            if self.is_in_map() and hasattr(self, 'withdraw'):
-                self.withdraw()
-                break
 
     def handle_use_data_key(self):
         if not self.config.USE_DATA_KEY:
