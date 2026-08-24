@@ -217,6 +217,8 @@ class OSMapOperation(MapOrderHandler, MissionHandler, PortHandler, StorageHandle
         if '-' in name:
             name = name.split('-')[0]
         else:
+            # CN OCR 偶尔把“塞壬”误读为“塞千”
+            name = name.replace('塞千', '塞壬')
             name = _remove_zone_suffix(
                 name,
                 ('安全海域', '隐秘海域', '深渊海域', '塞壬要塞海域', '安全', '隐秘', '深渊'),
