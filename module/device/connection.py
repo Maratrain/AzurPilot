@@ -358,7 +358,10 @@ class Connection(ConnectionAttr):
         if not IS_MACINTOSH:
             return False
         if not self.is_mumu_family:
-            return False
+            if not self.serial.startswith('emulator-'):
+                return False
+            if 'MACPRO' not in self.nemud_player_engine.upper():
+                return False
         logger.attr('是否MuMu Pro', True)
         return True
 
@@ -386,7 +389,7 @@ class Connection(ConnectionAttr):
         return res
 
     def check_mumu_app_keep_alive(self):
-        if not self.is_mumu_family:
+        if not (self.is_mumu_family or self.is_mumu_pro):
             return False
 
         res = self.nemud_app_keep_alive
@@ -423,15 +426,14 @@ class Connection(ConnectionAttr):
         Returns:
             bool: 是否为 MuMu12 >= 3.5.6 版本。
         """
+        if self.is_mumu_pro:
+            return True
         if not self.is_mumu_family:
             return False
         if self.is_mumu_over_version_400:
             return True
         if self.nemud_app_keep_alive != '':
             return True
-        if IS_MACINTOSH:
-            if 'MACPRO' in self.nemud_player_engine:
-                return True
         return False
 
     @cached_property

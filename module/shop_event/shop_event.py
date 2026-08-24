@@ -377,6 +377,7 @@ class EventShop(EventShopClerk):
                     continue
             del_cached_property(self, 'is_event_ended')
             del_cached_property(self, 'event_shop_has_urpt')
+            del_cached_property(self, 'is_pt_reversed')
             if self.config.task_switched():
                 return True
         self.config.task_delay(server_update=True)

@@ -112,7 +112,8 @@ class Coalition(CoalitionCombat, CampaignEvent):
         elif event == 'coalition_20260122':
             ocr = Digit(FASHION_PT_OCR, name='OCR_PT', letter=(41, 40, 40), threshold=128)
         elif event == 'coalition_20260723':
-            ocr = Digit(HORROR_PT_OCR, name='OCR_PT', lang='cnocr', letter=(228, 230, 237), threshold=256)
+            threshold = 256 if self.config.SERVER == 'en' else 221
+            ocr = Digit(HORROR_PT_OCR, name='OCR_PT', lang='cnocr', letter=(228, 230, 237), threshold=threshold)
         else:
             logger.error(f'[联动] 活动 {event} 未定义OCR对象')
             raise ScriptError
@@ -171,7 +172,6 @@ class Coalition(CoalitionCombat, CampaignEvent):
         if self.config.Campaign_Event in [
             'coalition_20260122',
             'coalition_20260723',
-            "coalition_20260723"
         ]:
             return False
         return True
@@ -337,7 +337,7 @@ class Coalition(CoalitionCombat, CampaignEvent):
 
             # 无燃油图标时，先在战役菜单检查停止条件
             if not self._coalition_has_oil_icon:
-                self.ui_goto(page_campaign_menu)
+                self.ui_ensure(page_campaign_menu)
                 if self.triggered_stop_condition(oil_check=True, coin_check=True):
                     break
             self.device.stuck_record_clear()

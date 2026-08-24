@@ -30,11 +30,12 @@ class Filter:
         """
         加载过滤字符串，多个过滤条件之间用 ">" 连接。
 
-        同时会将各种 Unicode 类 ">" 字符统一替换为标准 ">"。
+        同时会将各种 Unicode 类 ">" 和 "-" 字符统一替换为标准 ASCII 字符。
         """
         string = str(string)
         string = re.sub(r'[ \t\r\n]', '', string)
         string = re.sub(r'[＞﹥›˃ᐳ❯]', '>', string)
+        string = re.sub(r'[‐‑‒–—―−－﹣﹘⁃]', '-', string)
         self.filter_raw = string.split('>')
         self.filter = [self.parse_filter(f) for f in self.filter_raw]
 

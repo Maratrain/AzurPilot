@@ -26,7 +26,7 @@ class CoalitionCombat(CoalitionUI, CampaignBase):
         logger.info('[联动-战斗] 联动战斗重新进入')
         status_clicked = False
         click_timer = Timer(0.3)
-        click_last = Timer(2)
+        click_last = Timer(1, count=3)
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False

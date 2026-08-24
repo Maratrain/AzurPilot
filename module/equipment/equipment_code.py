@@ -30,6 +30,7 @@ EQUIPMENT_PREVIEW = list([
 
 class EquipmentCodeHandler(StorageHandler):
     last_code: str = None
+    FASTINPUT_IME = 'com.github.uiautomator/.FastInputIME'
 
     @property
     def equipment_code_config_key(self):
@@ -197,6 +198,12 @@ class EquipmentCodeHandler(StorageHandler):
 
     def set_fastinput_ime(self):
         d = self.device.u2
+        try:
+            name, _ = d.current_ime()
+        except Exception:
+            name = None
+        if name == self.FASTINPUT_IME:
+            return
         try:
             d.set_fastinput_ime(True)
         except Exception:
@@ -455,6 +462,7 @@ class EquipmentCodeHandler(StorageHandler):
 
     def _code_export(self):
         self.handle_info_bar()
+        self.set_fastinput_ime()
         for _ in self.loop(timeout=10):
             if self.info_bar_count():
                 break

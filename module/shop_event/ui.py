@@ -130,13 +130,19 @@ class EventShopUI(UI):
                 raise GameStuckError('Waiting too long for EventShop to appear.')
         return True
 
+    @cached_property
+    def is_pt_reversed(self):
+        return self.ui_process_check_button(check_button=[SHOP_EVENT_20240521])
+
     def event_shop_get_pt(self):
-        pt = OCR_EVENT_SHOP_PT.ocr(self.device.image)
-        return pt
+        if self.is_pt_reversed:
+            return OCR_EVENT_SHOP_URPT.ocr(self.device.image)
+        return OCR_EVENT_SHOP_PT.ocr(self.device.image)
 
     def event_shop_get_urpt(self):
-        urpt = OCR_EVENT_SHOP_URPT.ocr(self.device.image)
-        return urpt
+        if self.is_pt_reversed:
+            return OCR_EVENT_SHOP_PT.ocr(self.device.image)
+        return OCR_EVENT_SHOP_URPT.ocr(self.device.image)
 
     def get_oil(self, skip_first_screenshot=True):
         """

@@ -1467,6 +1467,24 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         Returns:
             bool: 是否解决了地图随机事件。
         """
+        grids = self.view.select(is_exploration_container=True)
+        if (
+            "is_exploration_container" not in self._solved_map_event
+            and grids
+            and grids[0].is_exploration_container
+        ):
+            grid = grids[0]
+            logger.info(f"[大世界-搜索] 在 {grid} 找到探索容器")
+            self.device.click(grid)
+            with self.config.temporary(STORY_ALLOW_SKIP=False, STORY_OPTION=1):
+                result = self.wait_until_walk_stable(
+                    drop=drop, walk_out_of_step=False, confirm_timer=Timer(1.5, count=4)
+                )
+            if "event" in result:
+                self._solved_map_event.add("is_exploration_container")
+                return True
+            return False
+
         grids = self.view.select(is_exploration_reward=True)
         if (
             "is_exploration_reward" not in self._solved_map_event
@@ -1475,6 +1493,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         ):
             grid = grids[0]
             logger.info(f"[大世界-搜索] 在 {grid} 找到探索奖励")
+            self.device.click(grid)
             result = self.wait_until_walk_stable(
                 drop=drop, walk_out_of_step=False, confirm_timer=Timer(1.5, count=4)
             )

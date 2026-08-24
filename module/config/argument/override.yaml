@@ -348,7 +348,7 @@ Coalition:
     AmbushEvade: true
   Coalition:
     Mode:
-      option: [ easy, normal, hard, ex ]
+      option: [ easy, normal, hard, sp, ex ]
   StopCondition:
     MapAchievement: non_stop
     StageIncrease: false

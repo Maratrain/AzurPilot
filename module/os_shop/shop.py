@@ -12,7 +12,6 @@
 本模块整合了 PortShop 和 AkashiShop 两个子模块的功能，
 通过统一的购买执行接口处理大世界中的所有商店交互。
 """
-from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.combat.assets import GET_ITEMS_1
 from module.config.utils import get_os_reset_remain
@@ -318,11 +317,19 @@ class OSShop(PortShop, AkashiShop):
         items = self.scan_all()
         if not len(items):
             logger.warning('大世界商店+为空')
+            self.config.cross_set("OpsiShop.Storage.Storage.BoughtAllYellowCoinItems", True)
             return False
         items = self.items_filter_in_os_shop(items)
         if not len(items):
             logger.warning('大世界商店+没有可购买物品')
+            self.config.cross_set("OpsiShop.Storage.Storage.BoughtAllYellowCoinItems", True)
             return False
+        if all(item.cost == 'PurpleCoins' for item in items):
+            logger.info('港口商店黄币商品已全部购买')
+            self.config.cross_set("OpsiShop.Storage.Storage.BoughtAllYellowCoinItems", True)
+        else:
+            logger.info('港口商店仍有黄币商品可购买')
+            self.config.cross_set("OpsiShop.Storage.Storage.BoughtAllYellowCoinItems", False)
         skip_get_coins = True
         items.reverse()
         count = 0
@@ -373,14 +380,6 @@ class OSShop(PortShop, AkashiShop):
                       additional=self.handle_story_skip, skip_first_screenshot=True)
         self.os_shop_buy(select_func=self.os_shop_get_item_to_buy_in_akashi)
         self.ui_back(appear_button=PORT_SUPPLY_CHECK, check_button=self.is_in_map, skip_first_screenshot=True)
-
-    @cached_property
-    def yellow_coins_preserve(self):
-        """获取黄币保留数量配置。"""
-        if self.is_cl1_mode_enabled:
-            return self.config.OpsiHazard1Leveling_OperationCoinsPreserve
-        else:
-            return self.config.OS_NORMAL_YELLOW_COINS_PRESERVE
 
     def get_currency_coins(self, item):
         """获取可用于购买的货币数量。

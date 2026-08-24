@@ -128,8 +128,11 @@ class OpsiExplore(OSMap):
                 percentage = completed_count / total_zones * 100
                 self.config.OpsiExplore_ExploreProgress = f'已完成百分之{percentage:.2f}'
             if finished_combat == 0:
-                logger.warning('区域已清除但未完成任何战斗')
-                self._os_explore_failed_zone.append(zone)
+                if 'is_exploration_container' in self._solved_map_event:
+                    logger.info('区域已由探索容器清除')
+                else:
+                    logger.warning('区域已清除但未完成任何战斗')
+                    self._os_explore_failed_zone.append(zone)
             self.handle_after_auto_search()
             self.config.check_task_switch()
 

@@ -6,15 +6,12 @@
 使用自适应滚动条实现商品列表翻页。
 """
 
-import cv2
 import numpy as np
-from scipy import signal
 
 import module.config.server as server
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property, del_cached_property
 from module.base.timer import Timer
-from module.base.utils import rgb2gray
 from module.logger import logger
 from module.map_detection.utils import Points
 from module.ocr.ocr import Digit, DigitYuv, Ocr
@@ -22,53 +19,32 @@ from module.shop.assets import *
 from module.shop.base import ShopItemGrid_250814
 from module.shop.clerk import ShopClerk
 from module.shop.shop_status import ShopStatus
-from module.ui.scroll import AdaptiveScroll
+from module.ui.scroll import Scroll
 
 
-class ShopAdaptiveScroll(AdaptiveScroll):
-    """商店自适应滚动条，通过颜色匹配检测滚动位置。
-
-    使用 scipy 信号峰值检测在灰度反转图像上定位滚动条位置，
-    生成布尔位置掩码数组用于判断滚动位置。
-    """
-
+class ShopScroll(Scroll):
     def match_color(self, main):
-        """通过峰值检测匹配滚动条颜色。
-
-        对滚动条区域图像进行灰度反转处理，使用 scipy 信号峰值检测
-        识别滚动条位置，生成布尔位置掩码数组。
-
-        Args:
-            main: 主模块实例，用于截图和图像裁剪
-
-        Returns:
-            np.array: 滚动条位置掩码，dtype=bool
-        """
-        area = (self.area[0] - self.background, self.area[1], self.area[2] + self.background, self.area[3])
-        image = main.image_crop(area, copy=False)
-
-        image = rgb2gray(image)
-        cv2.bitwise_not(image, dst=image)
-        image = image.flatten()
-        wlen = area[2] - area[0]
-        parameters = {
-            'height': (100, 200),
-            'prominence': 35,
-            'width': 1
-        }
-        parameters.update(self.parameters)
-        peaks, _ = signal.find_peaks(image, **parameters)
-        peaks = peaks[15: 123]
-        peaks //= wlen
-        self.length = 123
-        mask = np.zeros((self.total,), dtype=np.bool_)
-        mask[peaks] = 1
+        area = (
+            self.area[0] - 3,
+            self.area[1],
+            self.area[2] + 3,
+            self.area[3],
+        )
+        image = main.image_crop(area, copy=False).astype(np.float32)
+        baseline_color = np.mean(image[:, [0, -1], :], axis=1)
+        masked_color = image[:, image.shape[1] // 2, :]
+        background_mask = 0.2 * np.array(self.color) + 0.8 * baseline_color
+        button_mask = 0.5 * np.array(self.color) + 0.5 * baseline_color
+        err_background = np.sum((masked_color - background_mask) ** 2, axis=1)
+        err_button = np.sum((masked_color - button_mask) ** 2, axis=1)
+        mask = err_button < err_background
+        self.length = np.sum(mask)
         return mask
 
 
-MEDAL_SHOP_SCROLL_250814 = ShopAdaptiveScroll(
+MEDAL_SHOP_SCROLL_250814 = ShopScroll(
     MEDAL_SHOP_SCROLL_AREA_250814.button,
-    background=1,
+    color=(44, 48, 56),
     name="MEDAL_SHOP_SCROLL_250814"
 )
 MEDAL_SHOP_SCROLL_250814.drag_threshold = 0.1

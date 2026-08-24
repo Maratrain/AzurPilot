@@ -281,6 +281,13 @@ class Device(Screenshot, Control, AppControl, Input):
             if not (self.is_emulator and self.is_ldplayer_bluestacks_family):
                 logger.warning('[设备-方法] 截图方式ldopengl仅支持雷电模拟器，回退到auto')
                 self.config.Emulator_ScreenshotMethod = 'auto'
+        if self.config.Emulator_ScreenshotMethod in ['DroidCast', 'DroidCast_raw']:
+            if self.sdk_ver < 23 or self.sdk_ver > 32:
+                logger.warning(
+                    f'[设备-方法] 截图方式{self.config.Emulator_ScreenshotMethod}仅支持Android 6至12，'
+                    f'当前sdk_ver={self.sdk_ver}，回退到auto'
+                )
+                self.config.Emulator_ScreenshotMethod = 'auto'
         if not IS_WINDOWS and self.config.Emulator_ScreenshotMethod in ['nemu_ipc', 'ldopengl']:
             logger.warning(f'[设备-方法] 截图方式{self.config.Emulator_ScreenshotMethod}仅支持Windows，'
                            f'回退到auto')
