@@ -603,14 +603,24 @@ class WebRTCTunnel:
             body = payload.get("body") or ""
             data = base64.b64decode(body) if body else None
             url = f"{self.base_http_url}{path}"
-            async with aiohttp.ClientSession(auto_decompress=False) as session:
+            async with aiohttp.ClientSession() as session:
                 async with session.request(method, url, headers=headers, data=data) as resp:
+                    # aiohttp 默认 auto_decompress=True 会自动解压 gzip/deflate/br，
+                    # 需移除压缩相关头，否则客户端收到明文体但仍带 Content-Encoding → 乱码
+                    resp_headers = {
+                        k: v for k, v in resp.headers.items()
+                        if k.lower() not in (
+                            "content-encoding",
+                            "content-length",
+                            "transfer-encoding",
+                        )
+                    }
                     self.send_json({
                         "type": "http.response.start",
                         "id": req_id,
                         "status": resp.status,
                         "status_text": resp.reason,
-                        "headers": dict(resp.headers),
+                        "headers": resp_headers,
                     })
                     async for chunk in resp.content.iter_chunked(HTTP_BODY_CHUNK):
                         self.send_json({
@@ -732,11 +742,35 @@ class WebRTCTunnel:
             async with aiohttp.ClientSession() as session:
                 headers = self._apply_browser_headers({"Accept": "text/event-stream"}, payload)
                 async with session.get(url, headers=headers) as resp:
+                    # 使用字节缓冲避免多字节 UTF-8 字符在 chunk 边界被截断导致乱码
+                    buffer = b""
                     async for chunk in resp.content.iter_chunked(8192):
+                        buffer += chunk
+                        try:
+                            decoded = buffer.decode("utf-8")
+                            buffer = b""
+                        except UnicodeDecodeError:
+                            for i in range(1, min(4, len(buffer)) + 1):
+                                try:
+                                    decoded = buffer[:-i].decode("utf-8")
+                                    buffer = buffer[-i:]
+                                    break
+                                except UnicodeDecodeError:
+                                    continue
+                            else:
+                                decoded = buffer.decode("utf-8", errors="replace")
+                                buffer = b""
+                        if decoded:
+                            self.send_json({
+                                "type": "sse.chunk",
+                                "id": sse_id,
+                                "data": decoded,
+                            })
+                    if buffer:
                         self.send_json({
                             "type": "sse.chunk",
                             "id": sse_id,
-                            "data": chunk.decode("utf-8", errors="replace"),
+                            "data": buffer.decode("utf-8", errors="replace"),
                         })
         except asyncio.CancelledError:
             raise
