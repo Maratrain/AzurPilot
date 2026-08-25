@@ -364,6 +364,16 @@ class HomeMixin(WebUIMixinBase):
         # setup gui
         set_env(title="AzurPilot", output_animation=False)
         load_webui_styles(theme=self.theme, is_mobile=self.is_mobile)
+        # 通过 JS 直接设置根元素 CSS 变量，确保所有页面生效
+        if self.wallpaper_url:
+            run_js(
+                f"""
+                document.documentElement.style.setProperty(
+                    '--alas-apple-bg-image',
+                    'url(' + {json.dumps(self.wallpaper_url)} + ')'
+                );
+                """
+            )
 
         # OOBE 不依赖浏览器偏好，直接绘制，避免一次无意义的 WebSocket 往返。
         if is_oobe_needed():
