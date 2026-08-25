@@ -10,7 +10,6 @@ import gc
 import logging
 import os
 import threading
-import time
 import tracemalloc
 from logging.handlers import RotatingFileHandler
 from pathlib import Path

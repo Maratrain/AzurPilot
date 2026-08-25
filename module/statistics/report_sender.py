@@ -2,7 +2,6 @@ import os
 import socket
 import ipaddress
 from urllib.parse import urlparse
-import os
 
 import requests
 import yaml
@@ -97,7 +96,7 @@ def send_template_card(webhook, title, content_lines):
             },
             "horizontal_content_list": [
                 {
-                    "keyname": "Í³¼Æ",
+                    "keyname": "ç»Ÿè®¡",
                     "value": "\n".join(content_lines)
                 }
             ],

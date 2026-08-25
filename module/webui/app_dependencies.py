@@ -5,7 +5,6 @@ import re
 import argparse
 import json
 import queue
-import requests
 import secrets
 import string
 import threading
