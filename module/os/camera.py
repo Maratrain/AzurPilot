@@ -85,6 +85,30 @@ class OSCamera(OSMapOperation, Camera):
             x = 0
         return x == 0 and y == 0
 
+    def _limit_camera_location(self, location):
+        """将大世界摄像机坐标限制在海域可容纳视角的范围内。
+
+        大世界四角缺少边缘线时，滑动预测可能把摄像机推到图外。
+        可容纳范围与 camera_2d() 生成 camera_data 的范围一致。
+        """
+        shape = getattr(self.map, 'shape', None)
+        sight = getattr(self.map, 'camera_sight', None)
+        if not shape or not sight:
+            return tuple(location)
+
+        location = tuple(location)
+        left, upper, right, lower = sight
+
+        def limit(value, size, start, end):
+            if size <= -start:
+                return size // 2
+            return min(max(value, -start), size - end)
+
+        return (
+            limit(int(location[0]), int(shape[0]), int(left), int(right)),
+            limit(int(location[1]), int(shape[1]), int(upper), int(lower)),
+        )
+
     # def ensure_edge_insight(self, reverse=False, preset=None, swipe_limit=(4, 3)):
     #     return super().ensure_edge_insight(reverse=reverse, preset=preset, swipe_limit=swipe_limit)
     #

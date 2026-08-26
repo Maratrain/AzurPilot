@@ -372,6 +372,14 @@ class Camera(MapOperation):
         self.view.predict()
         self.view.show()
 
+    def _limit_camera_location(self, location):
+        """修正摄像机坐标，默认不启用。
+
+        普通海域、活动地图和作战档案沿用原始相机行为。
+        需要边界约束的相机子类可覆写此方法。
+        """
+        return location
+
     def show_camera(self):
         logger.attr_align('摄像机', location2node(self.camera))
 
@@ -390,7 +398,6 @@ class Camera(MapOperation):
         """
         logger.info(f'[地图-摄像机] 确保边缘在视野内')
         record = []
-        no_change_count = 0
         x_swipe, y_swipe = np.multiply(swipe_limit, random_direction(self.config.MAP_ENSURE_EDGE_INSIGHT_CORNER))
 
         while 1:
@@ -407,16 +414,12 @@ class Camera(MapOperation):
             if len(record) > 0:
                 # 即使两条边缘可见也要滑动，以避免一些尴尬的相机位置。
                 if x != 0 or y != 0:
-                    old_location = self.view.center_loca
                     self.map_swipe((x, y))
-                    if self.view.center_loca == old_location:
-                        no_change_count += 1
-                        logger.info(f'[地图-摄像机] 滑动后视角无变化({no_change_count}/3)')
-                    else:
-                        no_change_count = 0
-
-                    if no_change_count >= 3:
-                        logger.info('[地图-摄像机] 连续3次滑动无变化，确认到达地图边缘')
+                    limited_camera = self._limit_camera_location(self.camera)
+                    if limited_camera != tuple(self.camera):
+                        logger.warning('[地图-摄像机] 边缘滑动预测越界: %s -> %s'
+                                       % (location2node(self.camera), location2node(limited_camera)))
+                        self.camera = limited_camera
                         break
 
             record.append((x,y))
@@ -439,25 +442,40 @@ class Camera(MapOperation):
         Args:
             location: 目标格子坐标。
             swipe_limit (tuple): (x, y)。滑动限制在 (-x, -y, x, y) 范围内。
+
+        Returns:
+            bool: 相机是否到达目标位置；滑动失败或被地图边界阻挡时为 False。
         """
         location = location_ensure(location)
+        limited_location = self._limit_camera_location(location)
+        if limited_location != tuple(location):
+            logger.info('[地图-摄像机] 聚焦目标超出可达视角: %s -> %s'
+                        % (location2node(location), location2node(limited_location)))
+        location = limited_location
+        limited_camera = self._limit_camera_location(self.camera)
+        if limited_camera != tuple(self.camera):
+            self.camera = limited_camera
         logger.info('[地图-摄像机] 聚焦到: %s' % location2node(location))
 
         while 1:
             vector = np.array(location) - self.camera
 
             if np.all(vector == 0):
-                break
+                return True
 
             swipe = tuple(np.min([np.abs(vector), swipe_limit], axis=0) * np.sign(vector))
 
             if swipe == (0, 0):
-                break
+                return False
 
             has_swiped = self.map_swipe(swipe)
 
             if not has_swiped:
-                break
+                return False
+
+            limited_camera = self._limit_camera_location(self.camera)
+            if limited_camera != tuple(self.camera):
+                self.camera = limited_camera
 
     def full_scan(self, queue=None, must_scan=None, battle_count=0, mystery_count=0, siren_count=0, carrier_count=0,
                   mode='normal'):
