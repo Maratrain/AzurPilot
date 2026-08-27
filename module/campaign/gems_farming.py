@@ -42,7 +42,7 @@ from module.retire.retirement import Retirement, TEMPLATE_COMMON_CV, TEMPLATE_CO
 from module.retire.assets import DOCK_CHECK, DOCK_SHIP_DOWN, TEMPLATE_BOGUE, TEMPLATE_HERMES, TEMPLATE_LANGLEY, TEMPLATE_RANGER, TEMPLATE_CASSIN_1, TEMPLATE_CASSIN_2, TEMPLATE_DOWNES_1, TEMPLATE_DOWNES_2, TEMPLATE_AULICK, TEMPLATE_FOOTE
 from module.handler.assets import AUTO_SEARCH_MAP_OPTION_OFF
 from module.logger import logger
-from module.map.assets import FLEET_PREPARATION, MAP_PREPARATION
+from module.map.assets import FLEET_PREPARATION, MAP_PREPARATION, MAP_PREPARATION_HARD
 from module.retire.scanner import ShipScanner
 from module.ui.assets import BACK_ARROW, FLEET_CHECK
 from module.ui.page import page_fleet
@@ -129,7 +129,8 @@ class GemsCampaignOverride(CampaignBase):
                     break
 
                 if self.appear(FLEET_PREPARATION, offset=(20, 50), interval=2) \
-                        or self.appear(MAP_PREPARATION, offset=(20, 20), interval=2):
+                        or self.appear(MAP_PREPARATION, offset=(20, 20), interval=2) \
+                        or self.appear(MAP_PREPARATION_HARD, offset=(20, 20), interval=2):
                     self.enter_map_cancel()
                     break
             raise CampaignEnd('Emotion withdraw')
@@ -429,11 +430,18 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
         if self.appear(FLEET_PREPARATION, offset=(20, 50)):
             return
         self.campaign.ensure_campaign_ui(self.stage)
-        self.ui_click(click_button=self.campaign.ENTRANCE, appear_button=BACK_ARROW, check_button=MAP_PREPARATION)
+        self.ui_click(
+            click_button=self.campaign.ENTRANCE,
+            appear_button=BACK_ARROW,
+            check_button=lambda: self.appear(MAP_PREPARATION, offset=(20, 20))
+            or self.appear(MAP_PREPARATION_HARD, offset=(20, 20)),
+        )
         while 1:
             self.device.screenshot()
 
             if self.appear_then_click(MAP_PREPARATION, interval=1):
+                continue
+            if self.appear_then_click(MAP_PREPARATION_HARD, interval=1):
                 continue
 
             if self.handle_retirement():

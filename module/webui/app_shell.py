@@ -5,6 +5,7 @@ from module.webui.app_dependencies import (
     Icon,
     ProcessManager,
     State,
+    Switch,
     alas_instance,
     clear,
     current_time,
@@ -118,6 +119,12 @@ class AppShellMixin(WebUIMixinBase):
 
     def __init__(self) -> None:
         super().__init__()
+        # 在渲染侧边栏前初始化，避免慢加载时实例按钮先触发而访问未定义属性。
+        self.state_switch = Switch(
+            status=self.set_status,
+            get_state=lambda: getattr(getattr(self, "alas", -1), "state", 0),
+            name="state",
+        )
         # 已修改的配置键，来自 pin_wait_change() 的返回值
         self.modified_config_queue = queue.Queue()
         # 当前 Alas 配置名称

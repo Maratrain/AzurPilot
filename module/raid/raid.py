@@ -223,7 +223,7 @@ def raid_ocr(raid, mode):
         if mode == 'ex':
             return Digit(button, letter=(190, 218, 137), threshold=128)
         else:
-            return RaidCounterPostMixin(button, lang='cnocr', letter=(96, 230, 220), threshold=128)
+            return RaidCounterPostMixin(button, lang='cnocr', letter=(58, 60, 65), threshold=64)
 
 
 def pt_ocr(raid):

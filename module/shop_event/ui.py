@@ -105,18 +105,33 @@ class EventShopUI(UI):
             logger.info("[活动商店-UI] 活动商店无UR点数")
             return False
 
-    @cached_property
-    def is_event_ended(self):
-        if self.config.EVENT_SHOP_IGNORE_DEADLINE:
-            return True
-        period = OCR_EVENT_SHOP_DEADLINE.ocr(self.device.image)[:-8]
+    def _get_event_deadline(self):
+        """读取服务器时区中的活动商店截止时间。"""
+        period = OCR_EVENT_SHOP_DEADLINE.ocr(self.device.image)
+        # OCR 结果类似“:2026.8.13~2026.9.3 23:59:59”，先移除末尾时间。
+        period, _, _ = period.partition('23:59:59')
         pattern = r'(\d{4})\.(\d{1,2})\.(\d{1,2})'
         matches = re.findall(pattern, period)
         if not matches or len(matches) < 2:
             logger.warning(f"[活动商店-UI] 活动截止日期读取失败: {period}")
-            return False
+            return None
         y, m, d = matches[-1]
         deadline = datetime(int(y), int(m), int(d)) + timedelta(days=1)  # server deadline
+        return deadline
+
+    @cached_property
+    def is_event_ended(self):
+        if self.config.EVENT_SHOP_IGNORE_DEADLINE:
+            return True
+
+        for _ in self.loop(timeout=2):
+            deadline = self._get_event_deadline()
+            if deadline is not None:
+                break
+        else:
+            logger.error('[活动商店-UI] 多次尝试后仍无法读取活动截止日期')
+            return False
+
         server_now = current_time() - server_time_offset()
         return (deadline - server_now).days < 7
 
