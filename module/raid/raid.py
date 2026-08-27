@@ -11,7 +11,7 @@
 - PT 积分 OCR 读取和停止条件判断
 
 支持的突袭活动：ESSEX、SURUGA、BRISTOL、IRIS、ALBION、KUYBYSHEY、
-GORIZIA、HUANCHANG、RPG、CHIENWU、CHANGWU。
+GORIZIA、HUANCHANG、RPG、CHIENWU、CHANGWU、DARENWU。
 """
 import cv2
 import numpy as np
@@ -133,6 +133,8 @@ def raid_name_shorten(name):
         return 'CHIENWU'
     elif name == 'raid_20260212':
         return 'CHANGWU'
+    elif name == 'raid_20260827':
+        return 'DARENWU'
     else:
         raise ScriptError(f'Unknown raid name: {name}')
 
@@ -217,6 +219,11 @@ def raid_ocr(raid, mode):
             return Digit(button, letter=(255, 239, 215), threshold=128)
         else:
             return RaidCounterPostMixin(button, lang='cnocr', letter=(154, 148, 133), threshold=128)
+    elif raid == 'DARENWU':
+        if mode == 'ex':
+            return Digit(button, letter=(190, 218, 137), threshold=128)
+        else:
+            return RaidCounterPostMixin(button, lang='cnocr', letter=(96, 230, 220), threshold=128)
 
 
 def pt_ocr(raid):
@@ -249,6 +256,8 @@ def pt_ocr(raid):
         return Digit(button, letter=(255, 231, 231), threshold=128)
     elif raid == 'CHANGWU':
         return Digit(button, letter=(255, 239, 215), threshold=128)
+    elif raid == 'DARENWU':
+        return Digit(button, letter=(238, 250, 222), threshold=128)
 
 
 class Raid(MapOperation, RaidCombat, CampaignEvent):
