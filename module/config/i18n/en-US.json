@@ -6470,6 +6470,8 @@
       "CheckUpdateIntervalHelp": "Minutes between update checks. Use 0 to disable.",
       "AutoRestartTime": "Scheduled Restart Time",
       "AutoRestartTimeHelp": "Daily restart time when an update is available. Leave empty to disable.",
+      "HideUpdateNotice": "Hide Update Notice",
+      "HideUpdateNoticeHelp": "When enabled, the bottom-right update notice will not appear when an update is detected.",
       "DiscordRichPresence": "Discord Rich Presence",
       "DiscordRichPresenceHelp": "Show AzurPilot status in Discord.",
       "EnableRemoteAccess": "Enable Remote Access",
@@ -6511,9 +6513,7 @@
       "WebuiSSLKey": "SSL Key File",
       "WebuiSSLKeyHelp": "SSL key path for WebUI HTTPS. Must be set together with the certificate.",
       "WebuiSSLCert": "SSL Certificate File",
-      "WebuiSSLCertHelp": "SSL certificate path for WebUI HTTPS. Must be set together with the key.",
-      "HideUpdateNotice": "Hide Update Notice",
-      "HideUpdateNoticeHelp": "When enabled, the bottom-right update notice will not appear when an update is detected."
+      "WebuiSSLCertHelp": "SSL certificate path for WebUI HTTPS. Must be set together with the key."
     },
     "StartupRun": {
       "Title": "Auto-run on Startup",

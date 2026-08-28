@@ -6470,6 +6470,8 @@
       "CheckUpdateIntervalHelp": "更新を確認する間隔（分）です。0 で無効になります。",
       "AutoRestartTime": "定時再起動時刻",
       "AutoRestartTimeHelp": "更新がある場合に毎日自動再起動する時刻です。空欄で無効になります。",
+      "HideUpdateNotice": "更新通知を非表示",
+      "HideUpdateNoticeHelp": "有効にすると、更新が検出されても右下に通知が表示されなくなります。",
       "DiscordRichPresence": "Discord リッチプレゼンス",
       "DiscordRichPresenceHelp": "AzurPilot の実行状態を Discord に表示します。",
       "EnableRemoteAccess": "リモートアクセスを有効化",
@@ -6511,9 +6513,7 @@
       "WebuiSSLKey": "SSL キーファイル",
       "WebuiSSLKeyHelp": "WebUI HTTPS 用の SSL キーです。証明書とセットで設定してください。",
       "WebuiSSLCert": "SSL 証明書ファイル",
-      "WebuiSSLCertHelp": "WebUI HTTPS 用の SSL 証明書です。キーとセットで設定してください。",
-      "HideUpdateNotice": "更新通知を非表示",
-      "HideUpdateNoticeHelp": "有効にすると、更新が検出されても右下に通知が表示されなくなります。"
+      "WebuiSSLCertHelp": "WebUI HTTPS 用の SSL 証明書です。キーとセットで設定してください。"
     },
     "StartupRun": {
       "Title": "起動時に自動実行",

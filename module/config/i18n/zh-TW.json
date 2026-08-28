@@ -6470,6 +6470,8 @@
       "CheckUpdateIntervalHelp": "每隔多少分鐘檢查一次更新，0 表示停用。",
       "AutoRestartTime": "定時重啟時間",
       "AutoRestartTimeHelp": "有更新時每天自動重啟的時間，留空表示停用。",
+      "HideUpdateNotice": "隱藏更新提示",
+      "HideUpdateNoticeHelp": "開啟後檢測到更新時不再在右下角彈出提示。",
       "DiscordRichPresence": "Discord 富狀態",
       "DiscordRichPresenceHelp": "在 Discord 中展示 AzurPilot 執行狀態。",
       "EnableRemoteAccess": "啟用遠端訪問",
@@ -6511,9 +6513,7 @@
       "WebuiSSLKey": "SSL 密鑰檔案",
       "WebuiSSLKeyHelp": "WebUI HTTPS 使用的 SSL 密鑰路徑，需和憑證同時設定。",
       "WebuiSSLCert": "SSL 憑證檔案",
-      "WebuiSSLCertHelp": "WebUI HTTPS 使用的 SSL 憑證路徑，需和密鑰同時設定。",
-      "HideUpdateNotice": "隱藏更新提示",
-      "HideUpdateNoticeHelp": "開啟後檢測到更新時不再在右下角彈出提示。"
+      "WebuiSSLCertHelp": "WebUI HTTPS 使用的 SSL 憑證路徑，需和密鑰同時設定。"
     },
     "StartupRun": {
       "Title": "啟動時自動執行",
