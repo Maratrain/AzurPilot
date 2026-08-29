@@ -1050,9 +1050,6 @@
       "ServerUpdate": "00:00",
       "Sensitive": false
     },
-    "RaidScuttle": {
-      "Sacrifice": "vanguard"
-    },
     "Raid": {
       "Mode": "hard",
       "UseTicket": false

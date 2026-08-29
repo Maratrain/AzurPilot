@@ -1866,19 +1866,6 @@
       "help": ""
     }
   },
-  "RaidScuttle": {
-    "_info": {
-      "name": "共闘沈船",
-      "help": ""
-    },
-    "Sacrifice": {
-      "name": "犠牲船の位置",
-      "help": "",
-      "vanguard": "前衛",
-      "flagship": "旗艦",
-      "vanguard_flagship": "前衛+旗艦"
-    }
-  },
   "RaidDaily": {
     "_info": {
       "name": "共闘デイリー",

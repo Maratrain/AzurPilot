@@ -1866,19 +1866,6 @@
       "help": ""
     }
   },
-  "RaidScuttle": {
-    "_info": {
-      "name": "Fight together and sink the ship",
-      "help": ""
-    },
-    "Sacrifice": {
-      "name": "Sacrifice ship position",
-      "help": "",
-      "vanguard": "front row",
-      "flagship": "flagship",
-      "vanguard_flagship": "Front row + flagship"
-    }
-  },
   "RaidDaily": {
     "_info": {
       "name": "Fighting together every day",

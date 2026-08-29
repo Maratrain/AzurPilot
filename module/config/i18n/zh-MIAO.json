@@ -1866,19 +1866,6 @@
       "help": ""
     }
   },
-  "RaidScuttle": {
-    "_info": {
-      "name": "共斗沉船战术",
-      "help": ""
-    },
-    "Sacrifice": {
-      "name": "牺牲船位置喵",
-      "help": "",
-      "vanguard": "前排喵",
-      "flagship": "旗舰喵",
-      "vanguard_flagship": "前排+旗舰喵"
-    }
-  },
   "RaidDaily": {
     "_info": {
       "name": "共斗每日",

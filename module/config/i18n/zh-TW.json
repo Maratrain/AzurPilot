@@ -1866,19 +1866,6 @@
       "help": ""
     }
   },
-  "RaidScuttle": {
-    "_info": {
-      "name": "共鬥沉船",
-      "help": ""
-    },
-    "Sacrifice": {
-      "name": "犧牲船位置",
-      "help": "",
-      "vanguard": "前排",
-      "flagship": "旗艦",
-      "vanguard_flagship": "前排+旗艦"
-    }
-  },
   "RaidDaily": {
     "_info": {
       "name": "共鬥每日",
