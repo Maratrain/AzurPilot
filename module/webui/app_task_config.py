@@ -378,7 +378,7 @@ class TaskConfigMixin(WebUIMixinBase):
             output_kwargs["help"] = arg_help or None
             yield arg_name, display, widget_type, output_kwargs
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def alas_set_group(self, task: str) -> None:
         """
         Set arg groups from dict

@@ -38,7 +38,8 @@ class Frame(Base):
     def __init__(self) -> None:
         super().__init__()
         self.page = "Home"
-        self._page_lock = threading.Lock()
+        # 可重入：ui_alas 持锁切换实例时，内部 alas_overview→init_menu 会再次申请。
+        self._page_lock = threading.RLock()
 
     @staticmethod
     def cleanup_client_resources(*registry_names: str) -> None:

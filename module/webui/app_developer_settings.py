@@ -16,7 +16,7 @@ from module.webui.app_types import WebUIMixinBase
 class DeveloperSettingsMixin(WebUIMixinBase):
     """WebUI部署设置"""
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def dev_setting(self) -> None:
         self.init_menu(name="Setting")
         self.set_title(t("Gui.MenuDevelop.Setting"))

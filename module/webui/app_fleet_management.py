@@ -202,7 +202,7 @@ class FleetManagementMixin(WebUIMixinBase):
     def _fleet_scan_running_click(self) -> None:
         toast(t("Gui.FleetManagement.ScanAlreadyRunning"), color="warn")
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def fleet_scan_page(self, task: str = "FleetScan") -> None:
         """展示舰队扫描的一次性触发入口。"""
         self.init_menu(name=task)
@@ -221,7 +221,7 @@ class FleetManagementMixin(WebUIMixinBase):
         )
         self.task_handler.add(button.g(), 1, True)
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def fleet_info_page(self, task: str = "FleetInfo") -> None:
         """展示最近一次舰队扫描写入配置的数据。"""
         self.init_menu(name=task)

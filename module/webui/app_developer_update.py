@@ -28,7 +28,7 @@ from module.webui.app_types import WebUIMixinBase
 class DeveloperUpdateMixin(WebUIMixinBase):
     """WebUI更新和启动项设置"""
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def dev_update(self) -> None:
         self.init_menu(name="Update")
         self.set_title(t("Gui.MenuDevelop.Update"))

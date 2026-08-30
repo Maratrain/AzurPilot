@@ -100,7 +100,7 @@ def request_webui_restart() -> bool:
 class DeveloperToolsMixin(WebUIMixinBase):
     """WebUI调试工具和远程访问"""
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def dev_utils(self) -> None:
         self.init_menu(name="Utils")
         self.set_title(t("Gui.MenuDevelop.Utils"))
@@ -247,7 +247,7 @@ class DeveloperToolsMixin(WebUIMixinBase):
             scope="develop_detail",
         )
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def dev_remote(self) -> None:
         self.init_menu(name="Remote")
         self.set_title(t("Gui.MenuDevelop.Remote"))

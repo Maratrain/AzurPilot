@@ -30,7 +30,7 @@ from module.webui.app_types import WebUIMixinBase
 class OverviewMixin(WebUIMixinBase):
     """WebUI实例概览和守护模式"""
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def alas_overview(self) -> None:
         self.init_menu(name="Overview")
         self.set_title(t(f"Gui.MenuAlas.Overview"))
@@ -253,7 +253,7 @@ class OverviewMixin(WebUIMixinBase):
         self._log.set_dashboard_display(b)
         self.alas_update_dashboard(True)
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def alas_daemon_overview(self, task: str) -> None:
         self.init_menu(name=task)
         self.set_title(t(f"Task.{task}.name"))

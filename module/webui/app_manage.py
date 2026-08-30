@@ -296,7 +296,7 @@ def app_manage(gui: "AlasGUI") -> None:
         )
         _show_list()
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def _show_list():
         expanded_summaries.clear()
         gui.init_menu(name="ManageList")
@@ -348,7 +348,7 @@ def app_manage(gui: "AlasGUI") -> None:
         gui.refresh_aside_instances(force=True)
         _show_list()
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def _show_new():
         gui.init_menu(name="ManageNew")
         gui.set_title(t("Gui.AppManage.TitleNew"))
@@ -439,7 +439,7 @@ def app_manage(gui: "AlasGUI") -> None:
         gui.refresh_aside_instances(force=True)
         _show_list()
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def _show_import():
         gui.init_menu(name="ManageImport")
         gui.set_title(t("Gui.AppManage.Import"))

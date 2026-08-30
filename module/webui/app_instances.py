@@ -41,21 +41,24 @@ class InstanceMixin(WebUIMixinBase):
         if config_name == self.alas_name:
             self.expand_menu()
             return
-        self._active_aside = config_name
-        self.init_aside(name=config_name)
-        clear("content")
-        self.alas_name = config_name
-        self.alas_mod = get_config_mod(config_name)
-        self.alas = ProcessManager.get_manager(config_name)
-        self.alas_config = load_config(config_name)
-        if hasattr(self, "state_switch"):
-            try:
-                self.state_switch.switch()
-            except Exception:
-                # best-effort: ignore if switch not ready
-                pass
-        self.initial()
-        self.alas_set_menu()
+        with self._page_lock:
+            # 实例切换与总览周期刷新互斥：clear("content") 到新页面
+            # 注册完成之间，不允许后台任务向已清空的内容区写入。
+            self._active_aside = config_name
+            self.init_aside(name=config_name)
+            clear("content")
+            self.alas_name = config_name
+            self.alas_mod = get_config_mod(config_name)
+            self.alas = ProcessManager.get_manager(config_name)
+            self.alas_config = load_config(config_name)
+            if hasattr(self, "state_switch"):
+                try:
+                    self.state_switch.switch()
+                except Exception:
+                    # best-effort: ignore if switch not ready
+                    pass
+            self.initial()
+            self.alas_set_menu()
 
     def ui_add_alas(self) -> None:
         with popup(t("Gui.AddAlas.PopupTitle")) as s:
@@ -123,7 +126,7 @@ class InstanceMixin(WebUIMixinBase):
 
             put()
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def ui_import_legacy(self) -> None:
         """管理菜单：导入旧 AzurPilot 数据。"""
         self.init_menu(name="ManageImportLegacy")
@@ -230,7 +233,7 @@ class InstanceMixin(WebUIMixinBase):
                 onclick=[import_legacy_upload],
             )
 
-    @use_scope("content", clear=True)
+    @use_scope("content")
     def ui_manage(self) -> None:
         self.mount_shell()
         if self._active_aside == "Manage":

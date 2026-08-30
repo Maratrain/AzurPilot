@@ -7,6 +7,7 @@ from module.webui.app_dependencies import (
     current_time,
     datetime,
     deep_get,
+    eval_js,
     get_dashboard_scope_id,
     get_group_scope_id,
     put_button,
@@ -32,9 +33,30 @@ from module.webui.app_types import WebUIMixinBase
 class DashboardMixin(WebUIMixinBase):
     """WebUI仪表盘刷新逻辑"""
 
+    _OVERVIEW_DOM_CHECK_JS = (
+        "!!(document.getElementById('pywebio-scope-running_tasks')"
+        " && document.getElementById('pywebio-scope-pending_tasks')"
+        " && document.getElementById('pywebio-scope-waiting_tasks')"
+        " && document.getElementById('pywebio-scope-dashboard'))"
+    )
+
+    def _overview_dom_ready(self) -> bool:
+        """确认总览页的目标 scope 仍存在于客户端 DOM。
+
+        页面切换会先移除周期任务再清空 content，但已在前台线程执行中的
+        刷新无法被移除；若它此时重建缺失的 scope，PyWebIO 会把新 scope
+        挂到根节点，形成脱离卡片布局的无样式残留。写入前统一校验，
+        缺失则放弃本次刷新。
+        """
+        try:
+            return bool(eval_js(self._OVERVIEW_DOM_CHECK_JS))
+        except Exception:
+            return False
+
     def alas_update_overview_task(self) -> None:
-        if not self.visible:
+        if not self.visible or self.page != "Overview":
             return
+        config_name = self.alas_name
         self.alas_config.load()
         self.alas_config.get_next_task()
 
@@ -60,42 +82,54 @@ class DashboardMixin(WebUIMixinBase):
             return
         self._overview_snapshot = snapshot
 
-        def put_task(func: Function):
-            with use_scope(f"overview-task_{func.command}"):
-                put_column(
-                    [
-                        put_text(t(f"Task.{func.command}.name")).style("--arg-title--"),
-                        put_text(str(func.next_run)).style("--arg-help--"),
-                    ],
-                    size="auto auto",
-                )
-                put_button(
-                    label=t("Gui.Button.Setting"),
-                    onclick=lambda: self.alas_set_group(func.command),
-                    color="off",
-                )
+        with self._page_lock:
+            # 与页面切换（init_menu / ui_alas 的 page+clear）互斥：导航先完成
+            # 则放弃写入，刷新先完成则导航的 clear 会连同输出一起清掉，
+            # 两种时序都不会在根节点留下重建的 scope。实例已切换时同样放弃，
+            # 避免把旧实例的任务数据写进新实例的列表。
+            if (
+                self.alas_name != config_name
+                or self.page != "Overview"
+                or not self._overview_dom_ready()
+            ):
+                return
 
-        clear("running_tasks")
-        clear("pending_tasks")
-        clear("waiting_tasks")
-        with use_scope("running_tasks"):
-            if running:
-                for task in running:
-                    put_task(task)
-            else:
-                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
-        with use_scope("pending_tasks"):
-            if pending:
-                for task in pending:
-                    put_task(task)
-            else:
-                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
-        with use_scope("waiting_tasks"):
-            if waiting:
-                for task in waiting:
-                    put_task(task)
-            else:
-                put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+            def put_task(func: Function):
+                with use_scope(f"overview-task_{func.command}"):
+                    put_column(
+                        [
+                            put_text(t(f"Task.{func.command}.name")).style("--arg-title--"),
+                            put_text(str(func.next_run)).style("--arg-help--"),
+                        ],
+                        size="auto auto",
+                    )
+                    put_button(
+                        label=t("Gui.Button.Setting"),
+                        onclick=lambda: self.alas_set_group(func.command),
+                        color="off",
+                    )
+
+            clear("running_tasks")
+            clear("pending_tasks")
+            clear("waiting_tasks")
+            with use_scope("running_tasks"):
+                if running:
+                    for task in running:
+                        put_task(task)
+                else:
+                    put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+            with use_scope("pending_tasks"):
+                if pending:
+                    for task in pending:
+                        put_task(task)
+                else:
+                    put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
+            with use_scope("waiting_tasks"):
+                if waiting:
+                    for task in waiting:
+                        put_task(task)
+                else:
+                    put_text(t("Gui.Overview.NoTask")).style("--overview-notask-text--")
 
     def _update_dashboard(self, num=None, groups_to_display=None):
         x = 0
@@ -214,12 +248,20 @@ class DashboardMixin(WebUIMixinBase):
             self._log.first_display = False
 
     def alas_update_dashboard(self, _clear=False):
-        if not self.visible:
+        if not self.visible or self.page != "Overview":
             return
-        with use_scope("dashboard", clear=_clear):
-            if not self._log.display_dashboard:
-                self._update_dashboard(
-                    num=4, groups_to_display=["Oil", "Coin", "Gem", "Pt"]
-                )
-            elif self._log.display_dashboard:
-                self._update_dashboard()
+        config_name = self.alas_name
+        with self._page_lock:
+            if (
+                self.alas_name != config_name
+                or self.page != "Overview"
+                or not self._overview_dom_ready()
+            ):
+                return
+            with use_scope("dashboard", clear=_clear):
+                if not self._log.display_dashboard:
+                    self._update_dashboard(
+                        num=4, groups_to_display=["Oil", "Coin", "Gem", "Pt"]
+                    )
+                elif self._log.display_dashboard:
+                    self._update_dashboard()
