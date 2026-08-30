@@ -22,10 +22,12 @@ from module.base.utils import *
 from module.exception import HardNotSatisfied
 from module.handler.assets import AUTO_SEARCH_SET_MOB, AUTO_SEARCH_SET_BOSS, \
     AUTO_SEARCH_SET_ALL, AUTO_SEARCH_SET_STANDBY, \
-    AUTO_SEARCH_SET_SUB_AUTO, AUTO_SEARCH_SET_SUB_STANDBY
+    AUTO_SEARCH_SET_SUB_AUTO, AUTO_SEARCH_SET_SUB_STANDBY, \
+    POPUP_CONFIRM
 from module.handler.info_handler import InfoHandler
 from module.logger import logger
 from module.map.assets import *
+from module.ui_white.assets import POPUP_CONFIRM_WHITE
 
 
 class FleetOperator:
@@ -357,9 +359,16 @@ class FleetPreparation(InfoHandler):
             # interval=0：连续弹出多个舰队的补齐弹窗间隔可能小于默认的
             # 2s 点击间隔限制，共用按钮名的计时器会吞掉后续弹窗
             if self.handle_popup_confirm(name, interval=0):
-                # 确认后等待填充动画
-                self.device.sleep(0.5)
-                self.device.screenshot()
+                # 确认后等待补齐弹窗消失（填充动画期间弹窗仍在前台），
+                # 避免下一个推荐按钮被弹窗遮挡而漏点
+                disappear = Timer(2, count=6).start()
+                while 1:
+                    self.device.screenshot()
+                    if not self.appear(POPUP_CONFIRM, offset=self._popup_offset) \
+                            and not self.appear(POPUP_CONFIRM_WHITE, offset=self._popup_offset):
+                        break
+                    if disappear.reached():
+                        break
                 return True
             if timeout.reached():
                 return False
@@ -417,39 +426,49 @@ class FleetPreparation(InfoHandler):
         logger.attr('允许潜艇', map_allow_submarine)
 
         # Use recommend fleet in hard mode
-        # 困难任务(Hard.UseRecommendFleet)与其余任务(Campaign.UseRecommendFleet)的自动配队开关相互独立
+        # 困难任务读取 Hard.UseRecommendFleet，同时兼容 Campaign.UseRecommendFleet，
+        # 任一开启即对困难图生效
         if self.map_is_hard_mode and (self.config.Hard_UseRecommendFleet or self.config.Campaign_UseRecommendFleet):
             logger.info('[地图-编队] 困难图使用推荐配队')
-            click_timer = Timer(3, count=6)
             self.device.screenshot()
 
             # Click RECOMMEND_A for fleet 1
             if fleet_1.allow():
                 logger.info('舰队1使用推荐配队')
-                self.device.click(RECOMMEND_A)
-                self._handle_recommend_confirm('RecommendFleet1')
+                if self.appear_then_click(RECOMMEND_A, interval=2):
+                    self._handle_recommend_confirm('RecommendFleet1')
             # Click RECOMMEND_B for fleet 2
             if fleet_2.allow():
                 logger.info('舰队2使用推荐配队')
-                self.device.click(RECOMMEND_B)
-                self._handle_recommend_confirm('RecommendFleet2')
+                if self.appear_then_click(RECOMMEND_B, interval=2):
+                    self._handle_recommend_confirm('RecommendFleet2')
             # Click RECOMMEND_C for submarine
             if map_allow_submarine:
                 if self.config.Submarine_Fleet:
                     logger.info('潜艇使用推荐配队')
-                    self.device.click(RECOMMEND_C)
-                    self._handle_recommend_confirm('RecommendSubmarine')
+                    if self.appear_then_click(RECOMMEND_C, interval=2):
+                        self._handle_recommend_confirm('RecommendSubmarine')
                 else:
                     submarine.clear()
             else:
                 self.config.SUBMARINE = 0
 
-            # Wait for animation
-            self.device.sleep(0.5)
-            self.device.screenshot()
-
-            # Re-check hard satisfied after recommendation
-            h1, h2, h3 = fleet_1.is_hard_satisfied(), fleet_2.is_hard_satisfied(), submarine.is_hard_satisfied()
+            # 复查困难满足状态：等待填充动画结束，两次截图读数稳定即认为完成
+            check_timer = Timer(2, count=6).start()
+            prev = None
+            while 1:
+                self.device.screenshot()
+                curr = (
+                    fleet_1.is_hard_satisfied(),
+                    fleet_2.is_hard_satisfied(),
+                    submarine.is_hard_satisfied(),
+                )
+                if prev is not None and curr == prev:
+                    break
+                prev = curr
+                if check_timer.reached():
+                    break
+            h1, h2, h3 = prev
 
         logger.info(f'[地图-编队] 困难满足: 舰队1: {h1}, 舰队2: {h2}, 潜艇: {h3}')
         if self.config.SERVER in ['cn', 'en', 'jp']:
