@@ -1341,6 +1341,7 @@
     "WarArchives": {
       "DailyRunCount": 0,
       "AutoClear": false,
+      "AutoSelectEvent": false,
       "AutoClearTarget": "three_star",
       "AutoClearProgress": null,
       "DailyRunCountRemain": 0,

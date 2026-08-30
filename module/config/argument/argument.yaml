@@ -401,6 +401,7 @@ StopCondition:
 WarArchives:
   DailyRunCount: 0
   AutoClear: false
+  AutoSelectEvent: false
   AutoClearTarget:
     value: three_star
     option: [three_star, clear_100]

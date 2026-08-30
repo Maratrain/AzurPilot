@@ -7286,6 +7286,10 @@
         "type": "checkbox",
         "value": false
       },
+      "AutoSelectEvent": {
+        "type": "checkbox",
+        "value": false
+      },
       "AutoClearTarget": {
         "type": "select",
         "value": "three_star",

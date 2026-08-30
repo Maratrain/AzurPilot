@@ -26,6 +26,7 @@
 配置路径: WarArchives.DailyRunCount (每日出击上限),
          WarArchives.AutoClear (自动开荒),
          WarArchives.AutoClearTarget (开荒目标),
+         WarArchives.AutoSelectEvent (自动选择活动, 需开启自动开荒),
          WarArchives.AutoClearProgress (开荒进度持久化),
          StopCondition.OilLimit (燃油限制)
 """
@@ -425,6 +426,10 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
         关的解锁前置，按解锁链交错纳入序列，通关一次即推进；个别
         关卡尚未解锁时延后补跑，不再中断任务。
 
+        自动选择活动（WarArchives.AutoSelectEvent）开启时，忽略
+        活动名称，由脚本在档案列表中从上到下依次选择活动开荒，
+        当前活动全部完成后推进到下一个活动。
+
         Pages:
             in: page_archives（作战档案选择界面）
             out: page_main（主界面，任务完成后）
@@ -442,9 +447,41 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
         self.daily_run_limit_reset()
 
         if not self.config.WarArchives_AutoClear:
+            if self.config.WarArchives_AutoSelectEvent:
+                logger.warning('[作战档案] 自动选择活动需要开启自动开荒，已忽略')
             super().run(name, folder, mode, total)
             return
 
+        if self.config.WarArchives_AutoSelectEvent:
+            # 自动选择活动：从档案列表顶部往下，依次开荒未完成的活动
+            while 1:
+                folder = self._select_next_auto_clear_event()
+                if folder is None:
+                    logger.hr('自动开荒结束', level=2)
+                    logger.info('[作战档案] 所有活动均已完成开荒，关闭自动开荒任务')
+                    self.config.cross_set(keys='WarArchives.Scheduler.Enable', value=False)
+                    return
+                logger.info(f'[作战档案] 自动选择活动: {folder}')
+                if not self._auto_clear_one_event(folder, mode, total):
+                    # 密钥用尽等停止条件收尾，本次运行结束
+                    return
+
+        if self._auto_clear_one_event(folder, mode, total):
+            logger.info('[作战档案] 全部关卡均已完成开荒，关闭自动开荒任务')
+            self.config.cross_set(keys='WarArchives.Scheduler.Enable', value=False)
+
+    def _auto_clear_one_event(self, folder, mode='normal', total=0):
+        """对单个活动执行自动开荒。
+
+        Args:
+            folder: 活动地图文件夹名称。
+            mode: 战役模式，'normal' 或 'hard'。
+            total: 总运行次数限制，0 表示无限。
+
+        Returns:
+            bool: 活动是否已全部完成开荒。False 说明被停止条件
+            （密钥、次数用尽等）收尾或任务被切换。
+        """
         stages = self._get_auto_clear_stages(folder)
         finished = set(self._get_auto_clear_progress(folder))
         # 已完成关卡持久化后直接跳过，不再进入准备界面重新扫描
@@ -521,6 +558,35 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
             self._finish_auto_clear_stage(stage, folder, finished)
 
         logger.hr('自动开荒结束', level=2)
-        if not set(stages) - finished:
-            logger.info('[作战档案] 全部关卡均已完成开荒，关闭自动开荒任务')
-            self.config.cross_set(keys='WarArchives.Scheduler.Enable', value=False)
+        return not set(stages) - finished
+
+    def _select_next_auto_clear_event(self):
+        """自动选择活动：从档案列表顶部往下取第一个未完成开荒的活动。
+
+        Returns:
+            str | None: 活动文件夹名称；None 表示列表中没有未完成
+            开荒的活动。
+        """
+        for folder in self._iterate_archives_events():
+            if not self._event_auto_clear_finished(folder):
+                return folder
+            logger.info(f'[作战档案] 活动已完成开荒，跳过: {folder}')
+        return None
+
+    def _event_auto_clear_finished(self, folder):
+        """判断活动的开荒是否已全部完成。
+
+        Args:
+            folder: 活动地图文件夹名称。
+
+        Returns:
+            bool: 是否全部完成。
+        """
+        try:
+            stages = self._get_auto_clear_stages(folder)
+        except RequestHumanTakeover:
+            # 活动目录缺失或没有符合开荒目标的关卡，视为完成并跳过
+            logger.warning(f'[作战档案] 活动无可开荒关卡，跳过: {folder}')
+            return True
+        finished = set(self._get_auto_clear_progress(folder))
+        return not set(stages) - finished

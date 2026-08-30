@@ -176,6 +176,65 @@ class CampaignBase(CampaignBase_):
         logger.warning('Failed to find archives entrance')
         return None
 
+    def _scan_archives_events_visible(self):
+        """匹配当前界面上可见的档案活动入口。
+
+        Returns:
+            list[str]: 活动文件夹名称，按界面从上到下排序。
+        """
+        visible = []
+        for folder, template in dic_archives_template.items():
+            for button in template.match_multi(self.device.image, similarity=0.85, name=folder):
+                visible.append((button.area[1], folder))
+        return [folder for _, folder in sorted(visible)]
+
+    def _iterate_archives_events(self):
+        """从档案列表顶部到底部遍历所有可见活动。
+
+        回到档案列表并滚动到顶部后逐屏匹配已知活动入口，按界面
+        从上到下的顺序产出活动文件夹名称，每个活动只产出一次。
+
+        Yields:
+            str: 活动文件夹名称，如 'war_archives_20210325_cn'。
+        """
+        scanned = set()
+        skip_first_screenshot = True
+        for _ in range(20):
+            if skip_first_screenshot:
+                skip_first_screenshot = False
+            else:
+                self.device.screenshot()
+
+            while self.device.click_record and self.device.click_record[-1] == 'WAR_ARCHIVES_SCROLL':
+                self.device.click_record.pop()
+
+            # 拖动可能误退出列表，先回到档案列表
+            while not self.appear(WAR_ARCHIVES_CHECK):
+                self.ui_ensure(destination=page_archives)
+
+            # 滚动到顶部，保证从第一个活动开始遍历
+            if WAR_ARCHIVES_SCROLL.appear(main=self):
+                WAR_ARCHIVES_SCROLL.set_top(main=self)
+
+            # 等待列表加载完成（不在顶部时可能需要 1~2s）；
+            # 整屏都是字典外的新活动时模板永远不匹配，限制等待次数
+            for _ in range(10):
+                if self._archives_loading_complete():
+                    break
+                self.device.screenshot()
+
+            for folder in self._scan_archives_events_visible():
+                if folder not in scanned:
+                    scanned.add(folder)
+                    yield folder
+
+            if WAR_ARCHIVES_SCROLL.appear(main=self):
+                if WAR_ARCHIVES_SCROLL.at_bottom(main=self):
+                    return
+                WAR_ARCHIVES_SCROLL.next_page(main=self, page=0.66)
+            else:
+                return
+
     def ui_goto_archives_campaign(self, mode='ex'):
         """
         Performs the operations needed to transition
