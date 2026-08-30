@@ -70,7 +70,7 @@ def resolve_daily_summary_server(
     server_name = getattr(config, 'Emulator_ServerName', '')
     if isinstance(server_name, str) and server_name != 'disabled':
         configured_group = server_name.rpartition('-')[0]
-        if configured_group in server_config.SERVER_CHECKER_SERVER_LIST:
+        if configured_group in server_config.VALID_SERVER_LIST:
             return server_config.to_server(configured_group.split('_')[0])
     if current_server in server_config.VALID_SERVER:
         return current_server

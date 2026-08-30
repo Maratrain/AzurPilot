@@ -90,8 +90,19 @@ class TestDailySummaryService(unittest.TestCase):
             Emulator_PackageName='auto',
             Emulator_ServerName='cn_android-0',
         )
+        spawned = []
+        real_thread = daily_summary.threading.Thread
+
+        def tracked_thread(*args, **kwargs):
+            thread = real_thread(*args, **kwargs)
+            spawned.append(thread)
+            return thread
+
         with (
             patch.object(daily_summary, 'server_time_offset_for', return_value=timedelta()),
+            # 追踪真实后台线程，tearDown 前等待其退出，避免 Windows 下
+            # sqlite 句柄未释放导致临时目录清理失败。
+            patch.object(daily_summary.threading, 'Thread', side_effect=tracked_thread),
             patch('module.base.async_executor.async_executor.flush'),
             patch.object(self.service, 'build_facts', return_value=sample_facts()),
             patch.object(self.service, '_generate_report', return_value=('日报正文', 1)),
@@ -107,6 +118,8 @@ class TestDailySummaryService(unittest.TestCase):
                 time.sleep(0.01)
                 period = self.store.get_period('alpha', 'cn:2026-08-22:0010')
 
+        for thread in spawned:
+            thread.join(timeout=2)
         self.assertEqual('sent', period['status'])
         send.assert_called_once_with('provider: json', '日报正文')
 
