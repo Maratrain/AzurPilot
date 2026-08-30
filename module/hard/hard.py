@@ -4,7 +4,7 @@
 但使用独立的战役入口和额外的限制条件（如每日出击次数、舰队锁定等）。
 通过 OCR 识别剩余出击次数，循环执行直到用尽。
 
-配置路径: Hard.HardStage (关卡选择), Hard.HardFleet (舰队选择)
+配置路径: Hard.HardStage (关卡选择), Hard.HardFleet (舰队选择), Hard.UseRecommendFleet (自动配队)
 """
 
 import importlib

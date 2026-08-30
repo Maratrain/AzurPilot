@@ -1023,6 +1023,7 @@ Hard:
   HardFleet:
     value: 1
     option: [1, 2]
+  UseRecommendFleet: false
 Exercise:
   DelayUntilHoursBeforeNextUpdate:
     value: 12

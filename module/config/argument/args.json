@@ -11656,6 +11656,10 @@
           1,
           2
         ]
+      },
+      "UseRecommendFleet": {
+        "type": "checkbox",
+        "value": false
       }
     },
     "Storage": {

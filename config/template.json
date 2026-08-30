@@ -2210,7 +2210,8 @@
     },
     "Hard": {
       "HardStage": "11-4",
-      "HardFleet": 1
+      "HardFleet": 1,
+      "UseRecommendFleet": false
     },
     "Storage": {
       "Storage": {}

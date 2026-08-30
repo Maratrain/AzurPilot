@@ -338,6 +338,32 @@ class FleetPreparation(InfoHandler):
     map_fleet_checked = False
     map_is_hard_mode = False
 
+    def _handle_recommend_confirm(self, name=''):
+        """确认推荐配队后的补齐确认弹窗。
+
+        舰队槽位已有舰船时，点击推荐会弹出"是否采用推荐配置补齐
+        空余位置？"，需确定后才会填充剩余位置；舰队为空时点击推荐
+        直接生效，无弹窗。
+
+        Args:
+            name: 弹窗标记，用于区分点击记录中的确认按钮。
+
+        Returns:
+            bool: 是否确认了弹窗。
+        """
+        timeout = Timer(1, count=3).start()
+        while 1:
+            self.device.screenshot()
+            # interval=0：连续弹出多个舰队的补齐弹窗间隔可能小于默认的
+            # 2s 点击间隔限制，共用按钮名的计时器会吞掉后续弹窗
+            if self.handle_popup_confirm(name, interval=0):
+                # 确认后等待填充动画
+                self.device.sleep(0.5)
+                self.device.screenshot()
+                return True
+            if timeout.reached():
+                return False
+
     def fleet_preparation(self, skip_first_screenshot=True):
         """更换舰队。
 
@@ -380,8 +406,51 @@ class FleetPreparation(InfoHandler):
             choose=SUBMARINE_CHOOSE, advice=SUBMARINE_ADVICE, bar=SUBMARINE_BAR, clear=SUBMARINE_CLEAR,
             in_use=SUBMARINE_IN_USE, hard_satisfied=SUBMARINE_HARD_SATIESFIED, main=self)
 
-        # Check if ship is prepared in hard mode
+        # Check if map is hard mode
         h1, h2, h3 = fleet_1.is_hard_satisfied(), fleet_2.is_hard_satisfied(), submarine.is_hard_satisfied()
+        self.map_is_hard_mode = h1 is not None or h2 is not None or h3 is not None
+
+        # Submarine.
+        # cache submarine.allow() to avoid inconsistency after setting fleet_2
+        # because the expanded fleet_2 may cover submarine buttons
+        map_allow_submarine = submarine.allow()
+        logger.attr('允许潜艇', map_allow_submarine)
+
+        # Use recommend fleet in hard mode
+        # 困难任务(Hard.UseRecommendFleet)与其余任务(Campaign.UseRecommendFleet)的自动配队开关相互独立
+        if self.map_is_hard_mode and (self.config.Hard_UseRecommendFleet or self.config.Campaign_UseRecommendFleet):
+            logger.info('[地图-编队] 困难图使用推荐配队')
+            click_timer = Timer(3, count=6)
+            self.device.screenshot()
+
+            # Click RECOMMEND_A for fleet 1
+            if fleet_1.allow():
+                logger.info('舰队1使用推荐配队')
+                self.device.click(RECOMMEND_A)
+                self._handle_recommend_confirm('RecommendFleet1')
+            # Click RECOMMEND_B for fleet 2
+            if fleet_2.allow():
+                logger.info('舰队2使用推荐配队')
+                self.device.click(RECOMMEND_B)
+                self._handle_recommend_confirm('RecommendFleet2')
+            # Click RECOMMEND_C for submarine
+            if map_allow_submarine:
+                if self.config.Submarine_Fleet:
+                    logger.info('潜艇使用推荐配队')
+                    self.device.click(RECOMMEND_C)
+                    self._handle_recommend_confirm('RecommendSubmarine')
+                else:
+                    submarine.clear()
+            else:
+                self.config.SUBMARINE = 0
+
+            # Wait for animation
+            self.device.sleep(0.5)
+            self.device.screenshot()
+
+            # Re-check hard satisfied after recommendation
+            h1, h2, h3 = fleet_1.is_hard_satisfied(), fleet_2.is_hard_satisfied(), submarine.is_hard_satisfied()
+
         logger.info(f'[地图-编队] 困难满足: 舰队1: {h1}, 舰队2: {h2}, 潜艇: {h3}')
         if self.config.SERVER in ['cn', 'en', 'jp']:
             if self.config.Fleet_Fleet1:
@@ -391,8 +460,7 @@ class FleetPreparation(InfoHandler):
             if self.config.Submarine_Fleet:
                 submarine.raise_hard_not_satisfied()
 
-        # Skip fleet preparation in hard mode
-        self.map_is_hard_mode = h1 is not None or h2 is not None or h3 is not None
+        # Skip fleet preparation in hard mode (or after handling recommendation in hard mode)
         if self.map_is_hard_mode:
             logger.info('[地图-编队] 困难战役，无需舰队准备')
             # Clear submarine if user did not set a submarine fleet
@@ -403,13 +471,9 @@ class FleetPreparation(InfoHandler):
                     submarine.clear()
             else:
                 self.config.SUBMARINE = 0
+            self.map_fleet_checked = True
             return False
 
-        # Submarine.
-        # cache submarine.allow() to avoid inconsistency after setting fleet_2
-        # because the expanded fleet_2 may cover submarine buttons
-        map_allow_submarine = submarine.allow()
-        logger.attr('允许潜艇', map_allow_submarine)
         if map_allow_submarine:
             if self.config.Submarine_Fleet:
                 if fleet_2.allow():

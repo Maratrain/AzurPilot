@@ -3019,6 +3019,10 @@
       "help": "",
       "1": "1",
       "2": "2"
+    },
+    "UseRecommendFleet": {
+      "name": "Auto Fleet Composition",
+      "help": "Use the game's built-in recommended fleet to automatically compose hard mode fleets"
     }
   },
   "Exercise": {
