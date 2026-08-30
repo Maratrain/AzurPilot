@@ -1712,13 +1712,26 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
 
         if rescan_mode == "full":
             logger.hr("完全重新扫描地图", level=2)
-            self.map_init(map_=None)
+            try:
+                self.map_init(map_=None)
+            except MapDetectionError:
+                # map_init 中的边缘滑动把视角滑入黑色虚空且撤销恢复也失败时抛出。
+                # 放弃本轮重扫，交由 map_rescan 优雅降级，不应炸掉整个任务
+                logger.warning(
+                    "[大世界-扫描] 完全重扫的地图初始化失败（画面持续无法识别），放弃本轮重扫"
+                )
+                return False
             queue = self.map.camera_data
             while len(queue) > 0:
                 logger.hr(f"重新扫描 {queue[0]}")
                 queue = queue.sort_by_camera_distance(self.camera)
-                self.focus_to(queue[0], swipe_limit=(6, 5))
-                self.focus_to_grid_center(0.3)
+                try:
+                    self.focus_to(queue[0], swipe_limit=(6, 5))
+                    self.focus_to_grid_center(0.3)
+                except MapDetectionError:
+                    logger.warning(f"[大世界-扫描] 聚焦 {queue[0]} 时画面无法识别，跳过该区域")
+                    queue = queue[1:]
+                    continue
 
                 if self.map_rescan_current(drop=drop):
                     result = True

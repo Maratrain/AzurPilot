@@ -109,6 +109,35 @@ class OSCamera(OSMapOperation, Camera):
             limit(int(location[1]), int(shape[1]), int(upper), int(lower)),
         )
 
+    def _recover_swipe_failure(self, vector):
+        """视角滑出地图导致画面持续无法识别时，原路滑回上一个可识别位置。
+
+        失败的滑动已物理执行但未完成识别，将视角按原滑动距离反向滑回，
+        画面即回到失败前最后一次成功识别的位置，相机记账无需变动。
+
+        Args:
+            vector (tuple): 引发失败的滑动向量。
+
+        Returns:
+            bool: 是否恢复成功。
+        """
+        vector = np.array(vector)
+        if np.all(vector == 0):
+            return False
+        # 失败的滑动未完成识别，丢弃其预测状态，避免撤销滑动后被误加进相机坐标
+        self._prev_view = None
+        self._prev_swipe = None
+        try:
+            self._map_swipe(-vector)
+        except MapDetectionError:
+            logger.warning('[大世界-相机] 撤销滑动后画面仍无法识别，视角恢复失败')
+            return False
+        limited = self._limit_camera_location(self.camera)
+        if limited != tuple(self.camera):
+            self.camera = limited
+        logger.info('[大世界-相机] 已撤销滑动，视角回到上一个可识别位置')
+        return True
+
     # def ensure_edge_insight(self, reverse=False, preset=None, swipe_limit=(4, 3)):
     #     return super().ensure_edge_insight(reverse=reverse, preset=preset, swipe_limit=swipe_limit)
     #

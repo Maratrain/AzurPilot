@@ -382,6 +382,74 @@ class Camera(MapOperation):
         """
         return location
 
+    def _limit_swipe_destination(self, vector):
+        """将滑动终点收窄到相机可容纳视角范围内。
+
+        大世界地图四角缺少边缘线，向边缘滑动时预测终点可能落在地图之外，
+        视角会滑入黑色虚空导致画面无法识别。此方法把终点收窄到边界；
+        若相机记账已越界，该轴不动（只收窄，不反转方向）。
+
+        Args:
+            vector (tuple): 整数滑动向量。
+
+        Returns:
+            tuple: 收窄后的滑动向量，可能为 (0, 0)。
+        """
+        vector = np.array(vector)
+        if np.all(vector == 0):
+            return (0, 0)
+
+        raw = tuple(np.add(self.camera, vector))
+        destination = self._limit_camera_location(raw)
+        if tuple(destination) == raw:
+            return tuple(int(v) for v in vector)
+
+        limited = np.array(destination) - self.camera
+        limited = np.where(
+            vector > 0, np.clip(limited, 0, vector),
+            np.where(vector < 0, np.clip(limited, vector, 0), 0))
+        limited = tuple(int(v) for v in limited)
+        if np.any(np.array(limited) != 0):
+            logger.info('[地图-摄像机] 滑动终点超出可容纳视角: %s -> %s'
+                        % (location2node(tuple(vector)), location2node(limited)))
+        return limited
+
+    def _swipe_with_recovery(self, vector):
+        """执行滑动，视角丢失时恢复后重试。
+
+        滑动物理执行后画面持续无法识别（如大世界视角滑入黑色虚空）会从
+        map_swipe 抛出 MapDetectionError。最多恢复 2 次并重试，仍失败则
+        放弃，由调用方优雅结束本轮聚焦/扫描。
+
+        Args:
+            vector (tuple): 整数滑动向量。
+
+        Returns:
+            bool: 滑动是否完成。
+        """
+        for attempt in range(3):
+            try:
+                return self.map_swipe(vector)
+            except MapDetectionError:
+                if attempt >= 2 or not self._recover_swipe_failure(vector):
+                    logger.warning('[地图-摄像机] 滑动后视角持续无法识别，放弃本次滑动')
+                    return False
+        return False
+
+    def _recover_swipe_failure(self, vector):
+        """滑动后视角丢失（MapDetectionError）的恢复钩子。
+
+        基类不做恢复，保持异常穿透的原始行为；存在"视角滑出地图"场景的
+        相机子类（如大世界）覆写此方法。此方法只在 except 块中被调用。
+
+        Args:
+            vector (tuple): 引发失败的滑动向量。
+
+        Returns:
+            bool: True 表示视角已恢复可继续；False 表示无法恢复。
+        """
+        raise
+
     def show_camera(self):
         logger.attr_align('摄像机', location2node(self.camera))
 
@@ -407,7 +475,9 @@ class Camera(MapOperation):
                 if not skip_first_update:
                     self.update()
                 if preset is not None:
-                    self.map_swipe(preset)
+                    if not self._swipe_with_recovery(preset):
+                        logger.warning('[地图-摄像机] 预设滑动后视角持续无法识别，结束边缘扫描')
+                        break
                     record.append(preset)
 
             x = 0 if self.view.left_edge or self.view.right_edge else x_swipe
@@ -416,7 +486,14 @@ class Camera(MapOperation):
             if len(record) > 0:
                 # 即使两条边缘可见也要滑动，以避免一些尴尬的相机位置。
                 if x != 0 or y != 0:
-                    self.map_swipe((x, y))
+                    # 先把滑动终点收窄到可容纳视角范围，避免视角滑入地图外的黑色虚空
+                    swipe = self._limit_swipe_destination((x, y))
+                    if np.all(np.array(swipe) == 0):
+                        logger.info('[地图-摄像机] 相机已在可容纳视角边界，结束边缘扫描')
+                        break
+                    if not self._swipe_with_recovery(swipe):
+                        logger.warning('[地图-摄像机] 边缘滑动后视角持续无法识别，结束边缘扫描')
+                        break
                     limited_camera = self._limit_camera_location(self.camera)
                     if limited_camera != tuple(self.camera):
                         logger.warning('[地图-摄像机] 边缘滑动预测越界: %s -> %s'
@@ -434,7 +511,9 @@ class Camera(MapOperation):
             for vector in record[::-1]:
                 x, y = vector
                 if x != 0 or y != 0:
-                    self.map_swipe((-x, -y))
+                    if not self._swipe_with_recovery((-x, -y)):
+                        logger.warning('[地图-摄像机] 反向滑动后视角持续无法识别，停止回放')
+                        break
 
         return record
 
@@ -470,7 +549,7 @@ class Camera(MapOperation):
             if swipe == (0, 0):
                 return False
 
-            has_swiped = self.map_swipe(swipe)
+            has_swiped = self._swipe_with_recovery(swipe)
 
             if not has_swiped:
                 return False
