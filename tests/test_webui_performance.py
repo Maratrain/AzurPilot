@@ -206,6 +206,9 @@ class TestInitialRendering(unittest.TestCase):
             theme="default",
             is_mobile=False,
             mount_shell=lambda: events.append("shell"),
+            # run() 在发送外壳前初始化背景图，桩上置空以免真实请求网络。
+            init_wallpaper=lambda: None,
+            wallpaper_url="",
         )
         with (
             patch("module.webui.app_home.set_env"),

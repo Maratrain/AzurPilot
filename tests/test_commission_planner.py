@@ -237,14 +237,15 @@ class TestCommissionTierFilter(unittest.TestCase):
 
 
 class TestCommissionAlgorithmSwitch(unittest.TestCase):
-    def test_dynamic_programming_is_disabled_by_default(self):
-        self.assertIs(GeneratedConfig.Commission_DynamicProgramming, False)
+    def test_dynamic_programming_is_enabled_by_default(self):
+        # 8a9b6d0e1 有意将全局最优策略（实验性）默认启用，本测试锁定该决策。
+        self.assertIs(GeneratedConfig.Commission_DynamicProgramming, True)
         self.assertIsNone(GeneratedConfig.Commission_Blacklist)
         self.assertIsInstance(GeneratedConfig.Commission_DelayHalfLife, float)
         self.assertIsInstance(GeneratedConfig.Commission_DeadlineFutureHorizon, float)
         self.assertIsInstance(GeneratedConfig.Commission_FilterValueHalfLife, float)
 
-    def test_dispatches_to_legacy_algorithm_by_default(self):
+    def test_dispatches_to_legacy_algorithm_when_disabled(self):
         worker = object.__new__(RewardCommission)
         worker.config = SimpleNamespace(Commission_DynamicProgramming=False)
 
@@ -371,8 +372,12 @@ class TestCommissionValueModel(unittest.TestCase):
         self.assertLess(threshold, deadline)
 
     def test_delaying_more_high_value_jobs_reduces_threshold(self):
-        one = delay_threshold_seconds(1, 1, 12 * 60 * 60)
-        three = delay_threshold_seconds(1, 3, 12 * 60 * 60)
+        # 默认 delay_half_life 为 100 小时，12 小时窗口内折现衰减极小，
+        # 阈值会直接顶到 deadline-1；用短半衰期模型验证被延迟数越多、
+        # 允许推迟时间越短这一单调性本身。
+        model = CommissionValueModel(delay_half_life=60 * 60)
+        one = delay_threshold_seconds(1, 1, 12 * 60 * 60, model=model)
+        three = delay_threshold_seconds(1, 3, 12 * 60 * 60, model=model)
 
         self.assertLess(three, one)
 

@@ -105,10 +105,16 @@ class TestWebUIStaticAssets(unittest.TestCase):
         obs_overlay = (PROJECT_ROOT / "module/webui/obs_overlay.html").read_text(
             encoding="utf-8"
         )
+        app_home = (PROJECT_ROOT / "module/webui/app_home.py").read_text(
+            encoding="utf-8"
+        )
 
         self.assertNotIn("fonts.googleapis.com", theme_css)
         self.assertNotIn("fonts.gstatic.com", theme_css)
-        self.assertIn('url("https://api.yppp.net/api.php")', theme_css)
+        # 随机背景 API 已从 CSS 硬编码迁移为 app_home 运行时注入
+        # --alas-apple-bg-image 变量，CSS 只保留变量定义。
+        self.assertIn("--alas-apple-bg-image", theme_css)
+        self.assertIn("https://api.yppp.net/api.php", app_home)
         self.assertNotIn("fonts.googleapis.com", obs_overlay)
         self.assertNotIn("fonts.gstatic.com", obs_overlay)
 
