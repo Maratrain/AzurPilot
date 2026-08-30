@@ -32,7 +32,9 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
 
     Attributes:
         _auto_search_in_stage_timer (Timer): 关卡页面检测计时器。
-        _auto_search_status_confirm (bool): 自动搜索状态是否已确认。
+        _auto_search_status_confirm (bool): 低心情战斗确认标志。
+            置位后战斗结算走低心情分支，处理获得道具等额外结算界面；
+            在自动搜索运行恢复或处理地图选项时重置。
         _withdraw (bool): 是否已执行撤退。
         _defeat_count (int): 战败次数。
         _shipwreck_emotion_reduced (bool): 沉船心情扣减是否已执行，防止重复扣减。
@@ -89,6 +91,8 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                     and self.appear_then_click(AUTO_SEARCH_MAP_OPTION_ON):
                 continue
             if self.handle_combat_low_emotion():
+                # 退役后重新出击的低心情战斗，结算同样会包含获得道具界面
+                self._auto_search_status_confirm = True
                 continue
             if self.handle_retirement():
                 continue
@@ -498,6 +502,9 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                 continue
             # bunch of popup handlers
             if self.handle_popup_confirm('AUTO_SEARCH_COMBAT_STATUS'):
+                # 中途低心情弹窗：确认后游戏直接进入下一场战斗（不回地图），
+                # 下一场战斗的结算会包含获得道具界面，需置位标志让低心情分支处理
+                self._auto_search_status_confirm = True
                 continue
             if self.handle_urgent_commission():
                 continue
@@ -510,6 +517,11 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
             if self.handle_mission_popup_ack():
                 continue
 
+            # 兜底点击获得道具结算界面：低心情弹窗可能在地图选项之前被确认
+            # （如战斗结算中途中确认、退役后重出击），此时标志位可能未置位，
+            # 若不点击会在获得道具界面卡死（GameStuckError）
+            if self.handle_get_items():
+                continue
             # 处理战斗结算界面——SABC评价在自动搜索中可能快速自动过渡，
             # 若截图恰好捕获到结算画面则点击推进并记录评价
             # D评价点击BATTLE_STATUS_D后，会出现OPTS_INFO_D沉船弹窗
