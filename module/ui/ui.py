@@ -602,6 +602,10 @@ class UI(InfoHandler):
         if self.handle_story_skip():
             return True
 
+        # 活动剧情全部解锁弹窗
+        if self.handle_story_unlock_popup():
+            return True
+
         # 游戏提示
         # 度假村的活动委托提示
         # 2025.05.29 进入船坞时出现的皮肤功能提示

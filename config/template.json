@@ -1340,6 +1340,9 @@
     },
     "WarArchives": {
       "DailyRunCount": 0,
+      "AutoClear": false,
+      "AutoClearTarget": "three_star",
+      "AutoClearProgress": null,
       "DailyRunCountRemain": 0,
       "DailyRunCountRecord": "2020-01-01 00:00:00",
       "DailyRunCountLimit": 0

@@ -725,6 +725,8 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
                 continue
             if self.handle_mission_popup_ack():
                 continue
+            if self.handle_story_unlock_popup():
+                continue
             # 战斗中的额外处理器
             if self.handle_auto_search_exit(drop=drop):
                 continue

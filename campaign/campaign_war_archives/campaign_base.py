@@ -1,5 +1,6 @@
 from module.campaign.campaign_base import CampaignBase as CampaignBase_
 from module.exception import RequestHumanTakeover
+from module.handler.fast_forward import to_map_input_name
 from module.logger import logger
 from module.ui.assets import WAR_ARCHIVES_CHECK
 from module.ui.page import page_archives
@@ -21,6 +22,78 @@ class CampaignBase(CampaignBase_):
     # Helper variable to keep track of whether is the first runthrough
     first_run = True
     ENEMY_FILTER = '1T > 1L > 1E > 1M > 2T > 2L > 2E > 2M > 3T > 3L > 3E > 3M'
+
+    def map_get_info(self, star=False):
+        """获取地图信息，并在自动开荒模式下按星星状态选择战斗策略。
+
+        自动开荒（WarArchives.AutoClear）开启时，读取关卡准备界面
+        三颗星的暗亮状态，为本场战斗选择策略，详见 _auto_clear_strategy()。
+
+        Pages:
+            in: MAP_PREPARATION（关卡准备界面）
+
+        Args:
+            star: 是否强制认为所有星星已达成。
+        """
+        super().map_get_info(star)
+        if self.config.WarArchives_AutoClear:
+            self._auto_clear_strategy()
+
+    def _auto_clear_strategy(self):
+        """根据三颗星的暗亮状态选择本场战斗策略。
+
+        星星达成条件：第一颗星为击破敌方旗舰，第二颗星为累计击破
+        足量护卫舰队，第三颗星为单场击破所有敌舰。
+
+        - 满 3 星：不干预，由 triggered_map_stop() 收尾，关卡推进
+          交给 war_archives.run() 的关卡序列管理
+        - 缺第 3 星（含未首通）：开荒全清，手动走图清空所有敌舰，
+          一把同时推进达成度与三颗星
+        - 仅缺第 2 星（第 3 星已亮，地图必然已 100% 清空、解锁通关
+          模式）：自律刷，用自动搜索快速重复通关累计护卫舰队击杀数
+
+        两种开荒目标共用上述策略：全图三星模式所有关打满星；
+        100% 通关模式中间关由停止条件 100_percent_clear 在达成度
+        100% 时收尾推进（全清一次即达标），最后一关由 map_3_stars
+        打满星——首通全清达成度 100% 后通常仅缺第 2 星，此时切
+        自律刷，不能因开荒目标为 100% 通关而恒定全清。
+
+        策略通过临时覆盖配置实现。本方法在 handle_fast_forward()
+        之前执行，覆盖不写入用户配置文件；同键重复覆盖会更新值，
+        因此关卡间策略切换不受 override 不可逆性影响。
+
+        Pages:
+            in: MAP_PREPARATION（关卡准备界面）
+        """
+        if self.map_is_3_stars:
+            logger.attr('[作战档案] 开荒策略', '满星，按停止条件收尾')
+            return
+
+        if not self.map_achieved_star_3:
+            logger.attr('[作战档案] 开荒策略', '开荒全清')
+            self.config.override(
+                MAP_CLEAR_ALL_THIS_TIME=True,
+                Campaign_UseAutoSearch=False,
+            )
+        else:
+            logger.attr('[作战档案] 开荒策略', '缺第二颗星，自律刷护卫舰队')
+            self.config.override(
+                MAP_CLEAR_ALL_THIS_TIME=False,
+                Campaign_UseAutoSearch=True,
+            )
+
+    def handle_map_stop(self):
+        """满星后的关卡推进处理。
+
+        自动开荒模式下关卡推进由 war_archives.run() 的关卡序列管理，
+        此处仅避免原逻辑在递进失败时禁用任务；非开荒模式保持原有
+        行为（递进下一关，递进失败禁用任务）。
+        """
+        if not self.config.WarArchives_AutoClear:
+            super().handle_map_stop()
+            return
+
+        logger.info(f'[作战档案] 关卡 {to_map_input_name(self.config.Campaign_Name)} 开荒完成')
 
     def _get_archives_entrance(self, name):
         """
@@ -113,6 +186,12 @@ class CampaignBase(CampaignBase_):
         # For subsequent runs when neither reward or
         # stop_triggers occur, no need perform operations
         result = True
+        # 自动搜索菜单的模糊背景会遮挡 WAR_ARCHIVES_CAMPAIGN_CHECK，使下方
+        # appear 检查误判失败，导致 ui_ensure(page_archives) 绕经主页重新进档
+        # 案。作战档案不支持续战，刷星每轮结束后游戏停在菜单中，先退出菜单，
+        # 让当前战役界面（WAR_ARCHIVES_CAMPAIGN_CHECK 可见）可以直接复用
+        if self.is_in_auto_search_menu():
+            self.ensure_auto_search_exit()
         if self.first_run or not self.appear(WAR_ARCHIVES_CAMPAIGN_CHECK, offset=(20, 20)):
             result = self.ui_ensure(destination=page_archives)
 

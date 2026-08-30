@@ -1380,6 +1380,20 @@
       "name": "Daily Sortie Count",
       "help": "Maximum War Archives runs per day.\n0 means no limit.\nAfter reaching the limit, the task is delayed until the next server reset instead of being disabled."
     },
+    "AutoClear": {
+      "name": "Auto Clear",
+      "help": "Automatically clear all stages of the event.\nStage name can be left blank; the script decides which stage to run\naccording to the clear target. Finished stages are skipped.\nAll Maps 3 Stars mode: auto search for the 2nd star, full clear for the 3rd.\n100% Clear mode: full-clear runs only; intermediate stages advance once 100% cleared."
+    },
+    "AutoClearTarget": {
+      "name": "Clear Target",
+      "help": "Scope and strategy of auto clear:\nAll Maps 3 Stars: farms every stage of both normal and hard maps to 3 stars\n(auto search for the 2nd star, full clear for the 3rd);\nnormal maps are cleared before hard maps.\n100% Clear: full-clears hard stages; intermediate stages advance once 100% cleared\n(one full-clear run each), only the last stage is farmed to full stars.\nStage name is decided by the script automatically.",
+      "three_star": "All Maps 3 Stars",
+      "clear_100": "100% Clear (Hard)"
+    },
+    "AutoClearProgress": {
+      "name": "Auto Clear Progress",
+      "help": "Auto clear progress recorded by the script, so finished stages are skipped on the next run."
+    },
     "DailyRunCountRemain": {
       "name": "Daily Sorties Remaining",
       "help": "Today's remaining quota, maintained automatically by the script."

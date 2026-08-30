@@ -7278,6 +7278,23 @@
         "type": "input",
         "value": 0
       },
+      "AutoClear": {
+        "type": "checkbox",
+        "value": false
+      },
+      "AutoClearTarget": {
+        "type": "select",
+        "value": "three_star",
+        "option": [
+          "three_star",
+          "clear_100"
+        ]
+      },
+      "AutoClearProgress": {
+        "type": "stored",
+        "value": null,
+        "display": "hide"
+      },
       "DailyRunCountRemain": {
         "type": "stored",
         "value": 0,
