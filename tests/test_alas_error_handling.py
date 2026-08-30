@@ -53,3 +53,23 @@ class TestGameNotRunningErrorHandling(unittest.TestCase):
             level=30,
             with_traceback=False,
         )
+
+
+class TestSaveErrorScene(unittest.TestCase):
+    def test_sets_flag_after_saving(self):
+        script = AzurLaneAutoScript.__new__(AzurLaneAutoScript)
+
+        with patch.object(script, 'save_error_log') as save:
+            script.save_error_scene()
+
+        save.assert_called_once()
+        self.assertTrue(script._error_scene_saved)
+
+    def test_swallows_save_failure(self):
+        script = AzurLaneAutoScript.__new__(AzurLaneAutoScript)
+
+        with patch.object(script, 'save_error_log', side_effect=OSError('disk full')):
+            # 保存失败不应向异常处理分支继续抛出异常
+            script.save_error_scene()
+
+        self.assertFalse(getattr(script, '_error_scene_saved', False))
