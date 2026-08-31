@@ -363,8 +363,20 @@ else:
                     record = worker_registry.get_workers(owner_pid)["alas"]
                     self.assertTrue(worker_registry.process_matches(record))
                     self.assertTrue(_get_gui()._stop_registered_workers(owner_pid))
-            worker.join(timeout=3)
-            self.assertFalse(worker.is_alive())
+            # POSIX 上 psutil.wait_procs 会 waitpid 收割掉当前进程的直接子进程，
+            # 而 Python 3.14 起 multiprocessing 在 waitpid 返回 ECHILD 时不再写
+            # returncode，Process.is_alive() 会永远返回 True。终止与否必须以
+            # OS 进程是否消失为准（process_matches 同时校验 PID 未被复用）。
+            deadline = time.monotonic() + 3
+            while (
+                worker_registry.process_matches(record) is True
+                and time.monotonic() < deadline
+            ):
+                time.sleep(0.1)
+            self.assertIsNone(
+                worker_registry.process_matches(record),
+                "登记的 worker 进程在终止后仍存活",
+            )
         finally:
             if worker.is_alive():
                 worker.kill()
