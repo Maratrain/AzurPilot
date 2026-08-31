@@ -1,17 +1,13 @@
-from module.base.timer import Timer
 from module.ui.setting import Setting
 from module.logger import logger
 from module.equipment.assets import EQUIP_CONFIRM
 from module.combat.assets import GET_ITEMS_1
 from module.retire.assets import *
-
+from module.base.timer import Timer
 import module.config.server as server
 
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
-from module.base.timer import Timer
-from module.ocr.ocr import DigitCounter
-from module.ui.scroll import Scroll
 from module.ui.switch import Switch
 
 
@@ -32,13 +28,6 @@ if server.server != 'jp':
 else:
     CARD_LEVEL_GRIDS = CARD_GRIDS.crop(area=(74, 5, 136, 27), name='LEVEL')
     CARD_FAVORABILITY_GRIDS = CARD_GRIDS.crop(area=(21, 29, 71, 48), name='FAVORABILITY')
-
-DOCK_SCROLL_BAR = DOCK_SCROLL
-
-DOCK_SCROLL = Scroll(DOCK_SCROLL_BAR,color=(247, 211, 66),name='SECRETARY_DOCK_SCROLL'
-)
-
-OCR_DOCK_SELECTED = DigitCounter(DOCK_SELECTED, threshold=64, name='OCR_DOCK_SELECTED')
 
 class SecretaryDockMixin:
     def handle_dock_cards_loading(self, skip_first_screenshot=True):

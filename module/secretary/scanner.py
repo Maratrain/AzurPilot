@@ -1,7 +1,4 @@
 from dataclasses import dataclass
-import os
-import time
-import cv2
 
 from module.ocr.ocr import Ocr
 from module.secretary.ocr import SecretaryDigit
@@ -39,39 +36,7 @@ OCR_SECRETARY_FAVORABILITY = SecretaryDigit(
 
 class SecretaryScanner:
 
-    def save_debug(self, image):
-        path = "log/secretary_debug"
-        os.makedirs(path, exist_ok=True)
-
-        timestamp = int(time.time())
-
-        # 保存完整截图
-        cv2.imwrite(
-            f"{path}/{timestamp}_full.png",
-            image
-        )
-
-        crops = {
-            "name": SECRETARY_NAME.area,
-            "level": SECRETARY_LEVEL.area,
-            "favorability": SECRETARY_FAVORABILITY.area,
-        }
-
-        for key, area in crops.items():
-            x1, y1, x2, y2 = area
-
-            crop = image[y1:y2, x1:x2]
-
-            cv2.imwrite(
-                f"{path}/{timestamp}_{key}.png",
-                crop
-            )
-
-    def scan(self, image, debug=False):
-
-        if debug:
-            self.save_debug(image)
-
+    def scan(self, image):
         name = OCR_SECRETARY_NAME.ocr(image)
 
         level = OCR_SECRETARY_LEVEL.ocr(image)

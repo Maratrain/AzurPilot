@@ -1,4 +1,3 @@
-import os
 import time
 from abc import ABCMeta, abstractmethod
 
@@ -11,9 +10,7 @@ import numpy as np
 import module.config.server as server
 from module.base.button import ButtonGrid
 from module.base.utils import (color_similar, crop, extract_letters, get_color,
-                               image_color_count, limit_in,
-                               random_normal_distribution_int,
-                               random_rectangle_point,
+                               limit_in,
                                float2str)
 from module.combat.level import LevelOcr
 from module.logger import logger
@@ -641,17 +638,15 @@ class SecretaryShip:
 
 
 class ShipScanner(Scanner):
-    """舰船扫描器，用于扫描船坞页面中所有舰船的属性信息。
+    """舰船扫描器，用于扫描船坞页面第一页所有舰船的属性信息。
 
     必须在船坞初始页面使用（设置筛选器后不能有滚动操作），否则结果不可靠。
-    如需跨页扫描，请使用 DockScanner。
 
     Args:
         rarity: 稀有度筛选，取值 'any'、'common'、'rare'、'elite'、'super_rare'，支持 str 或 list。
         level: 等级范围 (下限, 上限)，自动限制在 [1, 125]。
-        emotion: 情绪范围 (下限, 上限)，自动限制在 [0, 150]。
-        fleet: 舰队编号，0 表示不在任何编队，自动限制在 [0, 6]。
-        status: 状态筛选，取值 'free'、'battle'、'commission'、'in_hard_fleet'、'in_event_fleet'。
+        favorability: 好感度范围 (下限, 上限)，自动限制在 [0, 200]。
+        descending: 好感度降序，用于 OCR 结果排序一致性修正。
 
     属性支持两个特殊值 False 和 None：
 
@@ -764,7 +759,7 @@ class ShipScanner(Scanner):
     def disable(self, *args) -> None:
         """禁用指定属性的子扫描器。
 
-        支持的属性：'level'、'emotion'、'rarity'、'fleet'、'status'。
+        支持的属性：'level'、'favorability'、'rarity'、'hash'。
         """
         for name, scanner in self.sub_scanners.items():
             if name in args:
@@ -785,290 +780,3 @@ class ShipScanner(Scanner):
                 self.sub_scanners[attr].disable()
 
         logger.info(f'Limitations set to {self.limitation}')
-
-
-class DockScanner(ShipScanner):
-    """船坞扫描器，支持跨页扫描。
-
-    与 ShipScanner 相同，必须从船坞初始页面开始扫描。
-    扫描过程会自动滚动船坞，扫描完成后自动停止。
-    """
-    SCAN_ZONES: Dict[str, Tuple[int, int, int, int]] = {
-        'dock': (93, 55, 1219, 719),
-    }
-    def __init__(self, zone: str = 'dock', test_name: str = '') -> None:
-        self._results = []
-        self.scan_zone: Tuple[int, int, int, int] = self.SCAN_ZONES[zone]
-        self.zone_top: int = self.scan_zone[1]
-        self.zone_height: int = self.scan_zone[3] - self.scan_zone[1]
-        self.grids_top: int = 76
-        # 用于重新定位和滚动计算
-        self.mean_color_set = deque(maxlen=2)
-        self.moving_distance: int = 0
-        self.bound = []
-        # 用于扫描稳定性判断
-        self._stable: bool = False
-        self._no_change: int = 0
-        self.last_results = []
-        self.retry: int = 0
-
-        self.scanner = ShipScanner()
-
-        # 以下为调试信息相关
-        self.save_debug_info = False
-        self.debug_folder = f'./log/dock_scan_test/{test_name}_{int(time.time()*1000):x}'
-        if self.save_debug_info:
-            if not os.path.exists('./log/dock_scan_test'):
-                os.mkdir('./log/dock_scan_test')
-            if not os.path.exists(self.debug_folder):
-                os.mkdir(self.debug_folder)
-        self.debug_info = {
-            'time' : 0,
-            'ship_count' : 0,
-            'dock_size' : 0,
-            'ocr_mistake' : 0,
-            'reposition_retry' : 0,
-        }
-        self.ocr_mistake_image = []
-        self.extend_log = []
-        self.moving_distance_log = []
-
-    def limit_value(self, value) -> Any:
-        pass
-
-    @property
-    def stable(self) -> bool:
-        if self._stable:
-            self._stable = False
-            return True
-        else:
-            return False
-
-    @property
-    def mean_color(self):
-        return self.mean_color_set[-1] if self.mean_color_set else None
-
-    @mean_color.setter
-    def mean_color(self, value):
-        self.mean_color_set.append(value)
-
-    def no_change(self) -> bool:
-        return self._no_change > 3
-
-    def _find_bound(self, image) -> List[int]:
-        """粗略定位舰船卡片间的空白行位置。
-
-        空白行的标准差会出现明显波谷，通过定位波谷位置即可获得
-        空白行的大致位置。精度不高，但只需其中心点即可。
-        """
-        image = crop(image, self.scan_zone)
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        std = np.std(image, axis=1)
-        move_avg = np.convolve(std, np.ones((5, )) / 5, mode='valid')
-        gap_seq = list(np.nonzero(move_avg < 20)[0]) + [1000]
-
-        bound = []
-        start = 0
-        for i in range(len(gap_seq) - 1):
-            if gap_seq[i + 1] - gap_seq[i] > 50 and i + 1 - start > 10:
-                bound.append(np.mean(gap_seq[start : i + 1]).astype(int))
-                start = i + 1
-        if len(bound) > 1:
-            # 最后一行不可靠，限制其与上一行的最大间距
-            bound[-1] = min(bound[-2] + 225, bound[-1])
-
-        return bound
-
-    def reset_position(self) -> None:
-        offset = 76 - self.grids_top
-        self.grids_top += offset
-        self.scanner.move((0, offset))
-        self.mean_color_set.append(self.mean_color_set[0])
-
-    def reposition(self, image, bound) -> None:
-        """精确调整网格位置。
-
-        从 bound 给出的空白行中心点向下搜索，第一个颜色与 mean_color
-        差异较大的行即为新 CARD_GRIDS 的顶部位置。
-        """
-        scan_image = crop(image, self.scan_zone)
-        if self.mean_color is not None:
-            for y in range(0, 20):
-                if not color_similar(np.mean(scan_image[bound[0] + y], axis=0), self.mean_color, 60):
-                    break
-            offset = y + self.zone_top + bound[0] + 1 - self.grids_top
-            self.grids_top += offset
-            self.scanner.move((0, offset))
-
-        self.mean_color = np.mean(scan_image[bound[-1]], axis=0)
-
-    def _remove_duplicate(self, results) -> int:
-        """去除重复扫描结果，返回新增条目数。
-
-        两种重复情况：
-            整页重复：新结果与上一次完全相同。
-            半页重复：新结果前半部分与上次后半部分相同。
-        两种情况下，len(results) < 14 表示已到达底部。
-        """
-        if self._results:
-            if all([old.hash_ == new.hash_ for new, old in zip(results, self._results[-len(results):])]):
-                self._no_change += 999 if len(results) < 14 else 1
-                return 0
-            elif all([old.hash_ == new.hash_ for new, old in zip(results[:7], self._results[-7:])]):
-                self._results.extend(results[7-len(results):])
-                self._no_change = 999 if len(results) < 14 else 0
-                return len(results)-7
-
-        self._no_change = 0
-        self._results.extend(results)
-        return len(results)
-
-    def ensure_in_dock(self, main) -> None:
-        if main.appear(SHIP_DETAIL_CHECK, offset=(30, 30)):
-            main.ui_back(DOCK_CHECK)
-
-    def _scan(self, image) -> None:
-        bound = self._find_bound(image)
-        if len(bound) == 1:
-            # 没有舰船出现，页面已稳定
-            self._stable = True
-            return
-        elif len(bound) == 2:
-            if self.bound != bound:
-                self._stable = False
-                self.bound = bound
-                return
-        else:
-            self.bound.clear()
-
-        self.moving_distance = bound[-1] - (self.zone_height - 204 * 2 - 23 * 3) / 2 * 1.5
-        self.moving_distance_log.append(self.moving_distance)
-        self.reposition(image, bound)
-        results = self.scanner.scan(image, cached=False, output=False)
-        if not results:
-            self.retry += 1
-            self.debug_info['reposition_retry'] += 1
-            logger.info(f'No ship was detected, reset the position. Retry {self.retry} time(s)')
-            self.reset_position()
-            self.reposition(image, bound)
-            results = self.scanner.scan(image, cached=False, output=False)
-            if self.retry > 3:
-                self.moving_distance = random_normal_distribution_int(10, 20)
-                self.retry = 0
-        else:
-            self.retry = 0
-
-        if all([old.hash_ == new.hash_ for new, old in zip(results, self.last_results)]):
-            self._stable = True
-            inc = self._remove_duplicate(results)
-            if inc:
-                level = [ship.level for ship in results]
-                self.extend_log.append((inc, self.grids_top, level, cv2.cvtColor(image, cv2.COLOR_BGR2RGB)))
-
-                level = [ship.level for ship in results]
-                greater_equal = [level[i-1] >= level[i] for i in range(1, len(level))]
-                in_order = all(x == greater_equal[0] for x in greater_equal)
-                if not in_order:
-                    interrupt = np.where(np.array(greater_equal)==False)[0].tolist()
-                    values = [level[i] for i in interrupt]
-                    level_info = '_'.join([f'{p,v}' for p,v in zip(interrupt,values)])
-                    self.ocr_mistake_image.append((
-                        f"{self.debug_info['ocr_mistake']}_{self.grids_top}_{level_info}.png", cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                    ))
-                    self.debug_info['ocr_mistake'] += 1
-
-        self.last_results = results
-
-    def multi_scan(self, main) -> None:
-        """执行船坞多页扫描，自动滚动并收集所有舰船信息。
-
-        扫描原理示意：
-            □ | □ | □                          --------- (*)
-            ---------                          ■ | □ | □
-            □ | □ | □       --- 滚动 --->      ---------
-            --------- (*)                      □ | □ | □
-            ■ | □ | □                          ---------
-        □ 和 ■ 为舰船，| 和 - 为舰船间的空白间隔。
-        需要计算 (*) 移动的距离来检测滚动。
-
-        舰船间空白区域的颜色变化很小，将图像灰度化后用 np.std
-        过滤即可获得空白行的位置。
-        """
-        from module.retire.enhancement import OCR_DOCK_AMOUNT
-        self.debug_info['dock_size'], _, _ = OCR_DOCK_AMOUNT.ocr(main.device.image)
-
-        if DOCK_SCROLL.appear(main):
-            # 预先滚动到底部再回到顶部，可部分预加载舰船图像，
-            # 降低扫描过程中卡住的可能性
-            DOCK_SCROLL.set_bottom(main)
-            DOCK_SCROLL.set_top(main)
-
-        start_time = time.time()
-        while True:
-            while not self.stable:
-                main.device.screenshot()
-                self.ensure_in_dock(main)
-                self._scan(main.device.image)
-
-            click_zone_index = random_normal_distribution_int(0, 6)
-            start = random_rectangle_point((
-                240 + click_zone_index * 165, 555, 250 + click_zone_index * 165, 719
-            ))
-            end = (start[0], start[1] - self.moving_distance)
-            sharp_end = (end[0] - 165, end[1])
-            main.device.swipe(start, end)
-            main.device.click_record.pop()
-            main.device.swipe(end, sharp_end)
-            main.device.click_record.pop()
-
-            if not DOCK_SCROLL.appear(main) or (DOCK_SCROLL.at_bottom(main) and self.no_change()):
-                break
-        end_time = time.time()
-        self.debug_info['time'] = end_time - start_time
-        self.debug_info['ship_count'] = len(self._results)
-
-        if self.save_debug_info:
-            # 保存哈希相似度数据
-            hashs = [ship.hash_ for ship in self.results]
-            sims = []
-            for i in range(len(hashs)):
-                for j in range(i+1, len(hashs)):
-                    sims.append(DHash.distance(hashs[i],hashs[j]))
-            np.save(f'{self.debug_folder}/{len(sims)}.npy', np.array(sims))
-            # 保存 OCR 识别错误的图像
-            for name, image in self.ocr_mistake_image:
-                cv2.imwrite(f'{self.debug_folder}/{name}.png', image)
-            # 保存去重异常的图像
-            self.extend_log.append((0, None))
-            for i in range(len(self.extend_log) - 1):
-                cnt, top, level, image = self.extend_log[i]
-                if cnt != 14 and cnt != 7 and self.extend_log[i+1][0] != 0:
-                    cv2.imwrite(f'{self.debug_folder}/len={cnt}_top={top}_id={i}.png', image)
-                    self.debug_info[f'len={cnt}_top={top}_id={i}'] = level
-            # 保存调试信息摘要
-            self.debug_info['moving_mean'] = np.mean(self.moving_distance_log)
-            with open(f'{self.debug_folder}/debug_info.txt', 'w', encoding='utf-8') as f:
-                for k,v in self.debug_info.items():
-                    f.write(f'{k} = {v}\n')
-
-            logger.info(f'debug info has been saved in {self.debug_folder}')
-
-    def scan(self, image, cached=False, output=True) -> Union[List, None]:
-        """请使用 multi_scan() 代替。"""
-        pass
-
-    def scan_one_fleet(self, fleet: int = None) -> List[Ship]:
-        """扫描指定舰队中的所有舰船。
-
-        Args:
-            fleet: 舰队编号，未指定时使用 self.fleet。
-
-        Returns:
-            list[Ship]: 舰船列表。
-        """
-        pass
-
-
-    def scan_whole_dock(self) -> List[Ship]:
-        """扫描整个船坞。"""
-        pass

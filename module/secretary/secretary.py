@@ -4,19 +4,18 @@ from dataclasses import dataclass
 from module.base.filter import Filter
 from module.ui.page import page_profile, page_main
 from module.secretary.scanner import SecretaryScanner
-from module.secretary.dock import SecretaryDockMixin,DOCK_SORTING
+from module.secretary.dock import SecretaryDockMixin
 from module.secretary.ship_scanner import ShipScanner
 from module.notify.notify import handle_notify, notify_webui
 from datetime import timedelta
 from threading import Thread
-from module.base.timer import current_time
+import yaml
+from module.base.timer import Timer, current_time
 from module.secretary.slot import SECRETARY_SLOT
 from module.secretary.group_scanner import SecretaryGroupScanner
 from module.secretary.assets import (
-    PROFILE_CHECK,
     SECRETARY_BUTTON,
     SECRETARY_GROUP_CHECK,
-    SECRETARY_FIRST_SHIP_SLOT,
     SECRETARY_CONFIRM,
     SECRETARY_RANDOM_SWITCH,
     SECRETARY_RANDOM_ON,
@@ -36,6 +35,9 @@ RARITIES = [
     SecretaryRarity("common"),
 ]
 
+# 秘书舰放置可获取的好感度上限，达到后执行更换
+FAVORABILITY_LIMIT = 90
+
 class Secretary(SecretaryDockMixin,UI):
 
     RARITY_FILTER = Filter(
@@ -51,6 +53,13 @@ class Secretary(SecretaryDockMixin,UI):
         self.search_priority_index = 0
 
     def run(self):
+        """
+        秘书舰任务入口。
+
+        好感度未满时按剩余好感安排下次检查；
+        已满时执行更换，更换失败按失败间隔重试，
+        避免好感度 >=90 时 NextRun=now 造成的热循环。
+        """
         self.device.screenshot()
 
         if not self.appear(SECRETARY_GROUP_CHECK):
@@ -69,46 +78,52 @@ class Secretary(SecretaryDockMixin,UI):
 
             # OCR 当前秘书舰
             old_ship = self.scan_current_secretary()
-
             if old_ship is None:
                 logger.warning("Secretary OCR failed")
                 self.config.task_delay(success=False)
                 return
 
-            ship = old_ship
-
-            if ship is None:
-                logger.warning("Secretary OCR failed")
-                self.config.task_delay(success=False)
-                return
-
-            # 判断是否需要更换
-            # 当前秘书舰未满好感
-            if ship.favorability < 90:
-                self.schedule_next_run(ship.favorability)
+            # 当前秘书舰未满好感，等待好感度自然增长
+            if old_ship.favorability < FAVORABILITY_LIMIT:
+                self.schedule_next_run(old_ship.favorability)
                 return
 
             # 已满好感，开始更换流程
             group_ships = self.scan_secretary_group()
-            self.notify_before_replace(ship, group_ships)
+            self.notify_before_replace(old_ship, group_ships)
 
             if self.is_group_all_full(group_ships):
                 logger.info(
                     "Secretary group all favorability >=90, "
                     "refresh all secretary slots"
                 )
-                self.replace_all_secretary()
-
+                replace_ok = self.replace_all_secretary()
             elif self.config.Secretary_BackupEnable:
-                self.handle_backup_secretary()
-
+                replace_ok = self.handle_backup_secretary()
             else:
-                self.replace_secretary()
+                replace_ok = self.replace_secretary()
+
+            if not replace_ok:
+                logger.warning("Secretary replace failed, retry later")
+                self.config.task_delay(success=False)
+                return
 
             # OCR 新秘书舰
             new_ship = self.scan_current_secretary()
-            if new_ship:
-                ship = new_ship
+            if new_ship is None:
+                logger.warning("Secretary OCR failed after replace")
+                self.config.task_delay(success=False)
+                return
+
+            # 新秘书舰仍满好感说明更换未生效（OCR 误判或拖拽失败），
+            # 按失败处理，避免 schedule_next_run 计算出 0 小时形成热循环
+            if new_ship.favorability >= FAVORABILITY_LIMIT:
+                logger.warning(
+                    f"New secretary favorability={new_ship.favorability} "
+                    f"still >= 90, treat as failure"
+                )
+                self.config.task_delay(success=False)
+                return
 
             # 自定义检测时间优先
             if self.config.Secretary_CheckInterval > 0:
@@ -117,15 +132,25 @@ class Secretary(SecretaryDockMixin,UI):
                 )
                 self.config.task_delay(target=next_run)
             else:
-                next_run = self.schedule_next_run(ship.favorability)
+                next_run = self.schedule_next_run(new_ship.favorability)
 
-            self.notify_after_replace(ship, next_run, old_ship)
+            self.notify_after_replace(new_ship, next_run, old_ship)
 
         finally:
-            # 恢复随机秘书组
-            if restore_random:
-                self.handle_random_group(True)
+            # 无论成功失败，先退出可能残留的船坞界面再恢复随机秘书组
+            try:
+                self.exit_dock()
+                if restore_random:
+                    self.handle_random_group(True)
+            except Exception as e:
+                logger.warning(f"Failed to restore secretary state: {e}")
+
         self.ui_goto(page_main)
+
+    def exit_dock(self):
+        """退出船坞选人界面，返回秘书组页面。"""
+        if self.appear(SECRETARY_DOCK_CHECK):
+            self.ui_back(SECRETARY_GROUP_CHECK)
 
     def enter_secretary_group(self):
         logger.hr("Secretary Group")
@@ -142,64 +167,71 @@ class Secretary(SecretaryDockMixin,UI):
                 continue
 
     def open_ship_select(self, button):
+        """点击秘书舰槽位进入船坞选人界面。
+
+        状态循环：点击后等待 SECRETARY_DOCK_CHECK 出现，
+        间隔防连击，不使用 sleep 等待。
+        """
         logger.hr("Enter Secretary select")
 
+        click_timer = Timer(3)
         while True:
-            self.device.screenshot()
-            if self.appear(SECRETARY_DOCK_CHECK):
-                logger.info("Already in secretary dock")
-                return
-
-            self.device.click(button)
-
-            logger.info(f"Click secretary slot: {button}")
-
-            # 等页面切换
-            self.device.sleep(1)
-
             self.device.screenshot()
 
             if self.appear(SECRETARY_DOCK_CHECK):
                 logger.info("Enter secretary dock")
                 return
 
-    def choose_secretary(self, initialize=True):
+            if click_timer.reached():
+                click_timer.reset()
+                self.device.click(button)
+                logger.info(f"Click secretary slot: {button}")
 
+    def choose_secretary(self):
+        """
+        在船坞中搜索并选中候选秘书舰。
+
+        初始化收藏过滤与稀有度筛选，搜索结束后恢复船坞状态。
+
+        Returns:
+            bool: 是否成功选中秘书舰（尚未确认）。
+        """
         logger.hr("Choose Secretary")
 
-        if initialize:
-            self.dock_favourite_set(True)
-
-        ship = self.search_ship(initialize=initialize)
+        self.dock_favourite_set(True)
+        ship = self.search_ship()
 
         if ship is None:
             logger.warning("未找到可用的舰船")
+            self.restore_dock_state()
             return False
 
         self.select_ship(ship)
-        self.restore_sort()
+        self.restore_dock_state()
         logger.info("已成功选择秘书舰")
         return True
 
-    def search_ship(self, initialize=True):
+    def search_ship(self):
         """
-        Search secretary.
+        按稀有度优先级搜索候选秘书舰。
 
-        Args:
-            initialize:
-                True：初始化筛选，从第一种稀有度开始。
-                False：继续当前搜索状态，不重新开始。
+        船坞按好感度排序扫描：低好感度优先时使用升序，
+        最低好感度候选必然位于第一页首位，单页扫描即可覆盖；
+        高好感度优先时使用降序。
+
+        Returns:
+            SecretaryShip: 可用候选，没有则返回 None。
         """
-        if initialize:
-            self.RARITY_FILTER.load(self.config.Secretary_CustomFilter)
-            self.search_priority = self.RARITY_FILTER.apply(RARITIES)
-            self.search_priority_index = 0
+        self.RARITY_FILTER.load(self.config.Secretary_CustomFilter)
+        self.search_priority = self.RARITY_FILTER.apply(RARITIES)
+        self.search_priority_index = 0
 
-            if not self.search_priority:
-                logger.warning("No secretary rarity configured")
-                return None
+        if not self.search_priority:
+            logger.warning("No secretary rarity configured")
+            return None
 
-            rarity = self.search_priority[0]
+        while self.search_priority_index < len(self.search_priority):
+            rarity = self.search_priority[self.search_priority_index]
             logger.info(f"Searching secretary: {rarity.rarity}")
 
             self.secretary_filter_set(
@@ -207,59 +239,71 @@ class Secretary(SecretaryDockMixin,UI):
                 rarity=rarity.rarity,
                 wait_loading=True,
             )
-            self.set_low_favorability_priority()
-
-        while self.search_priority_index < len(self.search_priority):
+            self.set_search_sort()
 
             ship = self.scan_ship()
 
-            if ship:
+            if ship is not None:
                 logger.info(f"Found ship: Lv{ship.level} FAVORABILITY={ship.favorability}")
                 return ship
 
-            # 当前稀有度已经没有可选舰船
+            # 当前稀有度已经没有可选舰船，尝试下一稀有度
             self.search_priority_index += 1
-
-            if self.search_priority_index >= len(self.search_priority):
-                break
-
-            rarity = self.search_priority[self.search_priority_index]
-            logger.info(f"Searching secretary: {rarity.rarity}")
-            self.secretary_filter_set(
-                sort="intimacy",
-                rarity=rarity.rarity,
-                wait_loading=True,
-            )
-            self.set_low_favorability_priority()
 
         logger.warning("No secretary candidate found")
         return None
 
     def scan_ship(self):
+        """
+        扫描船坞第一页并返回一个可用候选，没有则返回 None。
+
+        高好感度优先时，若第一页全部满好感（大量满好感舰船的船坞中常见），
+        回退为好感度升序重扫一次，取最低好感度候选，
+        避免漏掉降序第一页之外的舰船。
+        """
+        descending = not self.config.Secretary_LowFavorabilityPriority
+
+        ships = self._scan_dock_page(descending=descending)
+
+        if not ships and descending:
+            logger.info("No candidate in descending order, retry ascending")
+            self.dock_sort_method_dsc_set(False)
+            ships = self._scan_dock_page(descending=False)
+
+        if not ships:
+            return None
+
+        # 列表顺序与船坞排序方向一致，首位即优先级最高的候选
+        return ships[0]
+
+    def _scan_dock_page(self, descending):
+        """
+        扫描船坞第一页并过滤出可用候选。
+
+        Args:
+            descending: True 按好感度降序扫描，False 升序。
+
+        Returns:
+            list[SecretaryShip]: 满足条件的候选列表。
+        """
         scanner = ShipScanner(
-            favorability=(0,200),
+            favorability=(0, 200),
             rarity=False,
-            descending=not self.config.Secretary_LowFavorabilityPriority,
+            descending=descending,
         )
         self.device.screenshot()
         ships = scanner.scan(self.device.image)
 
-        if not ships:
-            return None
-        
         # 过滤：
-        # 低等级 + 0好感度 的舰船不作为秘书舰
-        ships = [
+        # - 低等级 + 0好感度 的舰船不作为秘书舰
+        # - 已满可获取好感度的舰船不再需要放置
+        # - 已被选中的舰船不可重复选择
+        return [
             ship for ship in ships
             if not (ship.level < 20 and ship.favorability == 0)
-            if ship.favorability < 90
+            if ship.favorability < FAVORABILITY_LIMIT
             if not ship.selected
         ]
-
-        if not ships:
-            return None
-
-        return ships[0]
     def select_ship(self, ship):
         logger.info(f"Select secretary: Lv{ship.level} FAVORABILITY={ship.favorability}")
         self.device.click(ship.button)
@@ -281,7 +325,7 @@ class Secretary(SecretaryDockMixin,UI):
     def schedule_next_run(self, favorability):
         """
         根据秘书舰好感计算下一次运行时间。
-        好感每 6 小时增加 1 点，90 时执行更换。
+        好感每 6 小时增加 1 点，达到可获取上限时执行更换。
         """
         interval = self.config.Secretary_CheckInterval
         # 用户指定检测时间
@@ -296,7 +340,10 @@ class Secretary(SecretaryDockMixin,UI):
             return next_run
 
         # 自动计算
-        hours = max(0, 90 - min(favorability, 90)) * 6
+        hours = max(
+            0,
+            FAVORABILITY_LIMIT - min(favorability, FAVORABILITY_LIMIT),
+        ) * 6
 
         next_run = current_time() + timedelta(hours=hours)
 
@@ -318,8 +365,6 @@ class Secretary(SecretaryDockMixin,UI):
 
         self.device.screenshot()
 
-        scanner = SecretaryScanner()
-
         secretary = self.secretary_scanner.scan(self.device.image)
 
         if secretary is None:
@@ -340,8 +385,6 @@ class Secretary(SecretaryDockMixin,UI):
         """
         self.device.screenshot()
 
-        scanner = SecretaryGroupScanner()
-
         ships = self.group_scanner.scan(self.device.image)
 
         logger.hr("Secretary Group")
@@ -357,12 +400,16 @@ class Secretary(SecretaryDockMixin,UI):
         return ships
 
     def replace_secretary(self):
+        """通过船坞筛选直接更换主秘书舰。
 
+        Returns:
+            bool: 是否成功更换。
+        """
         self.replace_type = "船坞筛选"
 
         self.open_ship_select(SECRETARY_SLOT[0])
 
-        if not self.choose_secretary(initialize=True):
+        if not self.choose_secretary():
             logger.warning("未找到可更换秘书舰")
             return False
 
@@ -370,56 +417,35 @@ class Secretary(SecretaryDockMixin,UI):
 
         return True
 
-    def search_group_candidate(self, ships):
+    @staticmethod
+    def _onepush_configured(config: str) -> bool:
+        """判断 OnePush 配置是否填写了推送渠道。
 
-        ships = ships[1:]          # 跳过主秘书舰
-
-        ships = [
-            ship
-            for ship in ships
-            if (
-                ship.level > 1
-                and ship.favorability < 90
-            )
-        ]
-
-        if not ships:
-            return None
-
-        reverse = not self.config.Secretary_LowFavorabilityPriority
-
-        ships.sort(
-            key=lambda x: x.favorability,
-            reverse=reverse,
-        )
-
-        return ships[0]
-
-    def swap_group_secretary(self, ship):
-
-        src = SECRETARY_SLOT[ship.index]
-        dst = SECRETARY_SLOT[0]
-
-        logger.info(
-            f"Swap secretary {ship.index} -> 0"
-        )
-
-        self.device.drag(
-            src,
-            dst,
-            duration=0.4,
-        )
-
-        self.device.sleep(1)
+        留空或仅保留默认的 provider: null 均视为未配置。
+        """
+        if not config or not config.strip():
+            return False
+        try:
+            parsed = yaml.safe_load(config)
+        except Exception:
+            return False
+        if not isinstance(parsed, dict):
+            return False
+        return bool(parsed.get("provider"))
 
     def _notify_worker(self, title, content):
         instance = self.config.config_name
 
-        handle_notify(
-            self.config.Error_OnePushConfig,
-            title=title,
-            content=content,
-        )
+        # 秘书舰专用 OnePush 配置，留空时回退到全局错误推送配置
+        if self.config.Secretary_Notify:
+            push_config = self.config.Secretary_OnePushConfig
+            if not self._onepush_configured(push_config):
+                push_config = self.config.Error_OnePushConfig
+            handle_notify(
+                push_config,
+                title=title,
+                content=content,
+            )
 
         notify_webui(
             instance,
@@ -440,7 +466,7 @@ class Secretary(SecretaryDockMixin,UI):
 
         if group_ships:
             group_full = all(
-                s.favorability >= 90
+                s.favorability >= FAVORABILITY_LIMIT
                 for s in group_ships
             )
 
@@ -475,7 +501,7 @@ class Secretary(SecretaryDockMixin,UI):
 
         if ships:
             group_full = all(
-                s.favorability >= 90
+                s.favorability >= FAVORABILITY_LIMIT
                 for s in ships
             )
 
@@ -495,7 +521,7 @@ class Secretary(SecretaryDockMixin,UI):
         if group_full:
             content += (
                 "\n秘书组状态：\n"
-                "所有候补秘书舰已成功更换"
+                "秘书组仍全部满好感，请检查船坞中是否有可用候选舰船"
                 "\n"
             )
 
@@ -510,6 +536,11 @@ class Secretary(SecretaryDockMixin,UI):
         )   
 
     def handle_random_group(self, enable):
+        """切换随机秘书组开关到目标状态。
+
+        Args:
+            enable: True 开启，False 关闭。
+        """
         logger.hr(f"Random secretary group {'ON' if enable else 'OFF'}")
 
         target = (
@@ -518,18 +549,16 @@ class Secretary(SecretaryDockMixin,UI):
             else SECRETARY_RANDOM_OFF
         )
 
+        click_timer = Timer(3)
         while True:
             self.device.screenshot()
 
             if self.appear(target):
-                self.device.sleep(0.5)
-                self.device.screenshot()
                 return
 
-            self.appear_then_click(
-                SECRETARY_RANDOM_SWITCH,
-                interval=3,
-            )
+            if click_timer.reached():
+                click_timer.reset()
+                self.appear_then_click(SECRETARY_RANDOM_SWITCH)
 
     def random_group_enabled(self):
         """
@@ -539,27 +568,32 @@ class Secretary(SecretaryDockMixin,UI):
         self.device.screenshot()
         return self.appear(SECRETARY_RANDOM_ON)
 
-    def set_low_favorability_priority(self):
+    def set_search_sort(self):
+        """按配置设置船坞好感度排序方向。"""
         if self.config.Secretary_LowFavorabilityPriority:
             logger.info("Sort by low favorability")
             self.dock_sort_method_dsc_set(False)
-
-    def restore_sort(self):
-        if self.config.Secretary_LowFavorabilityPriority:
-            logger.info("Restore default sort")
+        else:
+            logger.info("Sort by high favorability")
             self.dock_sort_method_dsc_set(True)
 
-    def dock_sort_method_dsc_set(self, enable=True, wait_loading=True):
+    def restore_dock_state(self):
+        """恢复任务修改过的船坞状态（关闭收藏过滤、恢复降序、重置筛选）。
+
+        需在船坞界面调用，避免任务的筛选残留影响用户手动操作船坞。
         """
-        Args:
-            enable: True to set descending sorting
-            wait_loading: Default to True, use False on continuous operation
-        """
-        if DOCK_SORTING.set('Descending' if enable else 'Ascending', main=self):
-            if wait_loading:
-                self.handle_dock_cards_loading()
+        if not self.appear(SECRETARY_DOCK_CHECK):
+            return
+        self.dock_favourite_set(False, wait_loading=False)
+        self.dock_sort_method_dsc_set(True)
+        self.secretary_filter_set()
 
     def handle_backup_secretary(self):
+        """优先提升候补秘书舰，无候补时更换第五槽位。
+
+        Returns:
+            bool: 主秘书舰是否被成功更换。
+        """
         ships = self.scan_secretary_group()
 
         candidate = self.search_backup_secretary(ships)
@@ -568,16 +602,16 @@ class Secretary(SecretaryDockMixin,UI):
         if candidate:
             self.replace_type = "秘书组候补"
             self.promote_backup(candidate)
-            return
+            return True
 
         logger.info("No backup secretary, replace slot5")
 
         # 只更换第五位
         self.open_ship_select(SECRETARY_SLOT[4])
 
-        if not self.choose_secretary(initialize=True):
+        if not self.choose_secretary():
             logger.warning("No secretary candidate")
-            return
+            return False
 
         self.confirm()
 
@@ -589,34 +623,39 @@ class Secretary(SecretaryDockMixin,UI):
         if candidate:
             self.promote_backup(candidate)
 
+        return True
+
     def replace_all_secretary(self):
         """
         当秘书组全部满90时，
         从主秘书舰开始依次替换。
+
+        Returns:
+            bool: 是否至少成功更换一艘。
         """
         ships = self.scan_secretary_group()
         if not ships:
             return False
 
+        self.replace_type = "秘书组全满刷新"
+
         # 找所有需要替换的位置
         targets = [
             ship
             for ship in ships
-            if ship.favorability >= 90
+            if ship.favorability >= FAVORABILITY_LIMIT
         ]
         if not targets:
             return False
         logger.info(f"Secretary all full, replace {len(targets)} ships")
-        first = True
+
         count = 0
 
         for ship in targets:
             slot = SECRETARY_SLOT[ship.index]
             logger.info(f"Replace secretary slot {ship.index}: {ship.name} {ship.favorability}")
             self.open_ship_select(slot)
-            initialize = first
-            first = False
-            if not self.choose_secretary(initialize=initialize):
+            if not self.choose_secretary():
                 logger.warning(f"No replacement for slot {ship.index}")
                 continue
 
@@ -638,7 +677,7 @@ class Secretary(SecretaryDockMixin,UI):
             ship
             for ship in backups
             if ship.level >= 1
-            and ship.favorability < 90
+            and ship.favorability < FAVORABILITY_LIMIT
         ]
 
         if not backups:
@@ -674,36 +713,11 @@ class Secretary(SecretaryDockMixin,UI):
 
         self.device.sleep(1)
 
-    def refresh_secretary_group(self):
-
-        logger.hr("Refresh secretary group")
-
-        count = 0
-
-        for slot in range(1,5):
-            if self.replace_group_slot(slot):
-                count += 1
-
-        logger.info(
-            f"Refresh secretary group success {count}/4"
-        )
-
-    def replace_group_slot(self, slot):
-
-        self.open_ship_select(SECRETARY_SLOT[slot])
-
-        if not self.choose_secretary():
-            logger.warning(f"Slot {slot} no candidate.")
-            return False
-
-        self.confirm()
-        return True
-
     def is_group_all_full(self, ships):
         if not ships:
             return False
 
         return all(
-            ship.favorability >= 90
+            ship.favorability >= FAVORABILITY_LIMIT
             for ship in ships
         )

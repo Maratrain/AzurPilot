@@ -39,8 +39,3 @@ SECRETARY_SLOT_OFFSET = [
     (193 * i, 0)
     for i in range(5)
 ]
-for i, slot in enumerate(SECRETARY_SLOT):
-    print(
-        i,
-        slot.button
-    )
