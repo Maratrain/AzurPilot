@@ -23,20 +23,21 @@ alwaysApply: true
 
 - **Python >=3.14,<3.15**
 - **uv** 包管理器（项目模式，`package = false`）
-- **依赖安装**：`uv sync --frozen`
+- **依赖安装**：`uv sync`。仓库**不提交锁文件**（`.gitignore` 忽略 `*.lock`），不要使用 `uv sync --frozen`（CI 上会因缺少 `uv.lock` 报错）
 - **运行时环境**：项目本地 `.venv/`
-- **不维护 `requirements*.txt`**——依赖在 `pyproject.toml` 中声明，锁文件 `uv.lock` 提交到 git
+- **不维护 `requirements*.txt`**——依赖在 `pyproject.toml` 中声明，版本直接钉死在 pyproject.toml
 
 ## 基本命令
 
 ```bash
-uv sync --frozen                                 # 安装依赖
+uv sync                                          # 安装依赖
 uv run python gui.py                             # 启动 WebUI（端口 22267）
 uv run python alas.py                            # 直接运行调度器
 uv run python mcp_server_sse.py                  # 启动 MCP SSE 服务器（端口 22268）
 uv run ruff check . --select E9,F63,F7,F82 --ignore F821,F722  # CI lint
 uv run -m module.config.config_updater           # 配置生成（修改 YAML 后必须运行）
 uv run -m dev_tools.button_extract               # 从截图提取按钮定义
+uv run python -m unittest discover -s tests      # 全量单元测试（提交前必须全绿）
 ```
 
 ---
@@ -558,19 +559,45 @@ server.server = 'en'
 
 ## 测试
 
-- **没有 Python 测试套件** — 测试通过运行任务对接真实模拟器进行
+- **单元测试**：`tests/` 目录，285 个测试，全量运行约 7-10 秒：
+
+  ```bash
+  uv run python -m unittest discover -s tests
+  ```
+
+- CI 的 `unittest` job 跑的是同一套测试。CI 在 Ubuntu 上运行，部分行为与 Windows 不同（如进程收割、路径、文件锁），本地通过不代表 CI 通过——推送后仍需关注 CI 结果
 - Webapp 有基本的 Playwright 测试（`webapp/tests/app.spec.js`）
+
+### 提交/推送前强制检查（必须遵守）
+
+**每次提交涉及 Python 代码（含 `tests/`、`alas.py`、`module/` 等）时，必须先本地运行全量单元测试并确认全绿，再提交推送：**
+
+```bash
+uv run python -m unittest discover -s tests
+```
+
+- 测试失败必须先修复再提交，**不得带着红测试推送**
+- 同时修改了配置 YAML 时，还需运行 `uv run -m module.config.config_updater` 和 `uv run -m dev_tools.button_extract` 并提交产物（CI 会检查未提交 diff）
+- 只改 `.github/workflows/`、Markdown 文档时可跳过，但推送后要确认 CI 通过
+- 无法运行测试时（如环境损坏），必须在提交说明或交付说明中注明原因，**不得假装验证通过**
 
 ---
 
 ## CI
 
-GitHub Actions 使用 `uv sync --frozen` 和 `uv run`：
-- `lint.yml` — Ruff lint + button_extract + config_updater（检查未提交的 diff）
-- `docker-publish.yml` — tag 推送时构建并推送 Docker 镜像
-- `sync2.yml` — 推送到 master/dev 时同步到 GitCode 镜像
-- `ai-issue-labeler.yml` — 基于 AI 的 issue 标签
-- `git-over-cdn-*.yml` — 面向中国用户的 Git over CDN
+GitHub Actions：workflow 只有 `lint.yml`（`on: [push, pull_request]`），三个 job：
+
+| Job | 内容 |
+|---|---|
+| `ruff` | `uv sync` + `uv run ruff check . --select E9,F63,F7,F82 --ignore F821,F722` |
+| `button-config-check` | `uv sync --no-dev` + 运行 button_extract / config_updater，`git diff --exit-code` 检查未提交 diff |
+| `unittest` | `uv sync` + `uv run python -m unittest discover -s tests` |
+
+注意事项：
+
+- 仓库不提交 `uv.lock`，workflow 使用 `uv sync`（**无** `--frozen`）
+- actions 版本：`actions/checkout@v7`、`actions/setup-python@v7`、`astral-sh/setup-uv@v10.0.1`——新版 setup-uv **没有 `v10` 这类浮动 tag**，升级时必须钉完整版本号
+- 失败先看 `gh run view <run-id> --log-failed`（gh CLI 需用完整路径调用）
 
 ---
 
@@ -603,6 +630,8 @@ GitHub Actions 使用 `uv sync --frozen` 和 `uv run`：
 5. **识别污染**：识别 AI 生成代码中常见的"顺手修改污染"（无关 import、无意义格式改动、调试代码、日志残留等）
 
 ### 提交前检查
+
+**首先必须运行全量单元测试并全绿**：`uv run python -m unittest discover -s tests`（详见"测试"一节的强制检查规则）。
 
 检查是否存在以下不应提交的内容：
 - 临时代码、console/debug 输出
