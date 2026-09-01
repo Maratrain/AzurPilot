@@ -182,7 +182,6 @@ class AzurLaneAutoScript:
 
     def _get_daily_summary_settings(self):
         """读取最新日报设置，不重载正在执行任务的完整配置对象。"""
-        config = self.config
         try:
             config_path = filepath_config(self.config_name)
             modified_at = os.stat(config_path).st_mtime_ns
