@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from module.ocr.ocr import Ocr
-from module.secretary.ocr import SecretaryDigit
+from module.secretary.ocr import SecretaryDigit, SecretaryFavorabilityDigit
 from module.secretary.assets import (
     SECRETARY_NAME,
     SECRETARY_LEVEL,
@@ -68,7 +68,7 @@ class SecretaryGroupScanner:
             )
 
             self.favorability_ocr.append(
-                SecretaryDigit(
+                SecretaryFavorabilityDigit(
                     favor_btn,
                     name=f"SECRETARY_FAVORABILITY_{index}",
                 )

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from module.ocr.ocr import Ocr
-from module.secretary.ocr import SecretaryDigit
+from module.secretary.ocr import SecretaryDigit, SecretaryFavorabilityDigit
 from module.secretary.assets import (
     SECRETARY_NAME,
     SECRETARY_LEVEL,
@@ -28,7 +28,7 @@ OCR_SECRETARY_LEVEL = SecretaryDigit(
     name="SECRETARY_LEVEL",
 )
 
-OCR_SECRETARY_FAVORABILITY = SecretaryDigit(
+OCR_SECRETARY_FAVORABILITY = SecretaryFavorabilityDigit(
     [SECRETARY_FAVORABILITY],
     name="SECRETARY_FAVORABILITY",
 )
