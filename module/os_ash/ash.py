@@ -38,6 +38,11 @@ class AshBeaconFinished(Exception):
     pass
 
 
+# 持久化"信标任务已用某持有量读数确认过无可做内容"的存储路径，
+# 防止持有量 OCR 误读（如 70 被读成 170）反复触发信标任务调用
+CONFIG_PATH_ASH_NOTHING_TO_DO = 'OpsiAshBeacon.Storage.NothingToDo'
+
+
 class AshCombat(Combat):
     """余烬信标战斗处理器。
 
@@ -194,9 +199,28 @@ class OSAsh(UI, MapEventHandler):
         # 信标任务的下次运行时间
         next_run = self.config.cross_get(keys="OpsiAshBeacon.Scheduler.NextRun", default=DEFAULT_TIME)
         # 距下次执行时间超过 30 分钟
-        if next_run - current_time() > timedelta(minutes=30):
-            return True
-        return False
+        return next_run - current_time() > timedelta(minutes=30)
+
+    def _ash_beacon_confirmed_nothing_to_do(self, status):
+        """
+        检查信标任务今天是否已用相同持有量读数确认过无可攻击内容。
+
+        持有量 OCR 区域覆盖半透明面板，边框线与背景对比度变化会造成
+        稳定的误读（如 70/200 被读成 170/200），误读值跨过 100 调用阈值后
+        若无此检查，其他任务每轮都会重复调用信标任务并被打断，形成死循环。
+        状态由 OpsiAshBeacon 空转结束时写入并持久化，日期或读数变化后自动失效。
+
+        Args:
+            status (int): 当前读取的持有量。
+
+        Returns:
+            bool: True 表示今天已用相同读数确认过无可做内容，应跳过调用。
+        """
+        state = self.config.cross_get(keys=CONFIG_PATH_ASH_NOTHING_TO_DO, default={})
+        if not isinstance(state, dict):
+            return False
+        today = current_time().strftime('%Y-%m-%d')
+        return state.get('NothingToDoDate') == today and state.get('NothingToDoValue') == status
 
     def handle_ash_beacon_attack(self):
         """
@@ -211,10 +235,16 @@ class OSAsh(UI, MapEventHandler):
             in: is_in_map
             out: is_in_map
         """
-        if self.config.is_task_enabled('OpsiAshBeacon') \
-                and self.ash_collect_status() >= 100 \
-                and self._support_call_ash_beacon_task():
-            self.config.task_call(task='OpsiAshBeacon')
-            return True
-
-        return False
+        if not self.config.is_task_enabled('OpsiAshBeacon'):
+            return False
+        status = self.ash_collect_status()
+        if status < 100:
+            return False
+        if not self._support_call_ash_beacon_task():
+            return False
+        if self._ash_beacon_confirmed_nothing_to_do(status):
+            return False
+        # 记录本次调用时的读数，供信标任务空转结束时写入确认状态
+        self.config._ash_beacon_call_value = status
+        self.config.task_call(task='OpsiAshBeacon')
+        return True

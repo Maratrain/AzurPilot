@@ -10,10 +10,11 @@ from enum import Enum
 import module.config.server as server
 from module.base.timer import Timer
 from module.combat.combat import BATTLE_PREPARATION
+from module.config.time_source import now as current_time
 from module.logger import logger
 from module.meta_reward.meta_reward import MetaReward
 from module.ocr.ocr import Digit, DigitCounter
-from module.os_ash.ash import AshCombat
+from module.os_ash.ash import CONFIG_PATH_ASH_NOTHING_TO_DO, AshCombat
 from module.os_ash.assets import *
 from module.os_handler.map_event import MapEventHandler
 from module.ui.assets import BACK_ARROW
@@ -162,7 +163,18 @@ class OpsiAshBeacon(Meta):
                 if self._begin_meta():
                     continue
                 else:
-                    # 正常结束
+                    # 正常结束：当前没有可攻击的信标或档案。
+                    # 持久化本次调用时的持有量读数与日期，调用方在
+                    # 相同读数下不再重复调用，防止持有量 OCR 误读
+                    # （如 70 被读成 170）每轮空跑本任务打断调度任务。
+                    # 日期或读数变化后自动失效，不影响正常召唤流程。
+                    value = getattr(self.config, '_ash_beacon_call_value', None)
+                    if isinstance(value, int):
+                        self.config.modified[CONFIG_PATH_ASH_NOTHING_TO_DO] = {
+                            'NothingToDoDate': current_time().strftime('%Y-%m-%d'),
+                            'NothingToDoValue': value,
+                        }
+                        self.config.save()
                     break
             if MetaState.ATTACKING == state:
                 # Exit beacon pages when in dossier-only mode
