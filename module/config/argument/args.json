@@ -7294,6 +7294,7 @@
         "type": "select",
         "value": "three_star",
         "option": [
+          "normal_3_star",
           "three_star",
           "clear_100"
         ]

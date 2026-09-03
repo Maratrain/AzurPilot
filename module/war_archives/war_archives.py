@@ -10,7 +10,8 @@
 - 通关后实时扣减每日额度并持久化到配置
 - 自动开荒（AutoClear）：识别关卡准备界面的三颗星暗亮状态并
   选择战斗策略——缺第三颗星开荒全清（一把推进达成度与三颗星），
-  仅缺第二颗星自律刷护卫舰队；全图三星模式覆盖普通图与困难图，
+  仅缺第二颗星自律刷护卫舰队；普通图三星模式覆盖普通图，所有
+  关卡打满三星，完成后结束；全图三星模式覆盖普通图与困难图，
   所有关卡打满三星，普通图完成后推进困难图；100% 通关模式覆盖
   困难图，中间关全清一次（达成度 100%）即推进，最后一关在全清
   首通后自律刷满星
@@ -211,6 +212,8 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
         """推导自动开荒的关卡序列。
 
         从活动地图文件夹的文件列表中，按开荒目标筛选主关卡并排序：
+        - 普通图三星（normal_3_star）：普通图，a/b/t 编号，如
+          a1 > as1 > a2 > a3 > b1
         - 全图三星（three_star）：普通图在前、困难图在后，覆盖全部
           主关卡，如 a1 > as1 > a2 > a3 > b1 > c1 > d1
         - 100% 通关（clear_100）：困难图，c/d/ht 编号，如
@@ -229,16 +232,20 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
         sort_key = self._auto_clear_stage_sort_key
         normal = sorted((f for f in files if re.fullmatch(r'(a|b|t)s?\d+', f)), key=sort_key)
         hard = sorted((f for f in files if re.fullmatch(r'(c|d|ht)s?\d+', f)), key=sort_key)
-        if self.config.WarArchives_AutoClearTarget == 'clear_100':
-            target = '100% 通关（困难图）'
+        target = self.config.WarArchives_AutoClearTarget
+        if target == 'clear_100':
+            target_text = '100% 通关（困难图）'
             stages = hard
+        elif target == 'normal_3_star':
+            target_text = '普通图三星'
+            stages = normal
         else:
-            target = '全图三星（普通图+困难图）'
+            target_text = '全图三星（普通图+困难图）'
             stages = normal + hard
         if not stages:
-            logger.critical(f'[作战档案] 活动 {folder} 中未找到符合开荒目标（{target}）的关卡')
+            logger.critical(f'[作战档案] 活动 {folder} 中未找到符合开荒目标（{target_text}）的关卡')
             raise RequestHumanTakeover
-        logger.info(f'[作战档案] 开荒目标: {target}，关卡序列: {stages}')
+        logger.info(f'[作战档案] 开荒目标: {target_text}，关卡序列: {stages}')
         return stages
 
     def load_campaign(self, name, folder='campaign_main'):
@@ -288,9 +295,10 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
         """记录单个达标关卡并持久化，用于下次运行直接跳过。
 
         达标标准随开荒目标变化：100% 通关模式为达成度 100%
-        （中间关全清一次即达标，仅最后一关要求满星），全图三星
-        模式为满星。进度按活动文件夹和开荒目标分组存储，两个开荒
-        目标的关卡序列互不相交，切换目标不会误跳过另一目标的关卡。
+        （中间关全清一次即达标，仅最后一关要求满星），普通图三星
+        与全图三星模式为满星。进度按活动文件夹和开荒目标分组存储，
+        各开荒目标的关卡序列互不相交，切换目标不会误跳过另一目标
+        的关卡。
 
         Args:
             folder: 活动地图文件夹名称。
@@ -512,7 +520,7 @@ class CampaignWarArchives(CampaignRun, CampaignBase):
         deferred = []
         for stage in remaining:
             # 100% 通关模式：中间关全清一次（达成度 100%）即推进，
-            # 只有最后一关需要打满星；全图三星模式普通图与困难图
+            # 只有最后一关需要打满星；普通图三星与全图三星模式
             # 所有关卡都打满星；剧情关没有三星成就，通关一次即完成
             farm_full_stars = (not target_is_100 or stage == stages[-1]) \
                 and not self._is_story_stage(stage)

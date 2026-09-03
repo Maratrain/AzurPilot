@@ -226,7 +226,7 @@ class GeneratedConfig:
     WarArchives_DailyRunCount = 0
     WarArchives_AutoClear = False
     WarArchives_AutoSelectEvent = False
-    WarArchives_AutoClearTarget = 'three_star'  # three_star, clear_100
+    WarArchives_AutoClearTarget = 'three_star'  # normal_3_star, three_star, clear_100
     WarArchives_AutoClearProgress = None
     WarArchives_DailyRunCountRemain = 0
     WarArchives_DailyRunCountRecord = datetime.datetime(2020, 1, 1, 0, 0)
