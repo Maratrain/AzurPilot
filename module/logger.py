@@ -260,6 +260,10 @@ class RichTimedRotatingHandler(TimedRotatingFileHandler):
         self.rolloverAt = newRolloverAt
 
         self.log_file = str(newPath.resolve())
+        # 同步模块级引用：logger.log_file 仅在进程启动时赋值一次，
+        # 若不在此处更新，跨零点轮转后 save_error_log / LLM 错误分析
+        # 仍会读取前一天的日志文件，保存的错误现场不含报错内容
+        logger.log_file = self.log_file
 
     def expire(self, files: List[Path]) -> None:
         """删除或备份过期的日志文件。
