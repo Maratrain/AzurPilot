@@ -3487,6 +3487,12 @@
       "help": "Record sea miles to statistics after each hazard 1 leveling cycle",
       "True": "Enabled",
       "False": "Disabled"
+    },
+    "DebugClip": {
+      "name": "Post-battle debug recording",
+      "help": "When enabled, during each erosion-1 round's post-battle handling (rescan / event resolution / forced movement), record what ALAS itself sees into an mp4 under log/clips/. Rounds with no event produce no file. Use this to manually verify whether Akashi is missed. Videos are kept indefinitely (no auto cleanup) — watch disk space.",
+      "True": "On",
+      "False": "Off"
     }
   },
   "OpsiSirenBug": {

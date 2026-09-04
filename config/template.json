@@ -2750,7 +2750,8 @@
       "SkipHpCheck": false,
       "Cl1Filter": "ActionPoint",
       "RecordNonCL1AP": true,
-      "RecordSeaMiles": true
+      "RecordSeaMiles": true,
+      "DebugClip": false
     },
     "OpsiSirenBug": {
       "SirenResearch_Enable": true,

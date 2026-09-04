@@ -76,20 +76,38 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
         if not search_completed and search_completed is not None:
             logger.warning("[大世界-侵蚀1练级] 战略搜索返回 False，可能已被提前中断")
 
-        # 第一次重扫：检查是否还有事件
-        self._solved_map_event = set()
-        self._solved_fleet_mechanism = False
-        self.map_rescan()
+        # debug 录屏：只录“战后找事件 + 处理事件 + 强制移动”这一段
+        # 事件/强制移动处理完进入下一轮前结束；若无事件则不保留文件。
+        from module.base.debug_clip import clip_end, clip_start
 
-        # 强制移动逻辑（按等级 0/1/2/3 分发）
-        # 0=关闭；1=仅战后重扫 L0；2=分级恢复；3=旧版全体强制移动。
-        # 分级恢复在 _execute_fixed_patrol_scan 内部完成（L1→L2→L3），返回后不再
-        # 二次重扫，否则清完明石后会再次重复进明石商店（购买之外的多余进店）。
-        if self._forced_move_level() >= 2:
-            if not self._solved_map_event:
-                self._execute_fixed_patrol_scan(ExecuteFixedPatrolScan=True)
+        debug_clip = None
+        had_forced_move = False
+        debug_error = None
+        if self.config.OpsiHazard1Leveling_DebugClip:
+            debug_clip = clip_start(self.config)
+        try:
+            # 第一次重扫：检查是否还有事件
+            self._solved_map_event = set()
+            self._solved_fleet_mechanism = False
+            self.map_rescan()
 
-        self.handle_after_auto_search()
+            # 强制移动逻辑（按等级 0/1/2/3 分发）
+            # 0=关闭；1=仅战后重扫 L0；2=分级恢复；3=旧版全体强制移动。
+            # 分级恢复在 _execute_fixed_patrol_scan 内部完成（L1→L2→L3），返回后不再
+            # 二次重扫，否则清完明石后会再次重复进明石商店（购买之外的多余进店）。
+            if self._forced_move_level() >= 2:
+                if not self._solved_map_event:
+                    had_forced_move = True
+                    self._execute_fixed_patrol_scan(ExecuteFixedPatrolScan=True)
+
+            self.handle_after_auto_search()
+        except BaseException as e:
+            debug_error = e
+            raise
+        finally:
+            if debug_clip is not None:
+                keep = bool(self._solved_map_event) or had_forced_move or debug_error is not None
+                clip_end(keep=keep)
 
         # 明石遭遇记录
         solved_events = getattr(self, "_solved_map_event", set())

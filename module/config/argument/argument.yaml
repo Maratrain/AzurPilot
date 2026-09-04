@@ -1178,6 +1178,7 @@ OpsiHazard1Leveling:
     type: checkbox
     value: true
     option: [true, false]
+  DebugClip: false
 OpsiSirenBug:
   SirenResearch_Enable: true
   Siren_Mode:
