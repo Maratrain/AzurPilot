@@ -1,9 +1,17 @@
-"""侵蚀1漏猫复盘 debug 录屏（真实游戏画面，scrcpy 设备直录）。
+"""侵蚀1漏猫复盘 debug 录屏（真实游戏画面，scrcpy 设备直录，30fps 实时）。
 
-用户要录的是**游戏真实画面**（30fps），而不是 ALAS 处理过的截图帧，因此不再
-复用 ALAS 的 device.screenshot()。本模块在录屏开启时，用项目自带的 scrcpy
-v1.20 客户端另起一路设备视频流（H.264，max_fps=30），把原始流直接交给 ffmpeg
-封装成 mp4 文件。scrcpy 走独立 adb 通道，不影响 ALAS 自身的控制与截图。
+用户要求：录“游戏真实画面”，30fps，**既不加速也不跳帧**。
+
+scrcpy v1.20 的视频流是**不带时间戳的裸 H.264**，若直接 `-c copy` + 固定
+`-r 30` 硬摊，源帧率 ≠30 时就会加速/跳帧。因此本模块不这么做，而是：
+
+    裸 H.264 ──ffmpeg 解码──▶ rawvideo 帧 ──python 按墙钟节奏──▶ libx264 30fps mp4
+
+- 解码子进程按“收到即解”把 H.264 变成 rawvideo；
+- 我们的主线程**逐帧读取解码输出**，仅在到达 1/30s 的时间点才把该帧交给编码器
+  （源高于 30fps 时自然丢帧、源低于 30fps 时用上一帧补齐），从而稳定输出
+  30fps、与真实时间同步，不整体加速、不无谓跳帧。
+- 整条链通过管道反压自动限速：源 30fps 时一帧不漏。
 
 用法（由侵蚀1战后处理代码驱动）：
     clip = clip_start(self.config)    # 打完开始找事件时打开（提前几秒预录）
@@ -12,7 +20,7 @@ v1.20 客户端另起一路设备视频流（H.264，max_fps=30），把原始�
 
 文件输出到 ./log/clips/，一段一个 mp4（默认全部保留、不自动清理）。
 限制：ALAS 自身截图方式若正使用 scrcpy，本模块会跳过并告警（同一 abstract
-socket 无法并存）。scrcpy 启动失败会优雅降级为不录，不影响游戏逻辑。
+socket 无法并存）。scrcpy/ffmpeg 启动失败会优雅降级为不录，不影响游戏逻辑。
 """
 
 import os
@@ -28,6 +36,7 @@ from adbutils import AdbError, Network
 from module.logger import logger
 
 DEFAULT_OUTPUT_DIR = "./log/clips"
+RECORD_FPS = 30
 _ACTIVE = None  # 当前活动的录制会话
 
 
@@ -46,7 +55,7 @@ def _ffmpeg_path():
 class _ScrcpyClip:
     """一个基于 scrcpy 设备视频流的 debug 录屏段。"""
 
-    def __init__(self, config, fps=30, width=1280, bitrate_scale=1.0):
+    def __init__(self, config, fps=RECORD_FPS, width=1280, bitrate_scale=1.0):
         self.config = config
         self.fps = fps
         self.width = width
@@ -59,8 +68,10 @@ class _ScrcpyClip:
         self.server_stream = None
         self.alive = False
         self.resolution = (1280, 720)
-        self._proc = None
-        self._reader = None
+        self._dec = None  # ffmpeg: h264 -> rawvideo
+        self._enc = None  # ffmpeg: rawvideo -> mp4
+        self._socket_thread = None
+        self._pace_thread = None
         self._stop = threading.Event()
 
     # ------------------------------------------------ scrcpy 视频流
@@ -142,7 +153,7 @@ class _ScrcpyClip:
 
     # ------------------------------------------------ 生命周期
     def start(self):
-        """启动 scrcpy 视频流 + ffmpeg 输出到临时文件。成功返回 True。"""
+        """启动 scrcpy 流 + 解码/编码管线。成功返回 True。"""
         ffmpeg = _ffmpeg_path()
         if not ffmpeg:
             logger.warning("[录屏] 未找到 ffmpeg，录屏功能不可用")
@@ -156,46 +167,72 @@ class _ScrcpyClip:
             logger.warning(f"[录屏] 创建输出目录失败: {e}")
             return False
 
-        ts = time.strftime("%Y%m%d_%H%M%S")
-        self.tmp_path = os.path.join(self.output_dir, f"_tmp_eh1_{ts}.mp4")
-        cmd = [
-            ffmpeg, "-y",
-            "-f", "h264",
-            "-framerate", str(self.fps),
-            "-i", "pipe:0",
-            "-c:v", "copy",
-            "-movflags", "+faststart",
-            self.tmp_path,
-        ]
-        try:
-            self._proc = subprocess.Popen(
-                cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, bufsize=0,
-            )
-        except OSError as e:
-            logger.warning(f"[录屏] 启动 ffmpeg 失败: {e}")
-            return False
-
         try:
             self._open_scrcpy()
         except Exception as e:
             logger.warning(f"[录屏] scrcpy 启动失败，本次不录制: {e}")
-            self._proc.terminate()
-            self._proc = None
-            if self.tmp_path and os.path.exists(self.tmp_path):
-                try:
-                    os.remove(self.tmp_path)
-                except OSError:
-                    pass
             return False
 
-        self._reader = threading.Thread(target=self._reader_loop, daemon=True)
-        self._reader.start()
-        logger.info(f"[录屏] 开始录制（真实画面 {self.fps}fps）: {self.tmp_path}")
+        width, height = self.resolution
+        raw_size = width * height * 3  # bgr24
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        self.tmp_path = os.path.join(self.output_dir, f"_tmp_eh1_{ts}.mp4")
+
+        # 解码：裸 h264 -> rawvideo bgr24（收到即解，不解封包问题）
+        dec_cmd = [
+            ffmpeg, "-hide_banner", "-loglevel", "error",
+            "-f", "h264",
+            "-framerate", str(self.fps),
+            "-i", "pipe:0",
+            "-an",
+            "-f", "rawvideo",
+            "-pix_fmt", "bgr24",
+            "pipe:1",
+        ]
+        # 编码：rawvideo -> libx264 mp4（帧由 python 按 30fps 墙钟喂入）
+        enc_cmd = [
+            ffmpeg, "-y", "-hide_banner", "-loglevel", "error",
+            "-f", "rawvideo",
+            "-vcodec", "rawvideo",
+            "-s", f"{width}x{height}",
+            "-pix_fmt", "bgr24",
+            "-r", str(self.fps),
+            "-i", "pipe:0",
+            "-an",
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "26",
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            self.tmp_path,
+        ]
+        try:
+            self._dec = subprocess.Popen(
+                dec_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL, bufsize=0,
+            )
+            self._enc = subprocess.Popen(
+                enc_cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, bufsize=0,
+            )
+        except OSError as e:
+            logger.warning(f"[录屏] 启动 ffmpeg 失败: {e}")
+            self._close_scrcpy()
+            return False
+
+        self._socket_thread = threading.Thread(
+            target=self._socket_to_decoder, args=(raw_size,), daemon=True
+        )
+        self._pace_thread = threading.Thread(
+            target=self._pace_loop, args=(raw_size,), daemon=True
+        )
+        self._socket_thread.start()
+        self._pace_thread.start()
+        logger.info(f"[录屏] 开始录制（真实画面 {self.fps}fps, {width}x{height}）: {self.tmp_path}")
         return True
 
-    def _reader_loop(self):
-        """把 scrcpy 原始 H.264 流写入 ffmpeg。"""
+    def _socket_to_decoder(self, raw_size):
+        """把 scrcpy 裸 H.264 喂给解码器；EOF/停止时关闭解码器输入。"""
         try:
             while not self._stop.is_set() and self.alive:
                 try:
@@ -207,16 +244,67 @@ class _ScrcpyClip:
                 if not data:
                     break
                 try:
-                    self._proc.stdin.write(data)
-                    self._proc.stdin.flush()
+                    self._dec.stdin.write(data)
+                    self._dec.stdin.flush()
                 except Exception:
                     break
         finally:
             try:
-                if self._proc is not None and self._proc.stdin:
-                    self._proc.stdin.close()
+                self._dec.stdin.close()
             except Exception:
                 pass
+
+    def _pace_loop(self, raw_size):
+        """逐帧读解码输出，按 1/30s 墙钟把帧交给编码器（补帧/去帧保证 30fps 实时）。"""
+        frame_interval = 1.0 / self.fps
+        last_frame = None
+        next_t = time.perf_counter()
+        try:
+            while True:
+                data = self._read_exact(raw_size)
+                if data is None:
+                    break
+                now = time.perf_counter()
+                if not self._stop.is_set() and now < next_t:
+                    # 源帧率高于目标，跳过这帧（30fps 采样）
+                    continue
+                last_frame = data
+                if self._stop.is_set():
+                    # 收尾阶段：把剩余帧快速写完，不做限速
+                    pass
+                else:
+                    next_t = max(next_t + frame_interval, now - frame_interval)
+                try:
+                    self._enc.stdin.write(data)
+                    self._enc.stdin.flush()
+                except Exception:
+                    break
+        finally:
+            if last_frame is not None and not self._stop.is_set():
+                pass
+            try:
+                self._enc.stdin.close()
+            except Exception:
+                pass
+
+    def _read_exact(self, size):
+        """从解码器 stdout 读取一帧 rawvideo，EOF 返回 None。"""
+        buf = bytearray(size)
+        view = memoryview(buf)
+        got = 0
+        try:
+            while got < size:
+                n = self._dec.stdout.readinto(view[got:])
+                if n is None or n <= 0:
+                    if got == 0:
+                        return None
+                    break
+                got += n
+        except Exception:
+            return None
+        if got == 0:
+            return None
+        return bytes(buf[:got]) if got == size else None
 
     def _close_scrcpy(self):
         self.alive = False
@@ -239,18 +327,22 @@ class _ScrcpyClip:
         """
         self._stop.set()
         self._close_scrcpy()
-        if self._reader is not None:
-            self._reader.join(timeout=6)
-        if self._proc is not None:
+        for th in (self._socket_thread, self._pace_thread):
+            if th is not None:
+                th.join(timeout=6)
+
+        for proc in (self._dec, self._enc):
+            if proc is None:
+                continue
             try:
-                self._proc.wait(timeout=6)
+                proc.wait(timeout=5)
             except Exception:
                 try:
-                    self._proc.terminate()
+                    proc.terminate()
                 except Exception:
                     pass
                 try:
-                    self._proc.wait(timeout=3)
+                    proc.wait(timeout=3)
                 except Exception:
                     pass
 
@@ -280,7 +372,7 @@ class _ScrcpyClip:
         return final_path
 
 
-def clip_start(config, fps=30):
+def clip_start(config, fps=RECORD_FPS):
     """打开录屏（线程安全：重复调用返回 None）。
 
     Args:

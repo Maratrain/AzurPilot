@@ -146,3 +146,19 @@ def coalition_to_little_academy(value):
         return 'hard'
     else:
         return value
+
+
+def execute_fixed_patrol_scan_redirect(value):
+    """
+    OpsiHazard1Leveling.ExecuteFixedPatrolScan 旧布尔 → 等级枚举。
+
+    旧版本该配置是布尔开关（开启=强制移动）。升级为 0/1/2/3 等级后，
+    需把旧布尔显式转成数字，避免 GUI 显示（Python 的 True==1 会误配到选项 1）
+    与运行时行为不一致：
+    - True  → 3（旧版全体强制移动，保留旧行为）
+    - False → 0（关闭）
+    仅 int 值直接透传。
+    """
+    if isinstance(value, bool):
+        return 3 if value else 0
+    return value

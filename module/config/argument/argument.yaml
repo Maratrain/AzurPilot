@@ -1164,7 +1164,8 @@ OpsiHazard1Leveling:
   OperationCoinsPreserve: 40000
   MinimumActionPointReserve: 200
   ExecuteFixedPatrolScan:
-    value: 3
+    # 默认关闭(0)，避免未经配置就搬动舰队。旧版布尔 true 会迁移为 3（见 redirect_utils）。
+    value: 0
     option: [0, 1, 2, 3]
   # Sacrifice run: skip HP check
   SkipHpCheck:

@@ -13893,7 +13893,7 @@
       },
       "ExecuteFixedPatrolScan": {
         "type": "select",
-        "value": 3,
+        "value": 0,
         "option": [
           0,
           1,

@@ -3462,9 +3462,9 @@
     },
     "ExecuteFixedPatrolScan": {
       "name": "Forced Movement Level",
-      "help": "When Akashi is hidden behind a fleet icon or spawned outside radar range, decide whether to move fleets to find her. 0 = off. 1 = L0 rescan only, no forced move. 2 = staged recovery: scan every fleet's radar with zero movement, then move fleets one by one and rescan, stop as soon as found. 3 = legacy: reposition all fleets 1~4 then do a double full-map rescan.",
+      "help": "When Akashi is hidden behind a fleet icon or spawned outside radar range, decide whether to move fleets to find her. 0 = off. 1 = fleet radar scan only (switch fleets and scan each radar with zero movement, stop if not found). 2 = staged recovery: scan every fleet's radar with zero movement, then move fleets one by one and rescan, stop as soon as found. 3 = legacy: reposition all fleets 1~4 then do a double full-map rescan. Default 0 (off); legacy bool true maps to 3, false maps to 0.",
       "0": "Off",
-      "1": "L0 rescan only (no forced move)",
+      "1": "Fleet radar scan only (no move)",
       "2": "Staged recovery",
       "3": "Legacy: move all fleets"
     },
@@ -3490,9 +3490,7 @@
     },
     "DebugClip": {
       "name": "Post-battle debug recording",
-      "help": "When enabled, during each erosion-1 round's post-battle handling (rescan / event resolution / forced movement), record what ALAS itself sees into an mp4 under log/clips/. Rounds with no event produce no file. Use this to manually verify whether Akashi is missed. Videos are kept indefinitely (no auto cleanup) — watch disk space.",
-      "True": "On",
-      "False": "Off"
+      "help": "When enabled, during each erosion-1 round's post-battle handling (rescan / event resolution / forced movement), record what ALAS itself sees into an mp4 under log/clips/. Rounds with no event produce no file. Use this to manually verify whether Akashi is missed. Videos are kept indefinitely (no auto cleanup) — watch disk space."
     }
   },
   "OpsiSirenBug": {

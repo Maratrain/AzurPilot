@@ -2022,7 +2022,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         侵蚀1战后常规重扫一无所获（疑似明石被舰队遮挡/刷新在雷达范围外）时，
         按“强制移动等级”执行：
         等级 0：关闭，不做任何强制移动；
-        等级 1：仅战后重扫 L0，不做任何强制移动；
+        等级 1：仅换队重扫 —— 零移动遍历 1~4 舰队雷达找“?”，命中即处理，未命中即止；
         等级 2：分级恢复 —— L1 先零移动遍历 1~4 舰队雷达找“?”，命中即返回；
                  L2 未命中则按“主队先行、其余按编号升序”逐队强制移动，每移一队
                  整图重扫一次，命中明石即停，不再移动剩余舰队；
@@ -2046,9 +2046,6 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         if level == 0:
             logger.info("[大世界] 强制移动已关闭，跳过。")
             return
-        if level == 1:
-            logger.info("[大世界] 强制移动等级 1（仅重扫 L0），跳过强制移动。")
-            return
         logger.attr("执行固定巡逻扫描", f"等级 {level}")
 
         self.map_init(map_=None)
@@ -2069,10 +2066,17 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
 
         self._in_akashi_recovery = True
         try:
-            if level >= 3:
-                self._execute_fixed_patrol_scan_legacy()
-            else:
+            if level == 1:
+                # 仅换队重扫：零移动，只切换舰队用雷达找问号（PR#5865 思路）。
+                # 命中即处理，未命中即止，不做任何强制移动。
+                logger.hr("[大世界] L1 仅换队重扫（遍历舰队雷达，不移动）")
+                self._solved_map_event = set()
+                self._solved_fleet_mechanism = False
+                self.clear_question_any_fleet()
+            elif level == 2:
                 self._execute_akashi_recovery()
+            else:
+                self._execute_fixed_patrol_scan_legacy()
         finally:
             self._in_akashi_recovery = False
             # 复位主队，避免后续流程作用在错误的舰队上
@@ -2082,13 +2086,14 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         """读取强制移动等级并兼容旧布尔配置。
 
         Returns:
-            int: 0（关闭）/ 1（仅战后重扫 L0）/ 2（分级恢复）/
-                3（旧版全体强制移动）。
+            int: 0（关闭）/ 1（仅换队重扫，零移动遍历舰队雷达）/
+                2（分级恢复）/ 3（旧版全体强制移动）。
         """
         value = self.config.OpsiHazard1Leveling_ExecuteFixedPatrolScan
         if isinstance(value, bool):
-            # 旧版布尔配置兼容：True 视为开启（沿用旧版全体强制移动），
-            # False 视为关闭
+            # 旧版布尔配置兼容：True 视为开启（沿用旧版“全体强制移动”的等级 3），
+            # False 视为关闭（等级 0）。不能按 Python 的 True==1 直接当作 1，
+            # bool 需在此时先显式归一，否则 GUI 显示“1”而行为却被误判。
             value = 3 if value else 0
         try:
             level = int(value)

@@ -92,10 +92,10 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
             self.map_rescan()
 
             # 强制移动逻辑（按等级 0/1/2/3 分发）
-            # 0=关闭；1=仅战后重扫 L0；2=分级恢复；3=旧版全体强制移动。
+            # 0=关闭；1=仅换队重扫（零移动遍历舰队雷达）；2=分级恢复；3=旧版全体强制移动。
             # 分级恢复在 _execute_fixed_patrol_scan 内部完成（L1→L2→L3），返回后不再
             # 二次重扫，否则清完明石后会再次重复进明石商店（购买之外的多余进店）。
-            if self._forced_move_level() >= 2:
+            if self._forced_move_level() >= 1:
                 if not self._solved_map_event:
                     had_forced_move = True
                     self._execute_fixed_patrol_scan(ExecuteFixedPatrolScan=True)
