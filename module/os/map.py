@@ -1369,8 +1369,9 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         明石/记录塔/信息探测装置有概率刷新在远离出击舰队的特殊位置，且图标会被
         舰队模型遮挡，导致常规 `clear_question()`（只查出击舰队上方的固定雷达偏移）
         和地图重扫都漏检。本方法把 1~4 号舰队依次激活后各自截雷达找“?”，
-        一旦某支舰队清掉问号并命中了目标事件（明石/记录塔/信息探测装置）即停止；
-        若只是清掉普通问号，则继续切换下一支舰队，直到找到目标或扫完所有舰队。
+        每清完一个问号：若直接命中目标事件（明石/记录塔/信息探测装置）即停止；
+        若只是清掉普通问号，则先做一次全图扫描把清问号后才显现的事件捞出来，
+        仍无所获才切换下一支舰队，直到找到目标或扫完所有舰队。
 
         Args:
             drop: 掉落记录对象。
@@ -1397,8 +1398,26 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
             logger.info(f"[大世界-搜索] 舰队 {fleet} 雷达上找到问号 {grid}，前往处理")
             # 保持当前舰队处于激活状态再走原有清除逻辑（雷达坐标系跟随舰队）
             self.clear_question(drop=drop)
-            # 已解决目标事件（明石/记录塔/信息探测装置）即视为补到漏检事件，停止遍历；
-            # 若只是清掉普通问号，则继续切换下一支舰队，直到找到目标或扫完所有舰队。
+            # 清问号直接命中目标事件（明石/记录塔/信息探测装置），立即停止遍历。
+            if self._solved_map_event & ALREADY_SOLVED_MAP_EVENTS:
+                logger.info("[大世界-搜索] 已解决目标事件，停止遍历舰队")
+                return True
+            # 清问号后未命中目标事件：做一次全图扫描，把整张地图上被遮挡、
+            # 清问号后才显现的事件捞出来；全图扫完仍没有，才继续切换下一支舰队。
+            try:
+                self.map_rescan_once(rescan_mode="full", drop=drop)
+            except (
+                TaskEnd,
+                GameStuckError,
+                GameTooManyClickError,
+                RequestHumanTakeover,
+            ):
+                raise
+            except Exception as e:
+                logger.debug(
+                    f"[大世界-搜索] 清问号后全图扫描异常，继续: {e}", exc_info=True
+                )
+            # 全图扫描可能捞到目标事件，命中则停止遍历。
             if self._solved_map_event & ALREADY_SOLVED_MAP_EVENTS:
                 logger.info("[大世界-搜索] 已解决目标事件，停止遍历舰队")
                 return True
@@ -2037,8 +2056,9 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         侵蚀1战后常规重扫一无所获（疑似明石被舰队遮挡/刷新在雷达范围外）时，
         按“强制移动等级”执行：
         等级 0：关闭，不做任何强制移动；
-        等级 1：仅换队重扫 —— 遍历 1~4 舰队雷达找“?”，命中目标事件（明石/记录塔/
-                 信息探测装置）即处理并止；扫完所有舰队仍未命中则止（不做强制移动）；
+        等级 1：仅换队重扫 —— 遍历 1~4 舰队雷达找“?”，每清完一个问号若未命中事件
+                 则先做一次全图扫描；命中目标事件（明石/记录塔/信息探测装置）即处理
+                 并止；扫完所有舰队仍未命中则止（不做强制移动）；
         等级 2：分级恢复 —— L1 先零移动遍历 1~4 舰队雷达找“?”，命中即返回；
                  L2 未命中则按“主队先行、其余按编号升序”逐队强制移动，每移一队
                  整图重扫一次，命中事件即停，不再移动剩余舰队；
