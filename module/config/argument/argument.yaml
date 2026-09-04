@@ -1163,7 +1163,9 @@ OpsiHazard1Leveling:
     option: [ 0, 44, 22 ]
   OperationCoinsPreserve: 40000
   MinimumActionPointReserve: 200
-  ExecuteFixedPatrolScan: true
+  ExecuteFixedPatrolScan:
+    value: 3
+    option: [0, 1, 2, 3]
   # Sacrifice run: skip HP check
   SkipHpCheck:
     type: checkbox

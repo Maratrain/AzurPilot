@@ -2746,7 +2746,7 @@
       "TargetZone": 0,
       "OperationCoinsPreserve": 40000,
       "MinimumActionPointReserve": 200,
-      "ExecuteFixedPatrolScan": true,
+      "ExecuteFixedPatrolScan": 3,
       "SkipHpCheck": false,
       "Cl1Filter": "ActionPoint",
       "RecordNonCL1AP": true,

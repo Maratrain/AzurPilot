@@ -3461,8 +3461,12 @@
       "help": "Give it a try, the bicycle turns into a motorcycle. Yukikaze-sama has given the luck to Commander nanoda, go for it nanoda!"
     },
     "ExecuteFixedPatrolScan": {
-      "name": "Forced Fleet Movement",
-      "help": "Warm reminder from Yukikaze-sama: After enabling, the fleet will be forced to move to prevent not finding Akashi. Commander, you don’t want to crash because you can’t find Akashi nanoda? Enable this function and easily reach 500,000 nautical miles per month nanoda. What are you waiting for, Commander?"
+      "name": "Forced Movement Level",
+      "help": "When Akashi is hidden behind a fleet icon or spawned outside radar range, decide whether to move fleets to find her. 0 = off. 1 = L0 rescan only, no forced move. 2 = staged recovery: scan every fleet's radar with zero movement, then move fleets one by one and rescan, stop as soon as found. 3 = legacy: reposition all fleets 1~4 then do a double full-map rescan.",
+      "0": "Off",
+      "1": "L0 rescan only (no forced move)",
+      "2": "Staged recovery",
+      "3": "Legacy: move all fleets"
     },
     "SkipHpCheck": {
       "name": "Sacrifice run: skip HP check",

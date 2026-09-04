@@ -1353,6 +1353,43 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         )
         return False
 
+    def clear_question_any_fleet(self, drop=None):
+        """
+        遍历舰队雷达，尝试用任意舰队清除近距离问号（PR #5865 思路的 fork 版）。
+
+        明石有概率刷新在远离出击舰队的特殊位置，且图标会被舰队模型遮挡，
+        导致常规 `clear_question()`（只查出击舰队上方的固定雷达偏移）和
+        地图重扫都漏检。本方法把 1~4 号舰队依次激活后各自截雷达找“?”，
+        只要有一支舰队停在明石附近即可命中，从而零移动解决问题。
+
+        Args:
+            drop: 掉落记录对象。
+
+        Returns:
+            bool: 是否解决了至少一个问号事件。
+        """
+        logger.hr("[大世界] 遍历舰队查找问号", level=2)
+        primary = self.config.OpsiFleet_Fleet
+        fleets = [primary] + [f for f in [1, 2, 3, 4] if f != primary]
+        for fleet in fleets:
+            try:
+                self.fleet_set(fleet)
+                self.device.screenshot()
+                grid = self.radar.predict_question(
+                    self.device.image, in_port=self.zone.is_port
+                )
+            except Exception as e:
+                logger.warning(f"[大世界-搜索] 舰队 {fleet} 雷达检测异常: {e}")
+                continue
+            if grid is None:
+                logger.info(f"[大世界-搜索] 舰队 {fleet} 雷达上无问号")
+                continue
+            logger.info(f"[大世界-搜索] 舰队 {fleet} 雷达上找到问号 {grid}，前往处理")
+            # 保持当前舰队处于激活状态再走原有清除逻辑（雷达坐标系跟随舰队）
+            return self.clear_question(drop=drop)
+        logger.info("[大世界-搜索] 遍历所有舰队后仍未发现问号")
+        return False
+
     def run_auto_search(
         self, question=True, rescan=None, after_auto_search=True, interrupt=None
     ):
@@ -1980,10 +2017,17 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
     def _execute_fixed_patrol_scan(
         self, ExecuteFixedPatrolScan: bool = False, **kwargs
     ):
-        """执行强制移动并触发全图重扫。
+        """执行强制移动并触发全图重扫（按配置等级分发）。
 
-        在每支舰队移动前执行视角复位，按预设坐标依次移动 1~4 号舰队，
-        全部移动后执行全图重扫，并补一次自律寻敌以清理残留装置。
+        侵蚀1战后常规重扫一无所获（疑似明石被舰队遮挡/刷新在雷达范围外）时，
+        按“强制移动等级”执行：
+        等级 0：关闭，不做任何强制移动；
+        等级 1：仅战后重扫 L0，不做任何强制移动；
+        等级 2：分级恢复 —— L1 先零移动遍历 1~4 舰队雷达找“?”，命中即返回；
+                 L2 未命中则按“主队先行、其余按编号升序”逐队强制移动，每移一队
+                 整图重扫一次，命中明石即停，不再移动剩余舰队；
+                 L3 只要移动过舰队，就补一次自律寻敌清理残留装置（顺路复查明石）；
+        等级 3：旧版逻辑 —— 一次性把 1~4 舰队全体定点后做双遍全图重扫。
 
         Args:
             ExecuteFixedPatrolScan (bool, optional): 是否启用强制移动。
@@ -1995,10 +2039,17 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         """
         logger.hr("[大世界] 执行强制移动")
 
+        level = self._forced_move_level()
         if not ExecuteFixedPatrolScan:
             logger.info("[大世界] ExecuteFixedPatrolScan 未启用，跳过强制移动。")
             return
-        logger.attr("执行固定巡逻扫描", True)
+        if level == 0:
+            logger.info("[大世界] 强制移动已关闭，跳过。")
+            return
+        if level == 1:
+            logger.info("[大世界] 强制移动等级 1（仅重扫 L0），跳过强制移动。")
+            return
+        logger.attr("执行固定巡逻扫描", f"等级 {level}")
 
         self.map_init(map_=None)
         if not hasattr(self, "map") or not self.map.grids:
@@ -2012,6 +2063,142 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
             logger.info("[大世界] 彩蛋：雪风大人保佑你，本次舰队移动已跳过")
             return
 
+        if getattr(self, "_in_akashi_recovery", False):
+            logger.info("[大世界] 已在强制恢复流程中，跳过嵌套调用")
+            return
+
+        self._in_akashi_recovery = True
+        try:
+            if level >= 3:
+                self._execute_fixed_patrol_scan_legacy()
+            else:
+                self._execute_akashi_recovery()
+        finally:
+            self._in_akashi_recovery = False
+            # 复位主队，避免后续流程作用在错误的舰队上
+            self.fleet_set(self.config.OpsiFleet_Fleet)
+
+    def _forced_move_level(self):
+        """读取强制移动等级并兼容旧布尔配置。
+
+        Returns:
+            int: 0（关闭）/ 1（仅战后重扫 L0）/ 2（分级恢复）/
+                3（旧版全体强制移动）。
+        """
+        value = self.config.OpsiHazard1Leveling_ExecuteFixedPatrolScan
+        if isinstance(value, bool):
+            # 旧版布尔配置兼容：True 视为开启（沿用旧版全体强制移动），
+            # False 视为关闭
+            value = 3 if value else 0
+        try:
+            level = int(value)
+        except (TypeError, ValueError):
+            level = 3
+        if level not in (0, 1, 2, 3):
+            level = 3
+        return level
+
+    def _move_fleet_to_patrol(self, fleet_index, target_loc):
+        """将指定舰队强制移动到目标巡逻落点。
+
+        视角复位后尝试主目标，走不动时回退到附近空位；舰队只要换过位置
+        （主目标或备用点）都算移动成功，因为遮挡明石图标的舰队一旦挪开，
+        随后的整图重扫即可发现明石。
+
+        Args:
+            fleet_index (int): 要移动的舰队编号 1~4。
+            target_loc (tuple[int, int]): 目标格子坐标，如 (2, 0) 表示 C1。
+
+        Returns:
+            bool: 舰队是否已离开原位（到达主目标或停靠到备用点）。
+        """
+        target_grid_group = self.map.select(location=target_loc)
+        if not target_grid_group:
+            logger.warning(
+                f"在地图上找不到坐标为 {target_loc} 的格子，跳过舰队 {fleet_index} 的移动。"
+            )
+            return False
+        target_grid = target_grid_group[0]
+
+        logger.hr(f"[大世界] 强制移动: 指挥舰队 {fleet_index} 前往 {target_grid}", level=2)
+        self.fleet_set(fleet_index)
+
+        logger.info("[大世界] 视角复位...")
+
+        top_point = (640, 150)
+        bottom_point = (640, 600)
+        quick_ok = True
+        try:
+            for _ in range(2):
+                self.device.swipe(top_point, bottom_point, duration=0.3)
+                time.sleep(0.18)
+        except Exception:
+            quick_ok = False
+            logger.debug("[大世界] 快速滑动复位遇到异常，尝试安全滑动")
+
+        if not quick_ok and not self.safe_swipe(
+            top_point, bottom_point, duration=0.55, retries=2
+        ):
+            logger.warning("[大世界] 视角复位失败，继续尝试下一步")
+        elif not quick_ok:
+            logger.info("[大世界] 视角复位完成。")
+        else:
+            logger.info("[大世界] 快速滑动复位完成。")
+        time.sleep(0.45)
+
+        candidate_grids = self._get_fixed_patrol_candidate_grids(target_loc)
+        if not candidate_grids:
+            logger.warning(
+                f"舰队 {fleet_index} 在 {target_grid} 附近找不到可用落点，跳过本次移动。"
+            )
+            return False
+
+        moved = False
+        fallback_location = None
+        for candidate_index, candidate_grid in enumerate(candidate_grids[:4]):
+            if candidate_index > 0:
+                logger.info(
+                    f"舰队 {fleet_index} 改用备用落点 {candidate_grid}（原目标 {target_grid}）"
+                )
+            if self._try_fixed_patrol_move(fleet_index, candidate_grid, target_loc):
+                if candidate_grid.location == target_loc:
+                    moved = True
+                    break
+
+                fallback_location = candidate_grid.location
+                logger.info(
+                    f"舰队 {fleet_index} 已停靠备用点 {candidate_grid}，尝试返回真正目标 {target_grid}"
+                )
+                if self._try_fixed_patrol_move(fleet_index, target_grid, target_loc):
+                    moved = True
+                    logger.info(
+                        f"舰队 {fleet_index} 已从备用点返回真正目标 {target_grid}"
+                    )
+                    break
+
+                logger.warning(
+                    f"舰队 {fleet_index} 从备用点 {candidate_grid} 返回真正目标 {target_grid} 失败，继续尝试其他候选点"
+                )
+
+        if not moved:
+            if fallback_location is not None:
+                logger.info(
+                    f"舰队 {fleet_index} 无法回到真正目标 {target_grid}，暂时停靠在备用点 {self.map[fallback_location]}。"
+                )
+                moved = True
+            else:
+                logger.warning(
+                    f"舰队 {fleet_index} 在 {target_grid} 及其备用落点均移动失败，继续后续流程。"
+                )
+
+        return moved
+
+    def _execute_fixed_patrol_scan_legacy(self):
+        """旧版强制移动：一次性把 1~4 舰队全体定点后做双遍全图重扫。
+
+        强制移动等级为 3 时使用。按预设坐标依次移动 1~4 号舰队，
+        全部移动后执行双遍全图重扫，并补一次自律寻敌以清理残留装置。
+        """
         patrol_locations = [(2, 0), (3, 0), (4, 0), (5, 0)]  # 对应 C1, D1, E1, F1
         progress = {}
 
@@ -2142,6 +2329,75 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
             raise
         except Exception as e:
             logger.warning(f"[大世界] 自律寻敌过程出现异常: {e}")
+
+    def _execute_akashi_recovery(self):
+        """侵蚀1漏检明石的分级恢复主流程（L1 → L2 → L3）。
+
+        L1: 遍历舰队雷达找问号，命中并解决明石则直接结束（零移动）。
+        L2: 按“主队先行、其余按编号升序”逐队移动到各自编号对应的列
+            （1→C1、2→D1、3→E1、4→F1），每移一队整图重扫一次，命中即停。
+        L3: 移动过舰队时，补一次自律寻敌清理残留装置，顺路复查明石。
+        """
+        primary = self.config.OpsiFleet_Fleet
+        location = {1: (2, 0), 2: (3, 0), 3: (4, 0), 4: (5, 0)}  # C1, D1, E1, F1
+
+        # ---- L1：零移动，遍历舰队雷达找问号 ----
+        logger.hr("[大世界] L1 遍历舰队雷达查找问号")
+        self._solved_map_event = set()
+        self._solved_fleet_mechanism = False
+        if self.clear_question_any_fleet():
+            if "is_akashi" in self._solved_map_event:
+                logger.info("[大世界] L1 已通过其它舰队雷达找到并处理明石，无需强制移动")
+                return
+            logger.info("[大世界] L1 仅处理了其它问号，继续分级强制移动排查")
+
+        # ---- L2：逐队强制移动，每移一队整图重扫，命中明石即停 ----
+        order = [primary] + [f for f in [1, 2, 3, 4] if f != primary]
+        moved_any = False
+        backup = self.config.temporary(
+            OpsiGeneral_RepairThreshold=-1, Campaign_UseAutoSearch=False
+        )
+        try:
+            for fleet in order:
+                if not self._move_fleet_to_patrol(fleet, location[fleet]):
+                    continue
+                moved_any = True
+
+                # 移开遮挡后整图重扫，看能否发现明石
+                self._solved_map_event = set()
+                self._solved_fleet_mechanism = False
+                try:
+                    self.map_rescan(rescan_mode="full")
+                except (
+                    TaskEnd,
+                    GameStuckError,
+                    GameTooManyClickError,
+                    RequestHumanTakeover,
+                ):
+                    raise
+                except Exception as e:
+                    logger.debug(f"[大世界] 单队移动后的重扫异常，继续: {e}", exc_info=True)
+
+                if "is_akashi" in self._solved_map_event:
+                    logger.info("[大世界] 分级扫描命中明石，停止继续强制移动")
+                    break
+        finally:
+            backup.recover()
+
+        # ---- L3：只要移动过舰队，就补一次自律寻敌清装置，顺路复查明石 ----
+        if moved_any:
+            logger.info("[大世界] 执行一次自律寻敌以清理可能的装置")
+            try:
+                self.run_auto_search(question=True, rescan=None, after_auto_search=True)
+            except (
+                TaskEnd,
+                GameStuckError,
+                GameTooManyClickError,
+                RequestHumanTakeover,
+            ):
+                raise
+            except Exception as e:
+                logger.warning(f"[大世界] 自律寻敌过程出现异常: {e}")
 
     def _select_story_option_by_index(self, target_index, options_count=3):
         """按索引点击剧情选项按钮。

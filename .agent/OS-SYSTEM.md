@@ -880,7 +880,7 @@ graph LR
 | `OpsiHazard1Leveling.OperationCoinsPreserve` | int | 黄币保留阈值 |
 | `OpsiHazard1Leveling.MinimumActionPointReserve` | int | 最低行动力保留 |
 | `OpsiHazard1Leveling.TargetZone` | int | 目标海域 ID |
-| `OpsiHazard1Leveling.ExecuteFixedPatrolScan` | bool | 强制巡逻扫描 |
+| `OpsiHazard1Leveling.ExecuteFixedPatrolScan` | int(0/1/2/3) | 强制移动等级：0 关闭 / 1 仅重扫 L0 / 2 分级恢复 / 3 旧版全体强制移动（默认 3） |
 | `OpsiMeowfficerFarming.HazardLevel` | int | 短猫侵蚀等级 |
 | `OpsiMeowfficerFarming.TargetZone` | int | 短猫目标海域 |
 | `OpsiMeowfficerFarming.StayInZone` | bool | 指定海域计划作战 |
