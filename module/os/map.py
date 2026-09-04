@@ -69,6 +69,15 @@ from module.ui.assets import GOTO_MAIN
 from module.ui.page import page_os
 
 
+# 已被判定为“解决”的大世界地图事件类型。一旦其中任一事件成功处理
+# （点掉记录塔 / 购买明石商店 / 完成信息探测装置自律等），说明本轮漏检
+# 已补齐、雷达上已无残留问号，无需再强制移动更多舰队。用于强制移动
+# 相关逻辑的统一停止判定。
+ALREADY_SOLVED_MAP_EVENTS = frozenset(
+    {"is_akashi", "is_scanning_device", "is_logging_tower"}
+)
+
+
 class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
     """大世界地图主控类。
 
@@ -1357,16 +1366,17 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         """
         遍历舰队雷达，尝试用任意舰队清除近距离问号（PR #5865 思路的 fork 版）。
 
-        明石有概率刷新在远离出击舰队的特殊位置，且图标会被舰队模型遮挡，
-        导致常规 `clear_question()`（只查出击舰队上方的固定雷达偏移）和
-        地图重扫都漏检。本方法把 1~4 号舰队依次激活后各自截雷达找“?”，
-        只要有一支舰队停在明石附近即可命中，从而零移动解决问题。
+        明石/记录塔/信息探测装置有概率刷新在远离出击舰队的特殊位置，且图标会被
+        舰队模型遮挡，导致常规 `clear_question()`（只查出击舰队上方的固定雷达偏移）
+        和地图重扫都漏检。本方法把 1~4 号舰队依次激活后各自截雷达找“?”，
+        一旦某支舰队清掉问号并命中了目标事件（明石/记录塔/信息探测装置）即停止；
+        若只是清掉普通问号，则继续切换下一支舰队，直到找到目标或扫完所有舰队。
 
         Args:
             drop: 掉落记录对象。
 
         Returns:
-            bool: 是否解决了至少一个问号事件。
+            bool: 是否解决了目标事件（明石/记录塔/信息探测装置）。
         """
         logger.hr("[大世界] 遍历舰队查找问号", level=2)
         primary = self.config.OpsiFleet_Fleet
@@ -1386,8 +1396,13 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                 continue
             logger.info(f"[大世界-搜索] 舰队 {fleet} 雷达上找到问号 {grid}，前往处理")
             # 保持当前舰队处于激活状态再走原有清除逻辑（雷达坐标系跟随舰队）
-            return self.clear_question(drop=drop)
-        logger.info("[大世界-搜索] 遍历所有舰队后仍未发现问号")
+            self.clear_question(drop=drop)
+            # 已解决目标事件（明石/记录塔/信息探测装置）即视为补到漏检事件，停止遍历；
+            # 若只是清掉普通问号，则继续切换下一支舰队，直到找到目标或扫完所有舰队。
+            if self._solved_map_event & ALREADY_SOLVED_MAP_EVENTS:
+                logger.info("[大世界-搜索] 已解决目标事件，停止遍历舰队")
+                return True
+        logger.info("[大世界-搜索] 遍历所有舰队后仍未发现目标事件")
         return False
 
     def run_auto_search(
@@ -2022,11 +2037,12 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         侵蚀1战后常规重扫一无所获（疑似明石被舰队遮挡/刷新在雷达范围外）时，
         按“强制移动等级”执行：
         等级 0：关闭，不做任何强制移动；
-        等级 1：仅换队重扫 —— 零移动遍历 1~4 舰队雷达找“?”，命中即处理，未命中即止；
+        等级 1：仅换队重扫 —— 遍历 1~4 舰队雷达找“?”，命中目标事件（明石/记录塔/
+                 信息探测装置）即处理并止；扫完所有舰队仍未命中则止（不做强制移动）；
         等级 2：分级恢复 —— L1 先零移动遍历 1~4 舰队雷达找“?”，命中即返回；
                  L2 未命中则按“主队先行、其余按编号升序”逐队强制移动，每移一队
-                 整图重扫一次，命中明石即停，不再移动剩余舰队；
-                 L3 只要移动过舰队，就补一次自律寻敌清理残留装置（顺路复查明石）；
+                 整图重扫一次，命中事件即停，不再移动剩余舰队；
+                 L3 只要移动过舰队，就补一次自律寻敌清理残留装置（顺路复查事件）；
         等级 3：旧版逻辑 —— 一次性把 1~4 舰队全体定点后做双遍全图重扫。
 
         Args:
@@ -2051,13 +2067,6 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         self.map_init(map_=None)
         if not hasattr(self, "map") or not self.map.grids:
             logger.warning("[大世界] 无法获取当前地图网格数据，已跳过强制移动。")
-            return
-
-        solved = getattr(self, "_solved_map_event", set())
-        if any(
-            k in solved for k in ("is_akashi", "is_scanning_device", "is_logging_tower")
-        ):
-            logger.info("[大世界] 彩蛋：雪风大人保佑你，本次舰队移动已跳过")
             return
 
         if getattr(self, "_in_akashi_recovery", False):
@@ -2338,10 +2347,11 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
     def _execute_akashi_recovery(self):
         """侵蚀1漏检明石的分级恢复主流程（L1 → L2 → L3）。
 
-        L1: 遍历舰队雷达找问号，命中并解决明石则直接结束（零移动）。
+        L1: 遍历舰队雷达找问号，命中并解决事件（明石/记录塔/信息探测装置）
+            则直接结束（零移动）。
         L2: 按“主队先行、其余按编号升序”逐队移动到各自编号对应的列
-            （1→C1、2→D1、3→E1、4→F1），每移一队整图重扫一次，命中即停。
-        L3: 移动过舰队时，补一次自律寻敌清理残留装置，顺路复查明石。
+            （1→C1、2→D1、3→E1、4→F1），每移一队整图重扫一次，命中事件即停。
+        L3: 移动过舰队时，补一次自律寻敌清理残留装置，顺路复查事件。
         """
         primary = self.config.OpsiFleet_Fleet
         location = {1: (2, 0), 2: (3, 0), 3: (4, 0), 4: (5, 0)}  # C1, D1, E1, F1
@@ -2351,12 +2361,11 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         self._solved_map_event = set()
         self._solved_fleet_mechanism = False
         if self.clear_question_any_fleet():
-            if "is_akashi" in self._solved_map_event:
-                logger.info("[大世界] L1 已通过其它舰队雷达找到并处理明石，无需强制移动")
-                return
-            logger.info("[大世界] L1 仅处理了其它问号，继续分级强制移动排查")
+            logger.info("[大世界] L1 已通过舰队雷达找到并处理事件，无需强制移动")
+            return
+        logger.info("[大世界] L1 未找到目标事件，继续分级强制移动排查")
 
-        # ---- L2：逐队强制移动，每移一队整图重扫，命中明石即停 ----
+        # ---- L2：逐队强制移动，每移一队整图重扫，命中事件即停 ----
         order = [primary] + [f for f in [1, 2, 3, 4] if f != primary]
         moved_any = False
         backup = self.config.temporary(
@@ -2368,7 +2377,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                     continue
                 moved_any = True
 
-                # 移开遮挡后整图重扫，看能否发现明石
+                # 移开遮挡后整图重扫，看能否发现事件
                 self._solved_map_event = set()
                 self._solved_fleet_mechanism = False
                 try:
@@ -2383,13 +2392,13 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                 except Exception as e:
                     logger.debug(f"[大世界] 单队移动后的重扫异常，继续: {e}", exc_info=True)
 
-                if "is_akashi" in self._solved_map_event:
-                    logger.info("[大世界] 分级扫描命中明石，停止继续强制移动")
+                if self._solved_map_event & ALREADY_SOLVED_MAP_EVENTS:
+                    logger.info("[大世界] 分级扫描命中事件，停止继续强制移动")
                     break
         finally:
             backup.recover()
 
-        # ---- L3：只要移动过舰队，就补一次自律寻敌清装置，顺路复查明石 ----
+        # ---- L3：只要移动过舰队，就补一次自律寻敌清装置，顺路复查事件 ----
         if moved_any:
             logger.info("[大世界] 执行一次自律寻敌以清理可能的装置")
             try:
