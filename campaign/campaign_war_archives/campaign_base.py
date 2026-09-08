@@ -173,7 +173,7 @@ class CampaignBase(CampaignBase_):
             else:
                 break
 
-        logger.warning('Failed to find archives entrance')
+        logger.warning(f'Failed to find archives entrance: {name}')
         return None
 
     def _scan_archives_events_visible(self):

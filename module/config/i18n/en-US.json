@@ -2661,6 +2661,10 @@
       "name": "Refresh Shop",
       "help": "Refreshing costs 20 gems"
     },
+    "BuyUnobtainedShip": {
+      "name": "Buy Unobtained Ships",
+      "help": "Prioritizes ships marked as unobtained in the upper-right corner, regardless of the normal shop filter"
+    },
     "Filter": {
       "name": "Shop Filter",
       "help": ""
