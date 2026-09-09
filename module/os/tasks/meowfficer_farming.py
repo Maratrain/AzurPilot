@@ -265,12 +265,18 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
         self.meow_search_metrics_start()
         try:
             self.run_auto_search()
+            # 自律寻敌完成后，查看短猫舰队雷达上的剩余问号并处理
+            # （仅当前舰队雷达，不切换 1~4 队；参考侵蚀一的战后问号处理）
+            self._solved_map_event = set()
+            self._solved_fleet_mechanism = False
+            self.clear_question()
+            self.map_rescan()
             self.handle_after_auto_search()
         finally:
             self.meow_search_metrics_end()
 
         self.config.check_task_switch()
-        
+
     def os_meowfficer_farming(self):
         """耄耋相接任务入口。"""
         self.run_meowfficer_farming()
