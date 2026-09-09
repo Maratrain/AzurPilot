@@ -149,7 +149,26 @@ class Enhancement(Dock):
             'langley': TEMPLATE_ENHANCE_LANGLEY,
             'ranger': TEMPLATE_ENHANCE_RANGER,
         }
-        if cv != 'any':
+        # CommonCV 配置值为 custom/any/eagle 时不能直接作为舰名索引，
+        # 需先展开为有效舰名集合，与退役流程的解析语义保持一致
+        if cv == 'custom':
+            # 自定义保留：按 GemsFarming_CommonCVFilter 展开有效舰名
+            filter_string = self.config.cross_get(
+                'GemsFarming.GemsFarming.CommonCVFilter', default='bogue > ranger > langley > hermes')
+            names = [s.strip().lower() for s in str(filter_string).split('>')]
+            dict_template = {name: dict_template[name] for name in names if name in dict_template}
+            if not dict_template:
+                logger.warning('[退役-强化] CommonCVFilter 无有效舰名，回退为保留全部普通航母')
+                dict_template = {
+                    'bogue': TEMPLATE_ENHANCE_BOGUE,
+                    'hermes': TEMPLATE_ENHANCE_HERMES,
+                    'langley': TEMPLATE_ENHANCE_LANGLEY,
+                    'ranger': TEMPLATE_ENHANCE_RANGER,
+                }
+        elif cv == 'eagle':
+            # 白鹰阵营不含皇家航母 hermes
+            dict_template.pop('hermes', None)
+        elif cv != 'any' and cv in dict_template:
             dict_template = {cv: dict_template[cv]}
 
         if first_slot:
@@ -344,11 +363,14 @@ class Enhancement(Dock):
                 logger.critical(f'[退役] 状态机循环次数过多: {state_list}')
                 raise GameStuckError('状态机循环次数过多')
 
+            # 仅捕获状态函数查找失败，状态函数内部的异常需如实抛出，
+            # 避免被误报为"未知的状态函数"
             try:
-                state = locals()[state]()
-            except KeyError as e:
+                func = locals()[state]
+            except KeyError:
                 logger.warning(f'未知的状态函数: {state}')
                 raise ScriptError(f'未知的状态函数: {state}')
+            state = func()
 
         return state, ship_count
 
