@@ -30,6 +30,9 @@ class TestGameNotRunningErrorHandling(unittest.TestCase):
     def test_schedules_restart_without_requesting_traceback(self):
         script = AzurLaneAutoScript.__new__(AzurLaneAutoScript)
         script.config_name = 'test'
+        # __new__ 绕过了 __init__，需补齐 run() 依赖的实例属性
+        script.__dict__['_channel_float_done'] = False
+        script.__dict__['consecutive_unexpected_error'] = 0
         script.__dict__['config'] = Mock()
         script.config.cross_get.return_value = False
         error = GameNotRunningError('Game not running')
@@ -37,6 +40,7 @@ class TestGameNotRunningErrorHandling(unittest.TestCase):
 
         with (
             patch('alas.logger.error_context') as error_context_mock,
+            patch.object(AzurLaneAutoScript, 'handle_channel_float'),
             patch('alas.handle_notify'),
             patch('alas.notify_webui'),
         ):
