@@ -212,8 +212,8 @@ class CampaignRun(CampaignEvent, ShopStatus):
             str, str: (name, folder)。
         """
         name = to_map_file_name(name)
-        # 处理 event_20251218_cn d3-3 特殊情况
-        if folder == 'event_20251218_cn':
+        # 支持已适配活动的 D3 三战撤退入口
+        if folder in ['event_20251218_cn', 'event_20260908_cn']:
             # 将 d3-3 转换为 d3_3 以使用三战撤退逻辑
             if name == 'd3-3':
                 name = 'd3_3'
