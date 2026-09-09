@@ -154,6 +154,45 @@ class TestD3SirenRetreat(unittest.TestCase):
                 with self.subTest(folder=folder, name=name):
                     self.assertEqual(runner.handle_stage_name(name, folder), (expected, folder))
 
+    def test_stage_is_main(self):
+        self.assertTrue(CampaignRun.stage_is_main('7-2'))
+        self.assertTrue(CampaignRun.stage_is_main('12-4'))
+        self.assertTrue(CampaignRun.stage_is_main('campaign_7_2'))
+        self.assertTrue(CampaignRun.stage_is_main('campaign_12_4'))
+
+        self.assertFalse(CampaignRun.stage_is_main('D3'))
+        self.assertFalse(CampaignRun.stage_is_main('d3'))
+        self.assertFalse(CampaignRun.stage_is_main('D3-3'))
+        self.assertFalse(CampaignRun.stage_is_main('d3-3'))
+        self.assertFalse(CampaignRun.stage_is_main('d3_3'))
+        self.assertFalse(CampaignRun.stage_is_main('sp'))
+        self.assertFalse(CampaignRun.stage_is_main('sp1'))
+
+    def test_gems_farming_and_three_oil_d3_alias(self):
+        for command in ('GemsFarming', 'ThreeOilLowCost'):
+            runner = object.__new__(CampaignRun)
+            runner.config = SimpleNamespace(
+                task=SimpleNamespace(command=command),
+                Campaign_Event='campaign_main',
+                STAGE_LOOP_ALIAS={},
+                cross_get=lambda k: 'event_20260908_cn' if 'Campaign.Event' in k else None,
+            )
+            for name in ('D3-3', 'd3-3', 'd3_3'):
+                with self.subTest(command=command, name=name):
+                    self.assertEqual(
+                        runner.handle_stage_name(name, folder='campaign_main'),
+                        ('d3_3', 'event_20260908_cn'),
+                    )
+
+            self.assertEqual(
+                runner.handle_stage_name('D3', folder='campaign_main'),
+                ('d3', 'event_20260908_cn'),
+            )
+            self.assertEqual(
+                runner.handle_stage_name('7-2', folder='campaign_main'),
+                ('campaign_7_2', 'campaign_main'),
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
