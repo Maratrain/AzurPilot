@@ -263,6 +263,12 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                 continue
             if self.handle_vote_popup():
                 continue
+            # 加载期间出现的红脸（低心情）弹窗同样没有任何其他处理器会认，
+            # 不处理会一直等到 GameStuckError。ignore 模式下点「确定」继续出击
+            if self.handle_combat_low_emotion():
+                # 确认后游戏直接进入战斗（不回地图），结算会包含获得道具界面
+                self._auto_search_status_confirm = True
+                continue
 
             # End
             if self.is_in_auto_search_menu() or self._handle_auto_search_menu_missing():
