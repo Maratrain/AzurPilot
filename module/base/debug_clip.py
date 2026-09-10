@@ -815,19 +815,23 @@ class _ScrcpyClip:
                 parts.append(f"｜{name}: {text[-limit:]}")
         return "".join(parts)
 
+    def _remove_file(self, path):
+        """尽力删除一个文件（Windows 上可能被占用，重试几次）。"""
+        if not path:
+            return
+        for _ in range(3):
+            try:
+                os.remove(path)
+                break
+            except FileNotFoundError:
+                break
+            except OSError:
+                time.sleep(0.2)
+
     def _discard(self):
-        """删除本次录制的临时产物（不保留的片段，或判定为无效的片段）。"""
+        """删除本次录制的全部临时文件（不保留的片段，或判定为无效的片段）。"""
         for path in (self.tmp_path, self.dec_log_path, self.enc_log_path):
-            if not path:
-                continue
-            for _ in range(3):
-                try:
-                    os.remove(path)
-                    break
-                except FileNotFoundError:
-                    break
-                except OSError:
-                    time.sleep(0.2)
+            self._remove_file(path)
 
     def _fail(self, reason):
         """产物无效时统一报错，绝不谎报「已保存」。"""
@@ -949,6 +953,10 @@ class _ScrcpyClip:
             result = self._keep_record(encoder_ok, elapsed)
         if result is None:
             self._discard()
+        else:
+            # 保存成功：诊断日志已完成使命，录像目录里只应留下 mp4
+            self._remove_file(self.dec_log_path)
+            self._remove_file(self.enc_log_path)
         return result
 
 

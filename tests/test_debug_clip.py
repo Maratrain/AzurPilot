@@ -338,6 +338,23 @@ class TestFinalizeIsSafe(ClipTestCase):
         self.assertIsNone(rec.finalize(keep=True))
         self.assertFalse(os.path.exists(rec.tmp_path))
 
+    def test_finalize_leaves_only_the_mp4_on_success(self):
+        """录像成功后目录里只能留下 mp4：ffmpeg 的 stderr 日志必须一并清掉。"""
+        rec = self.make_clip()
+        with open(rec.tmp_path, 'wb') as f:
+            f.write(b'x' * 8000)
+        for log_path in (rec.dec_log_path, rec.enc_log_path):
+            with open(log_path, 'wb') as f:
+                f.write(b'ffmpeg noise')
+        rec._frames_written = 300
+
+        path = rec.finalize(keep=True)
+
+        self.assertIsNotNone(path)
+        self.assertTrue(os.path.exists(path))
+        for leftover in (rec.tmp_path, rec.dec_log_path, rec.enc_log_path):
+            self.assertFalse(os.path.exists(leftover), leftover)
+
 
 class TestPaceLoop(ClipTestCase):
     """验证核心节奏：源帧率低时补帧、高时丢帧，输出时长贴近真实时间。"""
