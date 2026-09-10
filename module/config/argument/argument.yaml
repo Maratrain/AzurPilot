@@ -1203,6 +1203,9 @@ OpsiMeowfficerFarming:
   TargetZone:
     value: 0
   StayInZone: false
+  # 效率模式强制移动（套用侵蚀一）：战后遍历 1~4 队雷达清剩余问号，
+  # 只切换舰队看雷达、不挪动舰队；默认关闭
+  ExecuteFixedPatrolScan: false
 OpsiTarget:
   TargetFarming: false
   TargetZone:

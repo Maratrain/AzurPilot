@@ -20,7 +20,7 @@ from module.exception import (
 )
 from module.logger import logger
 from module.map.map_grids import SelectedGrids
-from module.os.map import OSMap
+from module.os.map import ALREADY_SOLVED_MAP_EVENTS, OSMap
 from module.os_handler.action_point import ActionPointLimit
 from module.os.tasks.scheduling import CoinTaskMixin
 
@@ -171,6 +171,25 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
             return True
         return ap_checked
 
+    def _meow_fixed_patrol_scan(self):
+        """
+        战后效率模式强制移动（套用侵蚀一，可开关，默认关闭）。
+
+        开启后遍历 1~4 号舰队的雷达清剩余问号：只切换舰队看雷达、
+        不挪动舰队；已解决目标事件（明石/记录塔/信息探测装置）时跳过。
+        结束后恢复短猫舰队（clear_question_any_fleet 不会恢复原舰队）。
+
+        Pages:
+            in: page_os
+        """
+        if not self.config.OpsiMeowfficerFarming_ExecuteFixedPatrolScan:
+            return
+        if self._solved_map_event & ALREADY_SOLVED_MAP_EVENTS:
+            return
+        logger.info('[大世界-耄耋相接] 触发效率模式强制移动')
+        self.clear_question_any_fleet()
+        self.fleet_set(self.config.OpsiFleet_Fleet)
+
     def _meow_handle_traditional_zone(self, zone):
         logger.hr(f'大世界-耄耋相接, zone_id={zone.zone_id}', level=1)
         self.globe_goto(zone, types='SAFE', refresh=True)
@@ -212,6 +231,7 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
                 self._solved_fleet_mechanism = False
                 self.clear_question()
                 self.map_rescan()
+                self._meow_fixed_patrol_scan()
 
             try:
                 self.handle_after_auto_search()
