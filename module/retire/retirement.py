@@ -541,6 +541,10 @@ class Retirement(Enhancement, QuickRetireSettingHandler):
                         self._unable_to_enhance = True
                 except Exception as e:
                     logger.warning(f'[退役-船坞] 强化失败: {e}')
+                    # 异常可能打断强化收尾（如装备拆解弹窗），
+                    # 先恢复界面并退出船坞，避免模态弹窗残留导致上层等待卡死
+                    self._enhance_recover()
+                    self.dock_quit()
                     self._unable_to_enhance = True  # 尝试退役
                 self.interval_reset(DOCK_CHECK)
                 self.map_cat_attack_timer.reset()

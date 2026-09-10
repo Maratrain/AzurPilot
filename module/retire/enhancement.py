@@ -22,6 +22,7 @@ from module.logger import logger
 from module.ocr.ocr import DigitCounter
 from module.retire.assets import *
 from module.retire.dock import Dock
+from module.ui.assets import BACK_ARROW
 
 VALID_SHIP_TYPES = ['dd', 'ss', 'cl', 'ca', 'bb', 'cv', 'repair', 'others']
 if server.server != 'jp':
@@ -131,6 +132,64 @@ class Enhancement(Dock):
                     break
             else:
                 confirm_timer.reset()
+
+    def _enhance_recover(self, skip_first_screenshot=True):
+        """
+        强化流程异常后的界面恢复。
+
+        异常可能打断强化确认后的装备拆解弹窗（信息）或强化结算动画，
+        这类模态弹窗仅点返回键无法关闭；先按强化收尾流程依次处理
+        拆解确认（默认不拆解，装备入库）与奖励收取，界面回到船坞列表
+        后结束，由调用方退出船坞。恢复超时说明界面不可自行恢复，
+        抛出 GameStuckError 交由调度器重启游戏兜底。
+
+        Pages:
+            in: 舰船强化页 / 装备拆解弹窗 / 船坞列表
+            out: page_dock（DOCK_CHECK 可见，船坞未退出）
+
+        Raises:
+            GameStuckError: 恢复超时（约 60 秒）仍未回到船坞列表。
+        """
+        logger.info('强化异常恢复')
+        timeout = Timer(60, count=60).start()
+        confirm_timer = Timer(2, count=4).start()
+        while 1:
+            if skip_first_screenshot:
+                skip_first_screenshot = False
+            else:
+                self.device.screenshot()
+
+            if timeout.reached():
+                logger.warning('[退役-强化] 异常恢复超时')
+                raise GameStuckError('强化异常恢复超时')
+
+            # 强化确认后的装备拆解弹窗，点击确定（默认不拆解，装备入库）
+            if self.appear_then_click(EQUIP_CONFIRM, offset=(30, 30), interval=3):
+                confirm_timer.reset()
+                continue
+            if self.appear_then_click(EQUIP_CONFIRM_2, offset=(30, 30), interval=3):
+                confirm_timer.reset()
+                continue
+            # 强化结果收取
+            if self.appear(GET_ITEMS_1, interval=2):
+                self.device.click(GET_ITEMS_1_RETIREMENT_SAVE)
+                confirm_timer.reset()
+                continue
+            # 其他通用确认弹窗
+            if self.handle_popup_confirm('ENHANCE_RECOVER'):
+                confirm_timer.reset()
+                continue
+
+            # 已回到船坞列表，等待界面稳定后结束
+            if self.appear(DOCK_CHECK, offset=(20, 20)):
+                if confirm_timer.reached():
+                    break
+                continue
+
+            # 单舰强化页，退回船坞列表
+            confirm_timer.reset()
+            if self.appear_then_click(BACK_ARROW, offset=(30, 30), interval=3):
+                continue
 
     def _enhance_get_deselect_cv(self, first_slot=False):
         """
@@ -358,10 +417,15 @@ class Enhancement(Dock):
                     while self.device.click_record and (self.device.click_record[-1] in ['ENHANCE_RECOMMEND', 'EQUIP_SWIPE', 'SHIP_SWIPE', 'ENHANCE_CONFIRM']):
                         self.device.click_record.pop()
                 state_list.clear()
-            state_list.append(state)
-            if len(state_list) > 30:
-                logger.critical(f'[退役] 状态机循环次数过多: {state_list}')
-                raise GameStuckError('状态机循环次数过多')
+            # 记录状态迁移而非轮询迭代：等待装填动画、确认弹窗加载期间
+            # 连续相同状态（ready、attempt 反复轮询）只记一次，
+            # 避免正常等待被误判为死循环、强化在即将成功前被中断；
+            # 状态来回切换不推进的真实振荡仍会被上限拦截
+            if not state_list or state_list[-1] != state:
+                state_list.append(state)
+                if len(state_list) > 30:
+                    logger.critical(f'[退役] 状态机循环次数过多: {state_list}')
+                    raise GameStuckError('状态机循环次数过多')
 
             # 仅捕获状态函数查找失败，状态函数内部的异常需如实抛出，
             # 避免被误报为"未知的状态函数"
