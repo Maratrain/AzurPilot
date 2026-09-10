@@ -5,6 +5,7 @@
 - 智能海域选择和路径规划
 - 代币资源保护和行动力管理
 - 失败重试和异常恢复机制
+- 战后 debug 录像（可选，见 OpsiMeowfficerFarming.DebugClip）
 
 继承自 CoinTaskMixin 和 OSMap，提供代币保护和地图导航能力，
 通过指定海域列表实现高效的指挥喵资源收集。
@@ -190,18 +191,37 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
         self.clear_question_any_fleet()
         self.fleet_set(self.config.OpsiFleet_Fleet)
 
+    def _meow_debug_clip(self):
+        """战后 debug 录像的上下文，开关为 OpsiMeowfficerFarming.DebugClip。
+
+        录制「打完找事件 / 处理事件 / 强制移动」这一段的真实游戏画面，每一轮都保存，
+        方便逐轮回看有没有漏掉问号或事件。保留天数统一在「大世界通用设置」里配置。
+
+        Returns:
+            contextlib.AbstractContextManager: with 块退出时自动保存录像。
+        """
+        from module.base.debug_clip import CLIP_PREFIX_MEOW, clip_recording
+
+        return clip_recording(
+            self.config,
+            self.config.OpsiMeowfficerFarming_DebugClip,
+            prefix=CLIP_PREFIX_MEOW,
+        )
+
     def _meow_handle_traditional_zone(self, zone):
         logger.hr(f'大世界-耄耋相接, zone_id={zone.zone_id}', level=1)
         self.globe_goto(zone, types='SAFE', refresh=True)
         self.fleet_set(self.config.OpsiFleet_Fleet)
         self.meow_search_metrics_start()
         try:
-            if self.run_strategic_search():
-                self._solved_map_event = set()
-                self._solved_fleet_mechanism = False
-                self.clear_question()
-                self.map_rescan()
-            self.handle_after_auto_search()
+            search_completed = self.run_strategic_search()
+            with self._meow_debug_clip():
+                if search_completed:
+                    self._solved_map_event = set()
+                    self._solved_fleet_mechanism = False
+                    self.clear_question()
+                    self.map_rescan()
+                self.handle_after_auto_search()
         finally:
             self.meow_search_metrics_end()
         self.config.check_task_switch()
@@ -226,19 +246,20 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
             except Exception as e:
                 logger.warning(f'[大世界-耄耋相接] 战略搜索异常: {e}')
 
-            if search_completed:
-                self._solved_map_event = set()
-                self._solved_fleet_mechanism = False
-                self.clear_question()
-                self.map_rescan()
-                self._meow_fixed_patrol_scan()
+            with self._meow_debug_clip():
+                if search_completed:
+                    self._solved_map_event = set()
+                    self._solved_fleet_mechanism = False
+                    self.clear_question()
+                    self.map_rescan()
+                    self._meow_fixed_patrol_scan()
 
-            try:
-                self.handle_after_auto_search()
-            except (TaskEnd, GameStuckError, GameTooManyClickError, RequestHumanTakeover):
-                raise
-            except Exception:
-                logger.exception('[大世界-耄耋相接] handle_after_auto_search 发生异常')
+                try:
+                    self.handle_after_auto_search()
+                except (TaskEnd, GameStuckError, GameTooManyClickError, RequestHumanTakeover):
+                    raise
+                except Exception:
+                    logger.exception('[大世界-耄耋相接] handle_after_auto_search 发生异常')
         finally:
             self.meow_search_metrics_end()
 
@@ -256,7 +277,8 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
         self.meow_search_metrics_start()
         try:
             self.run_auto_search()
-            self.handle_after_auto_search()
+            with self._meow_debug_clip():
+                self.handle_after_auto_search()
         finally:
             self.meow_search_metrics_end()
 
@@ -287,11 +309,12 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
             self.run_auto_search()
             # 自律寻敌完成后，查看短猫舰队雷达上的剩余问号并处理
             # （仅当前舰队雷达，不切换 1~4 队；参考侵蚀一的战后问号处理）
-            self._solved_map_event = set()
-            self._solved_fleet_mechanism = False
-            self.clear_question()
-            self.map_rescan()
-            self.handle_after_auto_search()
+            with self._meow_debug_clip():
+                self._solved_map_event = set()
+                self._solved_fleet_mechanism = False
+                self.clear_question()
+                self.map_rescan()
+                self.handle_after_auto_search()
         finally:
             self.meow_search_metrics_end()
 
@@ -374,6 +397,12 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
 
     def run_meowfficer_farming_once(self, ap_preserve=None, ap_checked=False, prepared=False):
         """执行一轮耄耋相接，由独立任务或 OpsiScheduling 调用。"""
+        # 过期录像清理：与本次是否开启录制无关，避免关掉录制后旧录像一直堆着。
+        # 内部有节流，不会每轮战斗都真的扫目录。保留天数见「大世界通用设置」。
+        from module.base.debug_clip import cleanup_clips_if_due
+
+        cleanup_clips_if_due(self.config)
+
         if prepared:
             preserve = int(ap_preserve or 0)
         else:

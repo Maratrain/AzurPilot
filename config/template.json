@@ -2469,6 +2469,7 @@
       "RepairPackThresholdHazard1": 0.5,
       "DoRandomMapEvent": true,
       "AkashiShopFilter": "ActionPoint",
+      "DebugClipRetentionDays": 7,
       "NotifyOpsiMail": true,
       "LauncherPush": true,
       "IndependentPush": false,
@@ -2736,7 +2737,8 @@
       "HazardLevel": 5,
       "TargetZone": 0,
       "StayInZone": false,
-      "ExecuteFixedPatrolScan": false
+      "ExecuteFixedPatrolScan": false,
+      "DebugClip": false
     },
     "OpsiSirenBug": {
       "SirenResearch_Enable": true,
