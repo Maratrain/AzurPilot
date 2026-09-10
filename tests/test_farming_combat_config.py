@@ -49,10 +49,15 @@ class TestFarmingCombatConfig(unittest.TestCase):
                         self.assertEqual(getattr(config, f'Submarine_{name}'), value)
 
     def test_old_config_gets_priority_without_changing_submarine_defaults(self):
-        """旧配置补齐索敌选项，并保留原有潜艇行为和任务边界。"""
+        """旧配置补齐索敌选项，并保留原有潜艇行为和任务边界。
+
+        补齐走 config_update 通用机制：旧配置缺键时取 args.json 的 value。
+        GemsFarming/ThreeOilLowCost 在 default.yaml 中的任务默认值为
+        S1_enemy_first（模拟原更换先锋时强制 S1 索敌的行为）。
+        """
         for task in TASKS:
             config = make_config(task, Submarine={'Fleet': 1, 'Mode': 'hunt_only'})
-            self.assertEqual(config.EnemyPriority_EnemyScaleBalanceWeight, 'default_mode')
+            self.assertEqual(config.EnemyPriority_EnemyScaleBalanceWeight, 'S1_enemy_first')
             self.assertEqual(config.bound['EnemyPriority_EnemyScaleBalanceWeight'],
                              f'{task}.EnemyPriority.EnemyScaleBalanceWeight')
             self.assertEqual(config.Submarine_Mode, 'hunt_only')

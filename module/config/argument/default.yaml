@@ -9,9 +9,14 @@
 GemsFarming:
   EnemyPriority:
     EnemyScaleBalanceWeight: S1_enemy_first
+  Submarine:
+    # 原 override.yaml 强制 use_open_ocean_support，放开潜艇限制后以任务默认保留原行为
+    DistanceToBoss: use_open_ocean_support
 ThreeOilLowCost:
   EnemyPriority:
     EnemyScaleBalanceWeight: S1_enemy_first
+  Submarine:
+    DistanceToBoss: use_open_ocean_support
 
 # ==================== Event ====================
 

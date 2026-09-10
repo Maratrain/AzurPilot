@@ -2728,7 +2728,7 @@
       },
       "DistanceToBoss": {
         "type": "select",
-        "value": "2_grid_to_boss",
+        "value": "use_open_ocean_support",
         "option": [
           "to_boss_position",
           "1_grid_to_boss",
@@ -3264,7 +3264,7 @@
       },
       "DistanceToBoss": {
         "type": "select",
-        "value": "2_grid_to_boss",
+        "value": "use_open_ocean_support",
         "option": [
           "to_boss_position",
           "1_grid_to_boss",
