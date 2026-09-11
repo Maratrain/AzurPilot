@@ -315,3 +315,10 @@ cursor-helper/**/review/reports/files/
 
 AGENTS.md
 RTK.md
+
+# Windows 下误建的 nul 文件
+# 成因：WebUI「远程访问」/ SSH 模拟器把 os.devnull 当作 ssh 的已知主机文件路径
+# （Windows 上 os.devnull == 'nul'），而 MSYS2 版 ssh 不把裸的 'nul' 当设备名，
+# 于是在工作目录建出真实文件，并在 StrictHostKeyChecking=no 下往里追加主机密钥。
+# 触发点：module/webui/remote_access.py、alas.py、module/device/platform/platform_base.py
+/nul
