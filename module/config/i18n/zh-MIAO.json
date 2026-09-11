@@ -66,6 +66,10 @@
       "name": "主线图-3冲锋喵！",
       "help": "第三章挑战，雪风会保护大家的喵！( •̀ ω •́ )✧"
     },
+    "OperationHandover": {
+      "name": "作战委托喵！",
+      "help": "把舰队派出去挂机打工喵～委托期间不能出击哦 (๑•̀ㅂ•́)و✧"
+    },
     "GemsFarming": {
       "name": "紧急委托喵赚！",
       "help": "通过紧急委托攒点零花钱喵，钻石亮闪闪 ✧٩(ˊωˋ*)و✧"
@@ -1336,6 +1340,24 @@
       "withdraw_continue": "撤退后继续任务喵",
       "switch_fleet": "切换队伍继续出击喵",
       "withdraw_stop": "撤退后关闭任务喵"
+    }
+  },
+  "OperationHandover": {
+    "_info": {
+      "name": "作战委托设定喵",
+      "help": ""
+    },
+    "Count": {
+      "name": "委托次数",
+      "help": "要挂多少次关卡喵～"
+    },
+    "AutoSupplementTime": {
+      "name": "自动补充时间",
+      "help": "时间不够就用委托书换喵，一本换一小时喵 (=^･ω･^=)"
+    },
+    "UseHandoverBook": {
+      "name": "使用作战全权委托书",
+      "help": "开打之前把委托书塞满喵！"
     }
   },
   "StopCondition": {

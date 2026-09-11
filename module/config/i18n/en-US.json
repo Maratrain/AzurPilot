@@ -66,6 +66,10 @@
       "name": "Main Campaign+",
       "help": ""
     },
+    "OperationHandover": {
+      "name": "Operation Handover",
+      "help": ""
+    },
     "GemsFarming": {
       "name": "Urgent Commission+",
       "help": ""
@@ -1336,6 +1340,24 @@
       "withdraw_continue": "Withdraw & Continue Task",
       "switch_fleet": "Switch Fleet & Continue",
       "withdraw_stop": "Withdraw & Stop Task"
+    }
+  },
+  "OperationHandover": {
+    "_info": {
+      "name": "Operation Handover Settings",
+      "help": ""
+    },
+    "Count": {
+      "name": "Handover Count",
+      "help": "Number of times the delegated stage is run"
+    },
+    "AutoSupplementTime": {
+      "name": "Auto Supplement Time",
+      "help": "Exchange Handover Books for available time when the remaining time is not enough (1 book = 1 hour)"
+    },
+    "UseHandoverBook": {
+      "name": "Use Handover Book",
+      "help": "Max out the invested Handover Books before starting"
     }
   },
   "StopCondition": {

@@ -66,6 +66,10 @@
       "name": "主線圖+",
       "help": ""
     },
+    "OperationHandover": {
+      "name": "作戰委託",
+      "help": ""
+    },
     "GemsFarming": {
       "name": "緊急委託+",
       "help": ""
@@ -1336,6 +1340,24 @@
       "withdraw_continue": "撤退後繼續任務",
       "switch_fleet": "切換隊伍繼續出擊",
       "withdraw_stop": "撤退後關閉任務"
+    }
+  },
+  "OperationHandover": {
+    "_info": {
+      "name": "作戰委託設定",
+      "help": ""
+    },
+    "Count": {
+      "name": "委託次數",
+      "help": "本次作戰委託要執行的關卡次數"
+    },
+    "AutoSupplementTime": {
+      "name": "自動補充時間",
+      "help": "剩餘可用時間不足以完成委託時，用作戰全權委託書兌換可用時間（1 本 = 1 小時）"
+    },
+    "UseHandoverBook": {
+      "name": "使用作戰全權委託書",
+      "help": "開始委託前把作戰全權委託書的投入量拉到最大"
     }
   },
   "StopCondition": {

@@ -66,6 +66,10 @@
       "name": "メインステージ+",
       "help": ""
     },
+    "OperationHandover": {
+      "name": "作戦委託",
+      "help": ""
+    },
     "GemsFarming": {
       "name": "緊急委託+",
       "help": ""
@@ -1336,6 +1340,24 @@
       "withdraw_continue": "撤退して任務続行",
       "switch_fleet": "艦隊切替して続行",
       "withdraw_stop": "撤退して任務終了"
+    }
+  },
+  "OperationHandover": {
+    "_info": {
+      "name": "作戦委託設定",
+      "help": ""
+    },
+    "Count": {
+      "name": "委託回数",
+      "help": "委託するステージの実行回数"
+    },
+    "AutoSupplementTime": {
+      "name": "時間を自動補填",
+      "help": "残り可用時間が足りない場合、作戦全権委託書で可用時間を交換します（1 冊 = 1 時間）"
+    },
+    "UseHandoverBook": {
+      "name": "作戦全権委託書を使用",
+      "help": "委託開始前に委託書の投入量を最大にします"
     }
   },
   "StopCondition": {

@@ -52,6 +52,12 @@ Farm:
       - Emotion
       - HpControl
       - EnemyPriority
+    OperationHandover:
+      - Scheduler
+      - Campaign
+      - OperationHandover
+      - Fleet
+      - Submarine
     GemsFarming:
       - Scheduler
       - GemsFarming

@@ -66,6 +66,10 @@
       "name": "主线图-3+",
       "help": ""
     },
+    "OperationHandover": {
+      "name": "作战委托",
+      "help": ""
+    },
     "GemsFarming": {
       "name": "紧急委托+",
       "help": ""
@@ -1336,6 +1340,24 @@
       "withdraw_continue": "撤退后继续任务",
       "switch_fleet": "切换队伍继续出击",
       "withdraw_stop": "撤退后关闭任务"
+    }
+  },
+  "OperationHandover": {
+    "_info": {
+      "name": "作战委托设置",
+      "help": ""
+    },
+    "Count": {
+      "name": "委托次数",
+      "help": "本次作战委托要执行的关卡次数"
+    },
+    "AutoSupplementTime": {
+      "name": "自动补充时间",
+      "help": "剩余可用时间不足以完成委托时，用作战全权委托书兑换可用时间（1 本 = 1 小时）"
+    },
+    "UseHandoverBook": {
+      "name": "使用作战全权委托书",
+      "help": "开始委托前把作战全权委托书的投入量拉到最大"
     }
   },
   "StopCondition": {

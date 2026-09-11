@@ -522,6 +522,26 @@ WarArchives:
   Campaign:
     Mode: normal
     AmbushEvade: true
+OperationHandover:
+  Scheduler:
+    SuccessInterval: 30
+    FailureInterval: 30
+    ServerUpdate: 00:00
+  Campaign:
+    UseClearMode:
+      display: hide
+    UseFleetLock:
+      display: hide
+    UseAutoSearch:
+      display: hide
+    Use2xBook:
+      display: hide
+    AmbushEvade:
+      display: hide
+    UseRecommendFleet:
+      display: hide
+    DefeatWithdraw:
+      display: hide
 
 # ==================== Opsi ====================
 

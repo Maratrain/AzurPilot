@@ -77,6 +77,7 @@ class ManualConfig:
     > Ambush11
     > OpsiHazard1Leveling
     > ThreeOilLowCost
+    > OperationHandover
     """
 
     @staticmethod
