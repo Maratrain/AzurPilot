@@ -1,13 +1,116 @@
 import unittest
 from contextlib import contextmanager, nullcontext
+from datetime import datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from module.campaign.os_run import OSCampaignRun
-from module.config.config import TaskEnd
+from module.config.config import Function, TaskEnd
+from module.os.operation_siren import OperationSiren
 from module.os.tasks.prevent_action_point_overflow import OpsiPreventActionPointOverflow
 from module.os.tasks.scheduling import OpsiScheduling
 from module.os_handler.action_point import ActionPointLimit
+from module.os_handler.os_status import OSStatus
+
+
+class TestOpsiTaskCooldown(unittest.TestCase):
+    """到期任务不能被当成冷却任务，防止代理任务反复写回过去的运行时间。"""
+
+    def setUp(self):
+        self.now = datetime(2026, 9, 8, 7, 18, 17)
+        self.update = datetime(2026, 9, 9)
+        self.status = OSStatus.__new__(OSStatus)
+        self.status.config = SimpleNamespace(pending_task=[], waiting_task=[])
+        for name, value in (
+            ('current_time', self.now),
+            ('get_server_next_update', self.update),
+        ):
+            patcher = patch(f'module.os_handler.os_status.{name}', return_value=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    @staticmethod
+    def make_task(next_run, command='OpsiDaily', enabled=True):
+        return Function({'Scheduler': {
+            'Command': command,
+            'Enable': enabled,
+            'NextRun': next_run,
+        }})
+
+    def test_expired_or_due_tasks_are_not_cooling_down(self):
+        for next_run in (datetime(2026, 9, 7), self.now - timedelta(seconds=1), self.now):
+            # 队列是较早生成的快照，等待队列里的任务也可能已经到期。
+            for queue in ('pending_task', 'waiting_task'):
+                with self.subTest(next_run=next_run, queue=queue):
+                    self.status.config.pending_task = []
+                    self.status.config.waiting_task = []
+                    setattr(self.status.config, queue, [self.make_task(next_run)])
+                    self.assertIsNone(self.status.nearest_task_cooling_down)
+
+    def test_future_cooldown_keeps_the_sixty_minute_boundary(self):
+        for seconds, expected in ((1, True), (3600, True), (3601, False)):
+            with self.subTest(seconds=seconds):
+                task = self.make_task(self.now + timedelta(seconds=seconds))
+                self.status.config.waiting_task = [task]
+                result = self.status.nearest_task_cooling_down
+                self.assertIs(result, task if expected else None)
+
+    def test_selects_nearest_enabled_cooldown_and_excludes_server_reset(self):
+        # 将日更设在一小时内，确认它仍不会被误认为短期冷却。
+        update = self.now + timedelta(minutes=10)
+        nearest = self.make_task(self.now + timedelta(minutes=20), 'OpsiObscure')
+        self.status.config.pending_task = [self.make_task(datetime(2026, 9, 7))]
+        self.status.config.waiting_task = [
+            self.make_task(self.now + timedelta(minutes=50), 'OpsiAbyssal'),
+            self.make_task(update),
+            self.make_task(self.now + timedelta(minutes=1), enabled=False),
+            self.make_task(self.now + timedelta(minutes=2), 'Research'),
+            nearest,
+        ]
+        with patch('module.os_handler.os_status.get_server_next_update', return_value=update):
+            self.assertIs(self.status.nearest_task_cooling_down, nearest)
+
+    def test_prevent_overflow_runs_meow_instead_of_requeueing_in_the_past(self):
+        runner = OperationSiren.__new__(OperationSiren)
+        owner = self.make_task(datetime(2026, 9, 7), 'OpsiPreventActionPointOverflow')
+        runner.config = SimpleNamespace(
+            task=owner,
+            data={},
+            pending_task=[owner, self.make_task(datetime(2026, 9, 7))],
+            waiting_task=[],
+            OpsiMeowfficerFarming_HazardLevel=5,
+            OpsiMeowfficerFarming_TargetZone=0,
+            OpsiMeowfficerFarming_StayInZone=False,
+            OpsiTarget_TargetFarming=False,
+            is_task_enabled=Mock(return_value=True),
+            override=Mock(),
+            bind=Mock(),
+            temporary=lambda **kwargs: nullcontext(),
+            task_delay=Mock(),
+            task_stop=Mock(side_effect=TaskEnd),
+        )
+        with (
+            patch.object(runner, '_get_prevent_action_point_overflow_thresholds', return_value=(200, 30)),
+            patch.object(runner, '_get_prevent_action_point_overflow_task', return_value='OpsiMeowfficerFarming'),
+            patch.object(runner, '_get_current_action_point_for_overflow', side_effect=[300, 20]),
+            patch.object(runner, 'update_prevent_action_point_overflow_schedule') as reschedule,
+            patch.object(runner, 'is_in_opsi_explore', return_value=False),
+            patch.object(runner, '_meow_ap_check', return_value=True),
+            patch.object(runner, '_meow_handle_normal_search') as search,
+            patch('module.os.tasks.meowfficer_farming.get_os_reset_remain', return_value=22),
+            patch('module.base.debug_clip.cleanup_clips_if_due'),
+        ):
+            with self.assertRaises(TaskEnd):
+                runner.run_prevent_action_point_overflow()
+
+        # 保留真实的代理上下文和短猫准备逻辑，仅替换设备交互。
+        search.assert_called_once_with()
+        runner.config.task_delay.assert_not_called()
+        reschedule.assert_called_once_with(current_ap=20, enable=True)
+        self.assertIs(runner.config.task, owner)
+        self.assertFalse(runner.is_running_prevent_action_point_overflow_task())
+        self.assertFalse(runner.is_running_smart_scheduling_task())
+        self.assertFalse(hasattr(runner, runner.RUNTIME_ATTR_PREVENT_OVERFLOW_DELAY))
 
 
 class SmartSchedulingConfig:

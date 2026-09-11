@@ -1,16 +1,13 @@
-"""验证 debug 录屏的补帧/丢帧节奏、产物校验与录像清理策略。
+"""验证 debug 录屏的设备端命令、产物校验与录像清理策略。
 
-这些测试不依赖模拟器与真实 ffmpeg：需要子进程的地方用假对象替代，
-节奏相关的测试则直接驱动工作线程，验证「源帧率低时补帧、高时丢帧」。
+这些测试不依赖模拟器和真实 ffmpeg：设备被 `_FakeAdb` 取代，转码用假实现，
+只有纯逻辑（命令拼装、进程号/时长解析、清理规则、会话管理）被真正执行。
 """
 
-import io
 import os
-import queue
 import shutil
 import subprocess
 import tempfile
-import threading
 import time
 import unittest
 from types import SimpleNamespace
@@ -19,38 +16,62 @@ from unittest.mock import patch
 from module.base import debug_clip
 
 
-class _FakeProc:
-    """假的 subprocess.Popen，用于验证等待/强杀逻辑。"""
+class _FakeAdb:
+    """假的 adb 设备：记录 shell 命令，并按命令内容给出预设回复。
 
-    def __init__(self, exits=True):
-        self.exits = exits
-        self.terminated = False
+    只看前台查询（进程存活、文件大小、stderr、清理）；启动 recorder 走的是 adb
+    命令行，由 `_run_adb_cli` 的假实现负责。
+    """
 
-    def wait(self, timeout=None):
-        if self.exits:
-            return 0
-        raise subprocess.TimeoutExpired('cmd', timeout)
+    def __init__(self, pid='4321', file_size=200_000, error_text='',
+                 window=(1280, 720), pull_fails=False, alive=True,
+                 stays_alive=False, ls_listing=''):
+        self.commands = []
+        self.pid = pid
+        self.file_size = file_size
+        self.error_text = error_text
+        self.window = window
+        self.pull_fails = pull_fails
+        self.alive = alive
+        self.stays_alive = stays_alive
+        self.ls_listing = ls_listing
+        self.pulled = []
 
-    def terminate(self):
-        self.terminated = True
+    # ---- 设备接口
+    def shell(self, cmd):
+        self.commands.append(cmd)
+        if cmd.startswith('ls '):
+            return self.ls_listing
+        if cmd.startswith('kill -0'):
+            return 'alive' if self.alive else 'gone'
+        if 'kill -2' in cmd:
+            self.alive = self.stays_alive
+            return ''
+        if 'stat -c %s' in cmd:
+            return '' if self.file_size is None else str(self.file_size)
+        if cmd.startswith('cat '):
+            return self.error_text
+        return ''
+
+    def window_size(self):
+        if self.window is None:
+            raise RuntimeError('wm size failed')
+        return SimpleNamespace(width=self.window[0], height=self.window[1])
+
+    def sync_pull(self, src, dst):
+        if self.pull_fails:
+            raise RuntimeError('pull failed')
+        self.pulled.append((src, dst))
+        with open(dst, 'wb') as f:
+            f.write(b'x' * 20000)
+
+    def command_starting_with(self, prefix):
+        return [c for c in self.commands if c.startswith(prefix)]
 
 
-class _RecordingStdin:
-    """记录编码器收到的每一帧，替代 ffmpeg 的 stdin。"""
-
-    def __init__(self):
-        self.frames = []
-        self.closed = False
-
-    def write(self, data):
-        self.frames.append(data)
-        return len(data)
-
-    def flush(self):
-        pass
-
-    def close(self):
-        self.closed = True
+def make_fake_sync(adb):
+    """给 _FakeAdb 装一个 adbutils 风格的 sync 对象（只用到 pull）。"""
+    return SimpleNamespace(pull=adb.sync_pull)
 
 
 class ClipTestCase(unittest.TestCase):
@@ -66,12 +87,14 @@ class ClipTestCase(unittest.TestCase):
         debug_clip._LAST_CLEANUP = self._saved_cleanup
         shutil.rmtree(self.output_dir, ignore_errors=True)
 
-    def make_clip(self, fps=30):
-        rec = debug_clip._ScrcpyClip(config=None, fps=fps)
+    def make_clip(self, prefix=debug_clip.CLIP_PREFIX_EH1, adb=None):
+        rec = debug_clip._ScreenRecordClip(config=None, prefix=prefix)
         rec.output_dir = self.output_dir
-        rec.tmp_path = os.path.join(self.output_dir, '_tmp_eh1_test.mp4')
-        rec.dec_log_path = os.path.join(self.output_dir, '_tmp_eh1_test.dec.log')
-        rec.enc_log_path = os.path.join(self.output_dir, '_tmp_eh1_test.enc.log')
+        rec.remote_path = '/data/local/tmp/eh1_clip_test.mp4'
+        rec.remote_error_path = '/data/local/tmp/eh1_clip_test.err'
+        if adb is not None:
+            adb.sync = make_fake_sync(adb)
+            rec.adb = adb
         return rec
 
 
@@ -219,246 +242,311 @@ class TestFfmpegProbe(unittest.TestCase):
             self.assertEqual(works.call_count, first_calls)
 
 
-class TestWaitProc(unittest.TestCase):
-    def test_normal_exit(self):
-        proc = _FakeProc(exits=True)
-        self.assertTrue(debug_clip._ScrcpyClip._wait_proc(proc, 1))
-        self.assertFalse(proc.terminated)
+class TestParseHelpers(unittest.TestCase):
+    def test_pid_is_read_from_shell_echo(self):
+        self.assertEqual(debug_clip._parse_pid('4321\n'), 4321)
+        self.assertEqual(debug_clip._parse_pid('  99  '), 99)
 
-    def test_timeout_kills_and_reports_failure(self):
-        proc = _FakeProc(exits=False)
-        self.assertFalse(debug_clip._ScrcpyClip._wait_proc(proc, 0.01))
-        self.assertTrue(proc.terminated)
+    def test_missing_pid_is_detected(self):
+        # 设备没有 nohup 时 shell 只会报错，不会有进程号
+        self.assertIsNone(debug_clip._parse_pid('sh: nohup: not found'))
+        self.assertIsNone(debug_clip._parse_pid(''))
 
-    def test_none_is_ok(self):
-        self.assertTrue(debug_clip._ScrcpyClip._wait_proc(None, 1))
+    def test_progress_duration_is_parsed(self):
+        progress = (
+            b'frame=10\nout_time_us=5170000\nout_time=00:00:05.170000\nprogress=end\n'
+        )
+        self.assertAlmostEqual(debug_clip._parse_progress_duration(progress), 5.17, places=2)
+
+    def test_progress_duration_handles_hours(self):
+        progress = b'out_time=01:02:03.500000\n'
+        self.assertAlmostEqual(
+            debug_clip._parse_progress_duration(progress), 3723.5, places=2
+        )
+
+    def test_broken_progress_is_not_fatal(self):
+        self.assertIsNone(debug_clip._parse_progress_duration(b''))
+        self.assertIsNone(debug_clip._parse_progress_duration(b'out_time=oops\n'))
 
 
-class TestReadExact(ClipTestCase):
-    def make_reader(self, payload):
+class TestStaleDeviceFiles(unittest.TestCase):
+    """设备上的残留只按「文件名时间戳」判断，避免误删正在录的那一段。"""
+
+    def name(self, seconds_ago, ext='.mp4'):
+        stamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time() - seconds_ago))
+        return f'{debug_clip.DEVICE_TMP_DIR}/eh1_clip_{stamp}{ext}'
+
+    def test_fresh_files_are_kept(self):
+        self.assertEqual(debug_clip._stale_device_files(self.name(60)), [])
+
+    def test_old_files_are_collected(self):
+        stale = self.name(2 * 3600)
+        self.assertEqual(debug_clip._stale_device_files(stale), [stale])
+
+    def test_err_files_are_collected_too(self):
+        stale = self.name(2 * 3600, ext='.err')
+        self.assertEqual(debug_clip._stale_device_files(stale), [stale])
+
+    def test_only_our_prefixes_and_temp_dir_are_considered(self):
+        listing = '\n'.join([
+            f'{debug_clip.DEVICE_TMP_DIR}/other_20200101_000000.mp4',
+            '/sdcard/eh1_clip_20200101_000000.mp4',
+            f'{debug_clip.DEVICE_TMP_DIR}/eh1_clip_broken.mp4',
+            '',
+        ])
+        self.assertEqual(debug_clip._stale_device_files(listing), [])
+
+    def test_empty_listing_is_safe(self):
+        self.assertEqual(debug_clip._stale_device_files(''), [])
+        self.assertEqual(debug_clip._stale_device_files(None), [])
+
+
+class TestRecorderCommand(ClipTestCase):
+    def test_command_contains_all_recorder_options(self):
         rec = self.make_clip()
-        rec._dec = SimpleNamespace(stdout=io.BytesIO(payload))
-        return rec
+        rec.size = '1280x720'
+        cmd = rec._recorder_command()
+        self.assertIn('screenrecord', cmd)
+        self.assertIn(f'--time-limit {debug_clip.DEVICE_TIME_LIMIT}', cmd)
+        self.assertIn(f'--bit-rate {debug_clip.DEVICE_BITRATE}', cmd)
+        self.assertIn('--size 1280x720', cmd)
+        self.assertIn(rec.remote_path, cmd)
+        # 后台运行 + 回显进程号（收尾时按进程号发 SIGINT）
+        self.assertIn('&', cmd)
+        self.assertIn('echo $!', cmd)
+        # 设备端的 stderr 要留下来，失败时才有真实原因可报
+        self.assertIn(f'2>{rec.remote_error_path}', cmd)
 
-    def test_returns_complete_frame(self):
-        rec = self.make_reader(b'a' * 32)
-        self.assertEqual(rec._read_exact(32), b'a' * 32)
-        self.assertIsNone(rec._error)
-
-    def test_eof_returns_none_without_error(self):
-        rec = self.make_reader(b'')
-        self.assertIsNone(rec._read_exact(32))
-        self.assertIsNone(rec._error)
-
-    def test_partial_frame_returns_none_and_records_reason(self):
-        rec = self.make_reader(b'a' * 10)
-        self.assertIsNone(rec._read_exact(32))
-        self.assertIn('帧中途结束', rec._error)
-
-    def test_keeps_first_error_only(self):
-        rec = self.make_reader(b'a' * 10)
-        rec._read_exact(32)
-        first = rec._error
-        rec._set_error('后面的错误')
-        self.assertEqual(rec._error, first)
+    def test_size_is_omitted_when_unknown(self):
+        rec = self.make_clip()
+        rec.size = None
+        self.assertNotIn('--size', rec._recorder_command())
 
 
-class TestKeepRecord(ClipTestCase):
-    def write_tmp(self, payload):
-        with open(self.tmp_path, 'wb') as f:
-            f.write(payload)
-
+class TestStart(ClipTestCase):
     def setUp(self):
         super().setUp()
-        self.rec = self.make_clip()
-        self.tmp_path = self.rec.tmp_path
+        self._saved = (debug_clip.START_TIMEOUT, debug_clip.POLL_INTERVAL)
+        debug_clip.START_TIMEOUT = 0.05
+        debug_clip.POLL_INTERVAL = 0.01
 
-    def test_zero_frames_is_rejected(self):
-        self.write_tmp(b'x' * 8000)
-        self.rec._frames_written = 0
-        self.assertIsNone(self.rec._keep_record(True, 10.0))
+    def tearDown(self):
+        debug_clip.START_TIMEOUT, debug_clip.POLL_INTERVAL = self._saved
+        super().tearDown()
 
-    def test_missing_output_file_is_rejected(self):
-        self.rec._frames_written = 300
-        self.assertIsNone(self.rec._keep_record(True, 10.0))
+    def start(self, adb, launch_output='4321\n', serial='127.0.0.1:16384'):
+        rec = debug_clip._ScreenRecordClip(
+            config=SimpleNamespace(Emulator_Serial=serial)
+        )
+        rec.output_dir = self.output_dir
+        adb.sync = make_fake_sync(adb)
+        rec.adb = adb
+        with patch.object(
+            debug_clip, '_run_adb_cli', return_value=launch_output
+        ) as cli:
+            ok = rec.start()
+        return rec, ok, cli
 
-    def test_tiny_file_is_rejected(self):
-        self.write_tmp(b'x' * 100)
-        self.rec._frames_written = 300
-        self.assertIsNone(self.rec._keep_record(True, 10.0))
+    def launched_command(self, cli):
+        """取出真正发给设备的那条 shell 命令。"""
+        args = cli.call_args[0][0]
+        self.assertEqual(args[:3], ['-s', '127.0.0.1:16384', 'shell'])
+        return args[3]
 
-    def test_killed_encoder_is_rejected(self):
-        self.write_tmp(b'x' * 8000)
-        self.rec._frames_written = 300
-        self.assertIsNone(self.rec._keep_record(False, 10.0))
+    def test_start_success_records_device_path_and_pid(self):
+        adb = _FakeAdb()
+        rec, ok, cli = self.start(adb)
+        self.assertTrue(ok)
+        self.assertEqual(rec.pid, 4321)
+        self.assertEqual(rec.size, '1280x720')
+        self.assertTrue(rec.remote_path.startswith(debug_clip.DEVICE_TMP_DIR))
+        self.assertTrue(rec.remote_error_path.endswith('.err'))
+        # 开录前要先问一遍设备上的历史临时文件
+        self.assertTrue(adb.command_starting_with('ls '))
+        # 启动走 adb 命令行（adbutils 的 shell 会连带杀掉后台进程）
+        self.assertIn('screenrecord', self.launched_command(cli))
 
-    def test_valid_record_is_saved(self):
-        self.write_tmp(b'x' * 8000)
-        self.rec._frames_written = 300
-        path = self.rec._keep_record(True, 10.0)
-        self.assertIsNotNone(path)
-        self.assertTrue(os.path.basename(path).startswith(debug_clip.CLIP_PREFIX_EH1))
-        self.assertTrue(os.path.exists(path))
-        self.assertFalse(os.path.exists(self.tmp_path))
+    def test_stale_device_file_is_cleaned_before_recording(self):
+        old = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time() - 7200))
+        adb = _FakeAdb(ls_listing=f'/data/local/tmp/eh1_clip_{old}.mp4\n')
+        _, ok, _ = self.start(adb)
+        self.assertTrue(ok)
+        removed = adb.command_starting_with('rm -f')
+        self.assertTrue(removed)
+        self.assertIn(f'eh1_clip_{old}.mp4', removed[0])
 
-    def test_custom_prefix_is_used_for_output_name(self):
-        """短猫相接的录像要带自己的前缀，方便和侵蚀一的区分开。"""
-        rec = self.make_clip()
-        rec.prefix = debug_clip.CLIP_PREFIX_MEOW
-        with open(rec.tmp_path, 'wb') as f:
-            f.write(b'x' * 8000)
-        rec._frames_written = 300
-        path = rec._keep_record(True, 10.0)
-        self.assertIsNotNone(path)
-        self.assertTrue(os.path.basename(path).startswith(debug_clip.CLIP_PREFIX_MEOW))
+    def test_start_without_pid_reports_failure(self):
+        adb = _FakeAdb()
+        _, ok, _ = self.start(adb, launch_output='sh: nohup: not found')
+        self.assertFalse(ok)
 
+    def test_start_without_serial_is_skipped(self):
+        adb = _FakeAdb()
+        _, ok, _ = self.start(adb, serial='')
+        self.assertFalse(ok)
 
-class TestFinalizeIsSafe(ClipTestCase):
-    def test_finalize_never_raises_on_broken_internals(self):
-        rec = self.make_clip()
-        rec._dec = object()  # 故意塞一个没有 stdin / wait 的对象
-        rec._enc = object()
-        self.assertIsNone(rec.finalize(keep=False))
-        self.assertIsNone(rec.finalize(keep=True))
+    def test_recorder_dying_immediately_is_reported(self):
+        adb = _FakeAdb(alive=False)  # recorder 起来就崩
+        _, ok, _ = self.start(adb)
+        self.assertFalse(ok)
 
-    def test_finalize_discards_tmp_when_not_kept(self):
-        rec = self.make_clip()
-        with open(rec.tmp_path, 'wb') as f:
-            f.write(b'x' * 8000)
-        rec._frames_written = 300
-        self.assertIsNone(rec.finalize(keep=False))
-        self.assertFalse(os.path.exists(rec.tmp_path))
-
-    def test_finalize_discards_invalid_artifact(self):
-        """产物无效（这里模拟 0 帧）时不能留下文件，更不能谎报已保存。"""
-        rec = self.make_clip()
-        with open(rec.tmp_path, 'wb') as f:
-            f.write(b'x' * 8000)
-        rec._frames_written = 0
-        self.assertIsNone(rec.finalize(keep=True))
-        self.assertFalse(os.path.exists(rec.tmp_path))
-
-    def test_finalize_leaves_only_the_mp4_on_success(self):
-        """录像成功后目录里只能留下 mp4：ffmpeg 的 stderr 日志必须一并清掉。"""
-        rec = self.make_clip()
-        with open(rec.tmp_path, 'wb') as f:
-            f.write(b'x' * 8000)
-        for log_path in (rec.dec_log_path, rec.enc_log_path):
-            with open(log_path, 'wb') as f:
-                f.write(b'ffmpeg noise')
-        rec._frames_written = 300
-
-        path = rec.finalize(keep=True)
-
-        self.assertIsNotNone(path)
-        self.assertTrue(os.path.exists(path))
-        for leftover in (rec.tmp_path, rec.dec_log_path, rec.enc_log_path):
-            self.assertFalse(os.path.exists(leftover), leftover)
+    def test_unknown_device_size_still_starts(self):
+        adb = _FakeAdb(window=None)
+        rec, ok, cli = self.start(adb)
+        self.assertTrue(ok)
+        self.assertIsNone(rec.size)
+        self.assertNotIn('--size', self.launched_command(cli))
 
 
-class TestPaceLoop(ClipTestCase):
-    """验证核心节奏：源帧率低时补帧、高时丢帧，输出时长贴近真实时间。"""
+class TestFinalize(ClipTestCase):
+    def setUp(self):
+        super().setUp()
+        self._saved = (debug_clip.START_TIMEOUT, debug_clip.POLL_INTERVAL)
+        debug_clip.START_TIMEOUT = 0.05
+        debug_clip.POLL_INTERVAL = 0.01
 
-    def start_pace(self, fps=30):
-        rec = self.make_clip(fps=fps)
-        rec._enc = SimpleNamespace(stdin=_RecordingStdin())
-        thread = threading.Thread(target=rec._pace_loop, daemon=True)
-        thread.start()
-        return rec, thread
+    def tearDown(self):
+        debug_clip.START_TIMEOUT, debug_clip.POLL_INTERVAL = self._saved
+        super().tearDown()
 
-    def stop_pace(self, rec, thread):
-        rec._stop.set()
-        thread.join(timeout=3)
-        return rec._enc.stdin
-
-    def test_slow_source_is_padded(self):
-        """源 10fps 持续 0.6 秒：应补帧到约 18 帧，而不是只写 6 帧。"""
-        rec, thread = self.start_pace(fps=30)
-        fed = 0
-        try:
-            for i in range(6):
-                try:
-                    rec._frames.put_nowait(b'frame-%d' % i)
-                except queue.Full:
-                    pass
-                fed += 1
-                time.sleep(0.1)
-        finally:
-            stdin = self.stop_pace(rec, thread)
-
-        self.assertEqual(fed, 6)
-        # 补帧后写入数应远多于源帧数（旧实现只写 6 帧，会导致视频被压缩成 1/3 时长）
-        self.assertGreater(len(stdin.frames), 10)
-        self.assertTrue(stdin.closed)
-
-    def test_fast_source_is_thinned(self):
-        """源 200fps：写入数应受 30fps 节流限制，不能把 60 帧全写进去。"""
-        rec, thread = self.start_pace(fps=30)
-        try:
-            for i in range(60):
-                try:
-                    rec._frames.put_nowait(b'frame-%d' % i)
-                except queue.Full:
-                    pass
-            time.sleep(0.3)
-        finally:
-            stdin = self.stop_pace(rec, thread)
-
-        self.assertGreater(len(stdin.frames), 0)
-        # 0.3 秒最多约 9~10 帧（30fps），远少于投喂的 60 帧
-        self.assertLess(len(stdin.frames), 30)
-
-    def test_written_frames_come_from_source(self):
-        """补帧只能复用真实帧，不得写入空帧或垃圾数据。"""
-        rec, thread = self.start_pace(fps=30)
-        try:
-            source = {b'frame-%d' % i for i in range(5)}
-            for frame in source:
-                try:
-                    rec._frames.put_nowait(frame)
-                except queue.Full:
-                    pass
-                time.sleep(0.05)
-        finally:
-            stdin = self.stop_pace(rec, thread)
-
-        self.assertGreater(len(stdin.frames), 0)
-        self.assertTrue(set(stdin.frames).issubset(source))
-
-
-class TestDrainDecoder(ClipTestCase):
-    """收尾时必须把解码器压着的帧补完，否则每段录像都会短一截。"""
-
-    def make_drain_clip(self):
-        rec = self.make_clip()
-        rec._enc = SimpleNamespace(stdin=_RecordingStdin())
-        rec._frames = queue.Queue()  # 放宽容量，方便一次塞入多帧
+    def started_clip(self, adb=None, prefix=debug_clip.CLIP_PREFIX_EH1):
+        adb = adb or _FakeAdb()
+        rec = self.make_clip(prefix=prefix, adb=adb)
+        rec.pid = int(adb.pid)
+        rec.alive = True
+        adb.alive = True
+        rec._started_at = time.perf_counter() - 12
         return rec
 
-    def test_drains_buffered_frames_until_decoder_done(self):
-        rec = self.make_drain_clip()
-        for i in range(5):
-            rec._frames.put_nowait(b'frame-%d' % i)
-        rec._decoder_done.set()
-        rec._drain_decoder()
-        self.assertEqual(len(rec._enc.stdin.frames), 5)
-        self.assertEqual(rec._frames_written, 5)
+    def test_successful_clip_is_saved_and_device_is_cleaned(self):
+        adb = _FakeAdb()
+        rec = self.started_clip(adb)
+        with patch.object(rec, '_transcode', side_effect=self.fake_transcode):
+            path = rec.finalize(keep=True)
 
-    def test_stops_at_deadline_when_decoder_never_finishes(self):
-        rec = self.make_drain_clip()
-        rec._decode_thread = object()  # 让「没有解码线程」的短路不生效
-        rec._drain_deadline = time.perf_counter() - 1  # 已经过期
-        rec._frames.put_nowait(b'frame-0')
-        rec._drain_decoder()
-        self.assertEqual(len(rec._enc.stdin.frames), 1)
-        self.assertIn('结尾可能缺失', rec._error)
+        self.assertIsNotNone(path)
+        self.assertTrue(os.path.exists(path))
+        self.assertTrue(os.path.basename(path).startswith(debug_clip.CLIP_PREFIX_EH1))
+        # 产物目录里只应留下 mp4，本地临时文件要清掉
+        self.assertEqual(
+            [n for n in os.listdir(self.output_dir) if n.startswith('_tmp')], []
+        )
+        # 设备上的录像与 stderr 都要删掉；SIGINT 前要确认进程还是 recorder
+        stopped = [c for c in adb.commands if 'kill -2' in c]
+        self.assertTrue(stopped)
+        self.assertIn('/proc/', stopped[0])
+        self.assertTrue(adb.command_starting_with('rm -f'))
 
-    def test_returns_immediately_without_decode_thread(self):
-        rec = self.make_drain_clip()
-        rec._drain_deadline = float('inf')
-        started = time.perf_counter()
-        rec._drain_decoder()
-        self.assertLess(time.perf_counter() - started, 0.5)
+    def test_meow_prefix_is_used_for_output_name(self):
+        rec = self.started_clip(prefix=debug_clip.CLIP_PREFIX_MEOW)
+        with patch.object(rec, '_transcode', side_effect=self.fake_transcode):
+            path = rec.finalize(keep=True)
+        self.assertTrue(os.path.basename(path).startswith(debug_clip.CLIP_PREFIX_MEOW))
+
+    def test_discarded_clip_leaves_no_file_and_still_stops_recorder(self):
+        adb = _FakeAdb()
+        rec = self.started_clip(adb)
+        self.assertIsNone(rec.finalize(keep=False))
+        self.assertEqual([n for n in os.listdir(self.output_dir) if n.endswith('.mp4')], [])
+        self.assertTrue([c for c in adb.commands if 'kill -2' in c])
+        self.assertEqual(adb.pulled, [])
+
+    def test_missing_device_file_is_reported_not_faked(self):
+        adb = _FakeAdb(file_size=None, error_text='Fatal: cannot create encoder')
+        rec = self.started_clip(adb)
+        self.assertIsNone(rec.finalize(keep=True))
+        self.assertEqual([n for n in os.listdir(self.output_dir) if n.endswith('.mp4')], [])
+
+    def test_too_small_device_file_is_rejected(self):
+        rec = self.started_clip(_FakeAdb(file_size=100))
+        self.assertIsNone(rec.finalize(keep=True))
+        self.assertEqual([n for n in os.listdir(self.output_dir) if n.endswith('.mp4')], [])
+
+    def test_short_clip_without_recording_is_skipped(self):
+        """录制时间过短时设备端还没写出文件，这属于正常跳过而不是失败。"""
+        rec = self.started_clip(_FakeAdb(file_size=None))
+        rec._started_at = time.perf_counter() - 0.5
+        self.assertIsNone(rec.finalize(keep=True))
+
+    def test_pull_failure_is_reported(self):
+        rec = self.started_clip(_FakeAdb(pull_fails=True))
+        with patch.object(rec, '_transcode', side_effect=self.fake_transcode):
+            self.assertIsNone(rec.finalize(keep=True))
+        self.assertEqual([n for n in os.listdir(self.output_dir) if n.endswith('.mp4')], [])
+
+    def test_finalize_never_raises_on_broken_internals(self):
+        rec = self.make_clip(adb=_FakeAdb())
+        rec.adb = object()  # 故意塞一个没有 shell / sync 的对象
+        self.assertIsNone(rec.finalize(keep=False))
+        self.assertIsNone(rec.finalize(keep=True))
+
+    @staticmethod
+    def fake_transcode(src, dst, elapsed):
+        """替代真实转码：写出目标文件并返回时长。"""
+        with open(dst, 'wb') as f:
+            f.write(b'x' * 20000)
+        return 12.0
+
+
+class TestTranscode(ClipTestCase):
+    def test_transcode_command_targets_realtime_30fps(self):
+        rec = self.make_clip()
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured['cmd'] = cmd
+            with open(cmd[-1], 'wb') as f:
+                f.write(b'x' * 20000)
+            return subprocess.CompletedProcess(
+                cmd, 0, stdout=b'out_time=00:00:12.000000\n', stderr=b''
+            )
+
+        with patch.object(debug_clip, '_ffmpeg_path', return_value='/fake/ffmpeg'), \
+                patch.object(debug_clip.subprocess, 'run', side_effect=fake_run):
+            src = os.path.join(self.output_dir, 'src.mp4')
+            with open(src, 'wb') as f:
+                f.write(b'x' * 20000)
+            duration = rec._transcode(src, os.path.join(self.output_dir, 'out.mp4'), 30)
+
+        self.assertAlmostEqual(duration, 12.0, places=2)
+        cmd = captured['cmd']
+        # 抽帧到目标帧率（不改变时长）+ CRF 压缩，避免设备端高码率文件堆积
+        self.assertEqual(cmd[cmd.index('-r') + 1], str(debug_clip.RECORD_FPS))
+        self.assertIn('-crf', cmd)
+        self.assertIn('+faststart', cmd)
+        # yuv420p 不接受奇数边长
+        self.assertIn('scale=trunc(iw/2)*2:trunc(ih/2)*2', cmd)
+
+    def test_transcode_failure_keeps_raw_recording(self):
+        rec = self.make_clip()
+        src = os.path.join(self.output_dir, 'src.mp4')
+        dst = os.path.join(self.output_dir, 'out.mp4')
+        with open(src, 'wb') as f:
+            f.write(b'x' * 20000)
+
+        with patch.object(debug_clip, '_ffmpeg_path', return_value='/fake/ffmpeg'), \
+                patch.object(
+                    debug_clip.subprocess, 'run',
+                    return_value=subprocess.CompletedProcess([], 1, stdout=b'', stderr=b'boom'),
+                ):
+            self.assertIsNone(rec._transcode(src, dst, 30))
+
+        # 转码失败也要保住画面：原始录像比没有强
+        self.assertTrue(os.path.exists(dst))
+        self.assertFalse(os.path.exists(src))
+
+    def test_missing_ffmpeg_keeps_raw_recording(self):
+        rec = self.make_clip()
+        src = os.path.join(self.output_dir, 'src.mp4')
+        dst = os.path.join(self.output_dir, 'out.mp4')
+        with open(src, 'wb') as f:
+            f.write(b'x' * 20000)
+
+        with patch.object(debug_clip, '_ffmpeg_path', return_value=None):
+            self.assertIsNone(rec._transcode(src, dst, 30))
+
+        self.assertTrue(os.path.exists(dst))
+        self.assertFalse(os.path.exists(src))
 
 
 class TestClipSession(unittest.TestCase):
@@ -472,7 +560,7 @@ class TestClipSession(unittest.TestCase):
     def test_stale_session_is_finalized_before_restart(self):
         stale = SimpleNamespace(finalize=lambda keep: '/stale.mp4')
         debug_clip._ACTIVE = stale
-        with patch.object(debug_clip, '_ScrcpyClip') as clip_cls:
+        with patch.object(debug_clip, '_ScreenRecordClip') as clip_cls:
             clip_cls.return_value.start.return_value = False
             self.assertIsNone(debug_clip.clip_start(config=None))
         # 旧会话被收尾、_ACTIVE 被清空，不会永久泄漏导致之后再也录不了
@@ -521,7 +609,7 @@ class TestClipRecordingContext(unittest.TestCase):
         end.assert_called_once_with(keep=True)
 
     def test_start_failure_is_not_fatal(self):
-        """scrcpy/ffmpeg 起不来时录像优雅降级，不影响任务本身。"""
+        """设备上录不了时优雅降级，不影响任务本身。"""
         with patch.object(debug_clip, 'clip_start', return_value=None), \
                 patch.object(debug_clip, 'clip_end') as end:
             with debug_clip.clip_recording(config='cfg', enabled=True) as clip:

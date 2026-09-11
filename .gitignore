@@ -1,6 +1,7 @@
 ### AzurLaneAutoScript
 log
 cache/
+.codex
 config/backup/*
 config/*.ini
 !config/template.ini

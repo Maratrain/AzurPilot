@@ -86,8 +86,10 @@ class OSStatus(UI):
     @property
     def nearest_task_cooling_down(self) -> t.Optional[Function]:
         """
-        If having any tasks cooling down,
-        such as recon scan cooldown and submarine call cooldown.
+        获取一小时内结束冷却的大世界任务，例如侦察扫描、潜艇呼叫冷却。
+
+        已到期任务不属于冷却任务，不能将其过去的运行时间传给代理任务，
+        否则防止行动力溢出等高优先级任务会立即重跑并阻塞其他任务。
         """
         now = current_time()
         update = get_server_next_update('00:00')
@@ -100,7 +102,7 @@ class OSStatus(UI):
 
         def func(task: Function):
             if task.command in cd_tasks and task.enable:
-                if task.next_run != update and task.next_run - now <= timedelta(minutes=60):
+                if task.next_run != update and now < task.next_run <= now + timedelta(minutes=60):
                     return True
 
             return False
