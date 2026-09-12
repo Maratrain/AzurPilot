@@ -439,6 +439,9 @@ class Cl1Database:
                 "effective_rounds": max(0.0, effective_rounds),
                 "round_times": normalized_round_times,
                 "battle_times": normalized_battle_times,
+                # 耄耋相接明石统计：遇见次数与购买体力（按侵蚀等级拆分）
+                "akashi_encounters": int(bucket.get("akashi_encounters", 0) or 0),
+                "akashi_ap": int(bucket.get("akashi_ap", 0) or 0),
             }
 
         return normalized
@@ -462,6 +465,10 @@ class Cl1Database:
             bucket["round_times"] = []
         if not isinstance(bucket.get("battle_times"), list):
             bucket["battle_times"] = []
+        if not isinstance(bucket.get("akashi_encounters"), int):
+            bucket["akashi_encounters"] = int(bucket.get("akashi_encounters", 0) or 0)
+        if not isinstance(bucket.get("akashi_ap"), int):
+            bucket["akashi_ap"] = int(bucket.get("akashi_ap", 0) or 0)
         return bucket
 
     def _infer_meow_battles_per_round(
@@ -1086,6 +1093,52 @@ class Cl1Database:
 
         self.save_stats(instance, month, data)
 
+    def increment_meow_akashi_encounter(self, instance: str, hazard_level: int):
+        """记录一次耄耋相接明石事件（按侵蚀等级拆分）。
+
+        Args:
+            instance: 实例名称
+            hazard_level: 侵蚀等级（2-6）
+        """
+        if hazard_level not in {2, 3, 4, 5, 6}:
+            logger.debug(f"Invalid hazard_level {hazard_level}, ignoring")
+            return
+
+        month = datetime.now().strftime("%Y-%m")
+        data = self.get_stats(instance, month)
+        hazard_stats = self._normalize_meow_hazard_stats(data)
+        bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
+        bucket["akashi_encounters"] = bucket.get("akashi_encounters", 0) + 1
+        data["meow_hazard_stats"] = hazard_stats
+        self.save_stats(instance, month, data)
+
+    def add_meow_akashi_ap(self, instance: str, hazard_level: int, amount: int):
+        """记录耄耋相接明石商店购买的体力（按侵蚀等级拆分）。
+
+        Args:
+            instance: 实例名称
+            hazard_level: 侵蚀等级（2-6）
+            amount: 购买的体力数量
+        """
+        if hazard_level not in {2, 3, 4, 5, 6}:
+            logger.debug(f"Invalid hazard_level {hazard_level}, ignoring")
+            return
+
+        try:
+            amount = int(amount)
+        except (TypeError, ValueError):
+            return
+        if amount <= 0:
+            return
+
+        month = datetime.now().strftime("%Y-%m")
+        data = self.get_stats(instance, month)
+        hazard_stats = self._normalize_meow_hazard_stats(data)
+        bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
+        bucket["akashi_ap"] = int(bucket.get("akashi_ap", 0) or 0) + amount
+        data["meow_hazard_stats"] = hazard_stats
+        self.save_stats(instance, month, data)
+
     def get_meow_stats(
         self, instance: str, year: int = None, month: int = None,
         hazard_level: int = None,
@@ -1229,6 +1282,8 @@ class Cl1Database:
                 "avg_battle_time": hz_avg_battle_time,
                 "sample_count": len(hz_round_times),
                 "source": source,
+                "akashi_encounters": int(bucket.get("akashi_encounters", 0) or 0),
+                "akashi_ap": int(bucket.get("akashi_ap", 0) or 0),
             }
 
         # 计算塞壬研究装置（吊机）数据
@@ -1263,6 +1318,8 @@ class Cl1Database:
             result["effective_rounds"] = hl_data["effective_rounds"]
             result["avg_round_time"] = hl_data["avg_round_time"]
             result["avg_battle_time"] = hl_data["avg_battle_time"]
+            result["akashi_encounters"] = hl_data["akashi_encounters"]
+            result["akashi_ap"] = hl_data["akashi_ap"]
 
         return result
 
@@ -1359,10 +1416,28 @@ class Cl1Database:
             self.add_siren_research_device, instance, source, hazard_level
         )
 
+    def async_increment_meow_akashi_encounter(self, instance: str, hazard_level: int):
+        from module.base.async_executor import async_executor
+
+        return async_executor.submit(
+            self.increment_meow_akashi_encounter, instance, hazard_level
+        )
+
+    def async_add_meow_akashi_ap(self, instance: str, hazard_level: int, amount: int):
+        from module.base.async_executor import async_executor
+
+        return async_executor.submit(
+            self.add_meow_akashi_ap, instance, hazard_level, amount
+        )
+
     # ========== 委托收益数据记录方法 ==========
 
     def add_commission_income(
-        self, instance: str, items: Dict[str, int], commission_count: int = 1
+        self,
+        instance: str,
+        items: Dict[str, int],
+        commission_count: int = 1,
+        screenshots: Optional[List[str]] = None,
     ):
         """记录一次委托收益
 
@@ -1370,6 +1445,9 @@ class Cl1Database:
             instance: 实例名称
             items: 物品字典，如 {'Gem': 30, 'Cube': 1, 'Chip': 10, 'Oil': 500, 'Coin': 800}
             commission_count: 本次结算的委托数量
+            screenshots: 本次结算的收益截图路径列表，路径相对
+                ``log/commission_rewards`` 目录（供 WebUI 查看截图功能使用），
+                旧版本记录无此字段。
         """
         month = datetime.now().strftime("%Y-%m")
         data = self.get_stats(instance, month)
@@ -1379,6 +1457,7 @@ class Cl1Database:
             "ts": datetime.now().isoformat(),
             "items": {k: self._coerce_int(v) for k, v in items.items() if v > 0},
             "commission_count": commission_count,
+            "screenshots": [str(path) for path in (screenshots or [])],
         }
 
         entries = data.get("commission_income_entries", [])
@@ -1757,12 +1836,16 @@ class Cl1Database:
         return settled
 
     def async_add_commission_income(
-        self, instance: str, items: Dict[str, int], commission_count: int = 1
+        self,
+        instance: str,
+        items: Dict[str, int],
+        commission_count: int = 1,
+        screenshots: Optional[List[str]] = None,
     ):
         from module.base.async_executor import async_executor
 
         return async_executor.submit(
-            self.add_commission_income, instance, items, commission_count
+            self.add_commission_income, instance, items, commission_count, screenshots
         )
 
     def async_get_commission_income(

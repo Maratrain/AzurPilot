@@ -345,16 +345,35 @@ class OpsiStatisticsMixin(WebUIMixinBase):
                     f"{siren_rate * 100:.2f}%" if meow_effective_rounds > 0 else "-"
                 )
 
+                # 明石统计（按侵蚀等级，与侵蚀一表格口径一致）
+                akashi_encounters = int(
+                    meow_data.get("akashi_encounters", 0) or 0
+                )
+                akashi_ap = int(meow_data.get("akashi_ap", 0) or 0)
+                akashi_rate_str = (
+                    f"{akashi_encounters / meow_rounds * 100:.2f}%"
+                    if meow_rounds > 0
+                    else "-"
+                )
+                avg_ap_str = (
+                    str(int(akashi_ap / akashi_encounters + 0.5))
+                    if akashi_encounters > 0
+                    else "-"
+                )
+
                 meow_rows.append(
                     [
                         meow_data.get("month", "-"),
                         hazard_level,
                         int(meow_data.get("battle_count", 0) or 0),
                         meow_rounds,
-                        avg_battle_time_str,
-                        avg_time_str,
                         siren_count,
                         siren_rate_str,
+                        akashi_encounters,
+                        akashi_rate_str,
+                        avg_ap_str,
+                        avg_battle_time_str,
+                        avg_time_str,
                     ]
                 )
         except Exception:
@@ -375,10 +394,13 @@ class OpsiStatisticsMixin(WebUIMixinBase):
                 t("Gui.Stat.HazardLevel"),
                 t("Gui.Stat.BattleCount"),
                 t("Gui.Stat.MeowRounds"),
-                t("Gui.Stat.AvgBattleTimeHeader"),
-                t("Gui.Stat.AvgMeowRoundTime"),
                 t("Gui.Stat.SirenResearchDevices"),
                 t("Gui.Stat.SirenResearchRate"),
+                t("Gui.Stat.AkashiEncounters"),
+                t("Gui.Stat.AkashiRate"),
+                t("Gui.Stat.AverageAP"),
+                t("Gui.Stat.AvgBattleTimeHeader"),
+                t("Gui.Stat.AvgMeowRoundTime"),
             ]
 
             put_html(

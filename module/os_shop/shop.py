@@ -144,8 +144,9 @@ class OSShop(PortShop, AkashiShop):
             else:
                 self.os_shop_buy_execute(button)
                 try:
-                    if not getattr(self, 'is_running_cl1_leveling', False):
-                        logger.debug('[大世界商店] 侵蚀1练级未运行，跳过明石行动力购买记录')
+                    if not getattr(self, 'is_running_cl1_leveling', False) \
+                            and not getattr(self, '_meow_searching_active', False):
+                        logger.debug('[大世界商店] 非侵蚀1/耄耋相接，跳过明石行动力购买记录')
                     else:
                         name = str(getattr(button, 'name', '') or '')
                         name_l = name.lower()
@@ -160,14 +161,26 @@ class OSShop(PortShop, AkashiShop):
                             instance_name = getattr(self.config, 'config_name', 'default')
                             try:
                                 from module.statistics.cl1_database import db as cl1_db
-                                cl1_db.add_akashi_ap_entry(
-                                    instance=instance_name,
-                                    amount=int(bought_ap),
-                                    base=int(base),
-                                    count=int(amount),
-                                    source='akashi'
-                                )
-                                logger.info('[大世界商店] 已记录明石行动力购买数据到数据库')
+
+                                if getattr(self, 'is_running_cl1_leveling', False):
+                                    cl1_db.add_akashi_ap_entry(
+                                        instance=instance_name,
+                                        amount=int(bought_ap),
+                                        base=int(base),
+                                        count=int(amount),
+                                        source='akashi'
+                                    )
+                                    logger.info('[大世界商店] 已记录明石行动力购买数据到数据库')
+                                else:
+                                    from module.statistics.opsi_runtime import meow_hazard_level_from_runtime
+
+                                    hazard_level = meow_hazard_level_from_runtime(self)
+                                    cl1_db.add_meow_akashi_ap(
+                                        instance=instance_name,
+                                        hazard_level=hazard_level,
+                                        amount=int(bought_ap),
+                                    )
+                                    logger.info('[大世界商店] 已记录耄耋相接明石行动力购买数据到数据库')
                             except Exception:
                                 logger.exception('[大世界商店] 保存明石行动力购买数据失败')
                 except Exception:
