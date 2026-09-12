@@ -9,6 +9,7 @@ MuMu 模拟器 IPC 通信方法。
 import ctypes
 import json
 import os
+import re
 import sys
 import time
 from functools import wraps
@@ -223,26 +224,53 @@ def retry(func):
 
 
 class NemuIpcImpl:
-    def __init__(self, nemu_folder: str, instance_id: int, display_id: int = 0):
+    def __init__(self, nemu_folder: str, instance_id: int, display_id: int = 0, version: str = None):
         """
         Args:
             nemu_folder: MuMu12 安装路径，例如 E:/ProgramFiles/MuMuPlayer-12.0
             instance_id: 模拟器实例 ID，从 0 开始
             display_id: 如果未启用后台挂机保活，始终为 0
+            version: 模拟器实例版本，如 '15.0'，来自实例名（MuMuPlayer-15.0-0）。
+                未提供时从 vms 目录名自动推断，用于选择匹配版本的 IPC SDK。
+                版本不匹配时（如用 12.0 的 DLL 连 15.0 实例）调用会失效。
         """
         self.nemu_folder: str = nemu_folder
         self.instance_id: int = instance_id
         self.display_id: int = display_id
 
-        # 尝试从多个路径加载 DLL
-        list_dll = [
+        if version is None:
+            version = self.detect_version(nemu_folder, instance_id)
+        self.version: str = version
+
+        # 尝试从多个路径加载 DLL，实例版本的 SDK 优先
+        list_dll = []
+        if version:
+            # MuMu15 及后续版本：nx_device/<版本>/shell/sdk
+            list_dll.append(os.path.abspath(os.path.join(
+                nemu_folder, f'./nx_device/{version}/shell/sdk/external_renderer_ipc.dll')))
+        # 兜底：探测 nx_device 下其余版本的 SDK（按版本号降序，优先新版本），
+        # 覆盖单装 15.0 等未在下方硬编码的版本
+        try:
+            others = []
+            for name in os.listdir(os.path.join(nemu_folder, 'nx_device')):
+                if re.match(r'\d+\.\d+$', name) and name != version:
+                    others.append(name)
+            others.sort(key=lambda s: float(s), reverse=True)
+            list_dll += [
+                os.path.abspath(os.path.join(nemu_folder, f'./nx_device/{name}/shell/sdk/external_renderer_ipc.dll'))
+                for name in others
+            ]
+        except OSError:
+            pass
+        list_dll += [
             # MuMuPlayer12
             os.path.abspath(os.path.join(nemu_folder, './shell/sdk/external_renderer_ipc.dll')),
-            # MuMuPlayer12 5.0
+            # MuMuPlayer12 5.0（未被上方探测覆盖时的兜底）
             os.path.abspath(os.path.join(nemu_folder, './nx_device/12.0/shell/sdk/external_renderer_ipc.dll')),
             # MuMuPlayer12 6.0
             os.path.abspath(os.path.join(nemu_folder, './nx_main/sdk/external_renderer_ipc.dll')),
         ]
+
         self.lib = None
         for ipc_dll in list_dll:
             if not os.path.exists(ipc_dll):
@@ -265,11 +293,48 @@ class NemuIpcImpl:
             f'nemu_folder={nemu_folder}, '
             f'ipc_dll={ipc_dll}, '
             f'instance_id={instance_id}, '
+            f'version={version}, '
             f'display_id={display_id}'
         )
+        self.ipc_dll: str = ipc_dll
         self.connect_id: int = 0
         self.width = 0
         self.height = 0
+
+    @staticmethod
+    def detect_version(nemu_folder: str, instance_id: int):
+        """
+        从 vms 目录名推断实例版本。
+
+        目录命名如 MuMuPlayer-15.0-0 / MuMuPlayer-12.0-1 / YXArkNights-12.0-1，
+        尾部数字为实例 ID，与 instance_id 对应。
+
+        Returns:
+            str: 版本号如 '15.0'，推断失败返回 None
+        """
+        try:
+            names = os.listdir(os.path.join(nemu_folder, 'vms'))
+        except OSError:
+            return None
+        for name in names:
+            res = re.match(rf'.*-(\d+\.\d+)-{instance_id}$', name)
+            if res:
+                return res.group(1)
+        return None
+
+    @property
+    def bgra_layout(self) -> bool:
+        """
+        nemu_capture_display 返回的像素通道序按 SDK 来源架构区分：
+        新架构（nx_device/<版本> 与 nx_main，MuMu 5.0+ 安装布局）返回
+        BGRA，经典布局（shell/sdk，MuMu 12 3.x/4.x）返回 RGBA。
+        实测 12.0 与 15.0 的 nx_device SDK 均为 BGRA，与版本号无关。
+
+        Returns:
+            bool: 是否为 BGRA 通道序。
+        """
+        path = self.ipc_dll.replace('\\', '/')
+        return '/nx_device/' in path or '/nx_main/' in path
 
     def connect(self, on_thread=True):
         if self.connect_id > 0:
@@ -518,10 +583,13 @@ class NemuIpc(Platform):
             logger.info(f'[设备-NemuIpc] nemu_ipc 在 MuMuPlayerGlobal 上不可用, {self.emulator_instance.path}')
             raise RequestHumanTakeover
         try:
+            # 实例名带版本号（MuMuPlayer-15.0-0），用于选择匹配版本的 IPC SDK
+            res = re.search(r'-(\d+\.\d+)-\d+$', self.emulator_instance.name)
             impl = NemuIpcImpl(
                 nemu_folder=self.emulator_instance.emulator.abspath('../'),
                 instance_id=self.emulator_instance.MuMuPlayer12_id,
-                display_id=0
+                display_id=0,
+                version=res.group(1) if res else None,
             )
             impl.connect_with_retry()
             return impl
@@ -586,8 +654,11 @@ class NemuIpc(Platform):
         if self.config.EmulatorInfo_path:
             index = NemuIpcImpl.serial_to_id(self.serial)
             if index is not None:
+                folder = os.path.abspath(os.path.join(self.config.EmulatorInfo_path, '../../'))
+                # 实例目录名含版本号（MuMuPlayer-15.0-0 / MuMuPlayer-12.0-1），不能硬编码 12.0
+                version = NemuIpcImpl.detect_version(folder, index) or '12.0'
                 file = os.path.abspath(os.path.join(
-                    self.config.EmulatorInfo_path, f'../../vms/MuMuPlayer-12.0-{index}/configs/customer_config.json'))
+                    folder, f'./vms/MuMuPlayer-{version}-{index}/configs/customer_config.json'))
                 if self.check_mumu_app_keep_alive_400(file):
                     return True
 
@@ -611,7 +682,10 @@ class NemuIpc(Platform):
     def screenshot_nemu_ipc(self):
         image = self.nemu_ipc.screenshot()
 
-        image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+        if self.nemu_ipc.bgra_layout:
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
+        else:
+            image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
         cv2.flip(image, 0, dst=image)
         return image
 
