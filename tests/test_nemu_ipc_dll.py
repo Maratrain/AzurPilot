@@ -9,8 +9,12 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
+
+import numpy as np
 
 from module.device.method.nemu_ipc import NemuIpcImpl
+from module.exception import EmulatorNotRunningError
 
 
 def build_fake_install(root, versions=('12.0',), instance_names=('MuMuPlayer-12.0-0',)):
@@ -162,6 +166,121 @@ class TestBgraLayout(unittest.TestCase):
         self.assertFalse(impl.bgra_layout)
         impl.ipc_dll = r'C:\MuMu\nx_main\sdk\external_renderer_ipc.dll'
         self.assertTrue(impl.bgra_layout)
+
+
+class TestTouchArgumentTypes(unittest.TestCase):
+    """触控坐标必须先转成 Python int 再交给 ctypes。
+
+    click/drag/swipe 的坐标来自 numpy（np.int64），而 nemu 的 DLL 函数没有声明
+    argtypes，直接传 numpy 标量会抛
+    ArgumentError: Don't know how to convert parameter 3；被 retry 包装成
+    EmulatorNotRunningError 后 Alas 会误判掉线并重启模拟器（大舰队作战拖拽时实锤）。
+    """
+
+    class _Lib:
+        """记录调用参数的假 DLL。"""
+
+        def __init__(self):
+            self.touch_down_calls = []
+            self.nemu_input_event_touch_down = self._touch_down
+            self.nemu_input_event_touch_up = self._touch_up
+
+        def _touch_down(self, *args):
+            self.touch_down_calls.append(args)
+            return 0
+
+        def _touch_up(self, *args):
+            return 0
+
+    def _build(self):
+        import ctypes as _ctypes
+
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        folder = os.path.join(root, 'nx_device', '15.0', 'shell', 'sdk')
+        os.makedirs(folder)
+        with open(os.path.join(folder, 'external_renderer_ipc.dll'), 'w') as f:
+            f.write('fake')
+
+        lib = self._Lib()
+        original = _ctypes.CDLL
+        _ctypes.CDLL = lambda path, *a, **k: lib
+        try:
+            impl = NemuIpcImpl(nemu_folder=root, instance_id=0, version='15.0')
+        finally:
+            _ctypes.CDLL = original
+        impl.connect_id = 1  # 跳过真实连接
+        impl.display_id = 0
+        return impl, lib
+
+    def test_down_converts_numpy_int(self):
+        impl, lib = self._build()
+        impl.down(np.int64(331), np.int64(396))
+        self.assertTrue(lib.touch_down_calls, "没有调用 nemu_input_event_touch_down")
+        args = tuple(lib.touch_down_calls[-1])
+        self.assertEqual(args, (1, 0, 331, 396))
+        for value in args:
+            self.assertIsInstance(value, int)
+            self.assertNotIsInstance(value, np.integer)
+
+    def test_down_accepts_plain_numbers(self):
+        impl, lib = self._build()
+        impl.down(120, 240)
+        impl.down(120.7, 240.2)  # 截断成 int，不应抛异常
+        self.assertEqual(tuple(lib.touch_down_calls[-1]), (1, 0, 120, 240))
+
+    def test_invalid_point_never_reaches_dll(self):
+        """None / nan / inf 之类无效坐标不落到 DLL，也不被当成模拟器掉线。
+
+        转换失败抛出的 TypeError / ValueError / OverflowError 会被 retry 包装按
+        「调用方参数错误」直接抛出（见 TestRetryErrorClassification），
+        而不是重试后包装成 EmulatorNotRunningError 去重启模拟器。
+        """
+        impl, lib = self._build()
+        for value in (None, float("nan"), float("inf")):
+            with self.subTest(value=value):
+                with self.assertRaises((TypeError, ValueError, OverflowError)):
+                    impl.down(value, 10)
+        self.assertFalse(lib.touch_down_calls, "无效坐标不应调用底层 DLL")
+
+
+class TestRetryErrorClassification(unittest.TestCase):
+    """参数类型错误不是模拟器掉线，不能被包装成 EmulatorNotRunningError。
+
+    否则一次调用方传错类型就会触发模拟器重启，并把真实原因埋进重启日志。
+    """
+
+    class _Impl:
+        def reconnect(self):
+            pass
+
+    def _run(self, func):
+        with mock.patch('module.device.method.nemu_ipc.RETRY_TRIES', 2):
+            with mock.patch('module.device.method.nemu_ipc.retry_sleep', lambda _: 0):
+                return func(self._Impl(), 1, 2)
+
+    def test_argument_error_is_reraised(self):
+        import ctypes
+
+        from module.device.method.nemu_ipc import retry as nemu_retry
+
+        @nemu_retry
+        def down(self, x, y):
+            raise ctypes.ArgumentError(
+                "argument 3: TypeError: Don't know how to convert parameter 3")
+
+        with self.assertRaises(ctypes.ArgumentError):
+            self._run(down)
+
+    def test_nemu_ipc_error_still_means_emulator_dead(self):
+        from module.device.method.nemu_ipc import NemuIpcError, retry as nemu_retry
+
+        @nemu_retry
+        def down(self, x, y):
+            raise NemuIpcError("nemu_input_event_touch_down failed")
+
+        with self.assertRaises(EmulatorNotRunningError):
+            self._run(down)
 
 
 if __name__ == '__main__':

@@ -206,6 +206,19 @@ def retry(func):
             # 不可处理 - 必须向上抛出以触发模拟器重启
             except EmulatorNotRunningError:
                 raise
+            # 调用方参数错误：numpy 标量传给未声明 argtypes 的函数（ArgumentError），
+            # 或 None / nan / inf 之类的坐标（TypeError / ValueError / OverflowError）。
+            # 触控函数遇到这类错误重试没有意义，更不能当作模拟器掉线去重启模拟器。
+            except (ctypes.ArgumentError, TypeError, ValueError, OverflowError) as e:
+                if func.__name__ in ['down', 'up']:
+                    logger.critical(
+                        f'[设备-NemuIpc] {func.__name__}() 参数错误，不按模拟器掉线处理: {e}'
+                    )
+                    raise
+                logger.exception(e)
+
+                def init():
+                    pass
             # 未知异常，可能是损坏的图像
             except Exception as e:
                 logger.exception(e)
@@ -503,6 +516,15 @@ class NemuIpcImpl:
             self.get_resolution()
 
         x, y = self.convert_xy(x, y)
+
+        # click/drag/swipe 的坐标来自 numpy（np.int64），而 nemu 的函数没有声明
+        # argtypes，ctypes 无法转换 numpy 标量，会抛
+        # ArgumentError: Don't know how to convert parameter 3；被 retry 包装成
+        # EmulatorNotRunningError 后 Alas 会误判为掉线并重启模拟器。
+        # 这里统一转成 Python int；None / nan / inf 之类的无效坐标会抛
+        # TypeError / ValueError / OverflowError，由 retry 包装按「调用方参数错误」
+        # 直接抛出，同样不会触发模拟器重启。
+        x, y = int(x), int(y)
 
         ret = self.run_func(
             self.lib.nemu_input_event_touch_down,
