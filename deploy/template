@@ -139,6 +139,12 @@ Deploy:
     # [Default] false
     HideUpdateNotice: false
 
+    # 隐藏公告弹窗
+    # Hide announcement popup
+    # [默认] true
+    # [Default] true
+    HideAnnouncement: true
+
   Misc:
     # 启用 Discord 富状态展示
     # Enable discord rich presence

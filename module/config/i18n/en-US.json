@@ -6549,6 +6549,8 @@
       "AutoRestartTimeHelp": "Daily restart time when an update is available. Leave empty to disable.",
       "HideUpdateNotice": "Hide Update Notice",
       "HideUpdateNoticeHelp": "When enabled, the bottom-right update notice will not appear when an update is detected.",
+      "HideAnnouncement": "Hide announcement popup",
+      "HideAnnouncementHelp": "When enabled, WebUI will no longer pop up announcements automatically. You can still view them manually in the developer tools menu.",
       "DiscordRichPresence": "Discord Rich Presence",
       "DiscordRichPresenceHelp": "Show AzurPilot status in Discord.",
       "EnableRemoteAccess": "Enable Remote Access",

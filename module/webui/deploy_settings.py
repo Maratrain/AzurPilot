@@ -84,6 +84,7 @@ DEPLOY_GROUPS: tuple[tuple[str, tuple[DeployField, ...]], ...] = (
             DeployField("CheckUpdateInterval", "int"),
             DeployField("AutoRestartTime", "nullable_string"),
             DeployField("HideUpdateNotice", "bool"),
+            DeployField("HideAnnouncement", "bool"),
         ),
     ),
     ("Misc", (DeployField("DiscordRichPresence", "bool"),)),

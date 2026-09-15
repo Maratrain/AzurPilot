@@ -460,10 +460,15 @@ class HomeMixin(WebUIMixinBase):
         def announcement_checker():
             from module.base.api_client import ApiClient
 
-            logger.info("[WebUI] 公告检查任务启动")
+            hidden = State.deploy_config.HideAnnouncement
+            logger.info(
+                "[WebUI] 公告检查任务启动"
+                + ("（已开启隐藏公告，仅保留手动查看）" if hidden else "")
+            )
             th = yield  # 获取任务处理器引用
-            # 首次检查：触发异步获取
-            self._start_announcement_fetch(force=False)
+            # 首次检查：触发异步获取（隐藏公告时跳过自动拉取）
+            if not hidden:
+                self._start_announcement_fetch(force=False)
             next_periodic_check = time.time() + ApiClient.ANNOUNCEMENT_CHECK_INTERVAL
             while True:
                 # 处理已有结果（来自定期检查或手动点击）
@@ -478,12 +483,13 @@ class HomeMixin(WebUIMixinBase):
                 ):
                     self._start_announcement_fetch(force=True)
                     self._announcement_force = False
-                # 定期触发新的异步获取
+                # 定期触发新的异步获取（隐藏公告时不自动弹窗，仅刷新检查时间）
                 if (
                     not self._announcement_fetching
                     and time.time() >= next_periodic_check
                 ):
-                    self._start_announcement_fetch(force=False)
+                    if not hidden:
+                        self._start_announcement_fetch(force=False)
                     next_periodic_check = (
                         time.time() + ApiClient.ANNOUNCEMENT_CHECK_INTERVAL
                     )

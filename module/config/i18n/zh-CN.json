@@ -6549,6 +6549,8 @@
       "AutoRestartTimeHelp": "有更新时每天自动重启的时间，留空表示禁用。",
       "HideUpdateNotice": "隐藏更新提示",
       "HideUpdateNoticeHelp": "开启后检测到更新时不再在右下角弹出提示。",
+      "HideAnnouncement": "隐藏公告弹窗",
+      "HideAnnouncementHelp": "开启后WebUI不再自动弹出公告，仍可在开发工具菜单中手动查看。",
       "DiscordRichPresence": "Discord 富状态",
       "DiscordRichPresenceHelp": "在 Discord 中展示 AzurPilot 运行状态。",
       "EnableRemoteAccess": "启用远程访问",

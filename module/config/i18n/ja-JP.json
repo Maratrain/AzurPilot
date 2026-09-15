@@ -6549,6 +6549,8 @@
       "AutoRestartTimeHelp": "更新がある場合に毎日自動再起動する時刻です。空欄で無効になります。",
       "HideUpdateNotice": "更新通知を非表示",
       "HideUpdateNoticeHelp": "有効にすると、更新が検出されても右下に通知が表示されなくなります。",
+      "HideAnnouncement": "公告ポップアップを隠す",
+      "HideAnnouncementHelp": "有効にすると、WebUIで公告が自動表示されなくなります。開発者ツールメニューから手動で表示できます。",
       "DiscordRichPresence": "Discord リッチプレゼンス",
       "DiscordRichPresenceHelp": "AzurPilot の実行状態を Discord に表示します。",
       "EnableRemoteAccess": "リモートアクセスを有効化",

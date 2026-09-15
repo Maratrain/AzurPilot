@@ -282,6 +282,8 @@ DeploySetting:
   AutoRestartTimeHelp:
   HideUpdateNotice:
   HideUpdateNoticeHelp:
+  HideAnnouncement:
+  HideAnnouncementHelp:
   DiscordRichPresence:
   DiscordRichPresenceHelp:
   EnableRemoteAccess:
