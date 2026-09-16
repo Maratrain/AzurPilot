@@ -3,8 +3,12 @@
 
 from __future__ import annotations
 import ctypes
+import json
 import re
 import subprocess
+import threading
+import time
+from functools import wraps
 
 import psutil
 
@@ -14,12 +18,108 @@ from module.base.timer import Timer
 from module.device.connection_attr import ConnectionAttr
 from module.device.platform.platform_base import PlatformBase
 from module.device.platform.emulator_windows import Emulator, EmulatorInstance, EmulatorManager
+from module.exception import EmulatorOpBusy
 from module.logger import logger
 
 
 class EmulatorUnknown(Exception):
     """未知模拟器类型异常。"""
     pass
+
+
+# 模拟器冷启动的监视超时（秒），按 emulator_start() 的重试次数依次放宽。
+# 实机实测正常冷启动约 20~30 秒，180 秒对正常情况足够；递增是为了兜住慢机器
+# （机械盘、多开、首次启动）。重试时要"先关掉再启动"，判早了就是白关一次，
+# 多给点时间比过早重启代价小得多。
+EMULATOR_START_WATCH_TIMEOUTS = (180, 300, 480)
+# 启动监视期间打印进度的间隔（秒）。监视最长可达 480 秒且期间日志是静默的，
+# 不打印进度的话，用户无法判断 ALAS 是在耐心等待还是已经卡死。
+EMULATOR_START_PROGRESS_INTERVAL = 30
+# 启动监视期间检查 MuMu 错误对话框的间隔（秒）。枚举窗口开销较大，不每次循环都做。
+EMULATOR_START_DIALOG_CHECK_INTERVAL = 2
+
+# MuMu12 启动前需要清理的僵死进程名（小写）。
+# MuMuNxMain.exe 是 nx_main 新版布局的启动器主窗口：它卡在加载态时不清理掉，
+# 后面的 launch_player 只会把启动请求交给这个僵死的启动器，表现为
+# "窗口一直转圈、模拟器起不来"。
+MUMU12_RESIDUE_PROCESS_NAMES = (
+    'mumuplayer.exe', 'mumunxmain.exe', 'mumumanager.exe',
+    'nemuplayer.exe', 'nemuheadless.exe',
+)
+# 查询 MuMu12 实例状态的轮询间隔（秒）。同时用作无法查询状态时的兜底等待，
+# 与旧版"等待2秒让进程状态稳定"保持一致。
+MUMU12_STATE_POLL_INTERVAL = 2
+# 确认 MuMu12 实例真正关闭的最长等待（秒）。
+MUMU12_STOP_WAIT_TIMEOUT = 60
+
+
+def run_mumu_manager(exe, args, timeout=15):
+    """执行 MuMuManager 命令并返回其标准输出。
+
+    与 PlatformWindows.execute 的区别：这里需要读取命令输出（如 info 返回的
+    JSON），而且会被轮询高频调用，因此不写日志以免刷屏。
+
+    Args:
+        exe (str): MuMu 主程序路径，会被转换成同目录的 MuMuManager.exe。
+        args (str): MuMuManager 子命令，如 'info -v all'。
+        timeout (int): 超时秒数。
+
+    Returns:
+        str: 命令的标准输出；执行失败返回空字符串。
+    """
+    manager = Emulator.single_to_console(exe).replace('\\', '/')
+    command = f'"{manager}" {args}'
+    try:
+        result = subprocess.run(
+            command,
+            shell=True,
+            timeout=timeout,
+            close_fds=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            capture_output=True,
+            encoding='utf-8',
+            errors='replace',
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning(f'[设备-Windows] MuMuManager 命令超时 {timeout} 秒: {command}')
+        return ''
+    except OSError as e:
+        logger.warning(f'[设备-Windows] MuMuManager 命令执行失败: {command} ({e})')
+        return ''
+    return result.stdout or ''
+
+
+def emulator_op_exclusive(name):
+    """装饰器：保证同一时刻只有一个模拟器启停操作真正作用于模拟器。
+
+    emulator_stop / emulator_start 不只是发命令，它们会真的关闭并重启模拟器
+    （关窗口、杀进程、反复重试）。两个操作并发执行时必然互相踩踏：一个线程
+    刚发出启动命令，另一个线程随即 shutdown，模拟器在冷启动完成前被反复
+    打断，表现为"窗口一直卡在加载、永远起不来"。
+    拿不到锁的一方直接抛 EmulatorOpBusy，由调用方跳过本轮。
+
+    注意：锁必须覆盖操作的**全过程**（含内部 3 次重试与最长数分钟的启动
+    监视），而不是只包住发命令那一下——否则超时后被放弃的调用线程仍会
+    继续关/开模拟器，踩踏依旧。
+
+    Args:
+        name (str): 操作名称，用于日志与异常信息。
+
+    Raises:
+        EmulatorOpBusy: 已有启停操作在进行，本次被跳过。
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not self._emulator_op_lock.acquire(blocking=False):
+                logger.warning(f'[设备-Windows] 已有模拟器启停操作正在进行，跳过本次{name}')
+                raise EmulatorOpBusy(f'{name}: 另一个模拟器启停操作正在进行')
+            try:
+                return func(self, *args, **kwargs)
+            finally:
+                self._emulator_op_lock.release()
+        return wrapper
+    return decorator
 
 
 def get_focused_window():
@@ -119,6 +219,12 @@ def flash_window(hwnd, flash=True):
 
 class PlatformWindows(PlatformBase, EmulatorManager):
     """Windows 平台的模拟器控制接口。"""
+
+    # 进程内模拟器启停互斥锁，见 emulator_op_exclusive。
+    # 类属性：alas.py 每轮恢复都会新建 Platform 实例，甚至绕过 Platform
+    # 直接调用 Device.emulator_start()，只有挂在类上才能让所有调用方共享
+    # 同一把锁。WebUI / MCP 等独立进程各有一把，互不影响。
+    _emulator_op_lock = threading.Lock()
 
     def __init__(self, config, *, connect: bool = True):
         """
@@ -364,14 +470,148 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         logger.error(f'[设备-Windows] 模拟器函数 {func.__name__}() 失败')
         return False
 
-    def emulator_start_watch(self):
+    def _mumu12_instances(self, exe):
+        """查询 MuMu12 全部实例的信息。
+
+        MuMuManager 的 info 子命令返回 JSON，字段包括 is_process_started、
+        is_android_started、player_state、pid、headless_pid 等，用于按实例
+        精确判断状态，而不是靠进程名猜测。
+
+        Args:
+            exe (str): MuMu 主程序路径。
+
+        Returns:
+            dict | None: {实例号: 信息}；命令不可用或输出无法解析时返回 None
+                （旧版 MuMu 没有 info 子命令，调用方需回退旧逻辑）。
+        """
+        text = run_mumu_manager(exe, 'info -v all')
+        start = text.find('{')
+        if start < 0:
+            return None
+        try:
+            data = json.loads(text[start:])
+        except ValueError:
+            logger.warning(f'[设备-Windows] 无法解析 MuMuManager info 输出: {text[:200]}')
+            return None
+        if not isinstance(data, dict):
+            return None
+        # 兼容 info -v <单个实例> 的返回形式（实例字段直接铺在顶层）
+        if 'index' in data:
+            return {str(data['index']): data}
+        return data
+
+    def _mumu12_other_instance_running(self, exe, index):
+        """判断除本实例外是否还有其他 MuMu 实例正在运行。
+
+        多开时各实例共用启动器、后台服务等进程，按进程名清理会误伤正在
+        运行的其它实例，因此只有确认没有别的实例在跑时才允许这么做。
+
+        Args:
+            exe (str): MuMu 主程序路径。
+            index (int | None): 本实例的实例号。
+
+        Returns:
+            bool | None: True/False 为判定结果；None 表示无法判定（查询失败）。
+        """
+        info = self._mumu12_instances(exe)
+        if info is None:
+            return None
+        for key, entry in info.items():
+            if str(key) == str(index):
+                continue
+            if isinstance(entry, dict) and entry.get('is_process_started'):
+                return True
+        return False
+
+    def _clean_mumu12_residue(self, exe, index):
+        """清理 MuMu12 的僵死进程，为重新启动做准备。
+
+        多开安全：MuMu 各实例共用启动器与后台服务进程，按进程名清理会误伤
+        正在运行的其它实例。因此先查询实例状态，只有确认没有别的实例在跑
+        时才按名字清理；无法判定时同样不清理——宁可少清理，不可误杀。
+
+        Args:
+            exe (str): MuMu 主程序路径。
+            index (int | None): 本实例的实例号。
+        """
+        others = self._mumu12_other_instance_running(exe, index)
+        if others is None:
+            logger.info('[设备-Windows] 无法确认其它 MuMu 实例状态，跳过按进程名清理')
+            return
+        if others:
+            logger.info(
+                '[设备-Windows] 检测到其它 MuMu 实例正在运行，'
+                '跳过按进程名清理（避免误伤多开）'
+            )
+            return
+
+        has_mumu_process = False
+        for proc in psutil.process_iter(['name', 'cmdline']):
+            try:
+                name = proc.info['name'] or ''
+                if name.lower() in MUMU12_RESIDUE_PROCESS_NAMES:
+                    has_mumu_process = True
+                    logger.warning(f'[设备-Windows] 检测到MuMu残留进程: {name} (PID={proc.pid})')
+                    proc.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        if has_mumu_process:
+            # 不在这里固定 sleep：调用方紧接着会用 _mumu12_wait_stopped
+            # 轮询确认实例真的没了，比盲等更准也更快
+            logger.info('[设备-Windows] MuMuPlayer12: 已终止残留进程，等待实例释放')
+
+    def _mumu12_wait_stopped(self, exe, index):
+        """等待 MuMu12 实例真正关闭后再返回。
+
+        MuMuManager 的 shutdown 是异步的：命令 1 秒内就返回，实例还要 2~3 秒
+        才真正停止。若在此期间发出 launch，启动请求会被吞掉——命令报告成功
+        （player launch: result=0），实例却永远起不来。
+        实机复现：shutdown 后等 2 秒启动必失败，等确认关闭后启动 17 秒成功。
+
+        Args:
+            exe (str): MuMu 主程序路径。
+            index (int | None): 本实例的实例号。
+
+        Returns:
+            bool: True 表示已确认关闭（或无法查询状态，调用方按旧逻辑继续）；
+                False 表示等待超时，实例仍未关闭。
+        """
+        if index is None:
+            return True
+        deadline = time.monotonic() + MUMU12_STOP_WAIT_TIMEOUT
+        while 1:
+            info = self._mumu12_instances(exe)
+            if info is None:
+                # 查询不可用（旧版 MuMu / 命令失败）：保持旧行为，短暂等待即可
+                time.sleep(MUMU12_STATE_POLL_INTERVAL)
+                return True
+            entry = info.get(str(index))
+            if not isinstance(entry, dict) or not entry.get('is_process_started'):
+                logger.info(f'[设备-Windows] MuMuPlayer12 实例 {index} 已确认关闭')
+                return True
+            if time.monotonic() >= deadline:
+                logger.warning(
+                    f'[设备-Windows] MuMuPlayer12 实例 {index} 在 '
+                    f'{MUMU12_STOP_WAIT_TIMEOUT} 秒内仍未关闭，继续启动流程'
+                )
+                return False
+            time.sleep(MUMU12_STATE_POLL_INTERVAL)
+
+    def emulator_start_watch(self, timeout=None):
         """
         监控模拟器启动过程，等待启动完成。
+
+        Args:
+            timeout (int | float | None): 本次监视的等待秒数。
+                默认取 EMULATOR_START_WATCH_TIMEOUTS 的首项（首次尝试）。
 
         Returns:
             bool: True 表示启动完成，False 表示超时
         """
+        if timeout is None:
+            timeout = EMULATOR_START_WATCH_TIMEOUTS[0]
         logger.hr('模拟器启动', level=2)
+        logger.info(f'[设备-Windows] 模拟器启动监视开始，最长等待 {timeout} 秒')
         current_window = get_focused_window()
         serial = self.emulator_instance.serial
         logger.info(f'[设备-Windows] 当前窗口: {current_window}')
@@ -402,13 +642,33 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             logger.info(f'[设备-Windows] 找到碧蓝航线应用包: {m}')
 
         interval = Timer(0.5).start()
-        timeout = Timer(180).start()
+        timeout_timer = Timer(timeout).start()
+        progress = Timer(EMULATOR_START_PROGRESS_INTERVAL).start()
+        dialog_check = Timer(EMULATOR_START_DIALOG_CHECK_INTERVAL).start()
         new_window = 0
         while 1:
             interval.wait()
             interval.reset()
-            if timeout.reached():
-                logger.warning(f'[设备-Windows] 模拟器启动超时')
+            if timeout_timer.reached():
+                logger.warning(
+                    f'[设备-Windows] 模拟器启动超时'
+                    f'（已等待 {round(timeout_timer.current_time())} 秒）'
+                )
+                return False
+
+            # 定期打印进度：启动过程可能静默数分钟，需要让日志体现
+            # "确实还在等"，否则看起来像卡死
+            if progress.reached_and_reset():
+                logger.info(
+                    f'[设备-Windows] 等待模拟器启动中，'
+                    f'已等待 {round(timeout_timer.current_time())}/{timeout} 秒'
+                )
+
+            # MuMu 权限冲突等错误对话框检测
+            # 检测到错误对话框时立即终止等待，返回 False 触发重试，
+            # 不必白白等满整个监视超时
+            if dialog_check.reached_and_reset() and check_mumu_error_dialog():
+                logger.warning('[设备-Windows] 检测到MuMu错误对话框，中止启动监视')
                 return False
 
             try:
@@ -465,12 +725,6 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                 logger.exception(e)
                 continue
 
-            # MuMu 权限冲突等错误对话框检测
-            # 检测到错误对话框时立即终止等待，返回 False 触发重试
-            if check_mumu_error_dialog():
-                logger.warning('[设备-Windows] 检测到MuMu错误对话框，中止启动监视')
-                return False
-
         if new_window != 0 and new_window != current_window:
             logger.info(f'[设备-Windows] 最小化新窗口: {new_window}')
             minimize_window(new_window)
@@ -483,11 +737,16 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         logger.info('[设备-Windows] 模拟器启动完成')
         return True
 
+    @emulator_op_exclusive('启动模拟器')
     def emulator_start(self):
         """
         启动模拟器，最多重试 3 次。
         针对 MuMu12 等模拟器添加实例查找失败后的等待重试机制，
         以及权限冲突时的强制进程清理。
+
+        整个重试过程持有模拟器启停锁（见 emulator_op_exclusive）：
+        若已有启停操作在跑，直接抛 EmulatorOpBusy，不做任何动作——
+        这正是避免"刚启动就被另一个线程关掉"的关键。
         """
         logger.hr('模拟器启动', level=1)
 
@@ -504,35 +763,28 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             if not self._emulator_function_wrapper(self._emulator_stop):
                 return False
 
-            # MuMu12: 等待一小段时间确保进程状态稳定
+            # MuMu12: 清场并确认实例真的停下来了再启动
             if is_mumu12:
-                import time
-                # 检测是否有残留进程导致权限冲突
-                # 权限冲突通常由 MuMuManager/MuMuPlayer 僵死进程引起
-                has_mumu_process = False
-                for proc in psutil.process_iter(['name', 'cmdline']):
-                    try:
-                        name = proc.info['name'] or ''
-                        if name.lower() in ('mumuplayer.exe', 'mumumanager.exe',
-                                            'nemuplayer.exe', 'nemuheadless.exe'):
-                            has_mumu_process = True
-                            logger.warning(f'[设备-Windows] 检测到MuMu残留进程: {name} (PID={proc.pid})')
-                            proc.kill()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        pass
-                if has_mumu_process:
-                    logger.info('[设备-Windows] MuMuPlayer12: 已终止残留进程，等待5秒')
-                    time.sleep(5)
-                else:
-                    logger.info('[设备-Windows] MuMuPlayer12: 等待2秒让进程状态稳定')
-                    time.sleep(2)
+                index = self.emulator_instance.MuMuPlayer12_id
+                exe = self.emulator_instance.emulator.path
+                # 清理僵死的启动器/播放器进程（多开时自动跳过，见方法注释）
+                self._clean_mumu12_residue(exe, index)
+                # shutdown 是异步的，必须确认实例真的停了再启动，
+                # 否则启动请求会被吞掉（命令报成功、实例起不来）
+                self._mumu12_wait_stopped(exe, index)
 
             # 再启动
             if self._emulator_function_wrapper(self._emulator_start):
                 # 成功
-                if self.emulator_start_watch():
+                watch_timeout = EMULATOR_START_WATCH_TIMEOUTS[
+                    min(attempt, len(EMULATOR_START_WATCH_TIMEOUTS) - 1)
+                ]
+                if self.emulator_start_watch(timeout=watch_timeout):
                     return True
-                logger.warning('[设备-Windows] 模拟器启动监视失败，重试中')
+                logger.warning(
+                    f'[设备-Windows] 模拟器启动监视失败（第 {attempt + 1}/3 次，'
+                    f'已等待 {watch_timeout} 秒），重试中'
+                )
                 if self._emulator_function_wrapper(self._emulator_stop):
                     continue
                 else:
@@ -547,8 +799,12 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         logger.error('[设备-Windows] 尝试3次启动模拟器失败，已停止')
         return False
 
+    @emulator_op_exclusive('停止模拟器')
     def emulator_stop(self):
-        """停止模拟器，最多重试 3 次。"""
+        """停止模拟器，最多重试 3 次。
+
+        同样持有模拟器启停锁：不做"别人正在启动、我顺手关掉"的事。
+        """
         logger.hr('模拟器停止', level=1)
         for _ in range(3):
             # 停止

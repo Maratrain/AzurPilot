@@ -40,8 +40,18 @@ WATCHDOG_CHECK_INTERVAL = 30
 # 单个任务最长运行时间（分钟），仅作为配置读取失败的兜底默认值
 # 实际值从配置 Error.WatchdogTaskTimeout 读取，0 表示禁用
 WATCHDOG_TASK_TIMEOUT_DEFAULT = 120
-# 模拟器 stop/start 单次操作的硬超时秒数
-RESTART_EMULATOR_OP_TIMEOUT = 120
+# 模拟器 stop/start 单次操作的硬超时秒数。
+# 必须覆盖 PlatformWindows.emulator_start() 的完整预算，每次尝试最多：
+#   关闭 30 + 等待实例真正关闭 60 + 启动监视 T + 关闭 30 = 120 + T
+# 监视超时按 180/300/480 递增（platform_windows.EMULATOR_START_WATCH_TIMEOUTS），
+# 3 次尝试合计 ≈ 3×120 + 960 = 1320 秒。
+# 取 1500 秒：宁可慢，也不能在模拟器正在启动时放弃——超时被放弃的
+# worker 线程仍会继续对模拟器执行关/开操作，是历史上"模拟器永远起不来"
+# 的根因（原值 120 秒 < 内层 180 秒监视超时，必然超时、必然残留）。
+# 残留线程由 PlatformWindows 的启停互斥锁兜底：它结束之前，任何新的
+# 启停操作都会抛 EmulatorOpBusy 被跳过，不会再打断正在进行的启动。
+RESTART_EMULATOR_OP_TIMEOUT = 1500
+
 DAILY_SUMMARY_CHECK_INTERVAL = 1
 
 
@@ -376,6 +386,13 @@ class AzurLaneAutoScript:
             if 'device' in self.__dict__:
                 del_cached_property(self, 'device')
             return True
+        except EmulatorOpBusy as e:
+            # 上一轮的重启操作还在后台跑（很可能正在冷启动模拟器）。
+            # 此时既不能停也不能再启——那会把正在进行的启动打断，正是
+            # "模拟器窗口一直卡在加载、永远起不来"的成因。放弃本轮即可，
+            # 后台那次操作结束后，下一轮调度自然会接手。
+            logger.warning(f'[Alas] 上一轮模拟器重启仍在进行，放弃本轮重启：{e}')
+            return False
         except Exception as e:
             logger.exception_context(
                 title='重启模拟器失败',
@@ -394,12 +411,18 @@ class AzurLaneAutoScript:
         线程中执行操作，超时后抛出 TimeoutError，由外层 try/except 捕获
         并返回 False，调度器会退避重试。
 
+        并发保护由 PlatformWindows 的启停互斥锁负责（emulator_op_exclusive）：
+        超时被放弃的 worker 线程仍在真实地关闭/启动模拟器，锁由它一直持有
+        到操作真正结束，因此后续任何启停请求都会抛 EmulatorOpBusy 被跳过，
+        不会出现"一个线程刚发出启动命令、另一个线程随即 shutdown"的踩踏。
+
         Args:
             func: 无参数的可调用对象。
             timeout (int | float): 超时秒数。
             operation_name (str): 操作名称，用于日志。
 
         Raises:
+            EmulatorOpBusy: 已有启停操作在进行（由平台层抛出），本次被跳过。
             TimeoutError: 操作超时。
             Exception: 操作本身抛出的异常会被原样向上抛出。
         """
@@ -419,7 +442,8 @@ class AzurLaneAutoScript:
         if thread.is_alive():
             logger.critical(
                 f'[Alas] {operation_name} 超过 {timeout}s 未完成，'
-                f'跳过此操作（daemon 线程残留，进程退出时自动清理）'
+                f'放弃等待（操作线程仍在后台运行并持有模拟器启停锁，'
+                f'下一轮恢复会主动跳过，直到它结束）'
             )
             raise TimeoutError(
                 f'{operation_name} 超过 {timeout}s 未完成'
@@ -612,6 +636,10 @@ class AzurLaneAutoScript:
             logger.info(
                 '[Alas][看门狗] 已强制停止模拟器，主线程的下次 I/O 调用将失败并触发恢复'
             )
+        except EmulatorOpBusy as e:
+            logger.warning(
+                f'[Alas][看门狗] 上一轮模拟器重启仍在进行，本次不再插手：{e}'
+            )
         except TimeoutError:
             logger.warning(
                 '[Alas][看门狗] 强制停止模拟器超时，等待下个周期重试'
@@ -637,13 +665,22 @@ class AzurLaneAutoScript:
                 logger.warning('[Alas] 未找到模拟器实例，无法在长时间等待后启动模拟器')
                 return False
 
-            if platform.emulator_start():
+            if self._emulator_op_with_timeout(
+                platform.emulator_start,
+                timeout=RESTART_EMULATOR_OP_TIMEOUT,
+                operation_name='长时间等待后启动模拟器',
+            ):
                 logger.info('[Alas] 长时间等待后模拟器启动完成')
                 if 'device' in self.__dict__:
                     del_cached_property(self, 'device')
                 return True
 
             logger.warning('[Alas] 长时间等待后启动模拟器失败，继续调度恢复流程')
+            return False
+        except EmulatorOpBusy as e:
+            # 与 _try_restart_emulator 同理：已有启停操作在跑时不要插队，
+            # 否则会打断对方正在进行的冷启动
+            logger.warning(f'[Alas] 已有模拟器启停操作在进行，跳过本次启动：{e}')
             return False
         except Exception as e:
             logger.warning(f'[Alas] 长时间等待后启动模拟器失败，继续调度恢复流程: {e}')

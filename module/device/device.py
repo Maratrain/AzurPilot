@@ -26,8 +26,8 @@ from module.device.control import Control
 from module.device.input import Input
 from module.device.platform import Platform
 from module.device.screenshot import Screenshot
-from module.exception import (EmulatorNotRunningError, GameNotRunningError, GameStuckError, GameTooManyClickError,
-                              RequestHumanTakeover)
+from module.exception import (EmulatorNotRunningError, EmulatorOpBusy, GameNotRunningError, GameStuckError,
+                              GameTooManyClickError, RequestHumanTakeover)
 from module.handler.assets import GET_MISSION
 from module.logger import logger
 
@@ -112,7 +112,15 @@ class Device(Screenshot, Control, AppControl, Input):
                     raise RequestHumanTakeover
                 # 尝试启动模拟器
                 if self.emulator_instance is not None:
-                    self.emulator_start()
+                    try:
+                        self.emulator_start()
+                    except EmulatorOpBusy as e:
+                        # 已有其它恢复流程在操作模拟器（通常是正在冷启动它）。
+                        # 这不是本设备启动失败，而是"暂时不可用"：直接冒泡成
+                        # EmulatorNotRunningError 交给调度器的恢复路径，
+                        # 否则会白跑 4 次尝试并把调度器以 RequestHumanTakeover 停掉。
+                        logger.warning(f'[Device] {e}')
+                        raise EmulatorNotRunningError(str(e)) from e
                 else:
                     logger.critical(
                         f'错误 未找到序列号为 "{self.config.Emulator_Serial}" 的模拟器，'

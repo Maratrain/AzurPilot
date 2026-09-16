@@ -31,6 +31,9 @@
     - RequestHumanTakeover: 请求人工接管（配置错误等严重问题）
     - AutoSearchSetError: 自动搜索设置失败
     - HardNotSatisfied: 困难模式前置条件不满足
+
+并发保护（非错误，调用方应放弃本轮并等待下一轮）：
+    - EmulatorOpBusy: 已有模拟器启停操作正在进行
 """
 
 
@@ -182,5 +185,18 @@ class HardNotSatisfied(RequestHumanTakeover):
     """困难模式前置条件不满足。
 
     继承自 RequestHumanTakeover，当困难关卡的前置条件未满足时抛出。
+    """
+    pass
+
+
+class EmulatorOpBusy(Exception):
+    """已有模拟器启停操作正在进行，本次操作被跳过。
+
+    这不是错误，而是并发保护（见 PlatformWindows 的启停互斥锁）：
+    emulator_start / emulator_stop 会真实地关闭并重启模拟器，两个操作
+    并发时会互相踩踏——一个线程刚发出启动命令，另一个线程随即 shutdown，
+    模拟器在冷启动完成前被反复打断，表现为"窗口一直卡在加载、起不来"。
+
+    调用方收到此异常时应放弃本轮操作，等待下一轮调度，而不是立即重试。
     """
     pass
