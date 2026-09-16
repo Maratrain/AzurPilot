@@ -333,8 +333,13 @@ class PlatformMac(PlatformBase, EmulatorManagerMac):
         logger.info('[设备-模拟器Mac] 模拟器启动完成')
         return True
 
-    def emulator_start(self):
-        """启动模拟器，最多重试 3 次。"""
+    def emulator_start(self, deep=False):
+        """启动模拟器，最多重试 3 次。
+
+        Args:
+            deep (bool): 深度重启标志，仅 MuMu12（Windows）有对应实现，
+                本平台忽略该参数——保留它是为了让调用方无需按平台分支传参。
+        """
         logger.hr('[设备-模拟器Mac] 模拟器启动', level=1)
         for _ in range(3):
             # 先停止

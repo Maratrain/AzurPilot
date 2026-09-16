@@ -6140,6 +6140,10 @@
     "RestartIntervalHours": {
       "name": "How often to restart (hours)",
       "help": "How many hours between emulator restarts."
+    },
+    "DeepRestartAfterFailures": {
+      "name": "Deep restart after N failures",
+      "help": "Once the emulator has failed to restart this many times in a row, switch to a deep restart: kill every MuMu process (including background services and the VM) and start over.\nA last-resort escape hatch for weak machines where normal restarts never come up.\nNote: a deep restart also kills any other MuMu instances you are running.\n0 disables it (restart the instance only). Default 0."
     }
   },
   "EmulatorManager": {

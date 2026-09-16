@@ -6140,6 +6140,10 @@
     "RestartIntervalHours": {
       "name": "重启间隔",
       "help": ""
+    },
+    "DeepRestartAfterFailures": {
+      "name": "深度重启：连续失败几次后执行",
+      "help": "模拟器连着好几次都重启不起来，就干脆把 MuMu 的进程全关掉再重新开喵！(๑•̀ㅂ•́)و✧\n设备差的机器上这是最后的手段，平时不用开喵。\n注意：会把多开的其它实例一起关掉喵。\n0 就是不开，默认 0 喵。"
     }
   },
   "EmulatorManager": {

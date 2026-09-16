@@ -769,6 +769,14 @@
           1,
           24
         ]
+      },
+      "DeepRestartAfterFailures": {
+        "type": "input",
+        "value": 0,
+        "validate": [
+          0,
+          10
+        ]
       }
     },
     "Storage": {

@@ -5,6 +5,7 @@ import shutil
 import threading
 import time
 from datetime import datetime, timedelta
+from functools import partial
 from types import SimpleNamespace
 
 import inflection
@@ -334,6 +335,29 @@ class AzurLaneAutoScript:
         except Exception as error:
             logger.warning(f'[日报] 记录任务结果失败，已忽略: {type(error).__name__}')
 
+    def _deep_restart_enabled(self):
+        """判断本次模拟器重启是否改用「深度重启」。
+
+        配置 EmulatorManagement.DeepRestartAfterFailures：模拟器连续重启失败
+        达到该次数后，此后每次重启都改为深度重启——结束 MuMu 全部进程
+        （含后台服务与虚拟机）再重新启动。
+
+        这是设备较差、反复重启都起不来时的最后一招逃生口，实测并不能省内存，
+        所以默认 0（禁用），需要的人自己开。
+
+        只在 MuMu12 上生效：其它模拟器没有这套进程模型，会忽略该标志。
+
+        Returns:
+            bool: True 表示本次使用深度重启。
+        """
+        try:
+            threshold = int(self.config.EmulatorManagement_DeepRestartAfterFailures)
+        except (TypeError, ValueError, AttributeError):
+            return False
+        if threshold <= 0:
+            return False
+        return self.consecutive_adb_offline >= threshold
+
     def _try_restart_emulator(self):
         """
         尝试重启模拟器。
@@ -367,6 +391,14 @@ class AzurLaneAutoScript:
                 from module.device.platform import Platform
                 device = Platform(self.config, connect=False)
 
+            # 连续失败够多次就改用深度重启（结束 MuMu 全部进程）
+            deep = self._deep_restart_enabled()
+            if deep:
+                logger.warning(
+                    f'[Alas] 连续重启失败 {self.consecutive_adb_offline} 次，'
+                    f'本次改用深度重启（结束 MuMu 全部进程）'
+                )
+
             logger.info('[Alas] 正在停止模拟器...')
             self._emulator_op_with_timeout(
                 device.emulator_stop,
@@ -376,7 +408,7 @@ class AzurLaneAutoScript:
             time.sleep(5)
             logger.info('[Alas] 正在启动模拟器...')
             self._emulator_op_with_timeout(
-                device.emulator_start,
+                partial(device.emulator_start, deep=deep),
                 timeout=RESTART_EMULATOR_OP_TIMEOUT,
                 operation_name='模拟器启动',
             )

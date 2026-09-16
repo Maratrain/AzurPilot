@@ -9,6 +9,7 @@
 3. 启动监视超时按 180/300/480 递增，给冷启动留出时间。
 """
 
+import inspect
 import json
 import threading
 import unittest
@@ -236,6 +237,154 @@ class TestMumu12StateQuery(unittest.TestCase):
             patch.object(platform_windows, 'MUMU12_STATE_POLL_INTERVAL', 0),
         ):
             self.assertTrue(platform._mumu12_wait_stopped('F:/mumu/shell/MuMuPlayer.exe', 0))
+
+
+class TestDeepRestart(unittest.TestCase):
+    """深度重启：结束 MuMu 全部进程，仅由「连续重启都失败」触发。
+
+    定位是最後一招逃生口，不是省内存的常规手段——实测普通重启已经会替换
+    虚拟机进程，全杀并不更省内存。
+    """
+
+    def make_platform(self):
+        return make_platform()
+
+    @staticmethod
+    def fake_process(name, pid=1234):
+        proc = Mock()
+        proc.info = {'name': name}
+        proc.pid = pid
+        return proc
+
+    def test_deep_clean_kills_only_listed_processes(self):
+        platform = self.make_platform()
+        platform.execute = Mock()
+        mumu_player = self.fake_process('MuMuPlayer.exe')
+        mumu_vm = self.fake_process('MuMuVMMHeadless.exe')
+        unrelated = self.fake_process('notepad.exe')
+
+        with patch.object(platform_windows.psutil, 'process_iter',
+                          side_effect=[[mumu_player, mumu_vm, unrelated], []]):
+            self.assertTrue(platform._deep_clean_mumu12('F:/mumu/shell/MuMuPlayer.exe'))
+
+        mumu_player.kill.assert_called_once()
+        mumu_vm.kill.assert_called_once()
+        unrelated.kill.assert_not_called()
+
+    def test_deep_clean_asks_mumu_to_shutdown_all_instances(self):
+        platform = self.make_platform()
+        platform.execute = Mock()
+        with patch.object(platform_windows.psutil, 'process_iter', side_effect=[[], []]):
+            platform._deep_clean_mumu12('F:/mumu/shell/MuMuPlayer.exe')
+
+        self.assertTrue(platform.execute.called)
+        self.assertIn('control -v all shutdown', platform.execute.call_args.args[0])
+
+    def test_deep_clean_ignores_multi_open(self):
+        """多开不阻止深度重启——用户明确选了「一律全杀」。"""
+        platform = self.make_platform()
+        platform.execute = Mock()
+        multi_open = mumu_info({'is_process_started': True}, {'is_process_started': True})
+
+        with (
+            patch.object(platform_windows, 'run_mumu_manager', return_value=multi_open) as query,
+            patch.object(platform_windows.psutil, 'process_iter', side_effect=[[], []]),
+        ):
+            platform._deep_clean_mumu12('F:/mumu/shell/MuMuPlayer.exe')
+
+        # 关键：根本没有去查其它实例的状态
+        query.assert_not_called()
+        self.assertTrue(platform.execute.called)
+
+    def test_deep_clean_gives_up_waiting_after_timeout(self):
+        platform = self.make_platform()
+        platform.execute = Mock()
+        alive = [self.fake_process('MuMuVMMHeadless.exe')]
+        with (
+            patch.object(platform_windows.psutil, 'process_iter', return_value=alive),
+            patch.object(platform_windows, 'MUMU12_DEEP_WAIT_TIMEOUT', 0),
+        ):
+            self.assertFalse(platform._deep_clean_mumu12('F:/mumu/shell/MuMuPlayer.exe'))
+
+    def test_start_with_deep_uses_deep_clean(self):
+        platform = self.make_platform()
+        platform.emulator_instance = Mock()
+        platform.emulator_instance.emulator.path = 'F:/mumu/shell/MuMuPlayer.exe'
+        platform.emulator_instance.MuMuPlayer12_id = 0
+        platform.config.EmulatorInfo_Emulator = 'MuMuPlayer12'
+        platform._clean_mumu12_residue = Mock()
+        platform._deep_clean_mumu12 = Mock()
+        platform._mumu12_wait_stopped = Mock()
+
+        self.assertTrue(platform.emulator_start(deep=True))
+
+        platform._deep_clean_mumu12.assert_called_once()
+        platform._clean_mumu12_residue.assert_not_called()
+
+    def test_start_without_deep_keeps_old_cleanup(self):
+        """默认仍是普通清理——深度重启必须显式开启。"""
+        platform = self.make_platform()
+        platform.emulator_instance = Mock()
+        platform.emulator_instance.emulator.path = 'F:/mumu/shell/MuMuPlayer.exe'
+        platform.emulator_instance.MuMuPlayer12_id = 0
+        platform.config.EmulatorInfo_Emulator = 'MuMuPlayer12'
+        platform._clean_mumu12_residue = Mock()
+        platform._deep_clean_mumu12 = Mock()
+        platform._mumu12_wait_stopped = Mock()
+
+        self.assertTrue(platform.emulator_start())
+
+        platform._clean_mumu12_residue.assert_called_once()
+        platform._deep_clean_mumu12.assert_not_called()
+
+
+class TestDeepFlagPortability(unittest.TestCase):
+    """`deep` 必须是所有平台都能接的关键字参数。
+
+    alas.py 调 emulator_start 时不区分平台，任何平台少了这个参数都会在
+    运行时抛 TypeError。
+    """
+
+    def test_all_platforms_accept_deep(self):
+        from module.device.platform.platform_base import PlatformBase
+        from module.device.platform.platform_mac import PlatformMac
+        from module.device.platform.platform_windows import PlatformWindows
+
+        for cls in (PlatformBase, PlatformMac, PlatformWindows):
+            with self.subTest(platform=cls.__name__):
+                # inspect.signature 会自动跟随 functools.wraps 的 __wrapped__
+                parameters = inspect.signature(cls.emulator_start).parameters
+                self.assertIn('deep', parameters)
+                self.assertIs(False, parameters['deep'].default)
+
+
+class TestDeepRestartThreshold(unittest.TestCase):
+    """EmulatorManagement.DeepRestartAfterFailures 的触发判定。"""
+
+    def make_script(self, threshold, consecutive):
+        script = AzurLaneAutoScript.__new__(AzurLaneAutoScript)
+        script.consecutive_adb_offline = consecutive
+        script.config = Mock()
+        script.config.EmulatorManagement_DeepRestartAfterFailures = threshold
+        return script
+
+    def test_zero_disables_deep_restart(self):
+        self.assertFalse(self.make_script(0, 99)._deep_restart_enabled())
+
+    def test_below_threshold_keeps_normal_restart(self):
+        self.assertFalse(self.make_script(3, 2)._deep_restart_enabled())
+
+    def test_at_threshold_switches_to_deep_restart(self):
+        self.assertTrue(self.make_script(3, 3)._deep_restart_enabled())
+
+    def test_stays_deep_after_threshold(self):
+        self.assertTrue(self.make_script(3, 7)._deep_restart_enabled())
+
+    def test_invalid_config_falls_back_to_normal_restart(self):
+        script = AzurLaneAutoScript.__new__(AzurLaneAutoScript)
+        script.consecutive_adb_offline = 99
+        script.config = Mock()  # 读出来是 Mock，int() 会抛 TypeError
+        self.assertFalse(script._deep_restart_enabled())
 
 
 class TestRestartTimeoutBudget(unittest.TestCase):
