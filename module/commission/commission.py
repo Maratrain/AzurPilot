@@ -59,6 +59,27 @@ COMMISSION_SWITCH.add_state('daily', COMMISSION_DAILY)
 COMMISSION_SWITCH.add_state('urgent', COMMISSION_URGENT)
 COMMISSION_SCROLL = Scroll(COMMISSION_SCROLL_AREA, color=(247, 211, 66), name='COMMISSION_SCROLL')
 
+# 委托收益截图保留张数：与统计页「最近委托记录」的 50 条上限保持一致。
+# 仅在「掉落记录 - 截图保留天数」为 0 时生效，填了天数就改按天数清理。
+COMMISSION_REWARD_SCREENSHOT_KEEP = 50
+
+
+class CommissionAmount(AmountOcr):
+    """委托收益数量 OCR：碎片过滤 + 2 倍放大 + 裁剪。
+
+    委托页数字很小（高约 14px），直接识别时两处系统性误读：
+    - 不裁剪时右缘被截断的数字会被丢掉（71 → 7）；
+    - 裁剪后原尺寸下两个 7 会丢掉一个（77 → 7）。
+    实测「裁剪 + 放大 2 倍」后 71/77/97/13 等读数全部正确。
+    """
+    remove_fragments = True
+
+    def pre_process(self, image):
+        import cv2
+
+        image = cv2.resize(image, (0, 0), fx=2, fy=2, interpolation=2)
+        return super().pre_process(image)
+
 
 def lines_detect(image):
     """检测委托列表中各委托条目底部的白色分割线位置。
@@ -1130,6 +1151,101 @@ class RewardCommission(UI, InfoHandler):
 
         except Exception as e:
             logger.warning(f'[委托-收入] 委托收入记录失败: {e}')
+
+    def _save_commission_reward_screenshots(self, images, instance):
+        """保存本次结算的委托收益截图。
+
+        截图落盘到 ``./log/commission_rewards/<instance>/<YYYY-MM>/`` 目录，
+        文件名使用毫秒时间戳避免冲突。返回相对 ``log/commission_rewards``
+        根目录的路径列表（POSIX 风格），写入数据库供 WebUI 查看截图使用。
+
+        关掉「掉落记录 - 委托收益截图」后不再落盘，
+        但收益数据本身仍然记录，只是统计页不再有截图可看。
+
+        Args:
+            images: 通过「获取物品」页面校验的截图列表（RGB numpy 数组）。
+            instance: 配置实例名称。
+
+        Returns:
+            list[str]: 保存成功的截图相对路径列表，未保存或失败时返回空列表。
+        """
+        import os
+
+        from module.statistics.drop_cleanup import drop_screenshot_retention_days
+
+        if self.config.DropRecord_CommissionIncomeScreenshot == 'do_not':
+            return []
+        if not images:
+            return []
+
+        month_str = current_time().strftime('%Y-%m')
+        folder = os.path.join('.', 'log', 'commission_rewards', instance, month_str)
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except OSError as e:
+            logger.warning(f'[委托-收入] 创建截图目录失败: {e}')
+            return []
+
+        stamp = current_time().strftime('%Y%m%d_%H%M%S_%f')
+        paths = []
+        for idx, image in enumerate(images):
+            filename = f'{stamp}_{idx}.png'
+            try:
+                save_image(image, os.path.join(folder, filename))
+            except Exception as e:
+                logger.warning(f'[委托-收入] 保存截图失败 {filename}: {e}')
+                continue
+            paths.append(f'{instance}/{month_str}/{filename}')
+            logger.info(f'[委托-收入] 已保存收益截图: log/commission_rewards/{instance}/{month_str}/{filename}')
+
+        # 填了保留天数就交给掉落记录模块按天数统一清理
+        # （见 module/statistics/drop_cleanup.py），没填才沿用张数上限
+        if drop_screenshot_retention_days(self.config) <= 0:
+            self._prune_commission_reward_screenshots(instance)
+        return paths
+
+    @staticmethod
+    def _prune_commission_reward_screenshots(instance, max_keep=None):
+        """清理实例目录下超量的委托收益截图，仅保留最近 max_keep 张。
+
+        截图保留张数与统计页「最近委托记录」的 50 条上限对应：
+        超过保留数量的旧截图按修改时间排序删除，并移除清空后的
+        空月份目录。清理在每次保存截图后顺带执行。
+
+        Args:
+            instance: 配置实例名称。
+            max_keep: 保留的截图张数上限，默认使用模块级常量
+                COMMISSION_REWARD_SCREENSHOT_KEEP。
+        """
+        import os
+
+        if max_keep is None:
+            max_keep = COMMISSION_REWARD_SCREENSHOT_KEEP
+
+        base = os.path.join('.', 'log', 'commission_rewards', instance)
+        if not os.path.isdir(base):
+            return
+        files = []
+        for folder, _, names in os.walk(base):
+            for name in names:
+                if not name.endswith('.png'):
+                    continue
+                file = os.path.join(folder, name)
+                try:
+                    files.append((os.path.getmtime(file), file))
+                except OSError:
+                    continue
+        files.sort(reverse=True)
+        for _, file in files[max_keep:]:
+            try:
+                os.remove(file)
+            except OSError:
+                continue
+        for folder, _, _ in os.walk(base, topdown=False):
+            try:
+                os.rmdir(folder)
+            except OSError:
+                pass
 
     def _handle_research_genre_t_update(self, completed_commission_count):
         """更新 T 类科研任务的剩余委托计数。

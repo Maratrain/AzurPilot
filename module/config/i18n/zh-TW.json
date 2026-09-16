@@ -913,6 +913,10 @@
       "name": "掉落儲存目錄",
       "help": ""
     },
+    "RetentionDays": {
+      "name": "截圖保留天數",
+      "help": "掉落記錄截圖超過該天數的自動刪除\n0 = 不按天數清理（委託收益截圖仍只保留最近 50 張）"
+    },
     "AzurStatsID": {
       "name": "AzurStat ID",
       "help": "上傳至 https://azur-stats.lyoko.io 時，宣告的客戶端 ID\n由隨機字元組成，可隨意修改"
@@ -938,6 +942,12 @@
       "save": "儲存",
       "upload": "上傳",
       "save_and_upload": "儲存並上傳"
+    },
+    "CommissionIncomeScreenshot": {
+      "name": "委託收益截圖",
+      "help": "委託結算時儲存「獲取物品」截圖，供統計頁「檢視截圖」使用\n關閉後收益資料仍然記錄，只是不再儲存圖片",
+      "do_not": "不儲存",
+      "save": "儲存"
     },
     "CombatRecord": {
       "name": "戰鬥掉落截圖",

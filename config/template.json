@@ -132,10 +132,12 @@
     },
     "DropRecord": {
       "SaveFolder": "./screenshots",
+      "RetentionDays": 0,
       "AzurStatsID": null,
       "API": "default",
       "ResearchRecord": "do_not",
       "CommissionRecord": "do_not",
+      "CommissionIncomeScreenshot": "save",
       "CombatRecord": "do_not",
       "OpsiRecord": "upload",
       "OpsiShopRecord": "upload",

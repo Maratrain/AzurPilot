@@ -21,6 +21,7 @@ import numpy as np
 
 from module.base.utils import save_image
 from module.logger import logger
+from module.statistics.drop_cleanup import cleanup_drop_screenshots_if_due
 from module.statistics.utils import pack
 from module.base.device_id import get_device_id
 
@@ -423,6 +424,10 @@ class AzurStats:
         Returns:
             DropImage:
         """
+        # 掉落记录的每个提交周期都会走到这里，用它作为过期截图的清理时机
+        # （内部有节流，不会每场战斗都扫目录）
+        cleanup_drop_screenshots_if_due(self.config)
+
         method_value = None
         if isinstance(method, bool):
             save = save or method

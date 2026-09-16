@@ -261,6 +261,9 @@ Optimization:
     option: [stay_there, goto_main, close_game, close_emulator]
 DropRecord:
   SaveFolder: ./screenshots
+  RetentionDays:
+    value: 0
+    validate: [0, 3650]
   AzurStatsID: null
   API:
     value: default
@@ -271,6 +274,9 @@ DropRecord:
   CommissionRecord:
     value: do_not
     option: [do_not, save, upload, save_and_upload]
+  CommissionIncomeScreenshot:
+    value: save
+    option: [do_not, save]
   CombatRecord:
     value: do_not
     option: [do_not, save]

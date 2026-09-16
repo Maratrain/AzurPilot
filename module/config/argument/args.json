@@ -666,6 +666,14 @@
         "type": "input",
         "value": "./screenshots"
       },
+      "RetentionDays": {
+        "type": "input",
+        "value": 0,
+        "validate": [
+          0,
+          3650
+        ]
+      },
       "AzurStatsID": {
         "type": "input",
         "value": null
@@ -696,6 +704,14 @@
           "save",
           "upload",
           "save_and_upload"
+        ]
+      },
+      "CommissionIncomeScreenshot": {
+        "type": "select",
+        "value": "save",
+        "option": [
+          "do_not",
+          "save"
         ]
       },
       "CombatRecord": {

@@ -913,6 +913,10 @@
       "name": "Drop Save Directory",
       "help": ""
     },
+    "RetentionDays": {
+      "name": "Screenshot retention (days)",
+      "help": "Drop record screenshots older than this many days are deleted automatically\n0 = no day-based cleanup (commission reward screenshots still keep the latest 50 only)"
+    },
     "AzurStatsID": {
       "name": "AzurStat ID",
       "help": "The client ID declared when uploading to https://azur-stats.lyoko.io\nComposed of random characters and can be modified at will"
@@ -938,6 +942,12 @@
       "save": "Save",
       "upload": "Upload",
       "save_and_upload": "Save and Upload"
+    },
+    "CommissionIncomeScreenshot": {
+      "name": "Commission reward screenshot",
+      "help": "Save the \"GET ITEMS\" screenshot on each commission settlement for the \"View screenshot\" links on the statistics page\nWhen disabled, reward data is still recorded, only the images are skipped",
+      "do_not": "Do not save",
+      "save": "Save"
     },
     "CombatRecord": {
       "name": "Combat Drop Screenshot",

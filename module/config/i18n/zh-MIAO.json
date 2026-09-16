@@ -913,6 +913,10 @@
       "name": "掉落保存目录",
       "help": ""
     },
+    "RetentionDays": {
+      "name": "截图保留天数喵",
+      "help": "掉落记录截图超过这么多天就自动删掉喵~\n0 = 不按天数删（委托收益截图还是只留最近 50 张喵）"
+    },
     "AzurStatsID": {
       "name": "AzurStat ID 喵",
       "help": "上传到 https://azur-stats.lyoko.io 时声明的客户端ID，随意修改喵。"
@@ -938,6 +942,12 @@
       "save": "保存喵",
       "upload": "上传喵",
       "save_and_upload": "保存并上传喵"
+    },
+    "CommissionIncomeScreenshot": {
+      "name": "委托收益截图喵",
+      "help": "委托结算时把「获取物品」截图存下来喵，统计页能点「查看截图」看~\n关掉也照样记收益，只是不存图了喵",
+      "do_not": "不保存喵",
+      "save": "保存喵"
     },
     "CombatRecord": {
       "name": "战斗掉落截图",
