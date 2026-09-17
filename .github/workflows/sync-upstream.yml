@@ -1,0 +1,41 @@
+name: 同步上游 dev 分支
+
+# 自动把 wess09/AzurPilot 的 dev 分支强制同步到本仓库 dev 分支。
+# 触发方式:每 6 小时定时一次,或手动 workflow_dispatch。
+# 因为本仓库是 fork,默认 GITHUB_TOKEN 即可 push 到自己的 dev,
+# 上游为 public 仓库,fetch 不需要额外鉴权,无需配置 PAT。
+
+on:
+  schedule:
+    # UTC 每 6 小时整点触发一次
+    - cron: '0 */6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出本仓库 dev 分支
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: 配置 git 提交身份
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: 拉取上游 dev 分支
+        run: |
+          git remote add upstream https://github.com/wess09/AzurPilot.git
+          git fetch upstream dev
+
+      - name: 硬重置到上游 dev
+        run: git reset --hard upstream/dev
+
+      - name: 强制推送到 origin/dev
+        run: git push origin dev --force
