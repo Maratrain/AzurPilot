@@ -166,6 +166,10 @@ class GeneratedConfig:
     DropRecord_TelemetryReport = True
     DropRecord_BugReport = True
 
+    # 配置组 `Backup`
+    Backup_Enable = True
+    Backup_KeepDays = 7
+
     # 配置组 `Log`
     Log_LogKeepCount = 3
     Log_LogBackUpMethod = 'zip'  # delete, zip, copy

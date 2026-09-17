@@ -984,6 +984,20 @@
       "help": "When enabled, bug logs will be anonymously reported to the server when an exception is encountered to help improve ID generation. See the source code for details."
     }
   },
+  "Backup": {
+    "_info": {
+      "name": "Daily backup",
+      "help": "Backs up the database and user configs when the scheduler starts for the first time each day. Backups are stored in the AzurPilot_Data_Backup folder next to the project directory."
+    },
+    "Enable": {
+      "name": "Enable daily backup",
+      "help": "When disabled, no new backup is created and existing backups are never deleted."
+    },
+    "KeepDays": {
+      "name": "Backup retention (days)",
+      "help": "Backups older than this many days are deleted after each backup completes. For example, 7 keeps only the most recent 7 days."
+    }
+  },
   "Log": {
     "_info": {
       "name": "Log",

@@ -9,6 +9,7 @@ Alas:
       - DailySummary
       - Optimization
       - DropRecord
+      - Backup
       - EmulatorManagement
     General:
       - Log

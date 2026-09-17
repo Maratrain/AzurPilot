@@ -144,6 +144,10 @@
       "TelemetryReport": true,
       "BugReport": true
     },
+    "Backup": {
+      "Enable": true,
+      "KeepDays": 7
+    },
     "EmulatorManagement": {
       "ScheduledEmulatorRestart": false,
       "ForceScheduledRestart": false,
