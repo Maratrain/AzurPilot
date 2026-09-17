@@ -13,7 +13,7 @@ import inspect
 import json
 import threading
 import unittest
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call, create_autospec, patch
 
 from alas import RESTART_EMULATOR_OP_TIMEOUT, AzurLaneAutoScript
 from module.device.platform import platform_windows
@@ -23,6 +23,10 @@ from module.device.platform.platform_windows import (
     PlatformWindows,
 )
 from module.exception import EmulatorNotRunningError, EmulatorOpBusy
+
+
+# autospec 反射整个 Device 类很慢（约 26 秒），复用同一个实例
+_DEVICE_AUTOSPEC = None
 
 
 def make_platform():
@@ -339,19 +343,22 @@ class TestDeepRestart(unittest.TestCase):
 
 
 class TestDeepFlagPortability(unittest.TestCase):
-    """`deep` 必须是所有平台都能接的关键字参数。
+    """`deep` 必须是调用链上每一层都能接的关键字参数。
 
-    alas.py 调 emulator_start 时不区分平台，任何平台少了这个参数都会在
-    运行时抛 TypeError。
+    alas.py 调的是 `Device.emulator_start`（转发层），Device 再转发给平台。
+    只检查平台层会漏掉转发层——2026-09-17 正是这样漏掉了 Device 一层，
+    导致 `TypeError: Device.emulator_start() got an unexpected keyword
+    argument 'deep'`，模拟器被关掉后再也起不来，白挂了一晚。
     """
 
-    def test_all_platforms_accept_deep(self):
+    def test_every_layer_of_the_call_chain_accepts_deep(self):
+        from module.device.device import Device
         from module.device.platform.platform_base import PlatformBase
         from module.device.platform.platform_mac import PlatformMac
         from module.device.platform.platform_windows import PlatformWindows
 
-        for cls in (PlatformBase, PlatformMac, PlatformWindows):
-            with self.subTest(platform=cls.__name__):
+        for cls in (Device, PlatformBase, PlatformMac, PlatformWindows):
+            with self.subTest(layer=cls.__name__):
                 # inspect.signature 会自动跟随 functools.wraps 的 __wrapped__
                 parameters = inspect.signature(cls.emulator_start).parameters
                 self.assertIn('deep', parameters)
@@ -426,6 +433,13 @@ class TestDeviceAutoStartBusyHandling(unittest.TestCase):
 
 
 class TestRestartEmulatorBusyHandling(unittest.TestCase):
+    def setUp(self):
+        # _try_restart_emulator 在 stop 与 start 之间有固定等待，且超过阈值时
+        # 有最长 300 秒的退避等待。这些测试不验证等待行为，打桩掉以免跑满分钟级。
+        patcher = patch('alas.time.sleep')
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def make_script(self):
         script = AzurLaneAutoScript.__new__(AzurLaneAutoScript)
         script.consecutive_adb_offline = 0
@@ -433,10 +447,27 @@ class TestRestartEmulatorBusyHandling(unittest.TestCase):
         script.config.Error_AdbOfflineThreshold = 3
         return script
 
+    @staticmethod
+    def make_device():
+        """用 autospec 而不是裸 Mock：裸 Mock 接受任意参数，会把调用方的
+        参数错误（如传了实现不接受的 deep=）悄悄吞掉——2026-09-17 的事故
+        正是这样漏过测试的。autospec 会按真实签名校验并抛 TypeError。
+
+        autospec 要反射整个 Device 类，创建一次约 26 秒，因此复用同一个
+        实例（每次先 reset 干净）。
+        """
+        global _DEVICE_AUTOSPEC
+        if _DEVICE_AUTOSPEC is None:
+            from module.device.device import Device
+
+            _DEVICE_AUTOSPEC = create_autospec(Device, instance=True)
+        _DEVICE_AUTOSPEC.reset_mock(return_value=True, side_effect=True)
+        return _DEVICE_AUTOSPEC
+
     def test_gives_up_round_when_stop_is_busy(self):
         """上一轮启动仍在进行时，本轮不能去 stop——那正是打断启动的元凶。"""
         script = self.make_script()
-        device = Mock()
+        device = self.make_device()
         device.emulator_stop.side_effect = EmulatorOpBusy('busy')
         script.__dict__['device'] = device
 
@@ -445,7 +476,7 @@ class TestRestartEmulatorBusyHandling(unittest.TestCase):
 
     def test_gives_up_round_when_start_is_busy(self):
         script = self.make_script()
-        device = Mock()
+        device = self.make_device()
         device.emulator_start.side_effect = EmulatorOpBusy('busy')
         script.__dict__['device'] = device
 
@@ -455,10 +486,30 @@ class TestRestartEmulatorBusyHandling(unittest.TestCase):
     def test_returns_true_and_resets_counter_when_restart_succeeds(self):
         script = self.make_script()
         script.consecutive_adb_offline = 2
-        script.__dict__['device'] = Mock()
+        script.__dict__['device'] = self.make_device()
 
         self.assertTrue(script._try_restart_emulator())
         self.assertEqual(0, script.consecutive_adb_offline)
+
+    def test_passes_deep_flag_matching_the_threshold(self):
+        """未达阈值时必须以 deep=False 调用——参数名写错会在这里炸出来。"""
+        script = self.make_script()
+        script.consecutive_adb_offline = 1
+        device = self.make_device()
+        script.__dict__['device'] = device
+
+        self.assertTrue(script._try_restart_emulator())
+        self.assertIs(False, device.emulator_start.call_args.kwargs['deep'])
+
+    def test_passes_deep_true_after_threshold(self):
+        script = self.make_script()
+        script.consecutive_adb_offline = 5
+        script.config.EmulatorManagement_DeepRestartAfterFailures = 3
+        device = self.make_device()
+        script.__dict__['device'] = device
+
+        self.assertTrue(script._try_restart_emulator())
+        self.assertIs(True, device.emulator_start.call_args.kwargs['deep'])
 
 
 if __name__ == '__main__':

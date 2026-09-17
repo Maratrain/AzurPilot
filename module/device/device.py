@@ -212,11 +212,15 @@ class Device(Screenshot, Control, AppControl, Input):
         """
         return self.platform.emulator_instance
 
-    def emulator_start(self):
+    def emulator_start(self, deep=False):
         """
         启动模拟器，委托给平台特定实现。
+
+        Args:
+            deep (bool): 深度重启标志（结束 MuMu 全部进程再启动）。
+                仅 MuMu12 有对应实现，其它平台忽略该参数。
         """
-        return self.platform.emulator_start()
+        return self.platform.emulator_start(deep=deep)
 
     def emulator_stop(self):
         """
