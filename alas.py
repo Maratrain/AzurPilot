@@ -1948,7 +1948,10 @@ class AzurLaneAutoScript:
             from module.base.backup import backup
             today = datetime.now().strftime('%Y-%m-%d')
             if getattr(self, 'last_backup_date', None) != today:
-                backup()
+                backup(
+                    enable=self.config.Backup_Enable,
+                    keep_days=self.config.Backup_KeepDays,
+                )
                 self.last_backup_date = today
         except Exception as e:
             logger.warning(f'每日自动备份失败，已跳过本次备份：{e}')

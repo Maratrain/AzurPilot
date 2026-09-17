@@ -20,14 +20,24 @@ DATABASE_FILES = (
 )
 
 
-def backup():
+def backup(enable=True, keep_days=BACKUP_KEEP_DAYS):
     """
     执行每日备份。
 
     包括：
         - 数据库
         - 用户配置
+
+    Args:
+        enable (bool): 是否启用备份。关闭时直接返回，既不新建备份，
+            也不清理历史备份，避免关掉开关后仍在动备份目录。
+        keep_days (int): 历史备份保留天数，超过该天数的备份会被删除。
+            小于 1 时按 1 天处理。
     """
+    if not enable:
+        logger.info('每日备份已关闭，跳过备份')
+        return
+
     date = datetime.now().strftime('%Y-%m-%d')
     backup_dir = BACKUP_ROOT / date
 
@@ -49,7 +59,7 @@ def backup():
         files=files,
     )
 
-    clean_backup()
+    clean_backup(keep_days=keep_days)
 
     logger.info(f'每日备份完成，共备份 {len(files)} 个文件')
 
@@ -188,14 +198,19 @@ def create_backup_info(backup_dir, files):
         )
 
 
-def clean_backup():
+def clean_backup(keep_days=BACKUP_KEEP_DAYS):
     """
     清理超过保留天数的历史备份。
+
+    Args:
+        keep_days (int): 历史备份保留天数。小于 1 时按 1 天处理，
+            避免把「只保留今天」误配成清空全部备份。
     """
     if not BACKUP_ROOT.exists():
         return
 
-    expire_date = datetime.now().date() - timedelta(days=BACKUP_KEEP_DAYS)
+    keep_days = max(int(keep_days), 1)
+    expire_date = datetime.now().date() - timedelta(days=keep_days)
 
     for folder in BACKUP_ROOT.iterdir():
         if not folder.is_dir():
