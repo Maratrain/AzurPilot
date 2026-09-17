@@ -42,16 +42,16 @@ WATCHDOG_CHECK_INTERVAL = 30
 # 实际值从配置 Error.WatchdogTaskTimeout 读取，0 表示禁用
 WATCHDOG_TASK_TIMEOUT_DEFAULT = 120
 # 模拟器 stop/start 单次操作的硬超时秒数。
-# 必须覆盖 PlatformWindows.emulator_start() 的完整预算，每次尝试最多：
-#   关闭 30 + 等待实例真正关闭 60 + 启动监视 T + 关闭 30 = 120 + T
-# 监视超时按 180/300/480 递增（platform_windows.EMULATOR_START_WATCH_TIMEOUTS），
-# 3 次尝试合计 ≈ 3×120 + 960 = 1320 秒。
-# 取 1500 秒：宁可慢，也不能在模拟器正在启动时放弃——超时被放弃的
+# 必须覆盖 PlatformWindows.emulator_start() 的完整预算，一次调用最多：
+#   关闭 30 + 深度清场 90（关全部实例≤60 + 等进程退出≤30） + 等实例真正关闭 60
+#   + 启动监视 300（阶梯上限） = 480 秒
+# 普通路径没有深度清场那 90 秒（实测 390 秒封顶），但按最坏情况取。
+# 取 600 秒：宁可慢，也不能在模拟器正在启动时放弃——超时被放弃的
 # worker 线程仍会继续对模拟器执行关/开操作，是历史上"模拟器永远起不来"
 # 的根因（原值 120 秒 < 内层 180 秒监视超时，必然超时、必然残留）。
 # 残留线程由 PlatformWindows 的启停互斥锁兜底：它结束之前，任何新的
 # 启停操作都会抛 EmulatorOpBusy 被跳过，不会再打断正在进行的启动。
-RESTART_EMULATOR_OP_TIMEOUT = 1500
+RESTART_EMULATOR_OP_TIMEOUT = 600
 
 DAILY_SUMMARY_CHECK_INTERVAL = 1
 
@@ -408,7 +408,15 @@ class AzurLaneAutoScript:
             time.sleep(5)
             logger.info('[Alas] 正在启动模拟器...')
             self._emulator_op_with_timeout(
-                partial(device.emulator_start, deep=deep),
+                # consecutive_adb_offline 在函数开头已 +1，减 1 得到"本次之前
+                # 已经连续失败过几次"；平台据此选取启动监视的等待时长，
+                # 连续失败越多等得越久（60 → 90 → 120 → 180 → 300 秒），
+                # 重启成功后该计数归零、等待时间随之回到 60 秒
+                partial(
+                    device.emulator_start,
+                    deep=deep,
+                    failures=max(0, self.consecutive_adb_offline - 1),
+                ),
                 timeout=RESTART_EMULATOR_OP_TIMEOUT,
                 operation_name='模拟器启动',
             )

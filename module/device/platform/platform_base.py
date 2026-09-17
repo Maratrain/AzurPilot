@@ -73,7 +73,7 @@ class PlatformBase(Connection, EmulatorManagerBase):
             from module.device.connection_attr import ConnectionAttr
             ConnectionAttr.__init__(self, config)
 
-    def emulator_start(self, deep=False):
+    def emulator_start(self, deep=False, failures=0):
         """
         启动模拟器，直到启动完成。
         - 需要支持重试。
@@ -83,6 +83,8 @@ class PlatformBase(Connection, EmulatorManagerBase):
             deep (bool): 深度重启标志。仅 MuMu12（PlatformWindows）有对应的
                 实现，其它平台忽略该参数——保留它是为了让调用方无需按平台
                 分支传参。
+            failures (int): 本次之前已连续失败几次。同样只有 MuMu12 使用，
+                其它平台忽略。
         """
         emulator = getattr(self.config, 'EmulatorInfo_Emulator', '')
         if emulator == 'SSH':

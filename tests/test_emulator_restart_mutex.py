@@ -19,6 +19,7 @@ from alas import RESTART_EMULATOR_OP_TIMEOUT, AzurLaneAutoScript
 from module.device.platform import platform_windows
 from module.device.platform.platform_windows import (
     EMULATOR_START_WATCH_TIMEOUTS,
+    MUMU12_DEEP_WAIT_TIMEOUT,
     MUMU12_STOP_WAIT_TIMEOUT,
     PlatformWindows,
 )
@@ -113,22 +114,31 @@ class TestEmulatorOpExclusive(unittest.TestCase):
 
         self.assertFalse(thread.is_alive())
 
-    def test_watch_timeout_grows_across_retries(self):
-        """冷启动可能耗时数分钟：重试的等待时间必须递增，而不是固定 180 秒。"""
+    def test_watch_timeout_follows_the_failure_ladder(self):
+        """连续失败越多等得越久，上限 300 秒。
+
+        好设备 60 秒内就能起来，没必要一上来就等几分钟；持续起不来时才逐级放宽。
+        """
+        cases = [(0, 60), (1, 90), (2, 120), (3, 180), (4, 300), (9, 300)]
+        for failures, expected in cases:
+            with self.subTest(failures=failures):
+                platform = make_platform()
+                platform.emulator_start_watch = Mock(return_value=False)
+
+                self.assertFalse(platform.emulator_start(failures=failures))
+                platform.emulator_start_watch.assert_called_once_with(timeout=expected)
+
+        self.assertEqual(list(EMULATOR_START_WATCH_TIMEOUTS),
+                         sorted(EMULATOR_START_WATCH_TIMEOUTS))
+
+    def test_start_makes_exactly_one_attempt(self):
+        """一轮只试一次，重试交给调度器下一轮——不再在一次调用里连试 3 次。"""
         platform = make_platform()
-        platform.emulator_start_watch = Mock(return_value=False)
+        platform.emulator_start_watch = Mock(return_value=True)
 
-        self.assertFalse(platform.emulator_start())
+        self.assertTrue(platform.emulator_start())
 
-        self.assertEqual(
-            platform.emulator_start_watch.call_args_list,
-            [call(timeout=t) for t in EMULATOR_START_WATCH_TIMEOUTS],
-        )
-        self.assertGreater(len(EMULATOR_START_WATCH_TIMEOUTS), 1)
-        self.assertEqual(
-            list(EMULATOR_START_WATCH_TIMEOUTS),
-            sorted(EMULATOR_START_WATCH_TIMEOUTS),
-        )
+        platform.emulator_start_watch.assert_called_once()
 
 
 def mumu_info(*players):
@@ -351,7 +361,7 @@ class TestDeepFlagPortability(unittest.TestCase):
     argument 'deep'`，模拟器被关掉后再也起不来，白挂了一晚。
     """
 
-    def test_every_layer_of_the_call_chain_accepts_deep(self):
+    def test_every_layer_of_the_call_chain_accepts_both_params(self):
         from module.device.device import Device
         from module.device.platform.platform_base import PlatformBase
         from module.device.platform.platform_mac import PlatformMac
@@ -363,6 +373,8 @@ class TestDeepFlagPortability(unittest.TestCase):
                 parameters = inspect.signature(cls.emulator_start).parameters
                 self.assertIn('deep', parameters)
                 self.assertIs(False, parameters['deep'].default)
+                self.assertIn('failures', parameters)
+                self.assertEqual(0, parameters['failures'].default)
 
 
 class TestDeepRestartThreshold(unittest.TestCase):
@@ -403,12 +415,15 @@ class TestRestartTimeoutBudget(unittest.TestCase):
         平台侧一旦新增耗时步骤（如"等实例真正关闭"），这条断言就会失败，
         提醒同步调大外层超时。
         """
-        # 每次尝试：_emulator_stop(subprocess timeout=30) + 等确认关闭 + 监视 + 再关一次
-        stop_budget = 30
-        per_attempt = stop_budget * 2 + MUMU12_STOP_WAIT_TIMEOUT
+        # 一次 emulator_start 的最坏耗时（取深度重启路径，它最长）：
+        #   _emulator_stop(subprocess timeout=30)
+        #   + 深度清场（control -v all shutdown ≤60 + 等进程退出 ≤30）
+        #   + 等实例真正关闭
+        #   + 启动监视（阶梯上限）
+        deep_clean_budget = 60 + MUMU12_DEEP_WAIT_TIMEOUT
         platform_budget = (
-            sum(EMULATOR_START_WATCH_TIMEOUTS)
-            + per_attempt * len(EMULATOR_START_WATCH_TIMEOUTS)
+            30 + deep_clean_budget + MUMU12_STOP_WAIT_TIMEOUT
+            + max(EMULATOR_START_WATCH_TIMEOUTS)
         )
 
         self.assertGreaterEqual(RESTART_EMULATOR_OP_TIMEOUT, platform_budget)
@@ -510,6 +525,16 @@ class TestRestartEmulatorBusyHandling(unittest.TestCase):
 
         self.assertTrue(script._try_restart_emulator())
         self.assertIs(True, device.emulator_start.call_args.kwargs['deep'])
+
+    def test_passes_failure_count_for_the_watch_ladder(self):
+        """已连续失败次数要透传给平台，否则等待时间永远停在第一档 60 秒。"""
+        script = self.make_script()
+        script.consecutive_adb_offline = 4  # 本次调用开头会 +1，故本次之前失败过 4 次
+        device = self.make_device()
+        script.__dict__['device'] = device
+
+        self.assertTrue(script._try_restart_emulator())
+        self.assertEqual(4, device.emulator_start.call_args.kwargs['failures'])
 
 
 if __name__ == '__main__':

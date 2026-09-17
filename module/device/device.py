@@ -113,7 +113,9 @@ class Device(Screenshot, Control, AppControl, Input):
                 # 尝试启动模拟器
                 if self.emulator_instance is not None:
                     try:
-                        self.emulator_start()
+                        # 传 trial 让等待时间随重试次数逐级放宽（60 → 90 → …），
+                        # 与调度器侧的 _try_restart_emulator 同一套阶梯
+                        self.emulator_start(failures=trial)
                     except EmulatorOpBusy as e:
                         # 已有其它恢复流程在操作模拟器（通常是正在冷启动它）。
                         # 这不是本设备启动失败，而是"暂时不可用"：直接冒泡成
@@ -212,15 +214,17 @@ class Device(Screenshot, Control, AppControl, Input):
         """
         return self.platform.emulator_instance
 
-    def emulator_start(self, deep=False):
+    def emulator_start(self, deep=False, failures=0):
         """
         启动模拟器，委托给平台特定实现。
 
         Args:
             deep (bool): 深度重启标志（结束 MuMu 全部进程再启动）。
                 仅 MuMu12 有对应实现，其它平台忽略该参数。
+            failures (int): 本次之前已连续失败几次，平台据此选取启动监视的
+                等待时长（越长越有耐心）；其它平台忽略。
         """
-        return self.platform.emulator_start(deep=deep)
+        return self.platform.emulator_start(deep=deep, failures=failures)
 
     def emulator_stop(self):
         """

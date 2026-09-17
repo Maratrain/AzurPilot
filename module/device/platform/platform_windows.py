@@ -27,11 +27,12 @@ class EmulatorUnknown(Exception):
     pass
 
 
-# 模拟器冷启动的监视超时（秒），按 emulator_start() 的重试次数依次放宽。
-# 实机实测正常冷启动约 20~30 秒，180 秒对正常情况足够；递增是为了兜住慢机器
-# （机械盘、多开、首次启动）。重试时要"先关掉再启动"，判早了就是白关一次，
-# 多给点时间比过早重启代价小得多。
-EMULATOR_START_WATCH_TIMEOUTS = (180, 300, 480)
+# 模拟器启动监视的等待时长（秒），按「本次尝试之前已连续失败几次」取值：
+#   第 1 次尝试 60 秒 → 连续失败后 90 → 120 → 180 → 300（上限）
+# 实机实测正常冷启动约 16~30 秒，60 秒对好设备够用；持续起不来时才逐级放宽。
+# 注意：实测也出现过「第一次等满 180 秒没上线、重来一次 14 秒就起来」的情况，
+# 所以缩短首轮会多付一次「关掉重来」的代价——这是拿响应速度换的，可以接受。
+EMULATOR_START_WATCH_TIMEOUTS = (60, 90, 120, 180, 300)
 # 启动监视期间打印进度的间隔（秒）。监视最长可达 480 秒且期间日志是静默的，
 # 不打印进度的话，用户无法判断 ALAS 是在耐心等待还是已经卡死。
 EMULATOR_START_PROGRESS_INTERVAL = 30
@@ -807,22 +808,33 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         return True
 
     @emulator_op_exclusive('启动模拟器')
-    def emulator_start(self, deep=False):
+    def emulator_start(self, deep=False, failures=0):
         """
-        启动模拟器，最多重试 3 次。
-        针对 MuMu12 等模拟器添加实例查找失败后的等待重试机制，
-        以及权限冲突时的强制进程清理。
+        启动模拟器，尝试一次。
 
-        整个重试过程持有模拟器启停锁（见 emulator_op_exclusive）：
+        不在一次调用里连试多次：重试交给调用方按调度轮次进行，等待时间随之
+        逐级放宽。好设备通常 60 秒内就能起来，没必要一上来就等几分钟；持续
+        起不来时才靠 EMULATOR_START_WATCH_TIMEOUTS 逐级加长。
+
+        整个启停过程持有模拟器启停锁（见 emulator_op_exclusive）：
         若已有启停操作在跑，直接抛 EmulatorOpBusy，不做任何动作——
         这正是避免"刚启动就被另一个线程关掉"的关键。
 
         Args:
             deep (bool): 是否执行深度重启（结束 MuMu 全部进程，含后台服务与
                 虚拟机）。仅由调用方在「连续重启都失败」时置为 True；
-                非 MuMu12 平台会忽略此参数，行为与原来一致。
+                非 MuMu12 平台忽略此参数。
+            failures (int): 本次尝试之前已经连续失败过几次，用来选取启动
+                监视的等待时长；非 MuMu12 平台忽略。
+
+        Returns:
+            bool: True 表示模拟器已上线。
         """
         logger.hr('模拟器启动', level=1)
+
+        watch_timeout = EMULATOR_START_WATCH_TIMEOUTS[
+            min(max(failures, 0), len(EMULATOR_START_WATCH_TIMEOUTS) - 1)
+        ]
 
         # 检查是否为 MuMuPlayer12，添加实例查找失败的处理逻辑
         emulator_type = getattr(self.config, 'EmulatorInfo_Emulator', '')
@@ -832,49 +844,36 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             self._emulator_instance.type == 'MuMuPlayer12'
         )
 
-        for attempt in range(3):
-            # 先停止（MuMu12 已使用同步执行确保关闭完成）
-            if not self._emulator_function_wrapper(self._emulator_stop):
-                return False
+        # 先停止（MuMu12 已使用同步执行确保关闭完成）
+        if not self._emulator_function_wrapper(self._emulator_stop):
+            return False
 
-            # MuMu12: 清场并确认实例真的停下来了再启动
-            if is_mumu12:
-                index = self.emulator_instance.MuMuPlayer12_id
-                exe = self.emulator_instance.emulator.path
-                if deep:
-                    # 深度重启：结束 MuMu 全部进程（不检查多开）
-                    self._deep_clean_mumu12(exe)
-                else:
-                    # 清理僵死的启动器/播放器进程（多开时自动跳过，见方法注释）
-                    self._clean_mumu12_residue(exe, index)
-                # shutdown 是异步的，必须确认实例真的停了再启动，
-                # 否则启动请求会被吞掉（命令报成功、实例起不来）
-                self._mumu12_wait_stopped(exe, index)
-
-            # 再启动
-            if self._emulator_function_wrapper(self._emulator_start):
-                # 成功
-                watch_timeout = EMULATOR_START_WATCH_TIMEOUTS[
-                    min(attempt, len(EMULATOR_START_WATCH_TIMEOUTS) - 1)
-                ]
-                if self.emulator_start_watch(timeout=watch_timeout):
-                    return True
-                logger.warning(
-                    f'[设备-Windows] 模拟器启动监视失败（第 {attempt + 1}/3 次，'
-                    f'已等待 {watch_timeout} 秒），重试中'
-                )
-                if self._emulator_function_wrapper(self._emulator_stop):
-                    continue
-                else:
-                    return False
+        # MuMu12: 清场并确认实例真的停下来了再启动
+        if is_mumu12:
+            index = self.emulator_instance.MuMuPlayer12_id
+            exe = self.emulator_instance.emulator.path
+            if deep:
+                # 深度重启：结束 MuMu 全部进程（不检查多开）
+                self._deep_clean_mumu12(exe)
             else:
-                # 启动失败，停止后重试
-                if self._emulator_function_wrapper(self._emulator_stop):
-                    continue
-                else:
-                    return False
+                # 清理僵死的启动器/播放器进程（多开时自动跳过，见方法注释）
+                self._clean_mumu12_residue(exe, index)
+            # shutdown 是异步的，必须确认实例真的停了再启动，
+            # 否则启动请求会被吞掉（命令报成功、实例起不来）
+            self._mumu12_wait_stopped(exe, index)
 
-        logger.error('[设备-Windows] 尝试3次启动模拟器失败，已停止')
+        # 再启动
+        if not self._emulator_function_wrapper(self._emulator_start):
+            logger.error('[设备-Windows] 启动模拟器命令失败')
+            return False
+
+        if self.emulator_start_watch(timeout=watch_timeout):
+            return True
+
+        logger.warning(
+            f'[设备-Windows] 模拟器启动监视失败（已等待 {watch_timeout} 秒）。'
+            f'本轮不再重试，交给调度器下一轮带着更长的等待时间重来'
+        )
         return False
 
     @emulator_op_exclusive('停止模拟器')
