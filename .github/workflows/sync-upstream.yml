@@ -1,6 +1,8 @@
 name: 同步上游 dev 分支
 
-# 自动把 wess09/AzurPilot 的 dev 分支强制同步到本仓库 dev 分支。
+# 自动把 wess09/AzurPilot 的 dev 分支更新到本仓库 dev 分支。
+# 采用 fast-forward 合并,不改写历史、不强制覆盖;
+# 当本仓库 dev 与上游有分叉时合并会失败(安全失败,不丢提交)。
 # 触发方式:每 6 小时定时一次,或手动 workflow_dispatch。
 # 因为本仓库是 fork,默认 GITHUB_TOKEN 即可 push 到自己的 dev,
 # 上游为 public 仓库,fetch 不需要额外鉴权,无需配置 PAT。
@@ -34,8 +36,8 @@ jobs:
           git remote add upstream https://github.com/wess09/AzurPilot.git
           git fetch upstream dev
 
-      - name: 硬重置到上游 dev
-        run: git reset --hard upstream/dev
+      - name: 快进合并上游 dev
+        run: git merge --ff-only upstream/dev
 
-      - name: 强制推送到 origin/dev
-        run: git push origin dev --force
+      - name: 推送到 origin/dev
+        run: git push origin dev
