@@ -46,6 +46,7 @@ from module.logger import logger
 from module.notify.notify import handle_notify, notify_webui
 from module.map.map_grids import SelectedGrids
 from module.retire.assets import DOCK_CHECK
+from module.statistics.item import AmountOcr
 from module.ui.assets import BACK_ARROW, REWARD_GOTO_COMMISSION
 from module.tactical.assets import TACTICAL_CLASS_START, TACTICAL_CLASS_CANCEL
 from module.ui.page import page_commission, page_reward
