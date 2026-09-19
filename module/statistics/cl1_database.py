@@ -8,7 +8,7 @@
 import sqlite3
 import json
 import os
-from contextlib import closing, suppress
+from contextlib import closing, contextmanager, suppress
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Tuple
@@ -82,31 +82,32 @@ class Cl1Database:
             hazard_level: 侵蚀等级（耄耋相接专用）
         """
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
 
-        devices = self._normalize_siren_research_devices(data)
-        if source == "cl1":
-            devices["cl1"] = devices.get("cl1", 0) + 1
-        elif source == "meow":
-            meow = devices.get("meow", {})
-            key = str(self._coerce_int(hazard_level or 0))
-            meow[key] = int(meow.get(key, 0) or 0) + 1
-            devices["meow"] = meow
-        data["siren_research_devices"] = devices
+            devices = self._normalize_siren_research_devices(data)
+            if source == "cl1":
+                devices["cl1"] = devices.get("cl1", 0) + 1
+            elif source == "meow":
+                meow = devices.get("meow", {})
+                key = str(self._coerce_int(hazard_level or 0))
+                meow[key] = int(meow.get(key, 0) or 0) + 1
+                devices["meow"] = meow
+            data["siren_research_devices"] = devices
 
-        entries = data.get("siren_research_device_entries", [])
-        if not isinstance(entries, list):
-            entries = []
-        entries.append({
-            "ts": datetime.now().isoformat(),
-            "source": source,
-            "hazard_level": self._coerce_int(hazard_level or 0) if source == "meow" else None,
-        })
-        if len(entries) > 5000:
-            entries = entries[-5000:]
-        data["siren_research_device_entries"] = entries
+            entries = data.get("siren_research_device_entries", [])
+            if not isinstance(entries, list):
+                entries = []
+            entries.append({
+                "ts": datetime.now().isoformat(),
+                "source": source,
+                "hazard_level": self._coerce_int(hazard_level or 0) if source == "meow" else None,
+            })
+            if len(entries) > 5000:
+                entries = entries[-5000:]
+            data["siren_research_device_entries"] = entries
 
-        self.save_stats(instance, month, data)
+            self._save_stats_in_connection(conn, instance, month, data)
 
     """
     CL1 明文 SQLite 数据库管理类。
@@ -190,7 +191,7 @@ class Cl1Database:
     def _migrate_encrypted_rows(self):
         """将旧版 AES-GCM 密文行迁移为明文 JSON。"""
         try:
-            with closing(sqlite3.connect(self.db_path)) as conn:
+            with self._stats_transaction() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
@@ -239,7 +240,6 @@ class Cl1Database:
                         """,
                         clear_rows,
                     )
-                conn.commit()
 
                 migrated = len(updated_rows) + len(clear_rows)
                 if migrated:
@@ -324,9 +324,11 @@ class Cl1Database:
                     data = self._deserialize_data(row[0])
                     if data is not None:
                         return data
-                    if row[1] and (data := self._decrypt(row[1])):
+                    if row[1] and isinstance(data := self._decrypt(row[1]), dict):
                         try:
-                            self.save_stats(instance, month, data)
+                            with self._stats_transaction() as write_conn:
+                                data = self._get_stats_in_connection(write_conn, instance, month)
+                                self._save_stats_in_connection(write_conn, instance, month, data)
                         except Exception:
                             # 迁移只是读取时的可选维护，保存失败仍返回已经解密的数据。
                             logger.warning(f"[Statistics] 旧数据迁移未落盘: {instance} {month}")
@@ -514,9 +516,6 @@ class Cl1Database:
         effective_rounds: float,
         round_times: List[Any],
         battle_times: List[Any],
-        instance: Optional[str] = None,
-        month_key: Optional[str] = None,
-        persist: bool = False,
     ) -> Tuple[int, float, bool]:
         """兼容旧数据并修正耄耋相接真实战斗场次与等效轮次。"""
         inferred_divisor, inferred_battles_per_round = (
@@ -566,9 +565,6 @@ class Cl1Database:
                     effective_rounds = float(fixed_rounds)
                     should_save = True
 
-        if should_save and persist and instance and month_key:
-            self.save_stats(instance, month_key, data)
-
         return int(raw_battle_count), effective_rounds, should_save
 
     def _list_stats_rows(self, instance: Optional[str] = None) -> List[Tuple[str, str]]:
@@ -603,20 +599,20 @@ class Cl1Database:
             month = now.month
 
         month_key = f"{year:04d}-{month:02d}"
-        data = self.get_stats(instance, month_key)
-        round_times = data.get("meow_round_times", [])
-        battle_times = data.get("meow_battle_times", [])
-        effective_rounds = float(data.get("meow_battle_count", 0) or 0)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month_key)
+            round_times = data.get("meow_round_times", [])
+            battle_times = data.get("meow_battle_times", [])
+            effective_rounds = float(data.get("meow_battle_count", 0) or 0)
 
-        _, _, changed = self._reconcile_meow_counts(
-            data=data,
-            effective_rounds=effective_rounds,
-            round_times=round_times,
-            battle_times=battle_times,
-            instance=instance,
-            month_key=month_key,
-            persist=True,
-        )
+            _, _, changed = self._reconcile_meow_counts(
+                data=data,
+                effective_rounds=effective_rounds,
+                round_times=round_times,
+                battle_times=battle_times,
+            )
+            if changed:
+                self._save_stats_in_connection(conn, instance, month_key, data)
         return changed
 
     def backfill_all_meow_stats(self, instance: Optional[str] = None) -> Dict[str, int]:
@@ -641,14 +637,28 @@ class Cl1Database:
         return result
 
     def save_stats(self, instance: str, month: str, data: Dict[str, Any]):
-        """保存统计数据；写入失败必须传递给调用方，不能报告成功。"""
+        """显式替换整个月份快照；失败必须传递给调用方。
+
+        此接口不合并旧快照。增量修改必须在 _stats_transaction 中读取并
+        调用 _save_stats_in_connection，不能将 get_stats 的结果传回此处。
+        """
         try:
-            with closing(sqlite3.connect(self.db_path)) as conn:
-                with conn:
-                    self._save_stats_in_connection(conn, instance, month, data)
+            with self._stats_transaction() as conn:
+                self._save_stats_in_connection(conn, instance, month, data)
         except Exception as e:
             logger.error(f"[Statistics] 保存统计数据失败 {instance} {month}: {e}")
             raise
+
+    @contextmanager
+    def _stats_transaction(self):
+        """读取前取得 SQLite 写锁，跨线程和进程串行化整个读改写过程。
+
+        连接上下文负责提交及异常回滚，closing 保证提交失败也释放连接。
+        """
+        with closing(sqlite3.connect(self.db_path)) as conn:
+            with conn:
+                conn.execute("BEGIN IMMEDIATE")
+                yield conn
 
     def _save_stats_in_connection(self, conn, instance, month, data):
         """在调用方事务中写入单个月份，不自行提交。"""
@@ -681,38 +691,41 @@ class Cl1Database:
     def increment_battle_count(self, instance: str, delta: int = 1):
         """增加战斗次数"""
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        data["battle_count"] = data.get("battle_count", 0) + delta
-        self.save_stats(instance, month, data)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            data["battle_count"] = data.get("battle_count", 0) + delta
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def increment_akashi_encounter(self, instance: str):
         """增加明石奇遇次数"""
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        data["akashi_encounters"] = data.get("akashi_encounters", 0) + 1
-        self.save_stats(instance, month, data)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            data["akashi_encounters"] = data.get("akashi_encounters", 0) + 1
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def add_akashi_ap_entry(
         self, instance: str, amount: int, base: int, count: int, source: str
     ):
         """记录明石行动力购买条目"""
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
 
-        entry = {
-            "ts": datetime.now().isoformat(),
-            "amount": amount,
-            "base": base,
-            "count": count,
-            "source": source,
-        }
+            entry = {
+                "ts": datetime.now().isoformat(),
+                "amount": amount,
+                "base": base,
+                "count": count,
+                "source": source,
+            }
 
-        entries = data.get("akashi_ap_entries", [])
-        entries.append(entry)
-        data["akashi_ap_entries"] = entries
+            entries = data.get("akashi_ap_entries", [])
+            entries.append(entry)
+            data["akashi_ap_entries"] = entries
 
-        data["akashi_ap"] = data.get("akashi_ap", 0) + amount
-        self.save_stats(instance, month, data)
+            data["akashi_ap"] = data.get("akashi_ap", 0) + amount
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def add_ap_snapshot(self, instance: str, ap_current: int, source: str = "cl1", distance: int = None, ap_total: int = None):
         """记录行动力快照（真实剩余体力），并计算资产
@@ -725,42 +738,43 @@ class Cl1Database:
             ap_total: 总体力（含行动力箱子）
         """
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        now = datetime.now()
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            now = datetime.now()
 
-        # CL5 效率：1700 / 30 ≈ 56.67
-        cl5_efficiency = 1700.0 / 30.0
+            # CL5 效率：1700 / 30 ≈ 56.67
+            cl5_efficiency = 1700.0 / 30.0
 
-        # 获取最近的黄币值
-        yellow_coin = 0
-        yellow_coin_snapshots = data.get("yellow_coin_snapshots", [])
-        if yellow_coin_snapshots:
-            with suppress(ValueError, TypeError, IndexError, KeyError):
-                yellow_coin = int(yellow_coin_snapshots[-1].get("yellow_coin", 0))
+            # 获取最近的黄币值
+            yellow_coin = 0
+            yellow_coin_snapshots = data.get("yellow_coin_snapshots", [])
+            if yellow_coin_snapshots:
+                with suppress(ValueError, TypeError, IndexError, KeyError):
+                    yellow_coin = int(yellow_coin_snapshots[-1].get("yellow_coin", 0))
 
-        # 资产按可用总体力计算，包含行动力箱子。
-        ap_current = self._coerce_int(ap_current)
-        if ap_total is not None:
-            ap_total = self._coerce_int(ap_total)
-        ap_for_asset = ap_total if ap_total is not None else ap_current
-        asset = ap_for_asset * cl5_efficiency + yellow_coin
+            # 资产按可用总体力计算，包含行动力箱子。
+            ap_current = self._coerce_int(ap_current)
+            if ap_total is not None:
+                ap_total = self._coerce_int(ap_total)
+            ap_for_asset = ap_total if ap_total is not None else ap_current
+            asset = ap_for_asset * cl5_efficiency + yellow_coin
 
-        snapshot = {
-            "ts": now.isoformat(),
-            "ap": ap_current,
-            "yellow_coin": yellow_coin,
-            "asset": round(asset, 2),
-            "source": source,
-        }
-        if distance is not None:
-            snapshot["distance"] = self._coerce_int(distance)
-        if ap_total is not None:
-            snapshot["ap_total"] = ap_total
+            snapshot = {
+                "ts": now.isoformat(),
+                "ap": ap_current,
+                "yellow_coin": yellow_coin,
+                "asset": round(asset, 2),
+                "source": source,
+            }
+            if distance is not None:
+                snapshot["distance"] = self._coerce_int(distance)
+            if ap_total is not None:
+                snapshot["ap_total"] = ap_total
 
-        snapshots = data.get("ap_snapshots", [])
-        snapshots.append(snapshot)
-        data["ap_snapshots"] = snapshots
-        self.save_stats(instance, month, data)
+            snapshots = data.get("ap_snapshots", [])
+            snapshots.append(snapshot)
+            data["ap_snapshots"] = snapshots
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def get_last_ap_snapshot(self, instance: str) -> Optional[Dict[str, Any]]:
         """获取最近一次行动力快照，优先读取当前月份，必要时回退到历史月份。"""
@@ -803,12 +817,13 @@ class Cl1Database:
     def set_last_ap_notification(self, instance: str, ap_current: int):
         """记录最近一次成功推送时的行动力值。"""
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        data["last_ap_notification"] = {
-            "ts": datetime.now().isoformat(),
-            "ap": self._coerce_int(ap_current),
-        }
-        self.save_stats(instance, month, data)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            data["last_ap_notification"] = {
+                "ts": datetime.now().isoformat(),
+                "ap": self._coerce_int(ap_current),
+            }
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def add_yellow_coin_snapshot(
         self, instance: str, yellow_coin: int, source: str = "dashboard"
@@ -821,23 +836,24 @@ class Cl1Database:
             source: 数据来源标记
         """
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        yellow_coin = self._coerce_int(yellow_coin)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            yellow_coin = self._coerce_int(yellow_coin)
 
-        snapshot = {
-            "ts": datetime.now().isoformat(),
-            "yellow_coin": yellow_coin,
-            "source": source,
-        }
+            snapshot = {
+                "ts": datetime.now().isoformat(),
+                "yellow_coin": yellow_coin,
+                "source": source,
+            }
 
-        snapshots = data.get("yellow_coin_snapshots", [])
-        if snapshots:
-            with suppress(ValueError, TypeError, IndexError, KeyError):
-                if self._coerce_int(snapshots[-1].get("yellow_coin", -1)) == yellow_coin:
-                    return
-        snapshots.append(snapshot)
-        data["yellow_coin_snapshots"] = snapshots
-        self.save_stats(instance, month, data)
+            snapshots = data.get("yellow_coin_snapshots", [])
+            if snapshots:
+                with suppress(ValueError, TypeError, IndexError, KeyError):
+                    if self._coerce_int(snapshots[-1].get("yellow_coin", -1)) == yellow_coin:
+                        return
+            snapshots.append(snapshot)
+            data["yellow_coin_snapshots"] = snapshots
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def add_coins_snapshot(
         self,
@@ -855,36 +871,37 @@ class Cl1Database:
             source: 数据来源标记 (cl1 / meow 等)
         """
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        yellow_coins = self._coerce_int(yellow_coins)
-        purple_coins = self._coerce_int(purple_coins) if purple_coins is not None else None
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            yellow_coins = self._coerce_int(yellow_coins)
+            purple_coins = self._coerce_int(purple_coins) if purple_coins is not None else None
 
-        snapshot = {
-            "ts": datetime.now().isoformat(),
-            "yellow_coins": yellow_coins,
-            "source": source,
-        }
-        if purple_coins is not None:
-            snapshot["purple_coins"] = purple_coins
+            snapshot = {
+                "ts": datetime.now().isoformat(),
+                "yellow_coins": yellow_coins,
+                "source": source,
+            }
+            if purple_coins is not None:
+                snapshot["purple_coins"] = purple_coins
 
-        snapshots = data.get("coins_snapshots", [])
-        if snapshots:
-            with suppress(ValueError, TypeError, IndexError, KeyError):
-                last = snapshots[-1]
-                if self._coerce_int(last.get("yellow_coins", -1)) == yellow_coins:
-                    if (
-                        purple_coins is not None
-                        and self._coerce_int(last.get("purple_coins", -1)) == purple_coins
-                    ):
-                        return
-                    if purple_coins is None and "purple_coins" not in last:
-                        return
-        snapshots.append(snapshot)
-        # 保留最近 500 条记录，避免数据过大
-        if len(snapshots) > 500:
-            snapshots = snapshots[-500:]
-        data["coins_snapshots"] = snapshots
-        self.save_stats(instance, month, data)
+            snapshots = data.get("coins_snapshots", [])
+            if snapshots:
+                with suppress(ValueError, TypeError, IndexError, KeyError):
+                    last = snapshots[-1]
+                    if self._coerce_int(last.get("yellow_coins", -1)) == yellow_coins:
+                        if (
+                            purple_coins is not None
+                            and self._coerce_int(last.get("purple_coins", -1)) == purple_coins
+                        ):
+                            return
+                        if purple_coins is None and "purple_coins" not in last:
+                            return
+            snapshots.append(snapshot)
+            # 保留最近 500 条记录，避免数据过大
+            if len(snapshots) > 500:
+                snapshots = snapshots[-500:]
+            data["coins_snapshots"] = snapshots
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def async_add_coins_snapshot(
         self,
@@ -923,7 +940,7 @@ class Cl1Database:
 
             for month in months:
                 # 首先检查数据库是否已有数据，避免覆盖
-                with closing(sqlite3.connect(self.db_path)) as conn:
+                with self._stats_transaction() as conn:
                     c = conn.cursor()
                     c.execute(
                         "SELECT 1 FROM cl1_data WHERE instance = ? AND month = ?",
@@ -935,15 +952,15 @@ class Cl1Database:
                         )
                         continue
 
-                new_stats = self._empty_data(month)
-                new_stats["battle_count"] = old_data.get(month, 0)
-                new_stats["akashi_encounters"] = old_data.get(f"{month}-akashi", 0)
-                new_stats["akashi_ap"] = old_data.get(f"{month}-akashi-ap", 0)
-                new_stats["akashi_ap_entries"] = old_data.get(
-                    f"{month}-akashi-ap-entries", []
-                )
+                    new_stats = self._empty_data(month)
+                    new_stats["battle_count"] = old_data.get(month, 0)
+                    new_stats["akashi_encounters"] = old_data.get(f"{month}-akashi", 0)
+                    new_stats["akashi_ap"] = old_data.get(f"{month}-akashi-ap", 0)
+                    new_stats["akashi_ap_entries"] = old_data.get(
+                        f"{month}-akashi-ap-entries", []
+                    )
 
-                self.save_stats(instance, month, new_stats)
+                    self._save_stats_in_connection(conn, instance, month, new_stats)
                 logger.info(f"[Statistics] 已迁移 {instance} {month}")
 
             # 迁移成功后可以删除 JSON 或重命名 (此处建议重命名为 .bak 以防万一)
@@ -1015,20 +1032,21 @@ class Cl1Database:
             delta = 1  # 默认直接加1
 
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        data["meow_battle_raw_count"] = data.get("meow_battle_raw_count", 0) + 1
-        data["meow_battle_count"] = data.get("meow_battle_count", 0) + delta
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            data["meow_battle_raw_count"] = data.get("meow_battle_raw_count", 0) + 1
+            data["meow_battle_count"] = data.get("meow_battle_count", 0) + delta
 
-        if hazard_level in {2, 3, 4, 5, 6}:
-            hazard_stats = self._normalize_meow_hazard_stats(data)
-            bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
-            bucket["battle_raw_count"] = int(bucket.get("battle_raw_count", 0) or 0) + 1
-            bucket["effective_rounds"] = float(
-                bucket.get("effective_rounds", 0) or 0
-            ) + delta
-            data["meow_hazard_stats"] = hazard_stats
+            if hazard_level in {2, 3, 4, 5, 6}:
+                hazard_stats = self._normalize_meow_hazard_stats(data)
+                bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
+                bucket["battle_raw_count"] = int(bucket.get("battle_raw_count", 0) or 0) + 1
+                bucket["effective_rounds"] = float(
+                    bucket.get("effective_rounds", 0) or 0
+                ) + delta
+                data["meow_hazard_stats"] = hazard_stats
 
-        self.save_stats(instance, month, data)
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def add_meow_round_time(
         self, instance: str, duration: float, hazard_level: int = None
@@ -1046,33 +1064,34 @@ class Cl1Database:
             hazard_level = None
 
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
 
-        normalized_times = self._normalize_meow_round_times(
-            data.get("meow_round_times", [])
-        )
+            normalized_times = self._normalize_meow_round_times(
+                data.get("meow_round_times", [])
+            )
 
-        # 保存为字典，包含时长和侵蚀等级
-        new_entry = {"duration": round(duration, 2), "hazard_level": hazard_level}
-        normalized_times.append(new_entry)
+            # 保存为字典，包含时长和侵蚀等级
+            new_entry = {"duration": round(duration, 2), "hazard_level": hazard_level}
+            normalized_times.append(new_entry)
 
-        # 只保留最近100个样本
-        if len(normalized_times) > 100:
-            normalized_times = normalized_times[-100:]
+            # 只保留最近100个样本
+            if len(normalized_times) > 100:
+                normalized_times = normalized_times[-100:]
 
-        data["meow_round_times"] = normalized_times
+            data["meow_round_times"] = normalized_times
 
-        if hazard_level in {2, 3, 4, 5, 6}:
-            hazard_stats = self._normalize_meow_hazard_stats(data)
-            bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
-            round_times = bucket.get("round_times", [])
-            round_times.append(round(duration, 2))
-            if len(round_times) > 100:
-                round_times = round_times[-100:]
-            bucket["round_times"] = round_times
-            data["meow_hazard_stats"] = hazard_stats
+            if hazard_level in {2, 3, 4, 5, 6}:
+                hazard_stats = self._normalize_meow_hazard_stats(data)
+                bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
+                round_times = bucket.get("round_times", [])
+                round_times.append(round(duration, 2))
+                if len(round_times) > 100:
+                    round_times = round_times[-100:]
+                bucket["round_times"] = round_times
+                data["meow_hazard_stats"] = hazard_stats
 
-        self.save_stats(instance, month, data)
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def add_meow_battle_time(
         self, instance: str, duration: float, hazard_level: int = None
@@ -1089,31 +1108,32 @@ class Cl1Database:
             hazard_level = None
 
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
 
-        if "meow_battle_times" not in data:
-            data["meow_battle_times"] = []
+            if "meow_battle_times" not in data:
+                data["meow_battle_times"] = []
 
-        times = data["meow_battle_times"]
-        times.append(round(duration, 2))
+            times = data["meow_battle_times"]
+            times.append(round(duration, 2))
 
-        # 只保留最近100个样本
-        if len(times) > 100:
-            times = times[-100:]
+            # 只保留最近100个样本
+            if len(times) > 100:
+                times = times[-100:]
 
-        data["meow_battle_times"] = times
+            data["meow_battle_times"] = times
 
-        if hazard_level in {2, 3, 4, 5, 6}:
-            hazard_stats = self._normalize_meow_hazard_stats(data)
-            bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
-            battle_times = bucket.get("battle_times", [])
-            battle_times.append(round(duration, 2))
-            if len(battle_times) > 100:
-                battle_times = battle_times[-100:]
-            bucket["battle_times"] = battle_times
-            data["meow_hazard_stats"] = hazard_stats
+            if hazard_level in {2, 3, 4, 5, 6}:
+                hazard_stats = self._normalize_meow_hazard_stats(data)
+                bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
+                battle_times = bucket.get("battle_times", [])
+                battle_times.append(round(duration, 2))
+                if len(battle_times) > 100:
+                    battle_times = battle_times[-100:]
+                bucket["battle_times"] = battle_times
+                data["meow_hazard_stats"] = hazard_stats
 
-        self.save_stats(instance, month, data)
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def increment_meow_akashi_encounter(self, instance: str, hazard_level: int):
         """记录一次耄耋相接明石事件（按侵蚀等级拆分）。
@@ -1127,12 +1147,13 @@ class Cl1Database:
             return
 
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        hazard_stats = self._normalize_meow_hazard_stats(data)
-        bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
-        bucket["akashi_encounters"] = bucket.get("akashi_encounters", 0) + 1
-        data["meow_hazard_stats"] = hazard_stats
-        self.save_stats(instance, month, data)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            hazard_stats = self._normalize_meow_hazard_stats(data)
+            bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
+            bucket["akashi_encounters"] = bucket.get("akashi_encounters", 0) + 1
+            data["meow_hazard_stats"] = hazard_stats
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def add_meow_akashi_ap(self, instance: str, hazard_level: int, amount: int):
         """记录耄耋相接明石商店购买的体力（按侵蚀等级拆分）。
@@ -1154,12 +1175,13 @@ class Cl1Database:
             return
 
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        hazard_stats = self._normalize_meow_hazard_stats(data)
-        bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
-        bucket["akashi_ap"] = int(bucket.get("akashi_ap", 0) or 0) + amount
-        data["meow_hazard_stats"] = hazard_stats
-        self.save_stats(instance, month, data)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            hazard_stats = self._normalize_meow_hazard_stats(data)
+            bucket = self._ensure_meow_hazard_bucket(hazard_stats, hazard_level)
+            bucket["akashi_ap"] = int(bucket.get("akashi_ap", 0) or 0) + amount
+            data["meow_hazard_stats"] = hazard_stats
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def get_meow_stats(
         self, instance: str, year: int = None, month: int = None,
@@ -1182,22 +1204,23 @@ class Cl1Database:
             month = now.month
         key = f"{year:04d}-{month:02d}"
 
-        data = self.get_stats(instance, key)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, key)
 
-        round_times = data.get("meow_round_times", [])
-        battle_times = data.get("meow_battle_times", [])
-        normalized_round_times = self._normalize_meow_round_times(round_times)
+            round_times = data.get("meow_round_times", [])
+            battle_times = data.get("meow_battle_times", [])
+            normalized_round_times = self._normalize_meow_round_times(round_times)
 
-        effective_rounds = float(data.get("meow_battle_count", 0) or 0)
-        battle_count, effective_rounds, _ = self._reconcile_meow_counts(
-            data=data,
-            effective_rounds=effective_rounds,
-            round_times=round_times,
-            battle_times=battle_times,
-            instance=instance,
-            month_key=key,
-            persist=True,
-        )
+            effective_rounds = float(data.get("meow_battle_count", 0) or 0)
+            battle_count, effective_rounds, changed = self._reconcile_meow_counts(
+                data=data,
+                effective_rounds=effective_rounds,
+                round_times=round_times,
+                battle_times=battle_times,
+            )
+
+            if changed:
+                self._save_stats_in_connection(conn, instance, key, data)
 
         round_durations = [entry["duration"] for entry in normalized_round_times]
 
@@ -1542,35 +1565,33 @@ class Cl1Database:
             "screenshots": [str(path) for path in (screenshots or [])],
         }
         removed = None
-        with closing(sqlite3.connect(self.db_path)) as conn:
-            with conn:
-                conn.execute("BEGIN IMMEDIATE")
-                read_months = months if gem_duration is not None else months[:1]
-                data = {month: self._get_stats_in_connection(conn, instance, month) for month in read_months}
-                entries = data[months[0]].get("commission_income_entries", [])
-                entries.append(entry)
-                data[months[0]]["commission_income_entries"] = entries[-5000:]
-                changed = {months[0]}
-                if gem_duration is not None:
-                    for commission in self._running_commissions_from_months(data, months):
-                        if commission.get("duration") != gem_duration:
-                            continue
-                        try:
-                            finish_time = datetime.fromisoformat(commission["finish_time"])
-                        except (KeyError, TypeError, ValueError):
-                            logger.warning(f"钻石委托完成时间无效，跳过结算: {commission}")
-                            continue
-                        if finish_time > completed_at:
-                            continue
-                        removed, source_month = self._settle_running_in_months(
-                            data, months, now, items.get("Gem", 0),
-                            name=commission.get("name"), duration_hour=gem_duration,
-                            create_time=commission.get("create_time"),
-                        )
-                        if source_month is not None:
-                            changed.add(source_month)
-                        break
-                self._save_commission_months(conn, instance, data, months, changed)
+        with self._stats_transaction() as conn:
+            read_months = months if gem_duration is not None else months[:1]
+            data = {month: self._get_stats_in_connection(conn, instance, month) for month in read_months}
+            entries = data[months[0]].get("commission_income_entries", [])
+            entries.append(entry)
+            data[months[0]]["commission_income_entries"] = entries[-5000:]
+            changed = {months[0]}
+            if gem_duration is not None:
+                for commission in self._running_commissions_from_months(data, months):
+                    if commission.get("duration") != gem_duration:
+                        continue
+                    try:
+                        finish_time = datetime.fromisoformat(commission["finish_time"])
+                    except (KeyError, TypeError, ValueError):
+                        logger.warning(f"钻石委托完成时间无效，跳过结算: {commission}")
+                        continue
+                    if finish_time > completed_at:
+                        continue
+                    removed, source_month = self._settle_running_in_months(
+                        data, months, now, items.get("Gem", 0),
+                        name=commission.get("name"), duration_hour=gem_duration,
+                        create_time=commission.get("create_time"),
+                    )
+                    if source_month is not None:
+                        changed.add(source_month)
+                    break
+            self._save_commission_months(conn, instance, data, months, changed)
         return removed
 
     def get_commission_income(
@@ -1671,10 +1692,11 @@ class Cl1Database:
             reward: 获得钻石数量，0 表示失败
         """
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
 
-        self._append_gem_commission_entry(data, duration_hour, reward, datetime.now())
-        self.save_stats(instance, month, data)
+            self._append_gem_commission_entry(data, duration_hour, reward, datetime.now())
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def get_gem_commissions(
         self,
@@ -1777,9 +1799,10 @@ class Cl1Database:
     ):
         """保存运行中的钻石委托列表。"""
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        data["running_gem_commissions"] = commissions
-        self.save_stats(instance, month, data)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            data["running_gem_commissions"] = commissions
+            self._save_stats_in_connection(conn, instance, month, data)
 
     def get_running_gem_commissions(
         self,
@@ -1800,18 +1823,19 @@ class Cl1Database:
     ):
         """新增一条运行中的钻石委托（仅写入当前月）。"""
         month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-        commissions = data.get("running_gem_commissions", [])
-        # 去重：同 name + create_time 不重复添加
-        if not any(
-            c.get("name") == commission.get("name")
-            and c.get("create_time") == commission.get("create_time")
-            for c in commissions
-        ):
-            commissions.append(commission)
-            commissions.sort(key=lambda item: item.get("finish_time", ""))
-            data["running_gem_commissions"] = commissions
-            self.save_stats(instance, month, data)
+        with self._stats_transaction() as conn:
+            data = self._get_stats_in_connection(conn, instance, month)
+            commissions = data.get("running_gem_commissions", [])
+            # 去重：同 name + create_time 不重复添加
+            if not any(
+                c.get("name") == commission.get("name")
+                and c.get("create_time") == commission.get("create_time")
+                for c in commissions
+            ):
+                commissions.append(commission)
+                commissions.sort(key=lambda item: item.get("finish_time", ""))
+                data["running_gem_commissions"] = commissions
+                self._save_stats_in_connection(conn, instance, month, data)
 
     def pop_running_gem_commission(
         self,
@@ -1827,45 +1851,26 @@ class Cl1Database:
         确认委托完成，因此不再判断 finish_time。
         优先从当前月读写；当前月为空则回退到上月并写回上月。
         """
-        now = datetime.now()
-
-        def _try_pop(data: Dict[str, Any], month_key: str) -> Optional[Dict[str, Any]]:
-            commissions = data.get("running_gem_commissions", [])
-            if not isinstance(commissions, list) or not commissions:
-                return None
-
-            commissions.sort(key=lambda item: item.get("finish_time", ""))
-
-            for i, c in enumerate(commissions):
-                if name is not None and c.get("name") != name:
+        months = self._commission_month_keys(datetime.now())
+        with self._stats_transaction() as conn:
+            for month in months:
+                data = self._get_stats_in_connection(conn, instance, month)
+                commissions = data.get("running_gem_commissions", [])
+                if not isinstance(commissions, list) or not commissions:
                     continue
-                if duration_hour is not None and c.get("duration") != duration_hour:
-                    continue
-                if create_time is not None and c.get("create_time") != create_time:
-                    continue
-
-                commission = commissions.pop(i)
-                data["running_gem_commissions"] = commissions
-                self.save_stats(instance, month_key, data)
-                return commission
-
-            return None
-
-        # 当前月
-        current_month = f"{now.year:04d}-{now.month:02d}"
-        data = self.get_stats(instance, current_month)
-        result = _try_pop(data, current_month)
-        if result is not None:
-            return result
-
-        # 回退到上月
-        if now.month == 1:
-            prev_month = f"{now.year - 1:04d}-12"
-        else:
-            prev_month = f"{now.year:04d}-{now.month - 1:02d}"
-
-        prev_data = self.get_stats(instance, prev_month)
-        return _try_pop(prev_data, prev_month)
+                commissions.sort(key=lambda item: item.get("finish_time", ""))
+                for index, commission in enumerate(commissions):
+                    if name is not None and commission.get("name") != name:
+                        continue
+                    if duration_hour is not None and commission.get("duration") != duration_hour:
+                        continue
+                    if create_time is not None and commission.get("create_time") != create_time:
+                        continue
+                    removed = commissions.pop(index)
+                    data["running_gem_commissions"] = commissions
+                    self._save_stats_in_connection(conn, instance, month, data)
+                    return removed
+        return None
 
     def settle_gem_commission(
         self, instance: str, reward: int = 0, *, name: str = None,
@@ -1874,15 +1879,13 @@ class Cl1Database:
         """在一个 SQLite 事务中将运行委托移至当前月的结算记录。"""
         now = datetime.now()
         months = self._commission_month_keys(now)
-        with closing(sqlite3.connect(self.db_path)) as conn:
-            with conn:
-                conn.execute("BEGIN IMMEDIATE")
-                data = {month: self._get_stats_in_connection(conn, instance, month) for month in months}
-                removed, source_month = self._settle_running_in_months(
-                    data, months, now, reward, name, duration_hour, create_time,
-                )
-                if removed is not None:
-                    self._save_commission_months(conn, instance, data, months, {source_month, months[0]})
+        with self._stats_transaction() as conn:
+            data = {month: self._get_stats_in_connection(conn, instance, month) for month in months}
+            removed, source_month = self._settle_running_in_months(
+                data, months, now, reward, name, duration_hour, create_time,
+            )
+            if removed is not None:
+                self._save_commission_months(conn, instance, data, months, {source_month, months[0]})
         return removed
 
     def settle_expired_gem_commissions(
@@ -1896,27 +1899,25 @@ class Cl1Database:
         settled_at = datetime.now()
         months = self._commission_month_keys(settled_at)
         settled = 0
-        with closing(sqlite3.connect(self.db_path)) as conn:
-            with conn:
-                conn.execute("BEGIN IMMEDIATE")
-                data = {month: self._get_stats_in_connection(conn, instance, month) for month in months}
-                changed = set()
-                for commission in self._running_commissions_from_months(data, months):
-                    try:
-                        finish_time = datetime.fromisoformat(commission["finish_time"])
-                    except (KeyError, TypeError, ValueError):
-                        logger.warning(f"钻石委托完成时间无效，跳过结算: {commission}")
-                        continue
-                    if finish_time > now:
-                        continue
-                    removed, source_month = self._settle_running_in_months(
-                        data, months, settled_at, 0, name=commission.get("name"),
-                        duration_hour=commission.get("duration"), create_time=commission.get("create_time"),
-                    )
-                    if removed is not None:
-                        changed.update((source_month, months[0]))
-                        settled += 1
-                self._save_commission_months(conn, instance, data, months, changed)
+        with self._stats_transaction() as conn:
+            data = {month: self._get_stats_in_connection(conn, instance, month) for month in months}
+            changed = set()
+            for commission in self._running_commissions_from_months(data, months):
+                try:
+                    finish_time = datetime.fromisoformat(commission["finish_time"])
+                except (KeyError, TypeError, ValueError):
+                    logger.warning(f"钻石委托完成时间无效，跳过结算: {commission}")
+                    continue
+                if finish_time > now:
+                    continue
+                removed, source_month = self._settle_running_in_months(
+                    data, months, settled_at, 0, name=commission.get("name"),
+                    duration_hour=commission.get("duration"), create_time=commission.get("create_time"),
+                )
+                if removed is not None:
+                    changed.update((source_month, months[0]))
+                    settled += 1
+            self._save_commission_months(conn, instance, data, months, changed)
         return settled
 
     def async_add_commission_income(
