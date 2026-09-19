@@ -917,16 +917,6 @@
       "name": "Screenshot retention (days)",
       "help": "Drop record screenshots older than this many days are deleted automatically\n0 = no day-based cleanup (commission reward screenshots still keep the latest 50 only)"
     },
-    "AzurStatsID": {
-      "name": "AzurStat ID",
-      "help": "The client ID declared when uploading to https://azur-stats.lyoko.io\nComposed of random characters and can be modified at will"
-    },
-    "API": {
-      "name": "Upload Route",
-      "help": "If users in China cannot connect to AzurStat, they can use \"China Reverse Proxy\"",
-      "default": "Default (Cloudflare)",
-      "cn_gz_reverse_proxy": "China Reverse Proxy (Guangzhou)"
-    },
     "ResearchRecord": {
       "name": "Research Screenshot",
       "help": "",

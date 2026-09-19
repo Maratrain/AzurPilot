@@ -917,16 +917,6 @@
       "name": "截图保留天数",
       "help": "掉落记录截图超过该天数的自动删除\n0 = 不按天数清理（委托收益截图仍只保留最近 50 张）"
     },
-    "AzurStatsID": {
-      "name": "AzurStat ID",
-      "help": "上传至 https://azur-stats.lyoko.io 时，声明的客户端 ID\n由随机字符组成，可随意修改"
-    },
-    "API": {
-      "name": "上传线路",
-      "help": "如果国内用户无法连接到 AzurStat，可以使用\"国内反向代理\"",
-      "default": "默认 (Cloudflare)",
-      "cn_gz_reverse_proxy": "国内反向代理 (广州)"
-    },
     "ResearchRecord": {
       "name": "科研截图",
       "help": "",

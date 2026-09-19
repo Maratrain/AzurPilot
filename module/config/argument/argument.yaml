@@ -264,10 +264,6 @@ DropRecord:
   RetentionDays:
     value: 0
     validate: [0, 3650]
-  AzurStatsID: null
-  API:
-    value: default
-    option: [default, cn_gz_reverse_proxy]
   ResearchRecord:
     value: do_not
     option: [do_not, save, upload, save_and_upload]

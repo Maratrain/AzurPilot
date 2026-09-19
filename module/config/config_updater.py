@@ -738,11 +738,6 @@ class ConfigUpdater:
             value = parse_value(value, data=data)
             deep_set(new, keys=keys, value=value)
 
-        # 处理 AzurStatsID
-        if is_template:
-            deep_set(new, 'Alas.DropRecord.AzurStatsID', None)
-        else:
-            deep_default(new, 'Alas.DropRecord.AzurStatsID', random_id())
         # 更新到最新活动
         server = to_server(deep_get(new, 'Alas.Emulator.PackageName', 'cn'))
         if not is_template:
