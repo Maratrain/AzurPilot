@@ -439,5 +439,8 @@ class AzurStats:
             if method_value is None:
                 local = genre in self.LOCAL_GENRES
             else:
-                local = 'upload' in method_value and genre in self.LOCAL_GENRES
+                # 远程上传已废弃，method_value 来自 DropRecord_* 配置；
+                # 只要未显式关闭（do_not），命中 LOCAL_GENRES 的 genre 都本地解析入库，
+                # 让 "save" 也能产出收获数据，不再依赖旧命名里的 "upload" 语义。
+                local = method_value != 'do_not' and genre in self.LOCAL_GENRES
         return DropImage(stat=self, genre=genre, save=save, local=local, info=info)
