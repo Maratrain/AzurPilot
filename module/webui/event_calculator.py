@@ -150,6 +150,46 @@ def _parse_shop(rows: List[List[str]]) -> List[Dict[str, Any]]:
     return out
 
 
+def _extract_vardefine(raw: str, variable_name: str) -> str:
+    """提取 Wiki ``#vardefine`` 变量的完整内容，保留嵌套模板。"""
+    match = re.search(
+        rf"\{{\{{#vardefine:\s*{re.escape(variable_name)}\s*\|", raw
+    )
+    if match is None:
+        return ""
+
+    start = match.end()
+    depth = 1
+    position = start
+    while position < len(raw):
+        opening = raw.find("{{", position)
+        closing = raw.find("}}", position)
+        if closing < 0:
+            return ""
+        if 0 <= opening < closing:
+            depth += 1
+            position = opening + 2
+            continue
+
+        depth -= 1
+        if depth == 0:
+            return raw[start:closing]
+        position = closing + 2
+    return ""
+
+
+def _parse_shop_vardefine(raw: str) -> List[Dict[str, Any]]:
+    """解析 Wiki 动态商店表使用的 ``_shop_items`` 变量。"""
+    content = _extract_vardefine(raw, "_shop_items")
+    rows = []
+    for line in content.splitlines():
+        row = line.rsplit(",", 2)
+        if len(row) != 3:
+            continue
+        rows.append([cell.strip() for cell in row])
+    return _parse_shop(rows)
+
+
 def _parse_points(rows: List[List[str]], key_name: str) -> List[Dict[str, Any]]:
     out = []
     for row in rows:
@@ -174,11 +214,14 @@ def parse_event_calculator(raw: str) -> Dict[str, Any]:
     cleaned = _clean_wikitext(raw)
     time_rows = _parse_table_rows(_extract_table(cleaned, "ECALCTime"))
     end_date = time_rows[0][0] if time_rows and time_rows[0] else ""
+    shop_items = _parse_shop(_parse_table_rows(_extract_table(cleaned, "ECALCPt")))
+    if not shop_items:
+        shop_items = _parse_shop_vardefine(cleaned)
 
     data = {
         "event_name": _parse_event_name(cleaned),
         "end_date": end_date.replace("/", "-"),
-        "shop_items": _parse_shop(_parse_table_rows(_extract_table(cleaned, "ECALCPt"))),
+        "shop_items": shop_items,
         "daily": _parse_points(
             _parse_table_rows(_extract_table(cleaned, "ECALCDaily")), "points"
         ),

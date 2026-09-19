@@ -53,12 +53,6 @@ Farm:
       - Emotion
       - HpControl
       - EnemyPriority
-    OperationHandover:
-      - Scheduler
-      - Campaign
-      - OperationHandover
-      - Fleet
-      - Submarine
     GemsFarming:
       - Scheduler
       - GemsFarming
@@ -271,6 +265,10 @@ Reward:
     Secretary:
       - Scheduler
       - Secretary
+    OperationHandover:
+      - Scheduler
+      - Campaign
+      - OperationHandover
 DailyMission:
   menu: collapse
   page: setting

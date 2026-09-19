@@ -403,9 +403,34 @@ Campaign:
 OperationHandover:
   Count:
     value: 1
-    validate: [1, 999]
+    validate: [0, 999]
   AutoSupplementTime: false
   UseHandoverBook: false
+  ConsumeAllBook:
+    type: checkbox
+    value: false
+    option: [true, false]
+  ConsumeAllBookWeekday:
+    value: sun
+    option: [mon, tue, wed, thu, fri, sat, sun]
+  ConsumeAllBookTime:
+    value: "00:00"
+    valuetype: str
+  MaintainOverride:
+    type: checkbox
+    value: false
+    option: [true, false]
+  OilLimit:
+    value: 1000
+    validate: [0, 999999]
+  ConsumeAllBookRecord:
+    type: stored
+    value: ""
+    display: hide
+  CommissionEnd:
+    type: stored
+    value: "2020-01-01 00:00:00"
+    display: hide
 StopCondition:
   OilLimit: 1000
   CoinLimit: 0

@@ -66,10 +66,6 @@
       "name": "Main Campaign+",
       "help": ""
     },
-    "OperationHandover": {
-      "name": "Operation Handover",
-      "help": ""
-    },
     "GemsFarming": {
       "name": "Urgent Commission+",
       "help": ""
@@ -193,6 +189,10 @@
     "Secretary": {
       "name": "Secretary",
       "help": "Automatically monitor the secretary ship's affinity and replace it when it reaches 90 affinity"
+    },
+    "OperationHandover": {
+      "name": "Operation Handover Contract",
+      "help": "Consume Handover Books to run Operation Handover automatically."
     },
     "Daily": {
       "name": "Daily Missions",
@@ -1363,7 +1363,7 @@
     },
     "Count": {
       "name": "Handover Count",
-      "help": "Number of times the delegated stage is run"
+      "help": "How many sorties this Operation Handover runs\n0 means the minimum the game allows: in that case the task is disabled unless Consume all Handover Books is on"
     },
     "AutoSupplementTime": {
       "name": "Auto Supplement Time",
@@ -1372,6 +1372,45 @@
     "UseHandoverBook": {
       "name": "Use Handover Book",
       "help": "Max out the invested Handover Books before starting"
+    },
+    "ConsumeAllBook": {
+      "name": "Consume all Handover Books",
+      "help": "Triggered once a week: max out Sorties → max out Handover Books → set Sorties to the number of books,\nso the whole stock of books is spent at once.\nOn the trigger day the Count option is ignored; with Count set to 0 the task only runs at the trigger time",
+      "True": "On",
+      "False": "Off"
+    },
+    "ConsumeAllBookWeekday": {
+      "name": "Trigger day",
+      "help": "Trigger once a week on this day",
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday",
+      "sun": "Sunday"
+    },
+    "ConsumeAllBookTime": {
+      "name": "Trigger time",
+      "help": "Trigger at or after this time on the trigger day, format HH:MM, e.g. 12:00"
+    },
+    "MaintainOverride": {
+      "name": "Handover before maintenance",
+      "help": "Check the CN maintenance notice once a day. If the maintenance is today and has not started yet, this run is\npostponed to 10 minutes before it and then runs with max sorties (still respecting Use Handover Book and\nauto-supplement time). Past or non-today maintenance is ignored. Data from api-blhx-maintain, CN server only",
+      "True": "On",
+      "False": "Off"
+    },
+    "OilLimit": {
+      "name": "Postpone if Oil below X",
+      "help": "Postpone the task while oil is below this value, resume when oil is enough\n0 to disable"
+    },
+    "ConsumeAllBookRecord": {
+      "name": "Trigger record",
+      "help": "Which week it was last triggered, managed by the script"
+    },
+    "CommissionEnd": {
+      "name": "Commission end time",
+      "help": "Recorded by the script when starting a commission, used to know when to collect the reward"
     }
   },
   "StopCondition": {
