@@ -747,14 +747,6 @@
           "upload",
           "save_and_upload"
         ]
-      },
-      "TelemetryReport": {
-        "type": "checkbox",
-        "value": true
-      },
-      "BugReport": {
-        "type": "checkbox",
-        "value": true
       }
     },
     "Backup": {

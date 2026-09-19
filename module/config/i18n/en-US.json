@@ -978,14 +978,6 @@
       "save": "Save",
       "upload": "Upload",
       "save_and_upload": "Save and Upload"
-    },
-    "TelemetryReport": {
-      "name": "Telemetry data reporting",
-      "help": "After being enabled, CL1 statistics (anonymous data such as the number of battles and Akashi encounter probability) will be reported anonymously to the server on a regular basis. For details on ID generation, please see the source code. For statistical information https://alas.nanoda.work/"
-    },
-    "BugReport": {
-      "name": "Bug log reporting",
-      "help": "When enabled, bug logs will be anonymously reported to the server when an exception is encountered to help improve ID generation. See the source code for details."
     }
   },
   "Backup": {

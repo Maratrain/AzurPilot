@@ -978,14 +978,6 @@
       "save": "保存喵",
       "upload": "上传喵",
       "save_and_upload": "保存并上传喵"
-    },
-    "TelemetryReport": {
-      "name": "遥测数据上报",
-      "help": "匿名上报CL1统计数据，统计网站 https://alas.nanoda.work/ 喵。"
-    },
-    "BugReport": {
-      "name": "Bug 日志上报",
-      "help": "匿名上报异常日志帮助改进喵。"
     }
   },
   "Backup": {

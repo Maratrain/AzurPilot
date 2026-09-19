@@ -288,8 +288,6 @@ DropRecord:
   MeowfficerTalent:
     value: do_not
     option: [do_not, save, upload, save_and_upload]
-  TelemetryReport: true
-  BugReport: true
 Backup:
   Enable: true
   KeepDays:

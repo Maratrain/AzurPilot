@@ -140,9 +140,7 @@
       "OpsiRecord": "upload",
       "OpsiShopRecord": "upload",
       "MeowfficerBuy": "do_not",
-      "MeowfficerTalent": "do_not",
-      "TelemetryReport": true,
-      "BugReport": true
+      "MeowfficerTalent": "do_not"
     },
     "Backup": {
       "Enable": true,

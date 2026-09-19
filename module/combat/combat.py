@@ -24,7 +24,6 @@ import numpy as np
 
 from module.base.timer import Timer
 from module.base.utils import color_similar, get_color, lower_template_match_similarity
-from module.base.api_client import ApiClient
 from module.combat.assets import *
 from module.combat.combat_auto import CombatAuto
 from module.combat.combat_manual import CombatManual

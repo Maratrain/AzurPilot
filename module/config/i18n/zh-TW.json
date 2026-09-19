@@ -978,14 +978,6 @@
       "save": "儲存",
       "upload": "上傳",
       "save_and_upload": "儲存並上傳"
-    },
-    "TelemetryReport": {
-      "name": "遙測資料上報",
-      "help": "啟用後將定期向伺服器匿名上報 CL1 統計資料（戰鬥次數、明石遇見機率等匿名資料）ID生成詳見原始碼，統計資訊 https://alas.nanoda.work/"
-    },
-    "BugReport": {
-      "name": "Bug 日誌上報",
-      "help": "啟用後將在遇到異常時向伺服器匿名上報 Bug 日誌以幫助改進ID生成詳見原始碼"
     }
   },
   "Backup": {
