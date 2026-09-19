@@ -2,6 +2,7 @@
 log
 cache/
 .codex
+.codebuddy
 config/backup/*
 config/*.ini
 !config/template.ini
