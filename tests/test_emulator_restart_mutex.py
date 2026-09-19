@@ -16,14 +16,22 @@ import unittest
 from unittest.mock import Mock, call, create_autospec, patch
 
 from alas import RESTART_EMULATOR_OP_TIMEOUT, AzurLaneAutoScript
-from module.device.platform import platform_windows
-from module.device.platform.platform_windows import (
-    EMULATOR_START_WATCH_TIMEOUTS,
-    MUMU12_DEEP_WAIT_TIMEOUT,
-    MUMU12_STOP_WAIT_TIMEOUT,
-    PlatformWindows,
-)
+from module.device.env import IS_WINDOWS
+
+if IS_WINDOWS:
+    # platform_windows 顶层依赖 winreg，非 Windows 导入即失败；该模块本身也只会在
+    # Windows 被 platform/__init__ 选用，故这里连测试一起按平台门控
+    from module.device.platform import platform_windows
+    from module.device.platform.platform_windows import (
+        EMULATOR_START_WATCH_TIMEOUTS,
+        MUMU12_DEEP_WAIT_TIMEOUT,
+        MUMU12_STOP_WAIT_TIMEOUT,
+        PlatformWindows,
+    )
+
 from module.exception import EmulatorNotRunningError, EmulatorOpBusy
+
+WINDOWS_ONLY = unittest.skipUnless(IS_WINDOWS, 'platform_windows 依赖 winreg，仅 Windows 可测')
 
 
 # autospec 反射整个 Device 类很慢（约 26 秒），复用同一个实例
@@ -45,6 +53,7 @@ def make_platform():
     return platform
 
 
+@WINDOWS_ONLY
 class TestEmulatorOpExclusive(unittest.TestCase):
     def tearDown(self):
         # 兜底：任何测试把锁漏掉都会让后续测试全红，这里主动回收
@@ -147,6 +156,7 @@ def mumu_info(*players):
     return json.dumps(data, ensure_ascii=False)
 
 
+@WINDOWS_ONLY
 class TestMumu12StateQuery(unittest.TestCase):
     """MuMuManager info 查询：按实例精确判断状态，替代靠进程名猜测。"""
 
@@ -253,6 +263,7 @@ class TestMumu12StateQuery(unittest.TestCase):
             self.assertTrue(platform._mumu12_wait_stopped('F:/mumu/shell/MuMuPlayer.exe', 0))
 
 
+@WINDOWS_ONLY
 class TestDeepRestart(unittest.TestCase):
     """深度重启：结束 MuMu 全部进程，仅由「连续重启都失败」触发。
 
@@ -352,6 +363,7 @@ class TestDeepRestart(unittest.TestCase):
         platform._deep_clean_mumu12.assert_not_called()
 
 
+@WINDOWS_ONLY
 class TestDeepFlagPortability(unittest.TestCase):
     """`deep` 必须是调用链上每一层都能接的关键字参数。
 
@@ -406,6 +418,7 @@ class TestDeepRestartThreshold(unittest.TestCase):
         self.assertFalse(script._deep_restart_enabled())
 
 
+@WINDOWS_ONLY
 class TestRestartTimeoutBudget(unittest.TestCase):
     def test_outer_timeout_covers_the_whole_platform_budget(self):
         """外层硬超时必须 ≥ 平台层 emulator_start() 的完整预算。
