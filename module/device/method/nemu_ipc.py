@@ -493,29 +493,18 @@ class NemuIpcImpl:
         image = np.ctypeslib.as_array(pixels_pointer.contents).reshape((self.height, self.width, 4))
         return image
 
-    def convert_xy(self, x, y):
-        """
-        将标准 ADB 坐标转换为 Nemu 坐标。
-        调用此方法前必须先更新 `self.height`。
-
-        Returns:
-            int, int
-        """
-        x, y = int(x), int(y)
-        x, y = self.height - y, x
-        return x, y
-
     @retry
     def down(self, x, y):
         """
         触摸按下，连续的触摸按下会被视为滑动。
+
+        坐标不做任何旋转：`nemu_capture_display` 与 `nemu_input_event_touch_down`
+        共用同一个屏幕坐标系，实测 MuMu 12（nx_device/12.0 SDK，1280x720）上报的
+        就是横屏 width=1280/height=720，截图也只需上下翻转即可匹配素材。
+        旧版 `x, y = height - y, x` 的转置会把右半屏的点击甩成 y>720 的越界坐标。
         """
         if self.connect_id == 0:
             self.connect()
-        if self.height == 0:
-            self.get_resolution()
-
-        x, y = self.convert_xy(x, y)
 
         # click/drag/swipe 的坐标来自 numpy（np.int64），而 nemu 的函数没有声明
         # argtypes，ctypes 无法转换 numpy 标量，会抛
