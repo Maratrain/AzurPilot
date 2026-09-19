@@ -325,7 +325,11 @@ class Cl1Database:
                     if data is not None:
                         return data
                     if row[1] and (data := self._decrypt(row[1])):
-                        self.save_stats(instance, month, data)
+                        try:
+                            self.save_stats(instance, month, data)
+                        except Exception:
+                            # 迁移只是读取时的可选维护，保存失败仍返回已经解密的数据。
+                            logger.warning(f"[Statistics] 旧数据迁移未落盘: {instance} {month}")
                         return data
         except Exception as e:
             logger.error(f"[Statistics] 查询统计数据失败 {instance} {month}: {e}")
@@ -637,24 +641,42 @@ class Cl1Database:
         return result
 
     def save_stats(self, instance: str, month: str, data: Dict[str, Any]):
-        """保存统计数据"""
+        """保存统计数据；写入失败必须传递给调用方，不能报告成功。"""
         try:
-            data_json = self._serialize_data(data)
             with closing(sqlite3.connect(self.db_path)) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    INSERT INTO cl1_data (instance, month, data_json, encrypted_blob)
-                    VALUES (?, ?, ?, NULL)
-                    ON CONFLICT(instance, month) DO UPDATE SET
-                        data_json = excluded.data_json,
-                        encrypted_blob = NULL
-                """,
-                    (instance, month, data_json),
-                )
-                conn.commit()
+                with conn:
+                    self._save_stats_in_connection(conn, instance, month, data)
         except Exception as e:
             logger.error(f"[Statistics] 保存统计数据失败 {instance} {month}: {e}")
+            raise
+
+    def _save_stats_in_connection(self, conn, instance, month, data):
+        """在调用方事务中写入单个月份，不自行提交。"""
+        conn.execute(
+            """
+            INSERT INTO cl1_data (instance, month, data_json, encrypted_blob)
+            VALUES (?, ?, ?, NULL)
+            ON CONFLICT(instance, month) DO UPDATE SET
+                data_json = excluded.data_json,
+                encrypted_blob = NULL
+            """,
+            (instance, month, self._serialize_data(data)),
+        )
+
+    def _get_stats_in_connection(self, conn, instance, month):
+        """事务中的读取不能把数据库错误或损坏行当成空数据覆盖。"""
+        row = conn.execute(
+            "SELECT data_json, encrypted_blob FROM cl1_data WHERE instance = ? AND month = ?",
+            (instance, month),
+        ).fetchone()
+        if row is None:
+            return self._empty_data(month)
+        data = self._deserialize_data(row[0])
+        if data is None and row[1]:
+            data = self._decrypt(row[1])
+        if not isinstance(data, dict):
+            raise ValueError(f"统计数据无法解码: {instance} {month}")
+        return data
 
     def increment_battle_count(self, instance: str, delta: int = 1):
         """增加战斗次数"""
@@ -1432,40 +1454,124 @@ class Cl1Database:
 
     # ========== 委托收益数据记录方法 ==========
 
+    @staticmethod
+    def _commission_month_keys(now):
+        """运行记录仅搜索当前月和上月，结算仍归档到系统当前月。"""
+        return now.strftime("%Y-%m"), (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+
+    @staticmethod
+    def _running_commissions_from_months(data, months):
+        commissions = []
+        seen = set()
+        # 沿用读取列表的上月优先去重规则，随后按完成时间排序。
+        for month in reversed(months):
+            source = data[month].get("running_gem_commissions", [])
+            if not isinstance(source, list):
+                continue
+            for commission in source:
+                if not isinstance(commission, dict):
+                    continue
+                identity = (commission.get("name"), commission.get("create_time"))
+                if identity not in seen:
+                    seen.add(identity)
+                    commissions.append(commission)
+        return sorted(commissions, key=lambda item: item.get("finish_time", ""))
+
+    def _append_gem_commission_entry(self, data, duration_hour, reward, now):
+        entry = {
+            "ts": now.isoformat(),
+            "duration": self._coerce_int(duration_hour),
+            "reward": self._coerce_int(reward),
+            "success": self._coerce_int(reward) > 0,
+        }
+        entries = data.get("gem_commission_entries", [])
+        entries.append(entry)
+        data["gem_commission_entries"] = entries[-5000:]
+
+    def _settle_running_in_months(
+        self, data, months, now, reward, name=None, duration_hour=None, create_time=None,
+    ):
+        """仅修改事务内的月份快照，保持当前月优先和三字段精确匹配。"""
+        for month in months:
+            commissions = data[month].get("running_gem_commissions", [])
+            if not isinstance(commissions, list):
+                continue
+            commissions.sort(key=lambda item: item.get("finish_time", ""))
+            for index, commission in enumerate(commissions):
+                if name is not None and commission.get("name") != name:
+                    continue
+                if duration_hour is not None and commission.get("duration") != duration_hour:
+                    continue
+                if create_time is not None and commission.get("create_time") != create_time:
+                    continue
+                removed = commissions.pop(index)
+                data[month]["running_gem_commissions"] = commissions
+                self._append_gem_commission_entry(data[months[0]], removed["duration"], reward, now)
+                return removed, month
+        return None, None
+
+    def _save_commission_months(self, conn, instance, data, months, changed):
+        # 先写运行记录来源月，后写归档月；两次写入必须共同提交或共同回滚。
+        for month in reversed(months):
+            if month in changed:
+                self._save_stats_in_connection(conn, instance, month, data[month])
+
     def add_commission_income(
         self,
         instance: str,
         items: Dict[str, int],
         commission_count: int = 1,
         screenshots: Optional[List[str]] = None,
-    ):
-        """记录一次委托收益
+        *,
+        gem_duration: Optional[int] = None,
+        completed_at: Optional[datetime] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """记录收益，并在同一事务中结算匹配的钻石委托。
 
-        Args:
-            instance: 实例名称
-            items: 物品字典，如 {'Gem': 30, 'Cube': 1, 'Chip': 10, 'Oil': 500, 'Coin': 800}
-            commission_count: 本次结算的委托数量
-            screenshots: 本次结算的收益截图路径列表，路径相对
-                ``log/commission_rewards`` 目录（供 WebUI 查看截图功能使用），
-                旧版本记录无此字段。
+        截图仍保存相对路径；记录格式、5000 条上限和当前月归档不变。
+        gem_duration 来自奖励识别，匹配最早到期的同时间长度委托。
+        返回已结算的运行记录，未匹配到时仅保存收益并返回 None。
         """
-        month = datetime.now().strftime("%Y-%m")
-        data = self.get_stats(instance, month)
-
-        commission_count = self._coerce_int(commission_count)
+        now = datetime.now()
+        months = self._commission_month_keys(now)
+        completed_at = completed_at or current_time()
         entry = {
-            "ts": datetime.now().isoformat(),
+            "ts": now.isoformat(),
             "items": {k: self._coerce_int(v) for k, v in items.items() if v > 0},
-            "commission_count": commission_count,
+            "commission_count": self._coerce_int(commission_count),
             "screenshots": [str(path) for path in (screenshots or [])],
         }
-
-        entries = data.get("commission_income_entries", [])
-        entries.append(entry)
-        if len(entries) > 5000:
-            entries = entries[-5000:]
-        data["commission_income_entries"] = entries
-        self.save_stats(instance, month, data)
+        removed = None
+        with closing(sqlite3.connect(self.db_path)) as conn:
+            with conn:
+                conn.execute("BEGIN IMMEDIATE")
+                read_months = months if gem_duration is not None else months[:1]
+                data = {month: self._get_stats_in_connection(conn, instance, month) for month in read_months}
+                entries = data[months[0]].get("commission_income_entries", [])
+                entries.append(entry)
+                data[months[0]]["commission_income_entries"] = entries[-5000:]
+                changed = {months[0]}
+                if gem_duration is not None:
+                    for commission in self._running_commissions_from_months(data, months):
+                        if commission.get("duration") != gem_duration:
+                            continue
+                        try:
+                            finish_time = datetime.fromisoformat(commission["finish_time"])
+                        except (KeyError, TypeError, ValueError):
+                            logger.warning(f"钻石委托完成时间无效，跳过结算: {commission}")
+                            continue
+                        if finish_time > completed_at:
+                            continue
+                        removed, source_month = self._settle_running_in_months(
+                            data, months, now, items.get("Gem", 0),
+                            name=commission.get("name"), duration_hour=gem_duration,
+                            create_time=commission.get("create_time"),
+                        )
+                        if source_month is not None:
+                            changed.add(source_month)
+                        break
+                self._save_commission_months(conn, instance, data, months, changed)
+        return removed
 
     def get_commission_income(
         self, instance: str, year: int = None, month: int = None
@@ -1567,18 +1673,7 @@ class Cl1Database:
         month = datetime.now().strftime("%Y-%m")
         data = self.get_stats(instance, month)
 
-        entry = {
-            "ts": datetime.now().isoformat(),
-            "duration": self._coerce_int(duration_hour),
-            "reward": self._coerce_int(reward),
-            "success": self._coerce_int(reward) > 0,
-        }
-
-        entries = data.get("gem_commission_entries", [])
-        entries.append(entry)
-        if len(entries) > 5000:
-            entries = entries[-5000:]
-        data["gem_commission_entries"] = entries
+        self._append_gem_commission_entry(data, duration_hour, reward, datetime.now())
         self.save_stats(instance, month, data)
 
     def get_gem_commissions(
@@ -1694,36 +1789,9 @@ class Cl1Database:
 
         合并当前月和上一个月的列表，覆盖跨月仍在执行的委托。
         """
-        now = datetime.now()
-        current_month = f"{now.year:04d}-{now.month:02d}"
-        if now.month == 1:
-            prev_month = f"{now.year - 1:04d}-12"
-        else:
-            prev_month = f"{now.year:04d}-{(now.month - 1):02d}"
-
-        data = self.get_stats(instance, current_month)
-        prev_data = self.get_stats(instance, prev_month)
-        commissions = []
-        seen = set()
-        for source in (
-            prev_data.get("running_gem_commissions", []),
-            data.get("running_gem_commissions", []),
-        ):
-            if not isinstance(source, list):
-                continue
-            for commission in source:
-                if not isinstance(commission, dict):
-                    continue
-                identity = (
-                    commission.get("name"),
-                    commission.get("create_time"),
-                )
-                if identity in seen:
-                    continue
-                seen.add(identity)
-                commissions.append(commission)
-
-        return sorted(commissions, key=lambda item: item.get("finish_time", ""))
+        months = self._commission_month_keys(datetime.now())
+        data = {month: self.get_stats(instance, month) for month in months}
+        return self._running_commissions_from_months(data, months)
 
     def add_running_gem_commission(
         self,
@@ -1799,40 +1867,56 @@ class Cl1Database:
         prev_data = self.get_stats(instance, prev_month)
         return _try_pop(prev_data, prev_month)
 
+    def settle_gem_commission(
+        self, instance: str, reward: int = 0, *, name: str = None,
+        duration_hour: int = None, create_time: str = None,
+    ) -> Optional[Dict[str, Any]]:
+        """在一个 SQLite 事务中将运行委托移至当前月的结算记录。"""
+        now = datetime.now()
+        months = self._commission_month_keys(now)
+        with closing(sqlite3.connect(self.db_path)) as conn:
+            with conn:
+                conn.execute("BEGIN IMMEDIATE")
+                data = {month: self._get_stats_in_connection(conn, instance, month) for month in months}
+                removed, source_month = self._settle_running_in_months(
+                    data, months, now, reward, name, duration_hour, create_time,
+                )
+                if removed is not None:
+                    self._save_commission_months(conn, instance, data, months, {source_month, months[0]})
+        return removed
+
     def settle_expired_gem_commissions(
         self, instance: str, now: datetime = None
     ) -> int:
-        """将已领取但未获得钻石的到期委托记为失败。
+        """领取完成后批量结算未获钻石的到期委托，失败时整体回滚。
 
-        此方法应仅在委托奖励页面已回到委托列表后调用。此时所有已完成
-        委托均已领取，仍留在运行列表中的到期钻石委托即为未获得钻石的失败记录。
+        游戏时间只决定到期条件；归档月和时间戳沿用系统当前时间。
         """
         now = now or current_time()
+        settled_at = datetime.now()
+        months = self._commission_month_keys(settled_at)
         settled = 0
-        for commission in self.get_running_gem_commissions(instance):
-            try:
-                finish_time = datetime.fromisoformat(commission["finish_time"])
-            except (KeyError, TypeError, ValueError):
-                logger.warning(f"钻石委托完成时间无效，跳过结算: {commission}")
-                continue
-            if finish_time > now:
-                continue
-
-            removed = self.pop_running_gem_commission(
-                instance,
-                name=commission.get("name"),
-                duration_hour=commission.get("duration"),
-                create_time=commission.get("create_time"),
-            )
-            if removed is None:
-                continue
-            self.add_gem_commission(
-                instance,
-                duration_hour=removed["duration"],
-                reward=0,
-            )
-            settled += 1
-
+        with closing(sqlite3.connect(self.db_path)) as conn:
+            with conn:
+                conn.execute("BEGIN IMMEDIATE")
+                data = {month: self._get_stats_in_connection(conn, instance, month) for month in months}
+                changed = set()
+                for commission in self._running_commissions_from_months(data, months):
+                    try:
+                        finish_time = datetime.fromisoformat(commission["finish_time"])
+                    except (KeyError, TypeError, ValueError):
+                        logger.warning(f"钻石委托完成时间无效，跳过结算: {commission}")
+                        continue
+                    if finish_time > now:
+                        continue
+                    removed, source_month = self._settle_running_in_months(
+                        data, months, settled_at, 0, name=commission.get("name"),
+                        duration_hour=commission.get("duration"), create_time=commission.get("create_time"),
+                    )
+                    if removed is not None:
+                        changed.update((source_month, months[0]))
+                        settled += 1
+                self._save_commission_months(conn, instance, data, months, changed)
         return settled
 
     def async_add_commission_income(
