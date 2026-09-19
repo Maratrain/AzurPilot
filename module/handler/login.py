@@ -32,7 +32,8 @@ _ = get_distribution
 import module.config.server as server
 from module.base.button import Button
 from module.handler.channel_float import (
-    CHANNEL_FLOAT_AREA, detect_channel_float, dialog_button_brightness,
+    CHANNEL_FLOAT_SWIPE_END, CHANNEL_FLOAT_HOLD_DURATION, CHANNEL_FLOAT_MAX_ATTEMPTS,
+    channel_float_position, hide_button,
 )
 from module.base.timer import Timer
 from module.base.utils import color_similarity_2d, crop
@@ -61,20 +62,8 @@ RESTART_OBSERVE_INTERVAL = 15
 # （依赖 screenshot() 中的 stuck_record_check）均无法触发的死锁。
 RESTART_OPERATION_TIMEOUT = 120
 
-# 4399 等渠道服客户端启动后，屏幕左上角（角色名右侧）会出现 SDK 悬浮球，
-# 需要将悬浮球拖拽到屏幕中下方，随后在弹出的「隐藏悬浮球」对话框中
-# 点击「隐藏」按钮才能消除；坐标为 1280x720 分辨率下的屏幕坐标。
-CHANNEL_FLOAT_SWIPE_START = (220, 45)
-CHANNEL_FLOAT_SWIPE_END = (640, 620)
-CHANNEL_FLOAT_SWIPE_DURATION = 0.6
-CHANNEL_FLOAT_MAX_ATTEMPTS = 4
-# 「隐藏悬浮球」对话框中的「隐藏」按钮
-CHANNEL_FLOAT_HIDE_BUTTON = Button(
-    area=(728, 604, 848, 664),
-    color=(),
-    button=(728, 604, 848, 664),
-    name='CHANNEL_FLOAT_HIDE_BUTTON',
-)
+# 4399 渠道服悬浮球处理的坐标与常量统一定义在 module/handler/channel_float.py，
+# 此处仅导入使用（见文件头部 import），避免两处定义不同步。
 
 
 class LoginHandler(UI):
@@ -245,36 +234,41 @@ class LoginHandler(UI):
     def handle_channel_float(self) -> bool:
         """识别到悬浮球时将其拖拽到屏幕中下方。
 
-        仅在绿色标志检测到悬浮球时才执行拖拽；未识别到返回 False，
-        不产生任何输入操作，避免干扰登录界面控件。
+        通过绿色标志动态定位悬浮球中心（停靠位置每次启动不固定），
+        未识别到返回 False，不产生任何输入操作，避免干扰登录界面控件。
 
         Returns:
             bool: True 表示已执行拖拽操作；False 表示未识别到悬浮球。
         """
-        image = crop(self.device.image, CHANNEL_FLOAT_AREA, copy=False)
-        if not detect_channel_float(image):
+        ball_pos = channel_float_position(self.device.image)
+        if ball_pos is None:
             logger.info('[登录] 未识别到渠道服悬浮球，跳过拖拽')
             return False
-        logger.info('[登录] 拖动渠道服悬浮球至屏幕中下')
-        self.device.swipe(
-            CHANNEL_FLOAT_SWIPE_START, CHANNEL_FLOAT_SWIPE_END,
-            duration=CHANNEL_FLOAT_SWIPE_DURATION, name='CHANNEL_FLOAT_SWIPE')
+        height, width = self.device.image.shape[:2]
+        swipe_end = (int(CHANNEL_FLOAT_SWIPE_END[0] * width / 1280),
+                     int(CHANNEL_FLOAT_SWIPE_END[1] * height / 720))
+        logger.info(f'[登录] 拖动渠道服悬浮球 {ball_pos} 至屏幕中下')
+        self.device.drag(
+            ball_pos, swipe_end,
+            point_random=(0, 0, 0, 0), hold_duration=CHANNEL_FLOAT_HOLD_DURATION,
+            name='CHANNEL_FLOAT_DRAG')
         return True
 
     def handle_channel_float_hide(self) -> bool:
         """「隐藏悬浮球」对话框可见时点击「隐藏」按钮。
 
         悬浮球被拖拽到屏幕中下后会弹出「隐藏悬浮球」对话框；
-        仅在检测到对话框（按钮区域浅色底）时才点击，
-        对话框不可见时返回 False，等待下一轮截图再试。
+        通过白色对话框+区内底部绿字动态定位「隐藏」按钮（位置随
+        分辨率变化），不可见时返回 False，等待下一轮截图再试。
 
         Returns:
-            bool: True 表示已点击隐藏；False 表示对话框暂不可见。
+            bool: True 表示已点击隐藏；False 表示按钮暂不可见。
         """
-        if dialog_button_brightness(self.device.image) <= 150:
+        button = hide_button(self.device.image)
+        if button is None:
             return False
         logger.info('[登录] 点击隐藏悬浮球')
-        self.device.click(CHANNEL_FLOAT_HIDE_BUTTON)
+        self.device.click(button)
         return True
 
     def _login_wait_timeout(self):

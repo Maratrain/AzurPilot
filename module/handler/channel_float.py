@@ -1,70 +1,201 @@
 """渠道服（4399）启动悬浮球处理。
 
-4399 等渠道服客户端启动后，屏幕左上角（角色名右上方）会出现 SDK 悬浮球。
-悬浮球是半透明圆盘，截图里几乎不可见，但顶部带有一圈绿色「○○○」标志，
-而黑色标题栏背景不含绿色，因此通过统计绿标像素即可可靠检出。
-检出后自动将悬浮球拖拽到屏幕中下，并点击「隐藏悬浮球」对话框的「隐藏」按钮。
+4399 等渠道服客户端启动后，屏幕顶部会出现 SDK 悬浮球（半透明圆盘，
+直径约 70px，截图里几乎不可见），顶部带绿色「○○○」标志（三个小圆点）。
+悬浮球每次启动停靠位置不固定，通过绿标动态定位球中心后拖拽到屏幕
+中下触发「隐藏悬浮球」对话框，并点击「隐藏」按钮将其彻底关闭。
 """
 import time
 
+import cv2
 import numpy as np
 
 from module.base.base import ModuleBase
 from module.base.button import Button
-from module.base.utils import crop, get_color
+from module.base.utils import crop
 from module.base.timer import Timer
 from module.config.deep import deep_get
 from module.handler.assets import LOGIN_CHECK
 from module.logger import logger
 from module.ui.page import page_main_white
 
-# 悬浮球识别区域：主页面左上角上边沿左半范围（1280x720），
-# 绿色「○○○」标志为识别特征；悬浮球需位于等级与名字中间（见 GUI 说明）
-CHANNEL_FLOAT_AREA = (0, 0, 640, 50)
-# 绿色像素计数阈值：实测有球 443、无球 0，取 20 作为安全阈值
+# 悬浮球识别区域（1280x720 逻辑坐标，运行时按实际分辨率缩放）。
+# SDK 悬浮球停靠在屏幕顶部一带，顶部带绿色「○○○」标志（三个小圆点横排）。
+# 悬浮球每次启动停靠位置不固定（实测出现过绿标位于 (299~349,0~9) 与
+# (220,45) 附近两种），因此采用动态定位而非硬编码坐标。
+CHANNEL_FLOAT_AREA = (0, 0, 640, 100)
+# 排除区域（逻辑坐标）：游戏头像框旁的绿色箭头（原生UI，约 (85~120, 60~90)），
+# 颜色特征与悬浮球绿标相同，需显式排除避免误定位
+CHANNEL_FLOAT_EXCLUDE_AREA = (80, 55, 125, 95)
+# 绿色像素计数阈值：实测有球约330、无球0，取 20 作为安全阈值
 CHANNEL_FLOAT_GREEN_THRESHOLD = 20
-# 悬浮球拖拽起点（悬浮球中心）与终点（屏幕中下）
-CHANNEL_FLOAT_SWIPE_START = (220, 45)
-CHANNEL_FLOAT_SWIPE_END = (640, 620)
-CHANNEL_FLOAT_SWIPE_DURATION = 0.6
+# 绿标中心到球中心的垂直偏移（逻辑坐标）：球直径约70px，绿标位于球顶部
+CHANNEL_FLOAT_BALL_CENTER_OFFSET_Y = 30
+# 悬浮球拖拽终点（逻辑坐标，屏幕中下偏下）：
+# 「隐藏悬浮球」对话框的触发区域位于屏幕下方，实测终点需压到
+# y=680 附近才能稳定触发（660 仍偏浅，松手后悬浮球弹回原位）
+CHANNEL_FLOAT_SWIPE_END = (640, 680)
+# 拖到终点后按住停留时长：悬浮球需停留片刻再松手才会触发「隐藏悬浮球」
+# 对话框，立即松手会被判定为甩动；drag 后端另有约 0.28s 的内置停顿
+CHANNEL_FLOAT_HOLD_DURATION = 0.2
 CHANNEL_FLOAT_MAX_ATTEMPTS = 4
-# 「隐藏悬浮球」对话框中的「隐藏」按钮
-CHANNEL_FLOAT_HIDE_BUTTON = Button(
-    area=(728, 604, 848, 664),
-    color=(),
-    button=(728, 604, 848, 664),
-    name='CHANNEL_FLOAT_HIDE_BUTTON',
-)
+# 对话框白色主体占屏幕面积的最小比例（实测 1280x720 为 18.6%、1600x900 为 11.7%）
+CHANNEL_FLOAT_DIALOG_WHITE_RATIO = 0.04
+# 「隐藏」绿字连通域的最小像素数（实测两分辨率下每字约 300px）
+CHANNEL_FLOAT_HIDE_GREEN_THRESHOLD = 50
 
 
-def detect_channel_float(image) -> bool:
-    """检测悬浮球：统计绿色「○○○」标志像素。
+def _scale_area(area, width, height):
+    """将 1280x720 逻辑坐标区域缩放到实际分辨率。
 
     Args:
-        image: 当前截图（1280x720）。
+        area: 逻辑坐标区域 (x0, y0, x1, y1)。
+        width: 实际图像宽度。
+        height: 实际图像高度。
 
     Returns:
-        bool: True 表示识别到悬浮球。
+        tuple: 实际分辨率下的区域 (x0, y0, x1, y1)。
     """
+    return (int(area[0] * width / 1280), int(area[1] * height / 720),
+            int(area[2] * width / 1280), int(area[3] * height / 720))
+
+
+def channel_float_position(image):
+    """定位悬浮球：返回球中心坐标，未识别到返回 None。
+
+    悬浮球半透明难以直接识别，但其顶部带有绿色「○○○」标志
+    （三个小圆点横排）。在左上识别区内统计绿色像素并排除头像框旁
+    绿色箭头（原生UI），绿标中心向下偏移约 30px 为球中心。
+
+    为避免识别区内其他绿色元素（UI图标、活动角标等）拉偏质心，
+    先做连通域分析，将同一水平线（y 中心差<=15px）且彼此邻近
+    （x 中心距<=60px）的小块聚为一组，多点横排的组优先（三点
+    标志特征），其次取最靠上的一组，组内按像素加权求质心。
+
+    Args:
+        image: 当前截图。
+
+    Returns:
+        tuple: 球中心坐标 (x, y)；未识别到时 None。
+    """
+    height, width = image.shape[:2]
+    area = _scale_area(CHANNEL_FLOAT_AREA, width, height)
+    area_img = crop(image, area, copy=False)
+    r = area_img[:, :, 0].astype(np.int16)
+    g = area_img[:, :, 1].astype(np.int16)
+    b = area_img[:, :, 2].astype(np.int16)
+    green = (g > r + 15) & (g > b + 15) & (g > 100)
+    ex = _scale_area(CHANNEL_FLOAT_EXCLUDE_AREA, width, height)
+    x0 = max(ex[0] - area[0], 0)
+    y0 = max(ex[1] - area[1], 0)
+    x1 = min(ex[2] - area[0], green.shape[1])
+    y1 = min(ex[3] - area[1], green.shape[0])
+    green[y0:y1, x0:x1] = False
+    count = int(green.sum())
+    if count < CHANNEL_FLOAT_GREEN_THRESHOLD:
+        logger.info(f'[渠道悬浮球] 绿色标志像素 {count}，未识别到悬浮球')
+        return None
+    n, _, stats, centroids = cv2.connectedComponentsWithStats(green.astype(np.uint8), 8)
+    y_tol = int(15 * height / 720)
+    x_tol = int(60 * width / 1280)
+    comps = []
+    for i in range(1, n):
+        a = stats[i, cv2.CC_STAT_AREA]
+        if a >= 8:
+            comps.append((centroids[i][0], centroids[i][1], a))
+    groups = []
+    for cx, cy, _ in sorted(comps, key=lambda c: (c[1], c[0])):
+        for group in groups:
+            if any(abs(cy - cy2) <= y_tol and abs(cx - cx2) <= x_tol
+                   for cx2, cy2, _ in group):
+                group.append((cx, cy, _))
+                break
+        else:
+            groups.append([(cx, cy, _)])
+    # 多点横排（三点标志）优先，其次最靠上，再次面积最大
+    best = max(
+        groups,
+        key=lambda group: (
+            len(group) >= 2,
+            -sum(c[1] for c in group) / len(group),
+            sum(c[2] for c in group)))
+    total = sum(c[2] for c in best)
+    cx = sum(c[0] * c[2] for c in best) / total + area[0]
+    cy = sum(c[1] * c[2] for c in best) / total + area[1]
+    offset_y = int(CHANNEL_FLOAT_BALL_CENTER_OFFSET_Y * height / 720)
+    ball = (int(cx), int(cy) + offset_y)
+    logger.info(f'[渠道悬浮球] 绿色标志像素 {count}，绿标组 {len(best)}/{len(groups)}，'
+                f'定位球中心 {ball}')
+    return ball
+
+
+def hide_button(image):
+    """定位「隐藏悬浮球」对话框中的「隐藏」按钮，返回动态构造的 Button。
+
+    对话框白色主体位置随分辨率/排版变化（1280x720 标定的固定按钮区
+    在 1600x900 下完全落空，且对话框非等比缩放），因此改为两步动态定位：
+    1. 全屏找白色大块（亮度>220 的最大连通域，面积>=屏幕4%）即对话框；
+    2. 质心落在白区范围内的绿色文字块为对话框内元素，「隐藏」按钮是
+       其中最靠下的一块（实测 1280x720 与 1600x900 布局一致：上部两块
+       绿字+中部绿图形+底部「隐藏」二字），与其 y 范围重叠的绿块合并
+       取质心。绿字底色并非纯白，不能按像素落在白区 mask 上判定，
+       按质心归属；主界面右下「出击」绿字在白区范围外，天然排除。
+    Args:
+        image: 当前截图。
+
+    Returns:
+        Button: 「隐藏」按钮（点击热区为绿字质心附近）；未找到时 None。
+    """
+    height, width = image.shape[:2]
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    white = gray > 220
+    n, labels, stats, _ = cv2.connectedComponentsWithStats(white.astype(np.uint8), 8)
+    if n <= 1:
+        logger.info('[渠道悬浮球] 未检测到白色对话框')
+        return None
+    best = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    if stats[best, cv2.CC_STAT_AREA] < CHANNEL_FLOAT_DIALOG_WHITE_RATIO * width * height:
+        logger.info('[渠道悬浮球] 白色区域过小，非「隐藏悬浮球」对话框')
+        return None
+    wx, wy, ww, wh = (stats[best, 0], stats[best, 1],
+                      stats[best, 2], stats[best, 3])
+
     r = image[:, :, 0].astype(np.int16)
     g = image[:, :, 1].astype(np.int16)
     b = image[:, :, 2].astype(np.int16)
-    green = int(np.sum((g > r + 15) & (g > b + 15) & (g > 100)))
-    logger.info(f'[渠道悬浮球] 绿色标志像素 {green}')
-    return green >= CHANNEL_FLOAT_GREEN_THRESHOLD
-
-
-def dialog_button_brightness(image) -> float:
-    """「隐藏」按钮区域的平均亮度，用于判断「隐藏悬浮球」对话框是否弹出。
-
-    Args:
-        image: 当前截图（1280x720）。
-
-    Returns:
-        float: 区域平均亮度（0~255）。
-    """
-    color = get_color(image, (728, 604, 848, 664))
-    return float(sum(color) / len(color))
+    green = (g > r + 15) & (g > b + 15) & (g > 100)
+    n2, labels2, stats2, centroids2 = cv2.connectedComponentsWithStats(
+        green.astype(np.uint8), 8)
+    blocks = []
+    for i in range(1, n2):
+        x, y, w2, h2, a = stats2[i]
+        if a < CHANNEL_FLOAT_HIDE_GREEN_THRESHOLD:
+            continue
+        cx0, cy0 = centroids2[i]
+        if wx <= cx0 <= wx + ww and wy <= cy0 <= wy + wh:
+            blocks.append((y + h2 / 2, x, y, w2, h2, centroids2[i]))
+    if not blocks:
+        logger.info('[渠道悬浮球] 对话框内未找到「隐藏」绿字')
+        return None
+    # 最靠下的绿字块为主块，合并与其 y 范围重叠>=50% 的相邻块（「隐藏」两字）
+    blocks.sort(key=lambda t: t[0], reverse=True)
+    main_y0, main_y1 = blocks[0][2], blocks[0][2] + blocks[0][4]
+    xs, ys = [], []
+    for _, x, y, w2, h2, c in blocks:
+        overlap = min(main_y1, y + h2) - max(main_y0, y)
+        if overlap >= 0.5 * h2:
+            xs.append(c[0])
+            ys.append(c[1])
+    cx, cy = int(np.mean(xs)), int(np.mean(ys))
+    pad = int(12 * height / 720)
+    button = Button(
+        area=(cx - pad, cy - pad, cx + pad, cy + pad),
+        color=(),
+        button=(cx - pad, cy - pad, cx + pad, cy + pad),
+        name=f'CHANNEL_FLOAT_HIDE_DYNAMIC ({cx}, {cy})',
+    )
+    logger.info(f'[渠道悬浮球] 定位「隐藏」按钮 ({cx}, {cy})，绿字块 {len(xs)} 个')
+    return button
 
 
 class ChannelFloatHandler(ModuleBase):
@@ -90,57 +221,38 @@ class ChannelFloatHandler(ModuleBase):
         logger.info(f'[渠道悬浮球] 未启用：非 4399 渠道服（server={server_name}, package={package}）')
         return False
 
-    def detected(self) -> bool:
-        """悬浮球是否出现在屏幕左上角黑条区域。
-
-        悬浮球半透明难以直接模板识别，但其顶部带有绿色「○○○」标志，
-        黑色标题栏背景不含绿色像素，通过统计绿色像素数量即可可靠检出。
-
-        Returns:
-            bool: True 表示识别到悬浮球。
-        """
-        image = crop(self.device.image, CHANNEL_FLOAT_AREA, copy=False)
-        return detect_channel_float(image)
-
-    def _dialog_brightness(self) -> float:
-        """「隐藏」按钮区域的平均亮度。
-
-        对话框出现时「隐藏」按钮区域为浅色底（接近白色），
-        游戏画面中该区域为深色画面，通过平均亮度即可区分。
-
-        Returns:
-            float: 区域平均亮度（0~255），供日志记录。
-        """
-        color = get_color(self.device.image, (728, 604, 848, 664))
-        return float(sum(color) / len(color))
-
-    def handle_channel_float(self) -> bool:
+    def handle_channel_float(self, ball_pos) -> bool:
         """拖拽悬浮球到屏幕中下，并在「隐藏」对话框弹出后点击「隐藏」。
+
+        Args:
+            ball_pos: 悬浮球中心坐标 (x, y)，由 channel_float_position 动态定位。
 
         Returns:
             bool: 固定返回 True，表示已执行处理。
         """
+        height, width = self.device.image.shape[:2]
+        swipe_end = (int(CHANNEL_FLOAT_SWIPE_END[0] * width / 1280),
+                     int(CHANNEL_FLOAT_SWIPE_END[1] * height / 720))
         logger.info(
-            f'[渠道悬浮球] 拖拽 {CHANNEL_FLOAT_SWIPE_START} -> {CHANNEL_FLOAT_SWIPE_END}, '
-            f'{CHANNEL_FLOAT_SWIPE_DURATION}s')
+            f'[渠道悬浮球] 拖拽 {ball_pos} -> {swipe_end}, '
+            f'终点停留 {CHANNEL_FLOAT_HOLD_DURATION}s')
         start = time.monotonic()
-        self.device.swipe(
-            CHANNEL_FLOAT_SWIPE_START, CHANNEL_FLOAT_SWIPE_END,
-            duration=CHANNEL_FLOAT_SWIPE_DURATION, name='CHANNEL_FLOAT_SWIPE')
+        self.device.drag(
+            ball_pos, swipe_end,
+            point_random=(0, 0, 0, 0), hold_duration=CHANNEL_FLOAT_HOLD_DURATION,
+            name='CHANNEL_FLOAT_DRAG')
         logger.info(f'[渠道悬浮球] 拖拽完成，耗时 {time.monotonic() - start:.2f}s')
-        # 等待「隐藏悬浮球」对话框弹出（截图循环，最多等 4 秒）
+        # 等待「隐藏」按钮出现（截图循环，最多等 4 秒）
         dialog_timer = Timer(4).start()
-        last_brightness = 0.0
         while 1:
             self.device.screenshot()
-            last_brightness = self._dialog_brightness()
-            if last_brightness > 150:
-                logger.info(f'[渠道悬浮球] 点击「隐藏」（按钮区域亮度 {last_brightness:.0f}）')
-                self.device.click(CHANNEL_FLOAT_HIDE_BUTTON)
+            button = hide_button(self.device.image)
+            if button is not None:
+                logger.info('[渠道悬浮球] 检测到「隐藏」按钮，点击')
+                self.device.click(button)
                 break
             if dialog_timer.reached():
-                logger.info(
-                    f'[渠道悬浮球] 未见「隐藏悬浮球」对话框（最后亮度 {last_brightness:.0f}），跳过点击')
+                logger.info('[渠道悬浮球] 未见「隐藏」按钮，跳过点击')
                 break
         return True
 
@@ -176,10 +288,10 @@ class ChannelFloatHandler(ModuleBase):
                 logger.info('[渠道悬浮球] 等待主界面超时，跳过本会话')
                 return True
         logger.attr('检测区域', CHANNEL_FLOAT_AREA)
-        logger.attr('绿色阈值', CHANNEL_FLOAT_GREEN_THRESHOLD)
         for attempt in range(CHANNEL_FLOAT_MAX_ATTEMPTS):
             self.device.screenshot()
-            if not self.detected():
+            ball_pos = channel_float_position(self.device.image)
+            if ball_pos is None:
                 logger.info(
                     f'[渠道悬浮球] 第 {attempt + 1}/{CHANNEL_FLOAT_MAX_ATTEMPTS} 次：'
                     '未识别到悬浮球，跳过')
@@ -187,6 +299,6 @@ class ChannelFloatHandler(ModuleBase):
             logger.info(
                 f'[渠道悬浮球] 第 {attempt + 1}/{CHANNEL_FLOAT_MAX_ATTEMPTS} 次：'
                 '识别到悬浮球，开始处理')
-            self.handle_channel_float()
+            self.handle_channel_float(ball_pos)
         logger.info('[渠道悬浮球] 多次处理仍未消失，跳过本回合')
         return True
