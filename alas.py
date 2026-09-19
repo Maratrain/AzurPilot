@@ -407,7 +407,7 @@ class AzurLaneAutoScript:
             )
             time.sleep(5)
             logger.info('[Alas] 正在启动模拟器...')
-            self._emulator_op_with_timeout(
+            started = self._emulator_op_with_timeout(
                 # consecutive_adb_offline 在函数开头已 +1，减 1 得到"本次之前
                 # 已经连续失败过几次"；平台据此选取启动监视的等待时长，
                 # 连续失败越多等得越久（60 → 90 → 120 → 180 → 300 秒），
@@ -425,6 +425,11 @@ class AzurLaneAutoScript:
             # 清除 device 缓存，下次访问时重新建立连接
             if 'device' in self.__dict__:
                 del_cached_property(self, 'device')
+            # 重启成功即刻归零：主循环只在任务完整成功时归零、'recoverable' 路径不归，
+            # 而本函数超限即放弃，不归零会让自动重启累计 3 次离线后永久停摆。
+            # 只认平台显式返回的 False 为起不来（SSH 等平台成功时返回 None，不能算失败）
+            if started is not False:
+                self.consecutive_adb_offline = 0
             return True
         except EmulatorOpBusy as e:
             # 上一轮的重启操作还在后台跑（很可能正在冷启动模拟器）。

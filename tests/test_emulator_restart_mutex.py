@@ -506,6 +506,21 @@ class TestRestartEmulatorBusyHandling(unittest.TestCase):
         self.assertTrue(script._try_restart_emulator())
         self.assertEqual(0, script.consecutive_adb_offline)
 
+    def test_keeps_counter_when_platform_reports_start_failed(self):
+        """平台返回 False 表示模拟器其实没起来，不能顺手抹掉连续失败计数。
+
+        该计数是启动等待阶梯（60→300 秒）与深度重启递进的输入，被归零就等于
+        每轮都从最短等待重来，模拟器反复起不来时永远等不到足够久。
+        """
+        script = self.make_script()
+        script.consecutive_adb_offline = 1
+        device = self.make_device()
+        device.emulator_start.return_value = False
+        script.__dict__['device'] = device
+
+        self.assertTrue(script._try_restart_emulator())
+        self.assertEqual(2, script.consecutive_adb_offline)
+
     def test_passes_deep_flag_matching_the_threshold(self):
         """未达阈值时必须以 deep=False 调用——参数名写错会在这里炸出来。"""
         script = self.make_script()
@@ -518,6 +533,9 @@ class TestRestartEmulatorBusyHandling(unittest.TestCase):
 
     def test_passes_deep_true_after_threshold(self):
         script = self.make_script()
+        # 本用例只验 deep 透传：离线计数超过 Error_AdbOfflineThreshold 时会直接放弃，
+        # 故把阈值抬到本用例的计数之上（阈值策略由其它用例覆盖）
+        script.config.Error_AdbOfflineThreshold = 9
         script.consecutive_adb_offline = 5
         script.config.EmulatorManagement_DeepRestartAfterFailures = 3
         device = self.make_device()
@@ -529,6 +547,7 @@ class TestRestartEmulatorBusyHandling(unittest.TestCase):
     def test_passes_failure_count_for_the_watch_ladder(self):
         """已连续失败次数要透传给平台，否则等待时间永远停在第一档 60 秒。"""
         script = self.make_script()
+        script.config.Error_AdbOfflineThreshold = 9  # 同上，本用例只验 failures 透传
         script.consecutive_adb_offline = 4  # 本次调用开头会 +1，故本次之前失败过 4 次
         device = self.make_device()
         script.__dict__['device'] = device
