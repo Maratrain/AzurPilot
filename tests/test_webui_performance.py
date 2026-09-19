@@ -308,6 +308,9 @@ class TestTaskConfigRendering(unittest.TestCase):
 
 class TestWebUIImports(unittest.TestCase):
     def test_entry_does_not_eagerly_import_image_stack(self):
+        # 子进程的 stdout 走管道，按平台默认编码解码：中文 Windows 上是 GBK，
+        # 而子进程日志里会有 UTF-8 字节，解码直接抛 UnicodeDecodeError。
+        # 显式指定 UTF-8，并对个别非法字节容错（我们只取最后一行的 ASCII 结果）。
         result = subprocess.run(
             [
                 sys.executable,
@@ -322,6 +325,8 @@ class TestWebUIImports(unittest.TestCase):
             check=True,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
         )
 
         self.assertEqual("0 0 0", result.stdout.strip().splitlines()[-1])
