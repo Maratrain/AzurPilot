@@ -248,13 +248,17 @@ class Enhancement(Dock):
 
     def _enhance_deselect_cv(self):
         """
-        De-select common rarity CV from enhance material slots
+        De-select common rarity CV from enhance material slots.
+
+        反选只需一次点击。点击后等待空槽模板出现以确认反选生效，
+        超时则放弃确认、交回状态机判断；绝不重复点击——空槽位被
+        再次点击会打开舰船选择弹窗，曾导致强化界面 GameStuckError。
         """
         cv = self._enhance_get_deselect_cv()
         if cv is None:
             return
 
-        logger.info(f'Enhance de-select common CV')
+        logger.info('反选普通航母')
         # get cv slot, outer pad from matched center
         area = cv.area
         center = ((area[0] + area[2]) / 2, (area[1] + area[3]) / 2)
@@ -262,19 +266,24 @@ class Enhancement(Dock):
         radius = radius + 22
         search = (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius)
 
-        self.interval_clear(ENHANCE_RECOMMEND, interval=2)
         EMPTY_ENHANCE_SLOT_PLUS.ensure_template()
+        # 仅点击一次取消选中：再次点击空槽位会打开舰船选择弹窗，
+        # 使强化界面卡死（曾触发 GameStuckError）
+        self.device.click(cv)
+
+        # 等待空槽出现以确认反选生效；超时则放弃确认，由后续
+        # state_enhance_attempt（ENHANCE_CONFIRM / info_bar_count）兜底判断
+        confirm = Timer(5, count=10).start()
         for _ in self.loop():
+            if confirm.reached():
+                logger.warning('[退役-强化] 反选确认超时，继续强化流程')
+                break
             image = self.image_crop(search, copy=False)
             result = cv2.matchTemplate(EMPTY_ENHANCE_SLOT_PLUS.image, image, cv2.TM_CCOEFF_NORMED)
             _, similarity, _, _ = cv2.minMaxLoc(result)
             if similarity > 0.85:
-                logger.info(f'Enhance de-select common CV done')
+                logger.info('反选普通航母完成')
                 break
-
-            if self.appear(ENHANCE_RECOMMEND, offset=(5, 5), interval=2):
-                self.device.click(cv)
-                continue
 
     def _enhance_choose(self, ship_count, skip_first_screenshot=True):
         """
