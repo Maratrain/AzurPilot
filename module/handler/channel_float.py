@@ -103,6 +103,10 @@ def channel_float_position(image):
         a = stats[i, cv2.CC_STAT_AREA]
         if a >= 8:
             comps.append((centroids[i][0], centroids[i][1], a))
+    if not comps:
+        # 绿色像素总数达标但全部分散为 <8px 的碎块，无法可靠聚类质心
+        logger.info(f'[渠道悬浮球] 绿色标志像素 {count}，但无有效连通域，未识别到悬浮球')
+        return None
     groups = []
     for cx, cy, _ in sorted(comps, key=lambda c: (c[1], c[0])):
         for group in groups:
