@@ -60,7 +60,6 @@ def main():
             dependency_names.update(alias.asname or alias.name for alias in node.names)
     helper_names = {
         "DEMO_DEVICE_ID_TEXT",
-        "build_copyable_device_id",
         "build_muted_notice",
         "build_recommendation_box",
         "build_simple_table",

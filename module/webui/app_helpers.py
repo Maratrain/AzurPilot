@@ -220,19 +220,6 @@ def build_simple_table(headers, rows, extra_style: str = "") -> str:
     )
 
 
-def build_copyable_device_id(device_id: str) -> str:
-    """构造可复制设备标识的 HTML。
-
-    Args:
-        device_id: 设备标识。
-
-    Returns:
-        str: 设备标识 HTML。
-    """
-    tpl = read_webapp_template("copyable_device_id.html")
-    return tpl.format(device_id=device_id)
-
-
 def build_recommendation_box(text: str) -> str:
     """构造推荐提示框。
 

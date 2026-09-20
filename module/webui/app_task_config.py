@@ -20,7 +20,6 @@ from module.webui.app_dependencies import (
     deep_set,
     dict_to_kv,
     filepath_config,
-    get_device_id,
     logger,
     os,
     parse_pin_value,
@@ -48,11 +47,7 @@ from module.webui.app_dependencies import (
     use_scope,
 )
 
-from module.webui.app_helpers import (
-    DEMO_DEVICE_ID_TEXT,
-    build_copyable_device_id,
-    is_demo_mode,
-)
+from module.webui.app_helpers import is_demo_mode
 from module.webui.config_search import (
     ConfigSearchEntry,
     build_config_search_result_click_script,
@@ -506,11 +501,6 @@ class TaskConfigMixin(WebUIMixinBase):
         for arg_name, output in output_list:
             field_scope = config_search_field_scope(task, group_name, arg_name)
             content.append(put_scope(field_scope, content=[output]))
-
-        # 在掉落记录组中显示可复制的设备ID
-        if group_name == "DropRecord":
-            device_id = DEMO_DEVICE_ID_TEXT if is_demo_mode() else get_device_id()
-            content.append(put_html(build_copyable_device_id(device_id)))
 
         return (
             put_scope(f"group_{group_name}", content=content),

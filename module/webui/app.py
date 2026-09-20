@@ -49,7 +49,6 @@ from module.webui.app_fleet_management import FleetManagementMixin
 from module.webui.app_helpers import (
     DEMO_DEVICE_ID_TEXT,
     WEBUI_AUTO_PASSWORD_FILE,
-    build_copyable_device_id,
     build_muted_notice,
     build_recommendation_box,
     build_simple_table,
