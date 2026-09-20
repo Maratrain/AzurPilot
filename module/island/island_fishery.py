@@ -196,18 +196,14 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
         """只有检测后处于空闲状态的岗位才可在本轮派遣。"""
         return post_info.get('state') == 'idle'
 
-    def _planned_fry_purchase_quantity(self, product, post_count, supply_post_counts, default_post_counts):
-        """计算本轮需要购买的鱼苗数量，保证每个同类岗位至少能下单。"""
-        buy_max = self.name_to_config[product].get('buy_max', 4)
-        post_capacity = buy_max + 1
+    def _planned_fry_target_quantity(self, product, post_count, supply_post_counts, default_post_counts):
+        """计算岗位需要的鱼苗总量；已有库存与补购差额由派遣页确认。"""
+        post_capacity = self.name_to_config[product].get('buy_max', 4) + 1
         supply_posts = supply_post_counts.get(product, 0)
         default_posts = default_post_counts.get(product, 0)
         supply_demand = len([p for p in self.to_plant_list if p == product])
-        max_purchase = post_count * buy_max
-        base_purchase = min(supply_demand, supply_posts * buy_max) + default_posts * buy_max
-        min_purchase_for_posts = min(max_purchase, post_capacity * (post_count - 1) + 1)
-        total_purchase = min(max_purchase, max(base_purchase, min_purchase_for_posts))
-        return total_purchase, supply_demand, buy_max
+        total_target = min(supply_demand, supply_posts * post_capacity) + default_posts * post_capacity
+        return min(post_count * post_capacity, total_target), supply_demand, post_capacity
 
     def warehouse_inventory(self):
         """获取仓库库存信息"""
@@ -369,19 +365,23 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
 
         product_quantities = {}
         for product, count in product_counts.items():
-            total_purchase, supply_demand, buy_max = self._planned_fry_purchase_quantity(
+            total_target, supply_demand, post_capacity = self._planned_fry_target_quantity(
                 product, count, supply_post_counts, default_post_counts
             )
             logger.info(
                 f"{product}鱼苗补货计划，补种需求{supply_demand}个，排产{count}岗，"
-                f"本轮目标{total_purchase}个，每岗上限{buy_max}个"
+                f"本轮目标{total_target}个，每岗容量{post_capacity}个"
             )
-            remaining = total_purchase
+            # 补库存岗位只补剩余需求，默认岗位始终按容量安排。
+            remaining = total_target - default_post_counts.get(product, 0) * post_capacity
             quantities = []
-            for _ in range(count):
-                buy_qty = min(buy_max, remaining) if remaining > 0 else 1
-                quantities.append(max(1, buy_qty))
-                remaining -= buy_qty
+            for index in range(count):
+                if index < supply_post_counts.get(product, 0):
+                    target_quantity = min(post_capacity, max(0, remaining))
+                    remaining -= target_quantity
+                else:
+                    target_quantity = post_capacity
+                quantities.append(target_quantity)
             product_quantities[product] = quantities
 
         quantity_queue = []
@@ -477,12 +477,6 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
 
             if products_to_plant:
                 logger.info(f"[岛屿-渔场] \n需要养殖的产品: {products_to_plant}")
-                fry_quantity_queue = self._build_fry_quantity_queue(
-                    products_to_plant,
-                    supply_post_counts,
-                    default_post_counts,
-                )
-
                 # 养殖
                 for i, post_info in enumerate(idle_posts):
                     if i >= len(products_to_plant):
@@ -490,7 +484,17 @@ class IslandFishery(Island, WarehouseOCR, LoginHandler):
                         continue
 
                     product_to_plant = products_to_plant[i]
-                    required_quantity = fry_quantity_queue[i]
+                    # 上一岗可能失败或按现有库存多养，按实际扣减后的需求重算。
+                    fry_quantity_queue = self._build_fry_quantity_queue(
+                        products_to_plant[i:], supply_post_counts, default_post_counts
+                    )
+                    required_quantity = fry_quantity_queue[0]
+                    if supply_post_counts.get(product_to_plant, 0):
+                        supply_post_counts[product_to_plant] -= 1
+                    else:
+                        default_post_counts[product_to_plant] -= 1
+                    if required_quantity <= 0:
+                        continue
                     logger.info(f"[岛屿-渔场] 尝试养殖渔场岗位{post_info['post_id']}: {product_to_plant}")
 
                     success = self.post_plant(
