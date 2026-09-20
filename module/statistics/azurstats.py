@@ -117,9 +117,9 @@ class DropImage:
 class AzurStats:
     """AzurStats 统计管理核心类，负责掉落截图的保存、解析和数据存储。
 
-    提供两种数据处理路径：
-        - 远程上传（已废弃）：将截图提交到远程 AzurStats 服务。
-        - 本地处理：将截图中的物品信息解析后存入 SQLite 数据库，
+    提供两种处理路径，均在本地完成：
+        - 保存截图：按分类写入 DropRecord_SaveFolder 目录。
+        - 本地解析：将截图中的物品信息解析后存入 SQLite 数据库，
           并生成统计汇总 CSV 文件（如指挥喵 farming 统计）。
 
     线程安全：
@@ -145,6 +145,9 @@ class AzurStats:
     LOCAL_GENRES = {'opsi_meowfficer_farming'}
     # 未识别物品的定位截图保存目录（随 screenshots/ 一起被 git 忽略）
     UNKNOWN_ITEM_FOLDER = './screenshots/unknown_items'
+    # 掉落记录档位（对应 DropRecord_* 配置的取值）
+    SAVE_METHODS = {'save', 'save_and_local'}
+    LOCAL_METHODS = {'local', 'save_and_local'}
     _local_lock = threading.Lock()
     _record_lock = threading.Lock()
 
@@ -632,7 +635,7 @@ class AzurStats:
         """
         Args:
             genre (str):
-            method (str): The method about save and upload image.
+            method (str): The method about save and local parse image.
             save (bool): Whether to save the image.
             local (bool): Whether to use local processing. If None, determined by genre.
             info (str): Extra info append to filename.
@@ -650,13 +653,10 @@ class AzurStats:
             method = None
         if method is not None:
             method_value = str(method)
-            save = save or 'save' in method_value
+            save = save or method_value in self.SAVE_METHODS
         if local is None:
             if method_value is None:
                 local = genre in self.LOCAL_GENRES
             else:
-                # 远程上传已废弃，method_value 来自 DropRecord_* 配置；
-                # 只要未显式关闭（do_not），命中 LOCAL_GENRES 的 genre 都本地解析入库，
-                # 让 "save" 也能产出收获数据，不再依赖旧命名里的 "upload" 语义。
-                local = method_value != 'do_not' and genre in self.LOCAL_GENRES
+                local = method_value in self.LOCAL_METHODS and genre in self.LOCAL_GENRES
         return DropImage(stat=self, genre=genre, save=save, local=local, info=info)

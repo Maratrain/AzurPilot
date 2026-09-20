@@ -642,17 +642,6 @@ class ConfigUpdater:
         # ('OpsiShop.Scheduler.Enable', 'OpsiShop.OpsiShop.BuySupply'),
         # ('ShopOnce.GuildShop.Filter', 'ShopOnce.GuildShop.Filter', bp_redirect),
         # ('ShopOnce.MedalShop2.Filter', 'ShopOnce.MedalShop2.Filter', bp_redirect),
-        # (('Alas.DropRecord.SaveResearch', 'Alas.DropRecord.UploadResearch'),
-        #  'Alas.DropRecord.ResearchRecord', upload_redirect),
-        # (('Alas.DropRecord.SaveCommission', 'Alas.DropRecord.UploadCommission'),
-        #  'Alas.DropRecord.CommissionRecord', upload_redirect),
-        # (('Alas.DropRecord.SaveOpsi', 'Alas.DropRecord.UploadOpsi'),
-        #  'Alas.DropRecord.OpsiRecord', upload_redirect),
-        # (('Alas.DropRecord.SaveMeowfficerTalent', 'Alas.DropRecord.UploadMeowfficerTalent'),
-        #  'Alas.DropRecord.MeowfficerTalent', upload_redirect),
-        # ('Alas.DropRecord.SaveCombat', 'Alas.DropRecord.CombatRecord', upload_redirect),
-        # ('Alas.DropRecord.SaveMeowfficer', 'Alas.DropRecord.MeowfficerBuy', upload_redirect),
-        # ('Alas.Emulator.PackageName', 'Alas.DropRecord.API', api_redirect),
         # ('Alas.RestartEmulator.Enable', 'Alas.RestartEmulator.ErrorRestart'),
         # ('OpsiGeneral.OpsiGeneral.BuyActionPoint', 'OpsiGeneral.OpsiGeneral.BuyActionPointLimit', action_point_redirect),
         # ('BattlePass.BattlePass.BattlePassReward', 'Freebies.BattlePass.Collect'),
@@ -675,11 +664,19 @@ class ConfigUpdater:
         # (('GemsFarming.GemsFarming.VanguardChange', 'GemsFarming.GemsFarming.VanguardEquipChange'),
         #  'GemsFarming.GemsFarming.ChangeVanguard',
         #  change_ship_redirect),
-        # ('Alas.DropRecord.API', 'Alas.DropRecord.API', api_redirect2)
         # 2025.04.17
         # ('Coalition.Coalition.Mode', 'Coalition.Coalition.Mode', coalition_to_frostfall),
         # 2025.06.26
         # ('Coalition.Coalition.Mode', 'Coalition.Coalition.Mode', coalition_to_little_academy),
+    ]
+    # 掉落记录不再有"上传"档位：upload/save_and_upload 改成 local/save_and_local；
+    # 其余档位（科研、委托、行动力箱子、指挥喵天赋）没有本地解析，回归 do_not/save。
+    redirection += [
+        ('Alas.DropRecord.OpsiRecord', 'Alas.DropRecord.OpsiRecord', drop_record_local_redirect),
+        ('Alas.DropRecord.OpsiShopRecord', 'Alas.DropRecord.OpsiShopRecord', drop_record_save_only_redirect),
+        ('Alas.DropRecord.ResearchRecord', 'Alas.DropRecord.ResearchRecord', drop_record_save_only_redirect),
+        ('Alas.DropRecord.CommissionRecord', 'Alas.DropRecord.CommissionRecord', drop_record_save_only_redirect),
+        ('Alas.DropRecord.MeowfficerTalent', 'Alas.DropRecord.MeowfficerTalent', drop_record_save_only_redirect),
     ]
     redirection += [
         (f'{task}.GemsFarming.ALLowHighFlagshipLevel', f'{task}.GemsFarming.AllowHighFlagshipLevel')
@@ -861,8 +858,8 @@ class ConfigUpdater:
     def _override(self, data):
         def remove_drop_save(key):
             value = deep_get(data, keys=key, default='do_not')
-            if value == 'save_and_upload':
-                value = 'upload'
+            if value == 'save_and_local':
+                value = 'local'
                 deep_set(data, keys=key, value=value)
             elif value == 'save':
                 value = 'do_not'

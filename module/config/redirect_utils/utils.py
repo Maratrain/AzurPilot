@@ -13,39 +13,29 @@
 - 服务器名称规范化
 """
 
-from module.config.server import to_server
 
-
-def upload_redirect(value):
+def drop_record_local_redirect(value):
     """
-    redirect attr about upload.
+    掉落记录去掉上传档位：upload → local，save_and_upload → save_and_local。
     """
-    if isinstance(value, list):
-        if not value[0] and not value[1]:
-            return 'do_not'
-        elif value[0] and not value[1]:
-            return 'save'
-        elif not value[0] and value[1]:
-            return 'upload'
-        else:
-            return 'save_and_upload'
+    if value == 'upload':
+        return 'local'
+    elif value == 'save_and_upload':
+        return 'save_and_local'
     else:
-        if not value:
-            return 'do_not'
-        else:
-            return 'save'
+        return value
 
 
-def api_redirect(value):
+def drop_record_save_only_redirect(value):
     """
-    redirect attr about api.
+    无本地解析的掉落记录去掉上传档位，回归 do_not / save。
     """
-    if value == 'auto':
-        return 'default'
-    elif to_server(value) == 'cn':
-        return 'cn_gz_reverse_proxy'
+    if value == 'upload':
+        return 'do_not'
+    elif value == 'save_and_upload':
+        return 'save'
     else:
-        return 'default'
+        return value
 
 
 def dossier_redirect(value):
@@ -107,16 +97,6 @@ def change_ship_redirect(value):
         return 'ship_equip'
     else:
         return 'ship'
-
-
-def api_redirect2(value):
-    """
-    remove shanghai proxy, use guangzhou
-    """
-    if value == 'cn_sh_reverse_proxy':
-        return 'cn_gz_reverse_proxy'
-    else:
-        return value
 
 
 def coalition_to_frostfall(value):
