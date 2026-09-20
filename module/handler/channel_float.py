@@ -215,7 +215,7 @@ class ChannelFloatHandler(ModuleBase):
         Returns:
             bool: True 表示启用。
         """
-        if not bool(deep_get(self.config.data, 'Restart.Restart.MoveChannelFloat', default=False)):
+        if not bool(deep_get(self.config.data, 'Restart.MoveChannelFloat', default=False)):
             logger.info('[渠道悬浮球] 未启用：开关 Restart.MoveChannelFloat 未开启')
             return False
         package = str(deep_get(self.config.data, 'Alas.Emulator.PackageName', default=''))

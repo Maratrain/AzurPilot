@@ -224,7 +224,7 @@ class LoginHandler(UI):
         Returns:
             bool: True 表示登录流程启动后会自动拖拽悬浮窗。
         """
-        if not bool(deep_get(self.config.data, 'Restart.Restart.MoveChannelFloat', default=False)):
+        if not bool(deep_get(self.config.data, 'Restart.MoveChannelFloat', default=False)):
             return False
         package = str(deep_get(self.config.data, 'Alas.Emulator.PackageName', default=''))
         server_name = str(deep_get(self.config.data, 'Alas.Emulator.ServerName', default=''))
@@ -278,14 +278,14 @@ class LoginHandler(UI):
         对应配置项 Restart.LoginWaitTimeout，仅作用于 app_restart()/app_start()
         之后的登录等待阶段；正常任务仍使用 device 原始卡死检测阈值。
 
-        直接读取跨任务配置路径 Restart.Restart.LoginWaitTimeout，而非依赖当前
+        直接读取跨任务配置路径 Restart.LoginWaitTimeout，而非依赖当前
         绑定的任务，确保在非 Restart 任务（如大世界、未知页面恢复）触发的
         登录等待中也能读到用户配置值。
 
         Returns:
             float: 登录等待宽容时间（秒），配置非法时回退默认 30 秒。
         """
-        value = deep_get(self.config.data, 'Restart.Restart.LoginWaitTimeout', default=30)
+        value = deep_get(self.config.data, 'Restart.LoginWaitTimeout', default=30)
         try:
             timeout = float(value)
         except (TypeError, ValueError):
