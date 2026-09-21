@@ -233,8 +233,10 @@ class MeowfficerScanner(MeowfficerBase):
     def _select_card(self, button, ocr, previous: str = '') -> str:
         """点击一张猫窝卡片并返回选中后的猫名。
 
-        点空或界面还没刷新时名字不会变，这里重试一次，避免把这张卡误当成
-        「已扫过的猫」跳过、从而整只猫漏掉。
+        猫窝列表不满时，空卡片点击后画面不变、左下角仍显示上一只猫的名字。
+        仅凭「名字是否变化」无法区分空卡片和同名猫（指挥喵可以重名），
+        所以同时比较左下角猫名区域的前后图像：名字没变但画面变了 → 同名猫，
+        画面也没变 → 空卡片，返回空串跳过。
 
         Args:
             button: 卡片按钮。
@@ -242,20 +244,28 @@ class MeowfficerScanner(MeowfficerBase):
             previous: 点击前显示的猫名。
 
         Returns:
-            str: 选中后的猫名；读不到返回空串。
+            str: 选中后的猫名；空卡片或读不到返回空串。
         """
         name = previous
         for attempt in range(2):
+            self.device.screenshot()
+            before = _crop(self.device.image, CURRENT_CAT_AREA).copy()
             self.device.click(button)
             time.sleep(0.35)
             self._wait_stable(CATTERY_PANEL_AREA, timeout=3)
+            after = _crop(self.device.image, CURRENT_CAT_AREA).copy()
             self.device.stuck_record_clear()
             name, _level = self._read_current_cat(ocr)
+            # 名字变了 → 新猫
             if name and name != previous:
+                return name
+            # 名字没变但左下角画面变了 → 同名猫（不同个体），仍然处理
+            if name and _mean_diff(before, after) > STABLE_TOLERANCE:
                 return name
             if attempt == 0:
                 logger.debug(f'[指挥喵-扫描] 点击后猫名未变（{previous}），重试一次')
-        return name
+        # 两次都选不到新猫 → 空卡片
+        return ''
 
     def _open_talent(self) -> bool:
         """点开「天赋」页签。"""
