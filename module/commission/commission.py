@@ -1041,32 +1041,37 @@ class RewardCommission(UI, InfoHandler):
             reward_stats = None
             if self.config.Commission_NotifyRewardStatistics:
                 reward_stats = cl1_db.get_commission_reward_stats(instance)
+
             gem_count = merged_items.get("Gem", 0)
+            cube_count = merged_items.get("Cube", 0)
             tracked = []
+
+            # 💎 Gem 内容
             if gem_count > 0:
-                text = f'本次获得钻石 * {gem_count}'
+                text = f'💎钻石 * {gem_count}'
                 if reward_stats:
                     text += (
-                        f'\n\n今日累计: {reward_stats["today"].get("Gem", 0)}'
-                        f'\n本周累计: {reward_stats["week"].get("Gem", 0)}'
-                        f'\n本月累计: {reward_stats["month"].get("Gem", 0)}'
+                        f'\n\n今日累计获取💎钻石 * {reward_stats["today"].get("Gem", 0)}'
+                        f'\n本周累计获取💎钻石 * {reward_stats["week"].get("Gem", 0)}'
+                        f'\n本月累计获取💎钻石 * {reward_stats["month"].get("Gem", 0)}'
                     )
                 tracked.append(text)
+
+            # 🧊 Cube 内容
+            if cube_count > 0:
+                text = f'🧊魔方 * {cube_count}'
+                if reward_stats:
+                    text += (
+                        f'\n\n今日累计获取🧊魔方 * {reward_stats["today"].get("Cube", 0)}'
+                        f'\n本周累计获取🧊魔方 * {reward_stats["week"].get("Cube", 0)}'
+                        f'\n本月累计获取🧊魔方 * {reward_stats["month"].get("Cube", 0)}'
+                    )
+                tracked.append(text)
+
             if tracked:
-
                 msg = '\n'.join(tracked)
-                webui_msg = msg.replace('\n\n', '\n')
-                title = f"AzurPilot <{instance}> 委托获得奖励喵！"
-                webui_title = f"AzurPilot <{instance}> 委托获得奖励喵！"
-                if gem_count >= 50:
-                    title = f"AzurPilot <{instance}> 大成功！！！委托获得顶级奖励喵！"
-                    webui_title = f"AzurPilot <{instance}> 大成功！！！委托获得顶级奖励喵！"
 
-                elif gem_count > 0:
-                    title = f"AzurPilot <{instance}> 委托获得顶级奖励喵！"
-                    webui_title = f"AzurPilot <{instance}> 委托获得顶级奖励喵！"
-
-                # 附加钻石委托分时长统计
+                # 钻石委托统计（开启时附带）
                 if gem_count > 0 and self.config.Commission_GemStatistics:
                     try:
                         gem_stats = cl1_db.get_gem_commission_stats(
@@ -1074,14 +1079,30 @@ class RewardCommission(UI, InfoHandler):
                             period=self.config.Commission_GemStatisticsPeriod,
                         )
                         gem_entries = cl1_db.get_gem_commissions(instance)
-                        msg += '\n\n' + self._format_gem_statistics(
+                        msg += self._format_gem_statistics(
                             gem_stats,
                             gem_entries,
                             self.config.Commission_GemStatisticsPeriod,
                         )
-                        webui_msg = msg.replace('\n\n', '\n')
                     except Exception as e:
-                        logger.warning(f'钻石委托统计生成失败: {e}')
+                        logger.warning(f'钻石委托统计读取失败: {e}')
+
+                webui_msg = msg.replace('\n\n', '\n')
+
+                title = f"AzurPilot <{instance}> 委托获得奖励喵！"
+                webui_title = f"AzurPilot <{instance}> 委托获得奖励喵！"
+
+                if gem_count >= 50:
+                    title = f"AzurPilot <{instance}> 大成功！！！委托获得顶级奖励喵！"
+                    webui_title = f"{instance}  大成功！！！委托获得顶级奖励喵！"
+
+                elif gem_count > 0:
+                    title = f"AzurPilot <{instance}> 委托获得顶级奖励喵！"
+                    webui_title = f"{instance}  委托获得顶级奖励喵！"
+
+                elif cube_count > 0:
+                    title = f"AzurPilot <{instance}> 委托获得高级奖励喵！"
+                    webui_title = f"{instance}  委托获得高级奖励喵！"
 
                 handle_notify(
                     self.config.Error_OnePushConfig,
