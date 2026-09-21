@@ -353,6 +353,8 @@ Stat:
   ViewTitleLine:
   ViewTitleDay:
   ViewTitleMonth:
+  ViewTitleTable:
+  ViewTitleBar:
   CannotAggregateKline:
   ViewLineShort:
   DataPointsCount:
@@ -362,6 +364,16 @@ Stat:
   ViewLineButton:
   ViewDayButton:
   ViewMonthButton:
+  ViewTableButton:
+  ViewBarButton:
+  TableHeaderDate:
+  TableHeaderOpen:
+  TableHeaderClose:
+  TableHeaderHigh:
+  TableHeaderLow:
+  TableHeaderNet:
+  TableHeaderPoints:
+  NoDailyTableData:
   DetailChartTitle:
   ToggleDetailChart:
   DetailChartOn:

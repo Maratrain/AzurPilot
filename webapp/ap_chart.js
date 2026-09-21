@@ -61,8 +61,10 @@
     var hasAssetSeries = lineAsset && lineAsset.length > 0;
     var lineDistance = __DISTANCE__;
     var hasDistanceSeries = lineDistance && lineDistance.length > 0;
+    var bars = __BARS__;
 
-    var seriesVisible = [true, true, true, true, true];
+    // 默认只显示体力，避免黄币/紫币/资产把视口挤满
+    var seriesVisible = [true, false, false, false, false];
     var _isSelecting = false;
     var seriesColors = ["#64b5f6", "#ce93d8", "#ffd54f", "#22d3ee", "#1565c0"];
     var seriesNames = ["体力", "紫币", "黄币", "资产", "海里数"];
@@ -75,6 +77,8 @@
 
     var nn = chartType === 'line' ? ap.length : labels.length;
     if (nn < 1) return;
+    // 表格视图由后端直接渲染，无需 canvas
+    if (chartType === 'table') return;
 
     var cv = document.getElementById(chartId);
     if (!cv) return;
@@ -130,15 +134,30 @@
         var COIN_TICK_BASELINE = 4;
         var COIN_TICK_STACK_GAP = 11;
 
-        pad = { t: 20, r: showCoins ? 110 : 20, b: 52, l: 52 };
-        gW = W - pad.l - pad.r;
-        gH = H - pad.t - pad.b;
+        // 额外系列全部隐藏时收回右侧刻度区，让体力图占满宽度
+        function extraSeriesVisible() {
+            return seriesVisible[1] || seriesVisible[2] || seriesVisible[3] || seriesVisible[4];
+        }
 
-        // ---- 主数据范围（体力轴，最小值固定 0） ----
+        function computePad() {
+            pad = { t: 20, r: (showCoins && extraSeriesVisible()) ? 110 : 20, b: 52, l: 52 };
+            gW = W - pad.l - pad.r;
+            gH = H - pad.t - pad.b;
+        }
+
+        computePad();
+
+        // ---- 主数据范围（体力轴，最小值固定 0；增减柱状图允许负数） ----
         var allMin = 0, allMax = -Infinity;
         if (chartType === 'line') {
             for (var i = 0; i < nn; i++) {
                 if (ap[i] > allMax) allMax = ap[i];
+            }
+        } else if (chartType === 'bar') {
+            for (var i = 0; i < nn; i++) {
+                var barVal = bars && bars[i] != null ? bars[i] : 0;
+                if (barVal > allMax) allMax = barVal;
+                if (barVal < allMin) allMin = barVal;
             }
         } else {
             for (var i = 0; i < nn; i++) {
@@ -146,8 +165,10 @@
             }
         }
         if (allMax === -Infinity) allMax = 100;
+        if (allMin === 0 && allMax <= 0) allMax = 1;
         var allRng = allMax - allMin || 1;
         allMax += allRng * 0.08;
+        if (allMin < 0) allMin -= allRng * 0.08;
 
         // ---- 黄币独立范围 ----
         var yellowMin = Infinity, yellowMax = -Infinity;
@@ -234,7 +255,7 @@
         }
 
         function drawAssetTicks(ctx, yOfMain, mainMin, mainMax) {
-            if (!hasExtra) return;
+            if (!hasExtra || !extraSeriesVisible()) return;
             ctx.font = "10px -apple-system, sans-serif";
             ctx.textAlign = "left";
             for (var i = 0; i <= 5; i++) {
@@ -297,17 +318,20 @@
 
         drawAssetTicks(ctx, yOf, allMin, allMax);
 
-        var avgY = yOf(avg);
-        ctx.save();
-        ctx.strokeStyle = "#ff9800";
-        ctx.lineWidth = 1;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath(); ctx.moveTo(pad.l, avgY); ctx.lineTo(W - pad.r, avgY); ctx.stroke();
-        ctx.restore();
-        ctx.fillStyle = "#ff9800";
-        ctx.font = "10px -apple-system, sans-serif";
-        ctx.textAlign = "right";
-        ctx.fillText("均值:" + avg, W - pad.r - 4, avgY - 8);
+        // 均值线属于体力值域，与增减柱状图的净变化量纲不同，不再绘制
+        if (chartType !== 'bar') {
+            var avgY = yOf(avg);
+            ctx.save();
+            ctx.strokeStyle = "#ff9800";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath(); ctx.moveTo(pad.l, avgY); ctx.lineTo(W - pad.r, avgY); ctx.stroke();
+            ctx.restore();
+            ctx.fillStyle = "#ff9800";
+            ctx.font = "10px -apple-system, sans-serif";
+            ctx.textAlign = "right";
+            ctx.fillText("均值:" + avg, W - pad.r - 4, avgY - 8);
+        }
 
         ctx.fillStyle = "#666";
         ctx.font = "10px -apple-system, sans-serif";
@@ -347,6 +371,25 @@
                     ctx.fillStyle = dotColor;
                     ctx.fill();
                 }
+            }
+        } else if (chartType === 'bar' && seriesVisible[0]) {
+            // 每日净增减柱（红=增加，绿=减少）
+            var barSpace = gW / nn;
+            var barW = Math.max(3, Math.min(barSpace * 0.6, 40));
+            var zeroY = yOf(0);
+
+            ctx.strokeStyle = "#555";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(W - pad.r, zeroY); ctx.stroke();
+
+            for (var i = 0; i < nn; i++) {
+                var barVal = bars && bars[i] != null ? bars[i] : 0;
+                var cxb = xCenter(i);
+                var by = yOf(barVal);
+                var barTop = Math.min(by, zeroY);
+                var barH = Math.max(Math.abs(zeroY - by), 1);
+                ctx.fillStyle = barVal >= 0 ? "#ef5350" : "#26a69a";
+                ctx.fillRect(cxb - barW / 2, barTop, barW, barH);
             }
         } else if (seriesVisible[0]) {
             for (var i = 0; i < nn; i++) {
@@ -552,6 +595,30 @@
                 }
 
                 setTooltipContent(tipEl, tooltipRows);
+            } else if (chartType === 'bar') {
+                var idx = Math.floor((mx_ - pad.l) / candleSpace);
+                idx = Math.max(0, Math.min(nn - 1, idx));
+                var cx = xCenter(idx);
+
+                oc.strokeStyle = "rgba(255,255,255,0.18)";
+                oc.lineWidth = 1;
+                oc.setLineDash([4, 3]);
+                oc.beginPath(); oc.moveTo(cx, pad.t); oc.lineTo(cx, pad.t + gH); oc.stroke();
+                oc.setLineDash([]);
+                oc.setTransform(1, 0, 0, 1, 0, 0);
+
+                var barVal = bars && bars[idx] != null ? bars[idx] : 0;
+                var barColor = barVal >= 0 ? "#ef5350" : "#26a69a";
+                var barSign = barVal >= 0 ? "+" : "";
+                setTooltipContent(tipEl, [
+                    { style: { color: "#888", marginBottom: "4px", fontWeight: "600" }, parts: [{ type: 'text', value: labels[idx] }] },
+                    { parts: [{ type: 'text', value: "净变化: " }, { type: 'bold', value: barSign + barVal, style: { color: barColor } }] },
+                    { parts: [{ type: 'text', value: "开盘: " }, { type: 'bold', value: String(opens[idx]) }] },
+                    { parts: [{ type: 'text', value: "收盘: " }, { type: 'bold', value: String(closes[idx]), style: { color: "#64b5f6" } }] },
+                    { parts: [{ type: 'text', value: "最高: " }, { type: 'bold', value: String(highs[idx]), style: { color: "#ef5350" } }] },
+                    { parts: [{ type: 'text', value: "最低: " }, { type: 'bold', value: String(lows[idx]), style: { color: "#26a69a" } }] },
+                    { style: { color: "#666", marginTop: "4px" }, parts: [{ type: 'text', value: "数据点密度: " + counts[idx] }] }
+                ]);
             } else {
                 // K线图的鼠标交互（与上游一致）
                 var idx = Math.floor((mx_ - pad.l) / candleSpace);
@@ -672,6 +739,7 @@
             var minZoom = 0.5;
 
             function renderDetailChart() {
+                computePad();
                 var visibleStart = Math.max(0, Math.floor(panOffset));
                 var visibleCount = Math.ceil(nn / zoomLevel);
                 var visibleEnd = Math.min(nn, visibleStart + visibleCount);

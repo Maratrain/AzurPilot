@@ -5,6 +5,7 @@ from module.webui.app_dependencies import (
     datetime,
     json,
     put_button,
+    put_buttons,
     put_html,
     put_text,
     t,
@@ -19,9 +20,16 @@ from module.webui.app_helpers import (
 
 from module.webui.app_types import WebUIMixinBase
 
+from module.webui.base import render_locked
+
 
 class ActionPointStatisticsMixin(WebUIMixinBase):
     """WebUI 体力趋势图的数据装配和图表渲染。"""
+
+    # 折线/详情视图；其余为聚合视图
+    AP_LINE_VIEWS = ("line", "detail")
+    # 支持的视图顺序即按钮顺序
+    AP_CHART_VIEWS = ("line", "day", "month", "table", "bar")
 
     def _load_ap_chart_timelines(self):
         """读取当前实例的行动力、凭证和资产时间线。"""
@@ -110,8 +118,10 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
         return raw_points
 
     def _build_ap_chart_series(self, raw_points):
-        """按当前视图构造折线或 K 线主序列及其摘要。"""
+        """按当前视图构造折线、K 线、柱状或表格主序列及其摘要。"""
         current_view = getattr(self, "_ap_chart_view", "line")
+        if current_view not in self.AP_CHART_VIEWS + ("detail",):
+            current_view = "line"
 
         labels = []
         opens = []
@@ -119,6 +129,8 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
         lows = []
         closes = []
         counts = []
+        bars = []
+        table_rows = []
         ap_list = []
         ap_ts = []
         detail_sources = []
@@ -159,62 +171,55 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
                 chart_points.append(p)
             view_title = t("Gui.Stat.ViewTitleLine")
         else:
-            from collections import OrderedDict
-
-            candles = OrderedDict()
-            if current_view == "day":
-                for p in today_points if today_points else raw_points[:24]:
-                    hour_key = p["dt"].strftime("%H:00")
-                    if hour_key not in candles:
-                        candles[hour_key] = {
-                            "open": p["ap"],
-                            "high": p["ap"],
-                            "low": p["ap"],
-                            "close": p["ap"],
-                            "count": 1,
-                        }
-                    else:
-                        c = candles[hour_key]
-                        c["high"] = max(c["high"], p["ap"])
-                        c["low"] = min(c["low"], p["ap"])
-                        c["close"] = p["ap"]
-                        c["count"] += 1
-                view_title = t("Gui.Stat.ViewTitleDay", day=today.strftime("%m-%d"))
-            else:
-                for p in raw_points:
-                    day_key = p["dt"].strftime("%m-%d")
-                    if day_key not in candles:
-                        candles[day_key] = {
-                            "open": p["ap"],
-                            "high": p["ap"],
-                            "low": p["ap"],
-                            "close": p["ap"],
-                            "count": 1,
-                        }
-                    else:
-                        c = candles[day_key]
-                        c["high"] = max(c["high"], p["ap"])
-                        c["low"] = min(c["low"], p["ap"])
-                        c["close"] = p["ap"]
-                        c["count"] += 1
-                view_title = t("Gui.Stat.ViewTitleMonth")
-
+            candles = self._aggregate_ap_candles(
+                raw_points,
+                by_hour=current_view == "day",
+                today_points=today_points,
+            )
             if not candles:
                 return None
-            for k, v in candles.items():
-                labels.append(k)
-                opens.append(v["open"])
-                highs.append(v["high"])
-                lows.append(v["low"])
-                closes.append(v["close"])
-                counts.append(v["count"])
+
+            if current_view == "day":
+                view_title = t("Gui.Stat.ViewTitleDay", day=today.strftime("%m-%d"))
+            elif current_view == "table":
+                view_title = t("Gui.Stat.ViewTitleTable")
+            elif current_view == "bar":
+                view_title = t("Gui.Stat.ViewTitleBar")
+            else:
+                view_title = t("Gui.Stat.ViewTitleMonth")
+
+            prev = None
+            for key, value in candles.items():
+                base = prev if prev is not None else value["open"]
+                net = value["close"] - base
+                prev = value["close"]
+                labels.append(key)
+                opens.append(value["open"])
+                highs.append(value["high"])
+                lows.append(value["low"])
+                closes.append(value["close"])
+                counts.append(value["count"])
+                bars.append(net)
+                table_rows.append(
+                    {
+                        "date": key,
+                        "open": value["open"],
+                        "close": value["close"],
+                        "high": value["high"],
+                        "low": value["low"],
+                        "net": net,
+                        "count": value["count"],
+                    }
+                )
+            if current_view == "table":
+                table_rows.reverse()
 
         all_ap = [p["ap"] for p in raw_points]
         ap_max = max(all_ap)
         ap_min = min(all_ap)
         ap_avg = int(sum(all_ap) / len(all_ap))
         ap_cur = all_ap[-1]
-        if current_view in ("line", "detail"):
+        if current_view in self.AP_LINE_VIEWS:
             ap_change = ap_list[-1] - ap_list[0] if len(ap_list) >= 2 else 0
             data_points_text = t("Gui.Stat.DataPointsCount", count=len(labels))
         else:
@@ -231,6 +236,8 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
             "lows": lows,
             "closes": closes,
             "counts": counts,
+            "bars": bars,
+            "table_rows": table_rows,
             "ap_list": ap_list,
             "ap_ts": ap_ts,
             "detail_sources": detail_sources,
@@ -246,6 +253,50 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
             "change_color": change_color,
             "change_sign": change_sign,
         }
+
+    @staticmethod
+    def _aggregate_ap_candles(raw_points, by_hour, today_points):
+        """把快照聚合为小时或日的 OHLC 序列。"""
+        from collections import OrderedDict
+
+        candles = OrderedDict()
+        if by_hour:
+            source = today_points if today_points else raw_points[:24]
+            for p in source:
+                key = p["dt"].strftime("%H:00")
+                candle = candles.get(key)
+                if candle is None:
+                    candles[key] = {
+                        "open": p["ap"],
+                        "high": p["ap"],
+                        "low": p["ap"],
+                        "close": p["ap"],
+                        "count": 1,
+                    }
+                else:
+                    candle["high"] = max(candle["high"], p["ap"])
+                    candle["low"] = min(candle["low"], p["ap"])
+                    candle["close"] = p["ap"]
+                    candle["count"] += 1
+        else:
+            for p in raw_points:
+                key = p["dt"].strftime("%m-%d")
+                candle = candles.get(key)
+                if candle is None:
+                    candles[key] = {
+                        "open": p["ap"],
+                        "high": p["ap"],
+                        "low": p["ap"],
+                        "close": p["ap"],
+                        "count": 1,
+                    }
+                else:
+                    candle["high"] = max(candle["high"], p["ap"])
+                    candle["low"] = min(candle["low"], p["ap"])
+                    candle["close"] = p["ap"]
+                    candle["count"] += 1
+        return candles
+
 
     @staticmethod
     def _align_ap_timeline(raw_points, chart_points):
@@ -503,8 +554,9 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
         """将已装配的数据填充到 HTML 和 JavaScript 模板。"""
         current_view = chart_data["current_view"]
         chart_id = f"ap_cv_{id(self)}"
+        is_table_view = current_view == "table"
         detail_controls_display = (
-            "display:flex;" if current_view in ("line", "detail") else "display:none;"
+            "display:flex;" if current_view in self.AP_LINE_VIEWS else "display:none;"
         )
 
         html_tpl = read_webapp_template("ap_chart_panel.html")
@@ -522,6 +574,13 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
             detail_controls_display=detail_controls_display,
             coins_stats_html=auxiliary_data["coins_stats_html"],
             coins_legend_html=auxiliary_data["coins_legend_html"],
+            chart_container_display="display:none;" if is_table_view else "display:block;",
+            table_display="block" if is_table_view else "none",
+            table_html=(
+                self._build_ap_table_html(chart_data["table_rows"])
+                if is_table_view
+                else ""
+            ),
         )
 
         js_tpl = read_webapp_template("ap_chart.js")
@@ -558,6 +617,7 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
             .replace("__ASSET__", json.dumps(auxiliary_data["asset_list"]))
             .replace("__ASSET_TS__", json.dumps(auxiliary_data["asset_ts_list"]))
             .replace("__DISTANCE__", json.dumps(auxiliary_data["distance_list"]))
+            .replace("__BARS__", json.dumps(chart_data["bars"]))
             .replace(
                 "__SHOW_COINS__",
                 "true" if auxiliary_data["show_coins"] else "false",
@@ -568,3 +628,89 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
         with use_scope("ap_chart", clear=True):
             put_html(html)
             run_js(js_code)
+            self._render_ap_chart_view_switcher(current_view)
+
+    def _render_ap_chart_view_switcher(self, current_view):
+        """渲染视图切换按钮组，点击后按新视图重绘。"""
+        labels = {
+            "line": t("Gui.Stat.ViewLineButton"),
+            "day": t("Gui.Stat.ViewDayButton"),
+            "month": t("Gui.Stat.ViewMonthButton"),
+            "table": t("Gui.Stat.ViewTableButton"),
+            "bar": t("Gui.Stat.ViewBarButton"),
+        }
+        put_buttons(
+            [
+                {
+                    "label": labels[view],
+                    "value": view,
+                    "color": "primary" if view == current_view else "off",
+                }
+                for view in self.AP_CHART_VIEWS
+            ],
+            onclick=self._switch_ap_chart_view,
+        )
+
+    @render_locked
+    def _switch_ap_chart_view(self, view) -> None:
+        """切换体力图表视图并重绘。"""
+        if view not in self.AP_CHART_VIEWS:
+            return
+        if view == getattr(self, "_ap_chart_view", "line"):
+            return
+        self._ap_chart_view = view
+        self._render_ap_chart()
+
+    @staticmethod
+    def _build_ap_table_html(rows):
+        """把每日体力明细渲染为表格。"""
+        if not rows:
+            return (
+                '<div style="padding:16px;color:#888;font-size:13px;">'
+                + t("Gui.Stat.NoDailyTableData")
+                + "</div>"
+            )
+
+        head_align = ["left", "right", "right", "right", "right", "right", "right"]
+        headers = (
+            t("Gui.Stat.TableHeaderDate"),
+            t("Gui.Stat.TableHeaderOpen"),
+            t("Gui.Stat.TableHeaderClose"),
+            t("Gui.Stat.TableHeaderHigh"),
+            t("Gui.Stat.TableHeaderLow"),
+            t("Gui.Stat.TableHeaderNet"),
+            t("Gui.Stat.TableHeaderPoints"),
+        )
+        head_html = "".join(
+            f'<th style="padding:8px 10px;font-weight:600;color:#aaa;'
+            f'text-align:{head_align[i]};white-space:nowrap;'
+            f'border-bottom:1px solid #333;">{title}</th>'
+            for i, title in enumerate(headers)
+        )
+
+        body_rows = []
+        for row in rows:
+            net = row["net"]
+            net_color = "#ef5350" if net >= 0 else "#26a69a"
+            net_sign = "+" if net >= 0 else ""
+            body_rows.append(
+                '<tr style="border-bottom:1px solid #262636;">'
+                f'<td style="padding:6px 10px;color:#ddd;">{row["date"]}</td>'
+                f'<td style="padding:6px 10px;text-align:right;color:#999;">{row["open"]}</td>'
+                f'<td style="padding:6px 10px;text-align:right;color:#64b5f6;">{row["close"]}</td>'
+                f'<td style="padding:6px 10px;text-align:right;color:#ef5350;">{row["high"]}</td>'
+                f'<td style="padding:6px 10px;text-align:right;color:#26a69a;">{row["low"]}</td>'
+                f'<td style="padding:6px 10px;text-align:right;font-weight:600;'
+                f'color:{net_color};">{net_sign}{net}</td>'
+                f'<td style="padding:6px 10px;text-align:right;color:#777;">{row["count"]}</td>'
+                "</tr>"
+            )
+
+        return (
+            '<div style="background:#1a1a2e;border:1px solid #333;border-radius:16px;'
+            'padding:6px;max-height:420px;overflow:auto;">'
+            '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+            f"<thead><tr>{head_html}</tr></thead>"
+            f"<tbody>{''.join(body_rows)}</tbody>"
+            "</table></div>"
+        )

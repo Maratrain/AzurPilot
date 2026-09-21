@@ -5,6 +5,7 @@ Web界面基础框架。
 Frame 实现侧边栏、菜单导航和内容区域的切换逻辑。
 """
 
+import functools
 import json
 import threading
 
@@ -12,6 +13,37 @@ from pywebio.output import clear, put_html, put_scope, put_text, use_scope
 from pywebio.session import defer_call, info, run_js
 
 from module.webui.utils import Icon, WebIOTaskHandler, set_localstorage
+
+
+def render_locked(func):
+    """序列化页面渲染。
+
+    PyWebIO 的线程会话为每个按钮回调新建独立线程，后台 TaskHandler
+    任务也在独立线程运行。页面渲染均为"清空 scope → 逐条输出"两阶段，
+    若两个线程并发渲染同一区域，清空与输出指令会交错，导致：
+    控件重复、布局错位、同名 Pin widget 被标记失效，以及
+    `use_scope` 对已消失 scope 自动在 ROOT 下创建孤儿容器
+    （离开总览页后 10s 刷新任务仍渲染一次即永久残留）。
+
+    使用会话级可重入锁 `self.render_lock` 串行化所有渲染入口；
+    远控 P2P 高延迟会大幅拉长竞态窗口，本锁在服务端消除交错。
+    """
+
+    @functools.wraps(func)
+    def inner(self, *args, **kwargs):
+        # 生产类均继承 Base 拥有 render_lock；测试替身等无锁对象直接调用。
+        lock = getattr(self, "render_lock", None)
+        if lock is None:
+            return func(self, *args, **kwargs)
+        with lock:
+            return func(self, *args, **kwargs)
+
+    # functools.wraps 默认把 __wrapped__ 指向紧内层的包装函数（如 use_scope
+    # 的 wrapper）；tests 通过 `__wrapped__` 绕过全部装饰器直达原实现。
+    # 沿用被装饰者已有的 __wrapped__ 链，避免装饰叠加后测试误触会话依赖。
+    if getattr(func, "__wrapped__", None) is not None:
+        inner.__wrapped__ = func.__wrapped__
+    return inner
 
 
 class Base:
