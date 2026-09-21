@@ -421,6 +421,10 @@
     "EmulatorManager": {
       "name": "模拟器管理器",
       "help": "提供手动重启模拟器的入口喵~ (=^･ω･^=)"
+    },
+    "MeowfficerScore": {
+      "name": "指挥喵评分",
+      "help": "识别指挥喵天赋，按公开攻略口径评分"
     }
   },
   "Scheduler": {
@@ -2383,6 +2387,14 @@
     "RetainTalentedPurple": {
       "name": "锁定带特殊天赋的紫猫",
       "help": "同上，紫猫版本喵。"
+    },
+    "ScoreTalents": {
+      "name": "收集时识别天赋并评分",
+      "help": "收集指挥猫时额外识别天赋名并按公开攻略口径评分，会逐条展开天赋详情，速度略慢"
+    },
+    "ScoreThreshold": {
+      "name": "锁定保留的评分门槛",
+      "help": "0 表示不参与判断；大于 0 时，评分低于该值的猫不会被锁定（仅在开启「收集时识别天赋并评分」后生效）"
     },
     "EnhanceIndex": {
       "name": "用无特殊天赋猫给第 X 只强化",
@@ -6233,6 +6245,47 @@
     "RemoteStopCommand": {
       "name": "远程关闭命令喵",
       "help": "模拟器远程关闭时执行的命令喵 (=^･ω･^=)"
+    }
+  },
+  "MeowfficerScore": {
+    "_info": {
+      "name": "指挥喵天赋评分",
+      "help": "从截图识别指挥喵天赋，按公开攻略口径给出评分、档位与洗猫建议"
+    },
+    "Source": {
+      "name": "评分来源",
+      "help": "本地截图：扫描截图目录批量评分；当前设备画面：截一张评一张，适合手动逐只翻猫；扫描全部：自己把猫窝整页翻一遍，每只都看天赋喵（会自己动游戏喵）",
+      "screenshot": "本地截图",
+      "device": "当前设备画面",
+      "scan": "把猫窝全翻一遍"
+    },
+    "Folder": {
+      "name": "截图目录",
+      "help": "存放天赋面板截图的目录，默认是天赋截图记录的落盘位置 ./screenshots/meowfficer_talent"
+    },
+    "MaxImages": {
+      "name": "最多评分数",
+      "help": "按修改时间取最近的 N 张截图"
+    },
+    "ReportPath": {
+      "name": "报告输出路径",
+      "help": "Markdown 评分报告的输出路径，留空则不写报告"
+    },
+    "DeviceShots": {
+      "name": "设备截图次数",
+      "help": "当前设备画面模式下截几次图（每只猫截一次）"
+    },
+    "DeviceInterval": {
+      "name": "设备截图间隔",
+      "help": "当前设备画面模式下两次截图之间等待的秒数，用于手动翻到下一只猫"
+    },
+    "ScanLimit": {
+      "name": "最多翻几只喵",
+      "help": "翻猫窝时最多翻多少只，0 就是翻完为止喵"
+    },
+    "ScanPasses": {
+      "name": "最多翻几屏喵",
+      "help": "翻猫窝时最多翻几页，翻到底就自己停了喵"
     }
   },
   "OpsiSimulatorParameters": {

@@ -2096,6 +2096,8 @@
       "Mode": "seamlessly",
       "RetainTalentedGold": true,
       "RetainTalentedPurple": true,
+      "ScoreTalents": false,
+      "ScoreThreshold": 0,
       "EnhanceIndex": 1,
       "MaxFeedLevel": 5
     },
@@ -3575,6 +3577,21 @@
       "RemoteSSHPublicKey": null,
       "RemoteStartCommand": null,
       "RemoteStopCommand": null
+    },
+    "Storage": {
+      "Storage": {}
+    }
+  },
+  "MeowfficerScore": {
+    "MeowfficerScore": {
+      "Source": "screenshot",
+      "Folder": "./screenshots/meowfficer_talent",
+      "MaxImages": 50,
+      "ReportPath": "./log/meowfficer_score.md",
+      "DeviceShots": 1,
+      "DeviceInterval": 2,
+      "ScanLimit": 0,
+      "ScanPasses": 12
     },
     "Storage": {
       "Storage": {}

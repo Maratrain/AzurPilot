@@ -1678,6 +1678,10 @@ class AzurLaneAutoScript:
         from module.daemon.ocr_benchmark import run_ocr_benchmark
         run_ocr_benchmark(config=self.config)
 
+    def meowfficer_score(self):
+        from module.meowfficer.score_task import run_meowfficer_score
+        run_meowfficer_score(config=self.config, device=self.device)
+
     def fleet_scan(self):
         from module.retire.fleet_management import FleetManagement
         FleetManagement(config=self.config, device=self.device, task="FleetScan").run()

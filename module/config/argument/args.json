@@ -11201,6 +11201,18 @@
         "type": "checkbox",
         "value": true
       },
+      "ScoreTalents": {
+        "type": "checkbox",
+        "value": false
+      },
+      "ScoreThreshold": {
+        "type": "input",
+        "value": 0,
+        "validate": [
+          0,
+          100
+        ]
+      },
       "EnhanceIndex": {
         "type": "input",
         "value": 1
@@ -18414,6 +18426,75 @@
       "RemoteStopCommand": {
         "type": "input",
         "value": ""
+      }
+    },
+    "Storage": {
+      "Storage": {
+        "type": "storage",
+        "value": {},
+        "valuetype": "ignore",
+        "display": "disabled"
+      }
+    }
+  },
+  "MeowfficerScore": {
+    "MeowfficerScore": {
+      "Source": {
+        "type": "select",
+        "value": "screenshot",
+        "option": [
+          "screenshot",
+          "device",
+          "scan"
+        ]
+      },
+      "Folder": {
+        "type": "input",
+        "value": "./screenshots/meowfficer_talent"
+      },
+      "MaxImages": {
+        "type": "input",
+        "value": 50,
+        "validate": [
+          1,
+          999
+        ]
+      },
+      "ReportPath": {
+        "type": "input",
+        "value": "./log/meowfficer_score.md"
+      },
+      "DeviceShots": {
+        "type": "input",
+        "value": 1,
+        "validate": [
+          1,
+          99
+        ]
+      },
+      "DeviceInterval": {
+        "type": "input",
+        "value": 2,
+        "validate": [
+          0,
+          60
+        ]
+      },
+      "ScanLimit": {
+        "type": "input",
+        "value": 0,
+        "validate": [
+          0,
+          999
+        ]
+      },
+      "ScanPasses": {
+        "type": "input",
+        "value": 12,
+        "validate": [
+          1,
+          60
+        ]
       }
     },
     "Storage": {

@@ -436,6 +436,8 @@ class GeneratedConfig:
     MeowfficerTrain_Mode = 'seamlessly'  # seamlessly, once_a_day
     MeowfficerTrain_RetainTalentedGold = True
     MeowfficerTrain_RetainTalentedPurple = True
+    MeowfficerTrain_ScoreTalents = False
+    MeowfficerTrain_ScoreThreshold = 0
     MeowfficerTrain_EnhanceIndex = 1
     MeowfficerTrain_MaxFeedLevel = 5
 
@@ -1066,6 +1068,16 @@ class GeneratedConfig:
     EmulatorManager_RemoteSSHPublicKey = None
     EmulatorManager_RemoteStartCommand = None
     EmulatorManager_RemoteStopCommand = None
+
+    # 配置组 `MeowfficerScore`
+    MeowfficerScore_Source = 'screenshot'  # screenshot, device, scan
+    MeowfficerScore_Folder = './screenshots/meowfficer_talent'
+    MeowfficerScore_MaxImages = 50
+    MeowfficerScore_ReportPath = './log/meowfficer_score.md'
+    MeowfficerScore_DeviceShots = 1
+    MeowfficerScore_DeviceInterval = 2
+    MeowfficerScore_ScanLimit = 0
+    MeowfficerScore_ScanPasses = 12
 
     # 配置组 `OpsiSimulatorParameters`
     OpsiSimulatorParameters_Samples = 100000

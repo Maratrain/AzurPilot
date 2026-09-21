@@ -488,6 +488,8 @@ Tool:
       - GameManager
     EmulatorManager:
       - EmulatorManager
+    MeowfficerScore:
+      - MeowfficerScore
 Dashboard:
   page: dashboard
   tasks:

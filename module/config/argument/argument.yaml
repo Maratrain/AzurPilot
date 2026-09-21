@@ -886,6 +886,10 @@ MeowfficerTrain:
     option: [seamlessly, once_a_day]
   RetainTalentedGold: true
   RetainTalentedPurple: true
+  ScoreTalents: false
+  ScoreThreshold:
+    value: 0
+    validate: [0, 100]
   EnhanceIndex: 1
   MaxFeedLevel: 5
 GuildLogistics:
@@ -2128,6 +2132,29 @@ EmulatorManager:
     value: ""
   RemoteStopCommand:
     value: ""
+MeowfficerScore:
+  Source:
+    value: screenshot
+    option: [screenshot, device, scan]
+  Folder:
+    value: ./screenshots/meowfficer_talent
+  MaxImages:
+    value: 50
+    validate: [1, 999]
+  ReportPath:
+    value: ./log/meowfficer_score.md
+  DeviceShots:
+    value: 1
+    validate: [1, 99]
+  DeviceInterval:
+    value: 2
+    validate: [0, 60]
+  ScanLimit:
+    value: 0
+    validate: [0, 999]
+  ScanPasses:
+    value: 12
+    validate: [1, 60]
 OpsiSimulatorParameters:
   Samples: 100000
   Draw:

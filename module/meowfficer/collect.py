@@ -19,6 +19,7 @@ from module.base.timer import Timer
 from module.logger import logger
 from module.meowfficer.assets import *
 from module.meowfficer.base import MeowfficerBase
+from module.meowfficer.collect_score import MeowfficerCollectScore
 from module.ui.switch import Switch
 
 MEOWFFICER_TALENT_GRID_1 = ButtonGrid(
@@ -43,7 +44,7 @@ SWITCH_LOCK.add_state(
 )
 
 
-class MeowfficerCollect(MeowfficerBase):
+class MeowfficerCollect(MeowfficerCollectScore, MeowfficerBase):
     """指挥喵收集处理器。
 
     负责从训练完成界面收集已训练的指挥喵，并根据品质和天赋决定是否保留。
@@ -120,6 +121,8 @@ class MeowfficerCollect(MeowfficerBase):
                       appear_button=MEOWFFICER_GET_CHECK, offset=(40, 40),
                       skip_first_screenshot=True)
         drop.add(self.device.image)
+        # 评分开关打开时，顺手从这张天赋详情面板里识别天赋名
+        self.meow_score_capture(self.device.image)
         self.ui_click(MEOWFFICER_TALENT_CLOSE, check_button=self._meow_check_popup_exit,
                       appear_button=MEOWFFICER_TALENT_CLOSE, skip_first_screenshot=True)
         self.device.click_record.pop()
@@ -142,6 +145,11 @@ class MeowfficerCollect(MeowfficerBase):
         special_talent = False
         grid = MEOWFFICER_TALENT_GRID_2 if self._meow_detect_shift() else MEOWFFICER_TALENT_GRID_1
         handle_drop = self.config.DropRecord_MeowfficerTalent != 'do_not'
+        # 开了评分就同样需要展开天赋详情面板，即使没开截图记录
+        score_enabled = self.meow_score_enabled()
+        open_detail = handle_drop or score_enabled
+        if score_enabled:
+            self.meow_score_reset()
         if handle_drop:
             drop.add(self.device.image)
 
@@ -153,14 +161,17 @@ class MeowfficerCollect(MeowfficerBase):
             # Non-empty slot; check for few white pixels
             # i.e. roman numerals
             if self.image_color_count(btn, color=(255, 255, 255), threshold=221, count=25):
-                if handle_drop:
+                if open_detail:
                     self._meow_talent_cap_handle(btn, drop)
                 continue
 
             # Detected special talent
-            if handle_drop:
+            if open_detail:
                 self._meow_talent_cap_handle(btn, drop)
             special_talent = True
+
+        if score_enabled:
+            self.meow_score_finish()
 
         log_insert = '发现' if special_talent else '未发现'
         logger.info(f'[指挥喵-收集] {log_insert}指挥喵拥有特殊天赋')
@@ -295,8 +306,11 @@ class MeowfficerCollect(MeowfficerBase):
                         method=self.config.DropRecord_MeowfficerTalent
                 ) as drop:
                     special_talent = self._meow_is_special_talented(drop=drop)
+                    # 开了评分门槛时，评分不达标同样不锁定，交给强化消化掉
+                    score_passed = self.meow_score_passes()
                     if self.appear(MEOWFFICER_GOLD_CHECK, offset=(40, 40)):
-                        if not self.config.MeowfficerTrain_RetainTalentedGold or not special_talent:
+                        if not self.config.MeowfficerTrain_RetainTalentedGold \
+                                or not special_talent or not score_passed:
                             self._meow_skip_lock()
                             skip_first_screenshot = True
                             confirm_timer.reset()
@@ -304,7 +318,8 @@ class MeowfficerCollect(MeowfficerBase):
                         self._meow_apply_lock()
 
                     if self.appear(MEOWFFICER_PURPLE_CHECK, offset=(40, 40)):
-                        if self.config.MeowfficerTrain_RetainTalentedPurple and special_talent:
+                        if self.config.MeowfficerTrain_RetainTalentedPurple \
+                                and special_talent and score_passed:
                             self._meow_apply_lock()
 
                     # Susceptible to exception when collecting multiple

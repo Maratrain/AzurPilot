@@ -27,6 +27,7 @@ def get_available_func():
         'AzurLaneUncensored',
         'Benchmark',
         'OcrBenchmark',
+        'MeowfficerScore',
         'FleetScan',
         'GameManager',
         'EmulatorManager',

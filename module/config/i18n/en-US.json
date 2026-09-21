@@ -421,6 +421,10 @@
     "EmulatorManager": {
       "name": "Emulator Manager",
       "help": "Provides an entry point for manually restarting the emulator."
+    },
+    "MeowfficerScore": {
+      "name": "Meowfficer Score",
+      "help": "Read meowfficer talents and score them with public guide rules"
     }
   },
   "Scheduler": {
@@ -2383,6 +2387,14 @@
     "RetainTalentedPurple": {
       "name": "Lock purple Meowfficers with special talents",
       "help": "Lock Meowfficers with special talents when collecting. Locked Meowfficers will not be used for enhancement. Users need to manually check and unlock unnecessary ones."
+    },
+    "ScoreTalents": {
+      "name": "Score talents while collecting",
+      "help": "Also identify talent names and score them with public guide rules when collecting meowfficers; opens every talent detail, a bit slower"
+    },
+    "ScoreThreshold": {
+      "name": "Score threshold to keep",
+      "help": "0 disables the check; when greater than 0, cats scoring below it are not locked (only when scoring is enabled)"
     },
     "EnhanceIndex": {
       "name": "Use Meowfficers without special talents to enhance the Xth Meowfficer",
@@ -6233,6 +6245,47 @@
     "RemoteStopCommand": {
       "name": "Remote Stop Command",
       "help": "SSH command to stop the emulator/service (e.g., docker stop)."
+    }
+  },
+  "MeowfficerScore": {
+    "_info": {
+      "name": "Meowfficer Talent Score",
+      "help": "Read talents from a screenshot and rate them with public guide rules, including tier and re-roll advice"
+    },
+    "Source": {
+      "name": "Score Source",
+      "help": "Local screenshots: scan a folder in batch; Auto follow: keep capturing and score whenever a new talent panel shows up - just flip cats in game; Scan all: walks the cattery list and reads every cat's talents (drives the game automatically, CN client only)",
+      "screenshot": "Local screenshots",
+      "device": "Auto follow current screen",
+      "scan": "Scan all meowfficers"
+    },
+    "Folder": {
+      "name": "Screenshot Folder",
+      "help": "Folder holding talent panel screenshots; defaults to the talent drop-record folder ./screenshots/meowfficer_talent"
+    },
+    "MaxImages": {
+      "name": "Max Images",
+      "help": "Score at most N most recently modified screenshots"
+    },
+    "ReportPath": {
+      "name": "Report Path",
+      "help": "Where to write the Markdown report; leave empty to skip"
+    },
+    "DeviceShots": {
+      "name": "Auto follow target cats",
+      "help": "How many distinct cats to score before the auto-follow loop stops"
+    },
+    "DeviceInterval": {
+      "name": "Follow poll interval",
+      "help": "Seconds between captures in auto follow; unchanged screens skip recognition"
+    },
+    "ScanLimit": {
+      "name": "Max cats to scan",
+      "help": "How many cats to scan at most in scan-all mode; 0 means no limit"
+    },
+    "ScanPasses": {
+      "name": "Max list pages",
+      "help": "How many pages of the cattery list to walk in scan-all mode (12 cats per page); stops early at the end of the list"
     }
   },
   "OpsiSimulatorParameters": {
