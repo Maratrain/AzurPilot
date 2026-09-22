@@ -65,7 +65,7 @@
     // 默认只显示体力，避免黄币/紫币/资产把视口挤满
     var seriesVisible = [true, false, false, false, false];
     var _isSelecting = false;
-    var seriesColors = ["#64b5f6", "#ce93d8", "#ffd54f", "#22d3ee", "#1565c0"];
+    var seriesColors = ["#64b5f6", "#ce93d8", "#ffd54f", "#65996D", "#1565c0"];
     var seriesNames = ["体力", "紫币", "黄币", "资产", "海里数"];
 
     var chartId = "__CHART_ID__";
