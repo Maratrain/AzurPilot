@@ -430,7 +430,6 @@ class OpsiStatisticsMixin(WebUIMixinBase):
             put_scope("meow_loot_scope")
 
             self._render_meowofficer_farming()
-
             put_row(
                 [
                     put_button(

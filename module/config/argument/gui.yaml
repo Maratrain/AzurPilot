@@ -407,20 +407,27 @@ Stat:
   MeowDataCollectionTitle:
   MeowRounds:
   AvgMeowRoundTime:
-  MeowLootTitle:
+  MeowLootTitleCurrent:
+  MeowLootTitleHistory:
+  MeowLootHeaderItem:
+  MeowLootHeaderTotal:
+  MeowLootHazardColumn:
+  MeowLootItemPlate:
+  MeowLootItemGearDesign:
+  MeowLootItemOrdnance:
+  MeowLootItemObscure:
+  MeowLootItemAbyssal:
+  MeowLootItemCat:
+  MeowLootViewHistory:
+  MeowLootBackToCurrent:
+  MeowLootPickMonthTitle:
+  MeowLootNoHistoryMonth:
+  MeowLootCurrentMonthOption:
   NoMeowDataNotice:
   RoundUnit:
   SecondUnit:
   HourUnit:
   MinuteUnit:
-  ExportModuleLoadFailed:
-  CsvHeaderAkashiRate:
-  CsvHeaderLoopEfficiency:
-  CsvHeaderMonthlyPurchasedAP:
-  CsvFilenameTemplate:
-  SavedToDesktop:
-  SaveDesktopFailed:
-  ExportAndSaveDesktop:
   NoShipExpData:
   ShipExpProgressTitle:
   LastCheckTime:
