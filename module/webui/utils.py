@@ -506,6 +506,8 @@ def load_webui_styles(theme=None, is_mobile=None, preloaded_styles=()):
         "alas",
         "alas-mobile" if is_mobile else "alas-pc",
         "entry-alas",
+        # 耄耋相接「收获」区块（物品卡片 + 侵蚀等级明细表）样式
+        "meow-loot-alas",
     ]
     theme_styles = {
         "dark": ("dark-alas",),

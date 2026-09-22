@@ -1,5 +1,8 @@
 """WebUI 耄耋相接收获统计视图。"""
 
+from base64 import b64encode
+from functools import lru_cache
+
 from module.webui.app_dependencies import (
     Path,
     close_popup,
@@ -30,18 +33,30 @@ MEOW_LOOT_ITEMS = (
     ("CatT3", "Cat", "meow_cat.png", "#D4537E"),
 )
 MEOW_LOOT_HAZARD_LEVELS = (3, 5)
-MEOW_LOOT_ICON_DIR = "static/assets/gui/icon"
 _MEOW_LOOT_ICON_ROOT = Path(__file__).resolve().parents[2] / "assets" / "gui" / "icon"
 
-# 卡片与表格共用的中性半透明色，深浅主题下都能贴合底色
-_CARD_BG = "rgba(128, 128, 128, 0.05)"
-_CARD_BORDER = "rgba(128, 128, 128, 0.15)"
-_HEAD_BG = "rgba(128, 128, 128, 0.1)"
-_ROW_LINE = "rgba(128, 128, 128, 0.1)"
+
+@lru_cache(maxsize=32)
+def _meow_loot_icon_data_uri(icon_name: str):
+    """把物品图标读成 data URI；文件缺失时返回 None。
+
+    必须内联而不是给相对路径：远控（P2P）下 `<img src="static/...">` 会静默 404
+    （app_home.py 里记过同一个坑）。图标是 48×48 PNG，六张合计约 35KB。
+    """
+    try:
+        raw = (_MEOW_LOOT_ICON_ROOT / icon_name).read_bytes()
+    except OSError:
+        return None
+    return f"data:image/png;base64,{b64encode(raw).decode('ascii')}"
 
 
 class OpsiExportMixin(WebUIMixinBase):
-    """WebUI 耄耋相接收获统计视图（物品卡片 + 按侵蚀等级拆分的明细表）。"""
+    """WebUI 耄耋相接收获统计视图（物品卡片 + 按侵蚀等级拆分的明细表）。
+
+    版式全在 ``assets/gui/css/meow-loot-alas.css`` 里（class 前缀 ``meow-loot-``）：
+    这里只拼结构、不写内联样式 —— 内联写不了媒体查询，也压不过主题的
+    ``#pywebio-scope-opsi_stats th/td { … !important }``。
+    """
 
     def _render_meowofficer_farming(self):
         with use_scope("meow_loot_scope", clear=True):
@@ -117,143 +132,98 @@ class OpsiExportMixin(WebUIMixinBase):
                 meow_data = cl1_db.get_meow_stats(
                     instance_name, year, month, hazard_level=hazard_level
                 )
-                rounds[hazard_level] = round(
-                    float(meow_data.get("effective_rounds", 0) or 0), 1
+                value = round(float(meow_data.get("effective_rounds", 0) or 0), 1)
+                # 整数轮次不带小数点，0.0 显示成 0
+                rounds[hazard_level] = (
+                    int(value) if abs(value - int(value)) < 1e-6 else value
                 )
             except Exception:
                 rounds[hazard_level] = 0
         return rounds
 
     @staticmethod
-    def _meow_loot_icon_html(icon_name, color, size):
-        """有图标就贴图，缺失时退回色块（金菜图标待补）。"""
-        box = size + 10
-        if icon_name and (_MEOW_LOOT_ICON_ROOT / icon_name).exists():
-            inner = (
-                f'<img src="{MEOW_LOOT_ICON_DIR}/{icon_name}" '
-                f'style="width: {size}px; height: {size}px; object-fit: contain; '
-                f'background: transparent;">'
-            )
-            return (
-                f'<div style="width: {box}px; height: {box}px; display: flex; '
-                f'align-items: center; justify-content: center; '
-                f'background: {color}1a; border-radius: 8px; flex-shrink: 0;">'
-                f"{inner}</div>"
-            )
-        return (
-            f'<div style="width: {box}px; height: {box}px; display: flex; '
-            f'align-items: center; justify-content: center; '
-            f'background: {color}1a; border-radius: 8px; flex-shrink: 0;">'
-            f'<div style="width: 12px; height: 12px; border-radius: 50%; '
-            f'background: {color};"></div></div>'
-        )
+    def _meow_loot_icon_html(icon_name, color, kind):
+        """物品图标；文件缺失时退回同尺寸色点（尺寸见 CSS 的 --card / --row）。"""
+        classes = f"meow-loot-icon meow-loot-icon--{kind}"
+        data_uri = _meow_loot_icon_data_uri(icon_name) if icon_name else None
+        if data_uri:
+            inner = f'<img src="{data_uri}" alt="">'
+        else:
+            inner = f'<span class="meow-loot-dot" style="background: {color};"></span>'
+        return f'<div class="{classes}" style="background: {color}1a;">{inner}</div>'
 
     def _build_meow_loot_summary_html(self, loot_totals):
         """物品卡片区：每张卡片是一个物品在所选月份的总数（跨侵蚀等级）。"""
-        html = (
-            '<div class="meow-loot-summary" style="width: 100%; '
-            'box-sizing: border-box;">'
-            '<div style="display: grid; grid-template-columns: '
-            'repeat(auto-fit, minmax(10rem, 1fr)); gap: 12px; width: 100%;">'
-        )
+        html = '<div class="meow-loot-grid">'
         for key, i18n_suffix, icon_name, color in MEOW_LOOT_ITEMS:
-            total = 0
-            for hazard_level in MEOW_LOOT_HAZARD_LEVELS:
-                bucket = loot_totals.get(hazard_level) or {}
-                total += int(bucket.get(key, 0) or 0)
-            total_str = f"+{total:,}" if total > 0 else "0"
-            icon_html = self._meow_loot_icon_html(icon_name, color, 24)
-            display_name = t(f"Gui.Stat.MeowLootItem{i18n_suffix}")
-            html += (
-                f'<div class="meow-loot-card" style="display: flex; '
-                f"align-items: center; gap: 10px; padding: 12px 14px; "
-                f"background: {_CARD_BG}; border-radius: 6px; "
-                f'border: 1px solid {_CARD_BORDER};">'
-                f"{icon_html}"
-                f'<div style="display: flex; flex-direction: column; gap: 1px;">'
-                f'<span style="font-size: 0.78rem; opacity: 0.65;">'
-                f"{display_name}</span>"
-                f'<span style="font-size: 1.15rem; font-weight: 400; '
-                f'color: inherit;">{total_str}</span>'
-                f"</div></div>"
+            total = sum(
+                int((loot_totals.get(hazard_level) or {}).get(key, 0) or 0)
+                for hazard_level in MEOW_LOOT_HAZARD_LEVELS
             )
-        return html + "</div></div>"
+            total_str = f"+{total:,}" if total > 0 else "0"
+            html += (
+                '<div class="meow-loot-card">'
+                f"{self._meow_loot_icon_html(icon_name, color, 'card')}"
+                '<div class="meow-loot-card-body">'
+                f'<span class="meow-loot-card-name">'
+                f'{t(f"Gui.Stat.MeowLootItem{i18n_suffix}")}</span>'
+                f'<span class="meow-loot-card-value">{total_str}</span>'
+                "</div></div>"
+            )
+        return html + "</div>"
 
     def _build_meow_loot_table_html(self, loot_totals, rounds):
         """明细表：行 = 物品，列 = 各侵蚀等级 + 合计，末行是战斗轮次。"""
-        head_style = (
-            f"padding: 8px 10px; background: {_HEAD_BG}; "
-            f"border-bottom: 1px solid {_CARD_BORDER}; font-weight: 500; "
-            f"opacity: 0.8; font-size: 0.8rem;"
-        )
-        cell_style = (
-            f"padding: 7px 10px; border-bottom: 1px solid {_ROW_LINE}; "
-            f"font-family: monospace;"
-        )
-        name_style = f"padding: 7px 10px; border-bottom: 1px solid {_ROW_LINE};"
-
-        html = (
-            '<div class="meow-loot-table-wrap" style="width: 100%; '
-            'box-sizing: border-box;">'
-            '<table class="meow-loot-table" style="width: 100%; '
-            "border-collapse: collapse; font-size: 0.85rem; "
-            'table-layout: fixed;">'
-            '<colgroup><col style="width: 40%;"><col style="width: 20%;">'
-            '<col style="width: 20%;"><col style="width: 20%;"></colgroup>'
-            "<thead><tr>"
-            f'<th style="text-align: left !important; {head_style}">'
+        head_cells = (
+            f'<th class="meow-loot-cell-name">'
             f'{t("Gui.Stat.MeowLootHeaderItem")}</th>'
-        )
-        for hazard_level in MEOW_LOOT_HAZARD_LEVELS:
-            html += (
-                f'<th style="text-align: right !important; {head_style}">'
+            + "".join(
+                f'<th class="meow-loot-cell-value">'
                 f'{t("Gui.Stat.MeowLootHazardColumn", level=hazard_level)}</th>'
+                for hazard_level in MEOW_LOOT_HAZARD_LEVELS
             )
-        html += (
-            f'<th style="text-align: right !important; {head_style}">'
+            + f'<th class="meow-loot-cell-value">'
             f'{t("Gui.Stat.MeowLootHeaderTotal")}</th>'
-            "</tr></thead><tbody>"
         )
-
+        html = (
+            '<div class="meow-loot-table-wrap">'
+            '<table class="meow-loot-table">'
+            '<colgroup><col class="meow-loot-col-name">'
+            '<col class="meow-loot-col-value"><col class="meow-loot-col-value">'
+            '<col class="meow-loot-col-value"></colgroup>'
+            f"<thead><tr>{head_cells}</tr></thead><tbody>"
+        )
         for key, i18n_suffix, icon_name, color in MEOW_LOOT_ITEMS:
             values = [
                 int((loot_totals.get(hazard_level) or {}).get(key, 0) or 0)
                 for hazard_level in MEOW_LOOT_HAZARD_LEVELS
             ]
-            icon_html = self._meow_loot_icon_html(icon_name, color, 18)
-            display_name = t(f"Gui.Stat.MeowLootItem{i18n_suffix}")
-            html += (
-                f'<tr><td style="{name_style}">'
-                f'<div style="display: flex; align-items: center; gap: 6px;">'
-                f"{icon_html}{display_name}</div></td>"
+            value_cells = "".join(
+                f'<td class="meow-loot-cell-value">{value:,}</td>' for value in values
             )
-            for value in values:
-                html += (
-                    f'<td style="text-align: right; {cell_style}">'
-                    f"{value:,}</td>"
-                )
             html += (
-                f'<td style="text-align: right; {cell_style}">'
-                f"{sum(values):,}</td></tr>"
+                f'<tr><td class="meow-loot-cell-name">'
+                f'<span class="meow-loot-name-cell">'
+                f"{self._meow_loot_icon_html(icon_name, color, 'row')}"
+                f'{t(f"Gui.Stat.MeowLootItem{i18n_suffix}")}'
+                f"</span></td>{value_cells}"
+                f'<td class="meow-loot-cell-value">{sum(values):,}</td></tr>'
             )
 
-        # 战斗轮次不是掉落物，单独放在末行、弱化显示
-        round_values = [rounds.get(hazard_level, 0) for hazard_level in MEOW_LOOT_HAZARD_LEVELS]
-        tail_style = (
-            f"padding: 7px 10px; border-top: 1px solid {_CARD_BORDER}; "
-            f"font-family: monospace; opacity: 0.75;"
+        # 战斗轮次不是掉落物，单独放在末行、用上边框与主数据分开
+        round_values = [
+            rounds.get(hazard_level, 0) for hazard_level in MEOW_LOOT_HAZARD_LEVELS
+        ]
+        round_cells = "".join(
+            f'<td class="meow-loot-cell-value">{value}</td>' for value in round_values
         )
         html += (
-            f'<tr><td style="padding: 7px 10px; border-top: 1px solid {_CARD_BORDER}; '
-            f'opacity: 0.75;">{t("Gui.Stat.BattleRounds")}</td>'
+            f'<tr class="meow-loot-rounds">'
+            f'<td class="meow-loot-cell-name">{t("Gui.Stat.BattleRounds")}</td>'
+            f"{round_cells}"
+            f'<td class="meow-loot-cell-value">{sum(round_values)}</td></tr>'
         )
-        for value in round_values:
-            html += f'<td style="text-align: right; {tail_style}">{value}</td>'
-        html += (
-            f'<td style="text-align: right; {tail_style}">'
-            f"{sum(round_values)}</td></tr></tbody></table></div>"
-        )
-        return html
+        return html + "</tbody></table></div>"
 
     def _on_meow_loot_month_click(self, value):
         """月份切换按钮回调：history 打开历史月份选择器，current 回到本月。"""
