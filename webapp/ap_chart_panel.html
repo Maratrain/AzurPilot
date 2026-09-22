@@ -13,7 +13,7 @@
   <span class="ap-legend-item" data-series="0" style="display:flex; align-items:center; gap:4px;cursor:pointer;opacity:1;"><span style="width:12px; height:3px; background:#64b5f6; border-radius:1px;"></span>体力</span>
   {coins_legend_html}
 </div>
-<div id="{chart_id}_container" style="{chart_container_display}position:relative;background:#1a1a2e;border-radius:16px;border:1px solid #333;padding:6px;transition:opacity 0.3s ease;">
+<div id="{chart_id}_container" style="position:relative;background:#1a1a2e;border-radius:16px;border:1px solid #333;padding:6px;transition:opacity 0.3s ease;">
   <canvas id="{chart_id}" style="width:100%;height:360px;display:block;cursor:crosshair;"></canvas>
   <canvas id="{chart_id}_ov"
     style="position:absolute;top:6px;left:6px;width:calc(100% - 12px);height:360px;pointer-events:none;"></canvas>
@@ -26,4 +26,3 @@
     <button id="{chart_id}_reset" style="background:#333;border:1px solid #555;border-radius:10px;padding:2px 8px;font-size:11px;color:#aaa;cursor:pointer;">重置</button>
   </div>
 </div>
-<div id="{chart_id}_table" style="display:{table_display};">{table_html}</div>

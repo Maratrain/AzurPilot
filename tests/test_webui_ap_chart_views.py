@@ -1,9 +1,10 @@
-"""体力图表视图（分时/天视图/月视图/日变化表格/增减柱状图）的装配回归测试。
+"""体力图表视图（分时/天视图/月视图）的装配回归测试。
 
-覆盖 2026-09-20 恢复视图切换 + 新增表格与柱状图时定下的行为：
+覆盖 2026-09-20 恢复视图切换时定下的行为：
 - 视图取值必须收敛到白名单，非法值回退分时曲线
-- 日/月聚合的 OHLC 与"净变化"基准（首日对开盘，之后对上一周期收盘）
-- 日变化表格按最新日期倒序输出
+- 已下线的"日变化表格 / 增减柱状图"不得被采纳（含历史配置里的残留值）
+- 日/月聚合的 OHLC 口径
+- 按钮组只渲染三个视图且水平居中
 """
 
 import unittest
@@ -74,7 +75,7 @@ class TestApChartViewWhitelist(_ApChartTestCase):
 
     def test_all_documented_views_are_supported(self):
         self.assertEqual(
-            ("line", "day", "month", "table", "bar"),
+            ("line", "day", "month"),
             ActionPointStatisticsMixin.AP_CHART_VIEWS,
         )
 
@@ -87,9 +88,19 @@ class TestApChartViewWhitelist(_ApChartTestCase):
         gui._switch_ap_chart_view("line")
         self.assertEqual([], gui.rendered)
 
+        gui._switch_ap_chart_view("day")
+        self.assertEqual(["day"], gui.rendered)
+        self.assertEqual("day", gui._ap_chart_view)
+
+    def test_removed_views_are_rejected(self):
+        """日变化表格与增减柱状图已下线，残留配置值不得被采纳。"""
+        gui = _ChartHarness("table")
         gui._switch_ap_chart_view("bar")
-        self.assertEqual(["bar"], gui.rendered)
-        self.assertEqual("bar", gui._ap_chart_view)
+        self.assertEqual([], gui.rendered)
+        self.assertEqual("table", gui._ap_chart_view)
+
+        data = gui._build_ap_chart_series(_points())
+        self.assertEqual("line", data["current_view"])
 
 
 class TestApChartAggregation(_ApChartTestCase):
@@ -109,52 +120,41 @@ class TestApChartAggregation(_ApChartTestCase):
         self.assertEqual([150, 130], data["closes"])
         self.assertEqual("Gui.Stat.CandlesCount", data["data_points_text"])
 
-    def test_bar_view_net_change_baseline(self):
-        data = self._series("bar")
-        # 首日对当日开盘，之后对上一周期收盘
-        self.assertEqual([0, -10, 40], data["bars"])
-        self.assertEqual("Gui.Stat.ViewTitleBar", data["view_title"])
-
-    def test_table_view_rows_are_newest_first(self):
-        data = self._series("table")
-        self.assertEqual(["09-20", "09-19", "09-18"], [r["date"] for r in data["table_rows"]])
-        self.assertEqual([40, -10, 0], [r["net"] for r in data["table_rows"]])
-        self.assertEqual(2, data["table_rows"][0]["count"])
-
     def test_line_view_keeps_raw_points(self):
         data = self._series("line")
         self.assertEqual([100, 120, 90, 150, 130], data["ap_list"])
         self.assertEqual(5, len(data["labels"]))
-        self.assertEqual([], data["bars"])
 
 
-class TestApChartTableHtml(_ApChartTestCase):
-    def test_table_html_marks_sign_and_headers(self):
-        rows = [
-            {"date": "09-20", "open": 150, "close": 130, "high": 150, "low": 130, "net": 40, "count": 2},
-            {"date": "09-19", "open": 120, "close": 90, "high": 120, "low": 90, "net": -10, "count": 2},
-        ]
-        html = ActionPointStatisticsMixin._build_ap_table_html(rows)
+class _OutputStub:
+    """记录 put_buttons 的入参与附加样式。"""
 
-        for key in (
-            "Gui.Stat.TableHeaderDate",
-            "Gui.Stat.TableHeaderOpen",
-            "Gui.Stat.TableHeaderClose",
-            "Gui.Stat.TableHeaderHigh",
-            "Gui.Stat.TableHeaderLow",
-            "Gui.Stat.TableHeaderNet",
-            "Gui.Stat.TableHeaderPoints",
+    def __init__(self, captured, buttons):
+        self.captured = captured
+        self.captured["buttons"] = buttons
+
+    def style(self, css):
+        self.captured["style"] = css
+        return self
+
+
+class TestApChartViewSwitcher(_ApChartTestCase):
+    def test_switcher_renders_three_centered_buttons(self):
+        captured = {}
+        with patch(
+            "module.webui.app_stat_action_point.put_buttons",
+            side_effect=lambda buttons, onclick=None: _OutputStub(captured, buttons),
         ):
-            self.assertIn(key, html)
-        self.assertIn("#ef5350", html)
-        self.assertIn("#26a69a", html)
-        self.assertIn("+40", html)
-        self.assertIn("-10", html)
+            _ChartHarness("month")._render_ap_chart_view_switcher("month")
 
-    def test_empty_table_html_shows_notice(self):
-        html = ActionPointStatisticsMixin._build_ap_table_html([])
-        self.assertIn("Gui.Stat.NoDailyTableData", html)
-        self.assertNotIn("<table", html)
+        self.assertEqual(
+            ["line", "day", "month"],
+            [button["value"] for button in captured["buttons"]],
+        )
+        colors = {b["value"]: b["color"] for b in captured["buttons"]}
+        self.assertEqual("primary", colors["month"])
+        self.assertEqual("off", colors["line"])
+        self.assertIn("justify-content:center", captured["style"])
 
 
 if __name__ == "__main__":
