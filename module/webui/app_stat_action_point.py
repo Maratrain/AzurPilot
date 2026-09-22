@@ -50,6 +50,7 @@ class ActionPointStatisticsMixin(WebUIMixinBase):
         asset_timeline = get_asset_timeline(instance_name=instance_name)
         return timeline, coins_timeline, asset_timeline
 
+    @render_locked
     def _render_ap_chart(self):
         self.cleanup_client_resources("__apChartCleanups")
         try:
