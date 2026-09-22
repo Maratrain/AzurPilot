@@ -306,7 +306,30 @@ class OpsiStatisticsMixin(WebUIMixinBase):
 
         return labels, values, ap_bought
 
+    @staticmethod
+    def _meow_loot_labels():
+        """合并表的平均收益列名，与本地累积统计口径保持一致。"""
+        try:
+            from module.statistics.azurstats import AzurStats
+
+            return list(AzurStats.meowofficer_farming_labels[3:])
+        except Exception:
+            return ["平均黄币/轮", "平均金菜/轮", "平均深渊/轮", "平均隐秘/轮"]
+
     def _build_meow_rows(self, cl1_db, instance_name):
+        # 平均收益列来自本地累积统计（azurstat_meowofficer_farming.csv），
+        # 该数据没有月份维度，按侵蚀等级并入同一行展示。
+        loot_by_hazard = {}
+        try:
+            from module.statistics.azurstats import AzurStats
+
+            for row in AzurStats.load_meowofficer_farming():
+                level = int(row[0])
+                if float(row[2]) > 0:
+                    loot_by_hazard[level] = [round(float(value), 4) for value in row[3:]]
+        except Exception:
+            loot_by_hazard = {}
+
         meow_rows = []
         try:
             now = current_time()
@@ -328,9 +351,6 @@ class OpsiStatisticsMixin(WebUIMixinBase):
                 meow_avg_battle_time = float(
                     meow_data.get("avg_battle_time", 0.0) or 0
                 )
-                siren_count = int(meow_data.get("siren_research_devices", 0) or 0)
-                siren_rate = float(meow_data.get("siren_research_rate", 0.0) or 0)
-
                 avg_time_str = (
                     f"{meow_avg_time:.1f}{t('Gui.Stat.SecondUnit')}"
                     if meow_avg_time > 0
@@ -340,9 +360,6 @@ class OpsiStatisticsMixin(WebUIMixinBase):
                     f"{meow_avg_battle_time:.1f}{t('Gui.Stat.SecondUnit')}"
                     if meow_avg_battle_time > 0
                     else "-"
-                )
-                siren_rate_str = (
-                    f"{siren_rate * 100:.2f}%" if meow_effective_rounds > 0 else "-"
                 )
 
                 # 明石统计（按侵蚀等级，与侵蚀一表格口径一致）
@@ -367,14 +384,13 @@ class OpsiStatisticsMixin(WebUIMixinBase):
                         hazard_level,
                         int(meow_data.get("battle_count", 0) or 0),
                         meow_rounds,
-                        siren_count,
-                        siren_rate_str,
                         akashi_encounters,
                         akashi_rate_str,
                         avg_ap_str,
                         avg_battle_time_str,
                         avg_time_str,
                     ]
+                    + list(loot_by_hazard.get(hazard_level, ["-", "-", "-", "-"]))
                 )
         except Exception:
             return []
@@ -394,14 +410,12 @@ class OpsiStatisticsMixin(WebUIMixinBase):
                 t("Gui.Stat.HazardLevel"),
                 t("Gui.Stat.BattleCount"),
                 t("Gui.Stat.MeowRounds"),
-                t("Gui.Stat.SirenResearchDevices"),
-                t("Gui.Stat.SirenResearchRate"),
                 t("Gui.Stat.AkashiEncounters"),
                 t("Gui.Stat.AkashiRate"),
                 t("Gui.Stat.AverageAP"),
                 t("Gui.Stat.AvgBattleTimeHeader"),
                 t("Gui.Stat.AvgMeowRoundTime"),
-            ]
+            ] + self._meow_loot_labels()
 
             put_html(
                 build_title_block(

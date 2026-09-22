@@ -4,7 +4,6 @@ from module.webui.app_dependencies import (
     Path,
     close_popup,
     current_time,
-    datetime,
     logger,
     popup,
     put_button,
@@ -17,7 +16,6 @@ from module.webui.app_dependencies import (
 )
 
 from module.webui.app_helpers import (
-    build_muted_notice,
     build_simple_table,
     build_title_block,
 )
@@ -33,39 +31,14 @@ class OpsiExportMixin(WebUIMixinBase):
         from module.statistics.azurstats import AzurStats
 
         AzurStats.get_meowofficer_farming()
-        self._render_meowofficer_farming()
+        # 汇总表中的平均收益列取自同一份本地统计，刷新后整页重绘
+        self._render_opsi_stats()
 
     def _render_meowofficer_farming(self):
         from module.statistics.azurstats import AzurStats
 
         with use_scope("meow_loot_scope", clear=True):
             self._render_monthly_meow_loot(AzurStats)
-
-            all_data = AzurStats.load_meowofficer_farming()
-            meow_rows = []
-            for row in all_data:
-                if row[2] > 0:
-                    meow_row = [
-                        int(row[0]),
-                        datetime.fromtimestamp(row[1]).strftime("%Y-%m-%d %H:%M:%S"),
-                        int(row[2]),
-                    ] + list(row[3:])
-
-                    meow_rows.append(meow_row)
-
-            put_html(
-                build_title_block(
-                    t("Gui.Stat.MeowLootTitle"),
-                    margin_top=20,
-                    margin_bottom=8,
-                )
-            )
-            if meow_rows:
-                put_html(
-                    build_simple_table(AzurStats.meowofficer_farming_labels, meow_rows)
-                )
-            else:
-                put_html(build_muted_notice(t("Gui.Stat.NoMeowDataNotice")))
 
             put_button(
                 t("Gui.Stat.Refresh"),
