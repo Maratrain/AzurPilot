@@ -274,6 +274,8 @@ class AzurStats:
             device_id=get_device_id(),
             genre='opsi_meowfficer_farming',
         )
+        # 历史库中同一结算的重复行会让平均值虚高，汇总前去重
+        all_data = AzurStats._dedup_opsi_rows(all_data)
         out_data = np.zeros((6, len(AzurStats.meowofficer_farming_labels)))
         img_combat_counts = {}
 
@@ -370,9 +372,12 @@ class AzurStats:
         try:
             with sqlite3.connect(AzurStats.LOCAL_DB) as conn:
                 rows = conn.execute(
-                    "SELECT hazard_level, item, SUM(amount) FROM opsi_items "
-                    "WHERE genre='opsi_meowfficer_farming' AND created_at >= ? AND created_at < ? "
-                    "AND device_id = ? GROUP BY hazard_level, item",
+                    "SELECT hazard_level, item, SUM(amount) FROM ("
+                    " SELECT DISTINCT imgid, item, amount, hazard_level"
+                    " FROM opsi_items"
+                    " WHERE genre='opsi_meowfficer_farming' AND created_at >= ? AND created_at < ?"
+                    " AND device_id = ?"
+                    ") GROUP BY hazard_level, item",
                     (month_start, month_end, device_id),
                 ).fetchall()
             for h_raw, item, total in rows:
@@ -433,6 +438,40 @@ class AzurStats:
         return SceneOperationSiren
 
     @staticmethod
+    def _dedup_opsi_rows(rows):
+        """同一结算（imgid）内完全相同的掉落只保留一条。
+
+        一次结算通常同时截到「获得物品」页与掉落列表页，同一物品会在
+        两张图里各解析出一行（一行带 tag、一行 tag 为 None）；而统计
+        按 item 汇总 amount，重复行会让数量直接翻倍。这里按
+        (imgid, item, amount, hazard_level) 去重，并优先保留带 tag 的
+        那条（掉落列表页）。数量不同的同类行不合并——那可能真是两次掉落。
+
+        Args:
+            rows (list[dict]): 掉落明细行。
+
+        Returns:
+            list[dict]: 去重后的行，保持原有顺序；rows 为空时原样返回。
+        """
+        if not rows:
+            return rows
+        first = {}
+        order = []
+        for row in rows:
+            key = (
+                row.get('imgid'),
+                row.get('item'),
+                row.get('amount'),
+                row.get('hazard_level'),
+            )
+            if key not in first:
+                first[key] = row
+                order.append(key)
+            elif first[key].get('tag') is None and row.get('tag') is not None:
+                first[key] = row
+        return [first[key] for key in order]
+
+    @staticmethod
     def _parse_local_opsi_items(image, imgid, genre, combat_count, filename=None):
         SceneOperationSiren = AzurStats._ensure_local_parser()
         scene = SceneOperationSiren()
@@ -450,6 +489,8 @@ class AzurStats:
             row['combat_count'] = int(combat_count or 0)
             row['created_at'] = created_at
             rows.append(row)
+
+        rows = AzurStats._dedup_opsi_rows(rows)
 
         if filename and any(str(row['item']).isdigit() for row in rows):
             AzurStats._save_unknown_item_images(scene, filename)

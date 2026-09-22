@@ -31,7 +31,43 @@ ITEM_AMOUNT_MAX = {
     # 会触发抹灰版兜底重试修正
     'Consumer_Grade_Electronic_Components': 50,
 }
+# 前缀匹配的上限表，用于名称带档位后缀（T1~T5）但单次掉落量很小的
+# 物品种类。匹配时精确名优先，其次取最长匹配的前缀。
+ITEM_AMOUNT_MAX_PREFIX = {
+    # 装备设计图（紫 T3 底 / 金 T4 底 / 彩 T5 底）：单次结算通常 1~3 张。
+    # 三档的白纸图案完全相同，图标残影会让数字被多读一位（如 1 读成 71），
+    # 超限时走 ocr_with_validation 的抹灰重试与末位截断纠偏。
+    'GearDesignPlan': 20,
+    # 军械测试报告（T1~T4）：单次掉落 1~5，口径同上方精确项
+    'OrdnanceTestingReport': 50,
+    # 坐标：隐秘海域 / 深渊海域，单次 1~2 个
+    'CoordinateObscure': 10,
+    'CoordinateAbyssal': 10,
+    # 指挥喵箱子（T1~T3）：单次 1 个
+    'Cat': 10,
+}
 DEFAULT_AMOUNT_MAX = 2147483645
+
+
+def get_item_amount_max(item_name):
+    """返回物品单次掉落的数量读数上限。
+
+    精确名优先，其次按最长前缀匹配，都未命中时返回 DEFAULT_AMOUNT_MAX。
+
+    Args:
+        item_name (str | None): 物品名称，为 None 时返回默认上限。
+
+    Returns:
+        int: 数量读数上限。
+    """
+    if not item_name:
+        return DEFAULT_AMOUNT_MAX
+    if item_name in ITEM_AMOUNT_MAX:
+        return ITEM_AMOUNT_MAX[item_name]
+    matched = [p for p in ITEM_AMOUNT_MAX_PREFIX if item_name.startswith(p)]
+    if not matched:
+        return DEFAULT_AMOUNT_MAX
+    return ITEM_AMOUNT_MAX_PREFIX[max(matched, key=len)]
 
 
 def remove_small_fragments(image, min_height=6, min_area=10, keep_margin=3,
@@ -191,7 +227,7 @@ class AmountOcr(Digit):
         Returns:
             int: 验证后的数量。
         """
-        max_val = ITEM_AMOUNT_MAX.get(item_name, DEFAULT_AMOUNT_MAX)
+        max_val = get_item_amount_max(item_name)
 
         if direct_ocr:
             pre_image = self.pre_process(image)
