@@ -377,6 +377,11 @@ class OSShop(PortShop, AkashiShop):
         logger.info(f'港口商店已购买 {count} 个物品' if count else '港口商店未购买任何物品')
         return True
 
+    # 明石商店点击次数上限：舰队位置换算错误或舰队无法移动时，明石商店不会打开，
+    # 无上限点击同一个无效位置最终会触发「按钮点击次数过多」并炸掉整个任务，
+    # 因此限制点击次数，超限则放弃本次购买，交由调用方决定后续兜底流程。
+    AKASHI_CLICK_LIMIT = 3
+
     def handle_akashi_supply_buy(self, grid):
         """处理明石商店购买。
 
@@ -385,14 +390,21 @@ class OSShop(PortShop, AkashiShop):
         Args:
             grid: 明石所在的网格位置。
 
+        Returns:
+            bool: 是否成功打开明石商店并进入购买流程。
+
         Pages:
             in: is_in_map
             out: is_in_map
         """
-        self.ui_click(grid, appear_button=self.is_in_map, check_button=PORT_SUPPLY_CHECK,
-                      additional=self.handle_story_skip, skip_first_screenshot=True)
+        if not self.ui_click(grid, appear_button=self.is_in_map, check_button=PORT_SUPPLY_CHECK,
+                             additional=self.handle_story_skip, skip_first_screenshot=True,
+                             click_limit=self.AKASHI_CLICK_LIMIT):
+            logger.warning(f'[大世界-明石] 点击 {grid} 后明石商店未打开，放弃本次购买')
+            return False
         self.os_shop_buy(select_func=self.os_shop_get_item_to_buy_in_akashi)
         self.ui_back(appear_button=PORT_SUPPLY_CHECK, check_button=self.is_in_map, skip_first_screenshot=True)
+        return True
 
     def get_currency_coins(self, item):
         """获取可用于购买的货币数量。

@@ -118,6 +118,7 @@ class UI(InfoHandler):
             offset=(30, 30),
             retry_wait=10,
             skip_first_screenshot=False,
+            click_limit=None,
     ):
         """
         点击按钮并等待目标画面出现。
@@ -131,6 +132,11 @@ class UI(InfoHandler):
             offset (bool, int, tuple): 匹配偏移量。
             retry_wait (int, float): 重试等待时间（秒）。
             skip_first_screenshot (bool): 是否跳过首次截图。
+            click_limit (int, optional): 点击次数上限。默认 None 表示不限次数（保持原有行为），
+                达到上限仍未出现目标画面时返回 False，避免无上限点击触发死循环检测。
+
+        Returns:
+            bool: 目标画面出现返回 True；达到 click_limit 仍未出现返回 False。
         """
         logger.hr("UI 点击")
         if appear_button is None:
@@ -139,6 +145,7 @@ class UI(InfoHandler):
         click_timer = Timer(retry_wait, count=retry_wait // 0.5)
         confirm_wait = confirm_wait if additional is not None else 0
         confirm_timer = Timer(confirm_wait, count=confirm_wait // 0.5).start()
+        click_count = 0
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -147,7 +154,7 @@ class UI(InfoHandler):
 
             if self.ui_process_check_button(check_button, offset=offset):
                 if confirm_timer.reached():
-                    break
+                    return True
             else:
                 confirm_timer.reset()
 
@@ -155,7 +162,12 @@ class UI(InfoHandler):
                 if (isinstance(appear_button, Button) and self.appear(appear_button, offset=offset)) or (
                         callable(appear_button) and appear_button()
                 ):
+                    if click_limit is not None and click_count >= click_limit:
+                        logger.warning(
+                            f'[UI 点击] 已点击 {click_count} 次仍未出现目标画面, 放弃等待')
+                        return False
                     self.device.click(click_button)
+                    click_count += 1
                     click_timer.reset()
                     continue
 

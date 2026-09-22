@@ -1596,6 +1596,17 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
 
         grids = self.view.select(is_akashi=True)
         if "is_akashi" not in self._solved_map_event and grids and grids[0].is_akashi:
+            # 摄像机漂移（视野中找不到当前舰队，如全图重扫聚焦到其他区域后）时，
+            # convert_radar_to_local 的回退换算会把摄像机中心当作舰队位置，可能把明石
+            # 误判为紧邻舰队而直接点击，实际点到错误格子：明石商店打不开，反复点击后
+            # 触发「按钮点击次数过多」炸掉任务。先换队重新对焦，保证距离判断基于真实
+            # 舰队位置；对焦后明石若已不在视野内，放弃本次处理交由后续扫描。
+            if self.view.select(is_current_fleet=True).count == 0:
+                self._os_camera_recover_to_fleet()
+                grids = self.view.select(is_akashi=True)
+                if "is_akashi" in self._solved_map_event or not grids or not grids[0].is_akashi:
+                    return False
+
             grid = grids[0]
             logger.info(f"[大世界-搜索] 在 {grid} 找到明石")
             fleet = self.convert_radar_to_local((0, 0))
@@ -1618,9 +1629,10 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                         fleet = self.convert_radar_to_local((0, 0))
                         if fleet.distance_to(grid) <= 1:
                             logger.info(f"[大世界-搜索] 明石 ({grid}) 靠近当前舰队 ({fleet})")
-                            self.handle_akashi_supply_buy(grid)
-                            self._solved_map_event.add("is_akashi")
-                            return True
+                            if self._buy_akashi_supply_with_retry(grid):
+                                self._solved_map_event.add("is_akashi")
+                                return True
+                            return False
                         else:
                             logger.info("[大世界] 无法到达明石位置，先尝试换舰队前往")
                             if self._goto_akashi_with_other_fleets(drop=drop):
@@ -1633,9 +1645,10 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                         return False
             else:
                 logger.info(f"[大世界-搜索] 明石 ({grid}) 靠近当前舰队 ({fleet})")
-                self.handle_akashi_supply_buy(grid)
-                self._solved_map_event.add("is_akashi")
-                return True
+                if self._buy_akashi_supply_with_retry(grid):
+                    self._solved_map_event.add("is_akashi")
+                    return True
+                return False
 
         grids = self.view.select(is_scanning_device=True)
         if (
@@ -2383,6 +2396,9 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                 self.device.screenshot()
                 self.update_os()
                 self.view.predict()
+                if self.view.select(is_current_fleet=True).count == 0:
+                    # 摄像机漂移时舰队位置换算不可靠，先重新对焦再判断与明石的距离
+                    self._os_camera_recover_to_fleet(fleet)
                 grids = self.view.select(is_akashi=True)
                 if not grids or not grids[0].is_akashi:
                     logger.info(f"[大世界] 舰队 {fleet} 视野内没有明石，切换下一队")
@@ -2391,9 +2407,11 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                 fleet_loc = self.convert_radar_to_local((0, 0))
                 if fleet_loc.distance_to(grid) <= 1:
                     logger.info(f"[大世界] 明石 ({grid}) 靠近舰队 {fleet} ({fleet_loc})，直接购买")
-                    self.handle_akashi_supply_buy(grid)
-                    self._solved_map_event.add("is_akashi")
-                    return True
+                    if self.handle_akashi_supply_buy(grid):
+                        self._solved_map_event.add("is_akashi")
+                        return True
+                    logger.warning(f"[大世界] 舰队 {fleet} 点击明石后商店未打开，切换下一队")
+                    continue
                 logger.info(f"[大世界] 舰队 {fleet} 点击明石 ({grid}) 尝试前往")
                 self.device.click(grid)
                 with self.config.temporary(STORY_ALLOW_SKIP=False):
@@ -2484,6 +2502,44 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
             logger.info("[大世界-相机] 摄像机已重新对准当前舰队")
             return True
         logger.warning("[大世界-相机] 换队对焦后仍未找到当前舰队，视野检测可能异常")
+        return False
+
+    def _buy_akashi_supply_with_retry(self, grid, max_retry=3):
+        """购买明石补给，商店未打开时重新对焦重试，不轻易放弃本次购买。
+
+        明石补给是必需品，handle_akashi_supply_buy 因坐标偏差或游戏卡顿
+        未能打开商店时，重新对焦舰队刷新视图、重新选取明石格再试，
+        而不是一次失败就放弃。对焦会重建视图，旧 grid 坐标失效，
+        因此每轮重试都重新 select(is_akashi) 取最新明石格。
+
+        Args:
+            grid: 明石所在的网格位置。
+            max_retry (int): 最多重试次数。
+
+        Returns:
+            bool: 成功打开明石商店并进入购买流程返回 True。
+        """
+        for attempt in range(max_retry):
+            if self.handle_akashi_supply_buy(grid):
+                return True
+            if attempt + 1 >= max_retry:
+                break
+            logger.warning(
+                f'[大世界-明石] 明石商店未打开，重新对焦后重试 ({attempt + 1}/{max_retry})')
+            if not self._os_camera_recover_to_fleet():
+                logger.warning('[大世界-明石] 重新对焦失败，停止重试')
+                break
+            grids = self.view.select(is_akashi=True)
+            if not grids or not grids[0].is_akashi:
+                logger.warning('[大世界-明石] 重新对焦后明石不在视野，停止重试')
+                break
+            grid = grids[0]
+            fleet = self.convert_radar_to_local((0, 0))
+            if fleet.distance_to(grid) > 1:
+                logger.warning(
+                    f'[大世界-明石] 重新对焦后舰队离明石较远 ({fleet}→{grid})，停止重试')
+                break
+        logger.warning('[大世界-明石] 多次重试后仍未打开明石商店')
         return False
 
     def _select_story_option_by_index(self, target_index, options_count=3):
