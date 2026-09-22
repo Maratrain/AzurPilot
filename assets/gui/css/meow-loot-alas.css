@@ -1,6 +1,9 @@
 /* 耄耋相接「收获」区块：物品卡片 + 按侵蚀等级的明细表。
-   全部选择器限定在 meow_loot_scope 下：同一个 opsi_stats 树里还有侵蚀1、
-   耄耋数据收集等表格，不带前缀会串味。 */
+   卡片区的栅格与卡片样式**内联在 HTML 里**（与委托收益统计一致，见
+   app_stat_opsi_export._build_meow_loot_summary_html）：外部 !important 规则优先级
+   高于内联样式，一旦把布局交给这里，任何主题/兜底规则都可能把它压掉。
+   本文件只负责明细表与作用域宽度兜底，且所有选择器都限定在 meow_loot_scope 下
+   —— 同一棵 opsi_stats 树里还有侵蚀1、耄耋数据收集等表格，不带前缀会串味。 */
 
 #pywebio-scope-meow_loot_scope {
 	width: 100% !important;
@@ -8,142 +11,14 @@
 }
 
 /* PyWebIO 会给 scope 里每一段输出各包一层 div，那层不是全宽；不显式拉满，
-   表格会退化成内容宽、卡片栅格也会算错可用宽度。 */
+   表格会退化成内容宽。
+   ⚠️ 这里**不要**加 `display: block !important`（委托收益统计那边有这一条，照抄会出事）：
+   外部 !important 优先级高于内联样式，任何自带 display 的元素只要落在这一层
+   就会被静默改成块级。2026-09-22 卡片栅格就是被它压成竖排的。 */
 #pywebio-scope-meow_loot_scope > div {
 	width: 100% !important;
 	max-width: 100% !important;
-	display: block !important;
 	box-sizing: border-box;
-}
-
-/* ---------- 卡片栅格 ----------
-   列数写死而不是 minmax(rem) 自适应：主题会把根字号放大，rem 阈值会漂，
-   6 个物品容易出现 5+1 的断行。 */
-#pywebio-scope-meow_loot_scope .meow-loot-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
-	width: 100%;
-	box-sizing: border-box;
-}
-
-/* 手机竖屏（内容区通常只剩 280~350px）：两列会把「隐蔽海域」这类名字截断，
-   统一退成一列，并把卡片内部改成「图标 | 名称 …… 数值」横排，
-   避免右侧留一大片空。 */
-@media (max-width: 419px) {
-	#pywebio-scope-meow_loot_scope .meow-loot-grid {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	#pywebio-scope-meow_loot_scope .meow-loot-card-body {
-		flex: 1;
-		flex-direction: row;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 8px;
-	}
-}
-
-@media (min-width: 640px) {
-	#pywebio-scope-meow_loot_scope .meow-loot-grid {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-	}
-}
-
-@media (min-width: 1080px) {
-	#pywebio-scope-meow_loot_scope .meow-loot-grid {
-		grid-template-columns: repeat(6, minmax(0, 1fr));
-	}
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-card {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	min-width: 0;
-	padding: 9px 11px;
-	border-radius: 8px;
-	background: rgba(128, 128, 128, 0.07);
-	border: 1px solid rgba(128, 128, 128, 0.14);
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-card-body {
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-card-name {
-	font-size: 0.72rem;
-	line-height: 1.3;
-	opacity: 0.62;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-card-value {
-	font-size: 1.05rem;
-	line-height: 1.35;
-}
-
-/* ---------- 图标 ---------- */
-
-#pywebio-scope-meow_loot_scope .meow-loot-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex: 0 0 auto;
-	border-radius: 7px;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-icon img {
-	display: block;
-	background: transparent;
-	object-fit: contain;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-icon--card {
-	width: 30px;
-	height: 30px;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-icon--card img {
-	width: 24px;
-	height: 24px;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-icon--row {
-	width: 22px;
-	height: 22px;
-	border-radius: 5px;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-icon--row img {
-	width: 17px;
-	height: 17px;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-dot {
-	border-radius: 50%;
-}
-
-/* 物品图标缺失时用色点占位，尺寸跟所在位置匹配 */
-#pywebio-scope-meow_loot_scope .meow-loot-icon--card .meow-loot-dot {
-	width: 10px;
-	height: 10px;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-icon--row .meow-loot-dot {
-	width: 8px;
-	height: 8px;
-}
-
-#pywebio-scope-meow_loot_scope .meow-loot-name-cell {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	min-width: 0;
 }
 
 /* ---------- 明细表 ---------- */
@@ -203,6 +78,14 @@
 #pywebio-scope-meow_loot_scope .meow-loot-table th.meow-loot-cell-name,
 #pywebio-scope-meow_loot_scope .meow-loot-table td.meow-loot-cell-name {
 	text-align: left !important;
+}
+
+/* 表格里「图标 + 物品名」横排 */
+#pywebio-scope-meow_loot_scope .meow-loot-name-cell {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
 }
 
 /* 战斗轮次不是掉落物，单独成行并用上边框与主数据分开 */

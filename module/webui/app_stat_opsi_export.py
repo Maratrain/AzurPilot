@@ -143,18 +143,44 @@ class OpsiExportMixin(WebUIMixinBase):
 
     @staticmethod
     def _meow_loot_icon_html(icon_name, color, kind):
-        """物品图标；文件缺失时退回同尺寸色点（尺寸见 CSS 的 --card / --row）。"""
-        classes = f"meow-loot-icon meow-loot-icon--{kind}"
+        """物品图标；文件缺失时退回同尺寸色点。尺寸内联，不依赖外部 CSS。"""
+        box, inner_size = (30, 24) if kind == "card" else (22, 17)
+        box_style = (
+            f"width: {box}px; height: {box}px; display: flex; align-items: center; "
+            f"justify-content: center; flex: 0 0 auto; "
+            f"border-radius: {'7' if kind == 'card' else '5'}px; "
+            f"background: {color}1a;"
+        )
         data_uri = _meow_loot_icon_data_uri(icon_name) if icon_name else None
         if data_uri:
-            inner = f'<img src="{data_uri}" alt="">'
+            inner = (
+                f'<img src="{data_uri}" alt="" style="width: {inner_size}px; '
+                f'height: {inner_size}px; display: block; object-fit: contain;">'
+            )
         else:
-            inner = f'<span class="meow-loot-dot" style="background: {color};"></span>'
-        return f'<div class="{classes}" style="background: {color}1a;">{inner}</div>'
+            dot = 10 if kind == "card" else 8
+            inner = (
+                f'<span style="display: block; width: {dot}px; height: {dot}px; '
+                f'border-radius: 50%; background: {color};"></span>'
+            )
+        return f'<div style="{box_style}">{inner}</div>'
 
     def _build_meow_loot_summary_html(self, loot_totals):
-        """物品卡片区：每张卡片是一个物品在所选月份的总数（跨侵蚀等级）。"""
-        html = '<div class="meow-loot-grid">'
+        """物品卡片区：每张卡片是一个物品在所选月份的总数（跨侵蚀等级）。
+
+        栅格与卡片全部写成内联样式，跟委托收益统计保持一致，并且**多包一层容器**：
+        scope 的直接子元素会吃到 `#pywebio-scope-meow_loot_scope > div` 的
+        `display: block !important`（外部 !important 优先于内联样式），
+        栅格直接挂在那一层会被压成块级、卡片只能竖着堆（2026-09-22 实测踩到）。
+        用 repeat(auto-fit, minmax(140px, 1fr)) 而不是媒体查询：内联写不了 @media，
+        且它本身就能自适应 —— 940px 走 6 列、316px 走 2 列。
+        """
+        html = (
+            '<div class="meow-loot-summary" style="width: 100%; box-sizing: border-box;">'
+            '<div class="meow-loot-grid" style="display: grid; '
+            "grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); "
+            'gap: 8px; width: 100%; box-sizing: border-box;">'
+        )
         for key, i18n_suffix, icon_name, color in MEOW_LOOT_ITEMS:
             total = sum(
                 int((loot_totals.get(hazard_level) or {}).get(key, 0) or 0)
@@ -162,15 +188,22 @@ class OpsiExportMixin(WebUIMixinBase):
             )
             total_str = f"+{total:,}" if total > 0 else "0"
             html += (
-                '<div class="meow-loot-card">'
+                '<div class="meow-loot-card" style="display: flex; align-items: center; '
+                "gap: 8px; padding: 9px 11px; border-radius: 8px; min-width: 0; "
+                "background: rgba(128, 128, 128, 0.07); "
+                'border: 1px solid rgba(128, 128, 128, 0.14);">'
                 f"{self._meow_loot_icon_html(icon_name, color, 'card')}"
-                '<div class="meow-loot-card-body">'
-                f'<span class="meow-loot-card-name">'
+                '<div class="meow-loot-card-body" style="display: flex; '
+                'flex-direction: column; min-width: 0;">'
+                '<span class="meow-loot-card-name" style="font-size: 0.72rem; '
+                'line-height: 1.3; opacity: 0.62; white-space: nowrap; '
+                'overflow: hidden; text-overflow: ellipsis;">'
                 f'{t(f"Gui.Stat.MeowLootItem{i18n_suffix}")}</span>'
-                f'<span class="meow-loot-card-value">{total_str}</span>'
+                '<span class="meow-loot-card-value" style="font-size: 1.05rem; '
+                f'line-height: 1.35;">{total_str}</span>'
                 "</div></div>"
             )
-        return html + "</div>"
+        return html + "</div></div>"
 
     def _build_meow_loot_table_html(self, loot_totals, rounds):
         """明细表：行 = 物品，列 = 各侵蚀等级 + 合计，末行是战斗轮次。"""
