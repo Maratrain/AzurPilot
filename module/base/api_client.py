@@ -133,7 +133,7 @@ class ApiClient:
 
                     # 如果返回空字典或无ID，也视为无更新
                     if not data or not data.get('announcementId'):
-                        logger.info('[Base] 公告数据为空或无ID')
+                        logger.info('[基础-公告] 公告数据为空或无ID')
                         return None
 
                     # 只要有标题，且有内容 OR 链接，就是有效公告
@@ -142,12 +142,12 @@ class ApiClient:
                     else:
                         return None
                 except json.JSONDecodeError as e:
-                    logger.warning(f'[Base] 解析公告JSON失败: {e}, response={response_text[:100]}')
+                    logger.warning(f'[基础-公告] 解析公告JSON失败: {e}, response={response_text[:100]}')
                     return None
             else:
-                logger.warning(f'[Base] 获取公告失败: {response_text}')
+                logger.warning(f'[基础-公告] 获取公告失败: {response_text}')
                 return None
 
         except Exception as e:
-            logger.warning(f'[Base] 获取公告异常: {e}')
+            logger.warning(f'[基础-公告] 获取公告异常: {e}')
             return None
