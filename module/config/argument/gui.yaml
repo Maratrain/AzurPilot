@@ -428,6 +428,14 @@ Stat:
   SecondUnit:
   HourUnit:
   MinuteUnit:
+  ExportModuleLoadFailed:
+  CsvHeaderAkashiRate:
+  CsvHeaderLoopEfficiency:
+  CsvHeaderMonthlyPurchasedAP:
+  CsvFilenameTemplate:
+  SavedToDesktop:
+  SaveDesktopFailed:
+  ExportAndSaveDesktop:
   NoShipExpData:
   ShipExpProgressTitle:
   LastCheckTime:
