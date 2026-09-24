@@ -87,6 +87,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
         with clip_recording(
             self.config,
             self.config.OpsiHazard1Leveling_DebugClip,
+            device=self.device,
         ):
             # 第一次重扫：检查是否还有事件
             self._solved_map_event = set()

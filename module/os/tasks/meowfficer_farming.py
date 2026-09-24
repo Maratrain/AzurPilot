@@ -206,6 +206,7 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
             self.config,
             self.config.OpsiMeowfficerFarming_DebugClip,
             prefix=CLIP_PREFIX_MEOW,
+            device=self.device,
         )
 
     def _meow_handle_traditional_zone(self, zone):

@@ -397,6 +397,45 @@ class TestStart(ClipTestCase):
         self.assertIsNone(rec.size)
         self.assertNotIn('--size', self.launched_command(cli))
 
+    def test_serial_prefers_runtime_device_over_config(self):
+        """MuMu12 端口切换后连接层的 serial 是唯一真值，不能读配置里的旧值。"""
+        adb = _FakeAdb()
+        rec = debug_clip._ScreenRecordClip(
+            config=SimpleNamespace(Emulator_Serial='127.0.0.1:16384'),
+            device=SimpleNamespace(serial='127.0.0.1:16385'),
+        )
+        rec.output_dir = self.output_dir
+        adb.sync = make_fake_sync(adb)
+        rec.adb = adb
+        with patch.object(debug_clip, '_run_adb_cli', return_value='4321\n') as cli:
+            ok = rec.start()
+        self.assertTrue(ok)
+        args = cli.call_args[0][0]
+        # 启动 recorder 必须发往切换后的序列号
+        self.assertEqual(args[:3], ['-s', '127.0.0.1:16385', 'shell'])
+
+    def test_unreachable_device_skips_entire_start(self):
+        """设备真断开时只报一条 warning，后面的查残留/启动/清理全部跳过。"""
+        class _UnreachableAdb:
+            def shell(self, cmd):
+                raise RuntimeError("device '127.0.0.1:16384' not found")
+
+            def window_size(self):
+                raise RuntimeError("device '127.0.0.1:16384' not found")
+
+        adb = _UnreachableAdb()
+        rec = debug_clip._ScreenRecordClip(
+            config=SimpleNamespace(Emulator_Serial='127.0.0.1:16384')
+        )
+        rec.output_dir = self.output_dir
+        rec.adb = adb
+        with patch.object(debug_clip, '_run_adb_cli') as cli:
+            ok = rec.start()
+        self.assertFalse(ok)
+        # 探测不通就不该走到启动 recorder 那一步
+        cli.assert_not_called()
+        self.assertFalse(rec.alive)
+
 
 class TestFinalize(ClipTestCase):
     def setUp(self):
@@ -597,7 +636,7 @@ class TestClipRecordingContext(unittest.TestCase):
                 config='cfg', enabled=True, prefix=debug_clip.CLIP_PREFIX_MEOW
             ) as clip:
                 self.assertIs(clip, handle)
-        start.assert_called_once_with('cfg', prefix=debug_clip.CLIP_PREFIX_MEOW)
+        start.assert_called_once_with('cfg', prefix=debug_clip.CLIP_PREFIX_MEOW, device=None)
         end.assert_called_once_with(keep=True)
 
     def test_saves_even_when_body_raises(self):
@@ -624,7 +663,8 @@ class TestMeowfficerClipWiring(unittest.TestCase):
         from module.os.tasks.meowfficer_farming import OpsiMeowfficerFarming
 
         fake = SimpleNamespace(
-            config=SimpleNamespace(OpsiMeowfficerFarming_DebugClip=enabled)
+            config=SimpleNamespace(OpsiMeowfficerFarming_DebugClip=enabled),
+            device=None,
         )
         return OpsiMeowfficerFarming._meow_debug_clip(fake)
 

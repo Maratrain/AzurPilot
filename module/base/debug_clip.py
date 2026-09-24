@@ -425,8 +425,10 @@ class _ScreenRecordClip:
 
     _scrcpy_warned = False  # 截图方式为 scrcpy 的提示只打一次
 
-    def __init__(self, config, fps=RECORD_FPS, prefix=CLIP_PREFIX_EH1):
+    def __init__(self, config, fps=RECORD_FPS, prefix=CLIP_PREFIX_EH1, device=None):
         self.config = config
+        # 设备连接层的运行时对象，用于拿切换后的真实 serial；可为 None（走配置回退）
+        self.device = device
         self.fps = fps
         self.prefix = prefix
         self.output_dir = DEFAULT_OUTPUT_DIR
@@ -454,9 +456,13 @@ class _ScreenRecordClip:
             logger.error(f"[录屏] 创建输出目录失败: {e}")
             return False
 
-        self.serial = str(getattr(self.config, "Emulator_Serial", "") or "")
+        # serial 优先取设备连接层的运行时值：MuMu12 端口被占用时连接层会动态切换
+        # 序列号且不写回配置（见 connection.py），只读配置会拿到切换前的旧值，
+        # 之后每一段录制都报 device not found
+        runtime_serial = str(getattr(self.device, "serial", "") or "")
+        self.serial = runtime_serial or str(getattr(self.config, "Emulator_Serial", "") or "")
         if not self.serial:
-            logger.warning("[录屏] 配置里没有 Emulator_Serial，本次不录制")
+            logger.warning("[录屏] 拿不到设备序列号（设备对象与配置里都没有），本次不录制")
             return False
         method = str(getattr(self.config, "Emulator_ScreenshotMethod", "") or "")
         if method.lower().startswith("scrcpy") and not _ScreenRecordClip._scrcpy_warned:
@@ -472,6 +478,8 @@ class _ScreenRecordClip:
             self.adb = self.adb or _adb_device(self.serial)
         except Exception as e:
             logger.error(f"[录屏] 连接 ADB 失败，本次不录制: {e}")
+            return False
+        if not self._device_reachable():
             return False
 
         ts = time.strftime("%Y%m%d_%H%M%S")
@@ -490,6 +498,30 @@ class _ScreenRecordClip:
             f"[录屏] 开始录制（设备端 screenrecord{size_desc}，收尾转 {self.fps}fps）: {self.remote_path}"
         )
         return True
+
+    def _device_reachable(self, retries=1):
+        """开录前先确认设备可达。
+
+        模拟器的 adb 连接偶发瞬时不可达，而设备真断开时 start() 里的每一步
+        （读分辨率、查残留、启动、清理）都会各报一次 device not found。
+        这里提前探一次，失败重试一轮，仍不通就只报一条 warning 并跳过整段录制。
+
+        Args:
+            retries (int): 首次探测失败后的重试次数。
+
+        Returns:
+            bool: 设备可达返回 True。
+        """
+        for attempt in range(retries + 1):
+            try:
+                self.adb.shell("echo ok")
+                return True
+            except Exception as e:
+                if attempt >= retries:
+                    logger.warning(f"[录屏] 设备 {self.serial} 当前不可达，本次不录制: {e}")
+                    return False
+                time.sleep(POLL_INTERVAL)
+        return False
 
     def _device_size(self):
         """读取设备分辨率，作为 screenrecord 的 --size。
@@ -851,13 +883,15 @@ class _ScreenRecordClip:
             self._remove_device_files()
 
 
-def clip_start(config, fps=RECORD_FPS, prefix=CLIP_PREFIX_EH1):
+def clip_start(config, fps=RECORD_FPS, prefix=CLIP_PREFIX_EH1, device=None):
     """打开录屏。
 
     Args:
         config: 当前运行实例的 AzurLaneConfig（含 serial 配置）。
         fps (int): 输出帧率（设备端录制帧率由设备决定，收尾时转成这个帧率）。
         prefix (str): 输出文件名前缀，用于区分是哪个任务录的。
+        device: 当前运行实例的 Device 对象。传入后 serial 优先取连接层的
+            运行时值（MuMu12 端口切换后仍与主流程一致）；None 时回退读配置。
 
     Returns:
         _ScreenRecordClip: 录制句柄；启动失败返回 None。
@@ -869,7 +903,7 @@ def clip_start(config, fps=RECORD_FPS, prefix=CLIP_PREFIX_EH1):
         logger.warning("[录屏] 上一段录制未正常结束，先收尾再开始新的一段")
         _finalize_active(keep=True)
 
-    rec = _ScreenRecordClip(config, fps=fps, prefix=prefix)
+    rec = _ScreenRecordClip(config, fps=fps, prefix=prefix, device=device)
     if not rec.start():
         return None
     _ACTIVE = rec
@@ -911,7 +945,7 @@ def clip_end(keep=True):
 
 
 @contextlib.contextmanager
-def clip_recording(config, enabled, prefix=CLIP_PREFIX_EH1):
+def clip_recording(config, enabled, prefix=CLIP_PREFIX_EH1, device=None):
     """在 with 块内录制一段 debug 录像（进入时开录，退出时保存）。
 
     异常路径也会正常收尾，不会把会话留在活动状态。同一个进程内不会同时存在
@@ -921,11 +955,12 @@ def clip_recording(config, enabled, prefix=CLIP_PREFIX_EH1):
         config: 当前运行实例的 AzurLaneConfig。
         enabled (bool): 是否开启录制；False 时整个块不产生任何录像。
         prefix (str): 输出文件名前缀，用于区分是哪个任务录的。
+        device: 当前运行实例的 Device 对象，透传给 clip_start。
 
     Yields:
         _ScreenRecordClip | None: 录制句柄；未开启或启动失败时为 None。
     """
-    clip = clip_start(config, prefix=prefix) if enabled else None
+    clip = clip_start(config, prefix=prefix, device=device) if enabled else None
     try:
         yield clip
     finally:
