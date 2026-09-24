@@ -679,9 +679,7 @@
         "value": "do_not",
         "option": [
           "do_not",
-          "save",
-          "upload",
-          "save_and_upload"
+          "save"
         ]
       },
       "CommissionRecord": {
@@ -689,9 +687,7 @@
         "value": "do_not",
         "option": [
           "do_not",
-          "save",
-          "upload",
-          "save_and_upload"
+          "save"
         ]
       },
       "CommissionIncomeScreenshot": {
@@ -712,22 +708,20 @@
       },
       "OpsiRecord": {
         "type": "select",
-        "value": "upload",
+        "value": "local",
         "option": [
           "do_not",
           "save",
-          "upload",
-          "save_and_upload"
+          "local",
+          "save_and_local"
         ]
       },
       "OpsiShopRecord": {
         "type": "select",
-        "value": "upload",
+        "value": "do_not",
         "option": [
           "do_not",
-          "save",
-          "upload",
-          "save_and_upload"
+          "save"
         ]
       },
       "MeowfficerBuy": {
@@ -743,9 +737,7 @@
         "value": "do_not",
         "option": [
           "do_not",
-          "save",
-          "upload",
-          "save_and_upload"
+          "save"
         ]
       }
     },

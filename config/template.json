@@ -137,8 +137,8 @@
       "CommissionRecord": "do_not",
       "CommissionIncomeScreenshot": "save",
       "CombatRecord": "do_not",
-      "OpsiRecord": "upload",
-      "OpsiShopRecord": "upload",
+      "OpsiRecord": "local",
+      "OpsiShopRecord": "do_not",
       "MeowfficerBuy": "do_not",
       "MeowfficerTalent": "do_not"
     },

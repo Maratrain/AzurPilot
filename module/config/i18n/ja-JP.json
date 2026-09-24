@@ -925,17 +925,13 @@
       "name": "科研スクリーンショット",
       "help": "",
       "do_not": "アクションなし",
-      "save": "保存",
-      "upload": "アップロード",
-      "save_and_upload": "保存してアップロードする"
+      "save": "保存"
     },
     "CommissionRecord": {
       "name": "委託スクリーンショット",
       "help": "",
       "do_not": "アクションなし",
-      "save": "保存",
-      "upload": "アップロード",
-      "save_and_upload": "保存してアップロードする"
+      "save": "保存"
     },
     "CommissionIncomeScreenshot": {
       "name": "委託報酬スクリーンショット",
@@ -954,16 +950,14 @@
       "help": "",
       "do_not": "アクションなし",
       "save": "保存",
-      "upload": "アップロード",
-      "save_and_upload": "保存してアップロードする"
+      "local": "ローカル記録",
+      "save_and_local": "保存してローカル記録"
     },
     "OpsiShopRecord": {
       "name": "DropRecord.OpsiShopRecord.name",
       "help": "DropRecord.OpsiShopRecord.help",
       "do_not": "do_not",
-      "save": "save",
-      "upload": "upload",
-      "save_and_upload": "save_and_upload"
+      "save": "save"
     },
     "MeowfficerBuy": {
       "name": "オフニャ購入スクリーンショット",
@@ -975,9 +969,7 @@
       "name": "オフニャ天賦スクリーンショット",
       "help": "",
       "do_not": "アクションなし",
-      "save": "保存",
-      "upload": "アップロード",
-      "save_and_upload": "保存してアップロードする"
+      "save": "保存"
     }
   },
   "Backup": {

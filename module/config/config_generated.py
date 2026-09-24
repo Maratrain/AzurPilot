@@ -155,14 +155,14 @@ class GeneratedConfig:
     # 配置组 `DropRecord`
     DropRecord_SaveFolder = './screenshots'
     DropRecord_RetentionDays = 0
-    DropRecord_ResearchRecord = 'do_not'  # do_not, save, upload, save_and_upload
-    DropRecord_CommissionRecord = 'do_not'  # do_not, save, upload, save_and_upload
+    DropRecord_ResearchRecord = 'do_not'  # do_not, save
+    DropRecord_CommissionRecord = 'do_not'  # do_not, save
     DropRecord_CommissionIncomeScreenshot = 'save'  # do_not, save
     DropRecord_CombatRecord = 'do_not'  # do_not, save
-    DropRecord_OpsiRecord = 'upload'  # do_not, save, upload, save_and_upload
-    DropRecord_OpsiShopRecord = 'upload'  # do_not, save, upload, save_and_upload
+    DropRecord_OpsiRecord = 'local'  # do_not, save, local, save_and_local
+    DropRecord_OpsiShopRecord = 'do_not'  # do_not, save
     DropRecord_MeowfficerBuy = 'do_not'  # do_not, save
-    DropRecord_MeowfficerTalent = 'do_not'  # do_not, save, upload, save_and_upload
+    DropRecord_MeowfficerTalent = 'do_not'  # do_not, save
 
     # 配置组 `Backup`
     Backup_Enable = True

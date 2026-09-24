@@ -925,17 +925,13 @@
       "name": "科研截图",
       "help": "",
       "do_not": "无操作",
-      "save": "保存",
-      "upload": "上传",
-      "save_and_upload": "保存并上传"
+      "save": "保存"
     },
     "CommissionRecord": {
       "name": "委托截图",
       "help": "",
       "do_not": "无操作",
-      "save": "保存",
-      "upload": "上传",
-      "save_and_upload": "保存并上传"
+      "save": "保存"
     },
     "CommissionIncomeScreenshot": {
       "name": "委托收益截图",
@@ -954,16 +950,14 @@
       "help": "",
       "do_not": "无操作",
       "save": "保存",
-      "upload": "上传",
-      "save_and_upload": "保存并上传"
+      "local": "本地记录",
+      "save_and_local": "保存并本地记录"
     },
     "OpsiShopRecord": {
       "name": "行动力箱子掉落截图",
       "help": "",
       "do_not": "无操作",
-      "save": "保存",
-      "upload": "上传",
-      "save_and_upload": "保存并上传"
+      "save": "保存"
     },
     "MeowfficerBuy": {
       "name": "指挥喵购买截图",
@@ -975,9 +969,7 @@
       "name": "指挥喵天赋截图",
       "help": "",
       "do_not": "无操作",
-      "save": "保存",
-      "upload": "上传",
-      "save_and_upload": "保存并上传"
+      "save": "保存"
     }
   },
   "Backup": {

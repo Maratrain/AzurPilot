@@ -925,17 +925,13 @@
       "name": "科研截图动作",
       "help": "",
       "do_not": "无视喵",
-      "save": "保存喵",
-      "upload": "上传喵",
-      "save_and_upload": "保存并上传喵"
+      "save": "保存喵"
     },
     "CommissionRecord": {
       "name": "委托截图动作",
       "help": "",
       "do_not": "无视喵",
-      "save": "保存喵",
-      "upload": "上传喵",
-      "save_and_upload": "保存并上传喵"
+      "save": "保存喵"
     },
     "CommissionIncomeScreenshot": {
       "name": "委托收益截图喵",
@@ -954,16 +950,14 @@
       "help": "",
       "do_not": "无视喵",
       "save": "保存喵",
-      "upload": "上传喵",
-      "save_and_upload": "保存并上传喵"
+      "local": "本地记录喵",
+      "save_and_local": "保存并本地记录喵"
     },
     "OpsiShopRecord": {
       "name": "DropRecord.OpsiShopRecord.name",
       "help": "DropRecord.OpsiShopRecord.help",
       "do_not": "do_not",
-      "save": "save",
-      "upload": "upload",
-      "save_and_upload": "save_and_upload"
+      "save": "save"
     },
     "MeowfficerBuy": {
       "name": "指挥喵购买截图",
@@ -975,9 +969,7 @@
       "name": "指挥喵天赋截图",
       "help": "",
       "do_not": "无视喵",
-      "save": "保存喵",
-      "upload": "上传喵",
-      "save_and_upload": "保存并上传喵"
+      "save": "保存喵"
     }
   },
   "Backup": {
