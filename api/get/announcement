@@ -1,5 +1,5 @@
 {
-  "announcementId": 1,
-  "title": "AzurPilot 公告",
-  "content": "公告系统已切换到自有源。发布新公告请编辑本仓库 api/get/announcement 文件（修改内容后需同步更新 announcementId）。"
+  "announcementId": 2,
+  "title": "AzurPilot 1.0.0 正式版发布",
+  "content": "指挥官，启动器 1.0.0 已上线：更新源与公告源全部迁移至自有仓库，彻底脱离上游控制；同步上游 2.2.1 的标题栏拖动修复与界面样式统一。后续版本与维护通知将在这里发布，请多关照~"
 }
