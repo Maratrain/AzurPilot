@@ -297,6 +297,9 @@ class TestDailySummaryService(unittest.TestCase):
             patch('module.base.async_executor.async_executor.flush'),
             patch.object(self.service, 'build_facts', return_value=sample_facts()),
             patch('module.notify.handle_notify') as notify,
+            # 期次窗口写死在过去，_generate_and_send 收尾的 cleanup(35 天)
+            # 一旦越过窗口会当场删行，桩掉避免用例随真实日期漂移而失败
+            patch.object(self.store, 'cleanup'),
         ):
             self.service._generate_and_send(request)
 
@@ -327,6 +330,7 @@ class TestDailySummaryService(unittest.TestCase):
             patch.object(self.service, '_generate_report', return_value=(report_text, 1)),
             patch.object(self.service, '_send_report', return_value=(True, 1)) as send,
             patch.object(daily_summary.logger, 'info') as info,
+            patch.object(self.store, 'cleanup'),
         ):
             self.service._generate_and_send(request)
 
@@ -355,6 +359,7 @@ class TestDailySummaryService(unittest.TestCase):
         with (
             patch.object(self.service, 'build_facts') as facts,
             patch('module.notify.handle_notify') as notify,
+            patch.object(self.store, 'cleanup'),
         ):
             self.service._generate_and_send(request)
 
