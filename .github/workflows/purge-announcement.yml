@@ -1,0 +1,16 @@
+name: Purge jsDelivr announcement cache
+
+# 公告文件更新后自动清除 jsDelivr CDN 缓存，保证新公告即时生效。
+on:
+  push:
+    branches: [master]
+    paths: ['api/get/announcement']
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge jsDelivr cache
+        run: |
+          curl -sf "https://purge.jsdelivr.net/gh/Maratrain/AzurPilot@master/api/get/announcement"
+          echo "jsDelivr 缓存已清除"

@@ -14,7 +14,7 @@ class ApiClient:
     """统一的API客户端，支持双域名故障转移"""
 
     # 主域名和备用域名列表
-    PRIMARY_DOMAIN = 'https://raw.githubusercontent.com/Maratrain/AzurPilot/master'
+    PRIMARY_DOMAIN = 'https://cdn.jsdelivr.net/gh/Maratrain/AzurPilot@master'
     FALLBACK_DOMAIN = 'https://raw.githubusercontent.com/Maratrain/AzurPilot/master'
 
     # API端点路径
