@@ -731,8 +731,7 @@
     },
     "SaveErrorRetentionDays": {
       "name": "錯誤日誌過期天數",
-      "help": "超過天數的錯誤現場按下面的方式處理
-0 = 不清理"
+      "help": "超過天數的錯誤現場按下面的方式處理\n0 = 不清理"
     },
     "SaveErrorBackUpMethod": {
       "name": "過期錯誤日誌處理方式",

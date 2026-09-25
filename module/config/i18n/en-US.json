@@ -731,8 +731,7 @@
     },
     "SaveErrorRetentionDays": {
       "name": "Error log expiration (days)",
-      "help": "Error scenes older than this are handled by the method below
-0 = keep everything"
+      "help": "Error scenes older than this are handled by the method below\n0 = keep everything"
     },
     "SaveErrorBackUpMethod": {
       "name": "Expired error log processing method",

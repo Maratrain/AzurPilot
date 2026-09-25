@@ -731,8 +731,7 @@
     },
     "SaveErrorRetentionDays": {
       "name": "错误日志过期天数喵",
-      "help": "超过天数的错误现场按下面的方式处理喵
-0 = 不清理喵"
+      "help": "超过天数的错误现场按下面的方式处理喵\n0 = 不清理喵"
     },
     "SaveErrorBackUpMethod": {
       "name": "过期错误日志处理方式喵",
