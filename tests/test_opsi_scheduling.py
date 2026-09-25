@@ -1,3 +1,4 @@
+import collections
 import unittest
 from contextlib import contextmanager, nullcontext
 from datetime import datetime, timedelta
@@ -6,11 +7,14 @@ from unittest.mock import Mock, patch
 
 from module.campaign.os_run import OSCampaignRun
 from module.config.config import Function, TaskEnd
+from module.device.device import Device
 from module.os.operation_siren import OperationSiren
 from module.os.tasks.prevent_action_point_overflow import OpsiPreventActionPointOverflow
 from module.os.tasks.scheduling import OpsiScheduling
-from module.os_handler.action_point import ActionPointLimit
+from module.os_handler.action_point import ActionPointHandler, ActionPointLimit
+from module.os_handler.assets import ACTION_POINT_CANCEL, ACTION_POINT_REMAIN_OS
 from module.os_handler.os_status import OSStatus
+from module.ui.assets import OS_CHECK
 
 
 class TestOpsiTaskCooldown(unittest.TestCase):
@@ -167,8 +171,10 @@ class SchedulingMeowHarness:
     def __init__(self):
         self.config = MeowPreserveConfig()
         self.executed_task_name = None
+        self.received_ap_checked = None
 
-    def run_meowfficer_farming_once(self, ap_preserve):
+    def run_meowfficer_farming_once(self, ap_preserve=None, ap_checked=False, prepared=False):
+        self.received_ap_checked = ap_checked
         self.config.OS_ACTION_POINT_PRESERVE = ap_preserve
         raise ActionPointLimit(total=5985, preserve=ap_preserve)
 
@@ -181,7 +187,8 @@ class SchedulingMeowHarness:
 
 
 class SchedulingMeowCostLimitHarness(SchedulingMeowHarness):
-    def run_meowfficer_farming_once(self, ap_preserve):
+    def run_meowfficer_farming_once(self, ap_preserve=None, ap_checked=False, prepared=False):
+        self.received_ap_checked = ap_checked
         self.config.OS_ACTION_POINT_PRESERVE = ap_preserve
         raise ActionPointLimit(current=15, total=15, cost=120)
 
@@ -197,6 +204,8 @@ class TestSmartSchedulingMeowPreserve(unittest.TestCase):
             OpsiScheduling.TASK_NAME_MEOWFFICER_FARMING,
         )
         self.assertEqual(scheduling.config.OS_ACTION_POINT_PRESERVE, 180)
+        # 本轮的智能调度决策已经验证过行动力充足，代跑短猫时不该再开一次弹窗检查
+        self.assertTrue(scheduling.received_ap_checked)
 
     def test_propagates_real_ap_shortage_and_still_restores_global_preserve(self):
         scheduling = SchedulingMeowCostLimitHarness()
@@ -332,3 +341,71 @@ class TestSmartSchedulingExploreDelay(unittest.TestCase):
                 )
             ],
         )
+
+
+class _ClickRecordDevice:
+    """借用真实 Device 的点击记录实现，但不连接设备。"""
+
+    click_record_add = Device.click_record_add
+    click_record_check = Device.click_record_check
+    click_record_remove = Device.click_record_remove
+    click_record_clear = Device.click_record_clear
+
+    def __init__(self):
+        self.click_record = collections.deque(maxlen=15)
+
+
+class ActionPointPopupStub:
+    """行动力弹窗桩：一次取消点击后认为弹窗已关闭。"""
+
+    def __init__(self):
+        self.device = _ClickRecordDevice()
+        self.cancel_clicked = False
+
+    def open(self):
+        """模拟点击 ACTION_POINT_REMAIN_OS 打开弹窗。"""
+        self.cancel_clicked = False
+        self.device.click_record_add(ACTION_POINT_REMAIN_OS)
+        self.device.click_record_check()
+
+    def loop(self, *args, **kwargs):
+        while True:
+            yield None
+
+    def appear(self, button, **kwargs):
+        if button is ACTION_POINT_CANCEL:
+            return not self.cancel_clicked
+        if button is OS_CHECK:
+            return self.cancel_clicked
+        return False
+
+    def appear_then_click(self, button, **kwargs):
+        if button is ACTION_POINT_CANCEL:
+            # 生产环境里 Device.click() 会顺带记录一次点击
+            self.device.click_record_add(button)
+            self.device.click_record_check()
+            self.cancel_clicked = True
+            return True
+        return False
+
+    def handle_map_event(self):
+        return False
+
+
+class TestActionPointPopupClickRecord(unittest.TestCase):
+    """issue #1041：反复开关行动力弹窗不该被判成「两个按钮交替点击过多」。"""
+
+    def test_repeated_popup_open_close_does_not_raise(self):
+        stub = ActionPointPopupStub()
+        for name in ('MAIN_GOTO_CAMPAIGN_WHITE', 'CAMPAIGN_MENU_GOTO_OS'):
+            stub.device.click_record_add(name)
+            stub.device.click_record_check()
+
+        # 智能调度+ 代理一轮短猫会连续读 4 次行动力，清完图时几秒就是一轮
+        for _ in range(10):
+            stub.open()
+            ActionPointHandler.action_point_quit(stub)
+            stub.device.click_record_check()
+
+        self.assertNotIn(str(ACTION_POINT_REMAIN_OS), list(stub.device.click_record))
+        self.assertNotIn(str(ACTION_POINT_CANCEL), list(stub.device.click_record))

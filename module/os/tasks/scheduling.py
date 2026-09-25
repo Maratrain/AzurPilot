@@ -843,6 +843,10 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                     self.TASK_NAME_MEOWFFICER_FARMING,
                     self.run_meowfficer_farming_once,
                     ap_preserve=ap_preserve,
+                    # 本轮 run_smart_scheduling_once 刚用新鲜读数验证过
+                    # total_ap > meow_ap_preserve，短猫不必再开一次弹窗重复检查，
+                    # 否则一轮里会多出一组 REMAIN_OS + CANCEL 点击。
+                    ap_checked=True,
                 )
             except ActionPointLimit as e:
                 if ap_preserve > 0 and getattr(e, 'preserve', None) == ap_preserve:

@@ -430,6 +430,13 @@ class ActionPointHandler(UI, MapEventHandler):
             if self.handle_map_event():
                 continue
 
+        # 「打开弹窗读行动力 → 取消关闭」是设计内的成对操作，一轮里会被连续调用多次
+        # （智能调度+ 决策、短猫前置检查、统计快照），点击记录（最近 15 次）会攒出
+        # 两个按钮各 ≥6 次，被「两个按钮交替点击次数过多」规则误判成卡死。
+        # 只在弹窗确实关闭后清理：真卡死时上面的循环不会跳出，仍由单按钮 ≥12 次兜底。
+        self.device.click_record_remove(ACTION_POINT_REMAIN_OS)
+        self.device.click_record_remove(ACTION_POINT_CANCEL)
+
     def handle_action_point(self, zone, pinned, cost=None, keep_current_ap=True, check_rest_ap=False):
         """
         处理行动力，包括购买和使用药剂。

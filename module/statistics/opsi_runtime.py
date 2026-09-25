@@ -195,15 +195,14 @@ def record_meow_auto_search_battle(
 
 
 def start_meow_search_timer(main: Any) -> tuple[float, int | None]:
-    """记录耄耋相接开始搜索当前海域时的时间与行动力。"""
-    try:
-        refresh_action_point(main)
-        start_ap = main._action_point_total
-        logger.debug(f"[统计-大世界] 耄耋搜索开始，行动力: {start_ap}")
-    except Exception:
-        start_ap = None
-        logger.debug("[统计-大世界] 获取起始行动力失败")
+    """记录耄耋相接开始搜索当前海域时的时间与行动力。
 
+    行动力取当前缓存值，不为了统计再开一次弹窗：搜索开始时 ALAS 刚读过行动力
+    （智能调度+ 决策、短猫前置检查），多开一次弹窗就多一组 REMAIN_OS + CANCEL
+    点击，会加速触发「两个按钮交替点击次数过多」。
+    """
+    start_ap = int(getattr(main, "_action_point_total", 0) or 0) or None
+    logger.debug(f"[统计-大世界] 耄耋搜索开始，行动力: {start_ap}")
     logger.debug("[统计-大世界] 耄耋搜索开始，计时器重置")
     return time.time(), start_ap
 
