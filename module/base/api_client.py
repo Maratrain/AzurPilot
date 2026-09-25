@@ -1,7 +1,7 @@
 """
 API 客户端模块
 负责与 API 服务器进行HTTP交互（公告获取）
-支持主域名(nanoda.work)和备用域名(xf-sama.xyz)的自动故障转移
+公告源指向 Maratrain/AzurPilot 仓库的 GitHub Raw（api/get/announcement）
 """
 from typing import Any, Dict, List, Tuple, Optional
 
@@ -14,8 +14,8 @@ class ApiClient:
     """统一的API客户端，支持双域名故障转移"""
 
     # 主域名和备用域名列表
-    PRIMARY_DOMAIN = 'https://alas-apiv2.nanoda.work'
-    FALLBACK_DOMAIN = 'https://alas-apiv2.nanoda.work'
+    PRIMARY_DOMAIN = 'https://raw.githubusercontent.com/Maratrain/AzurPilot/master'
+    FALLBACK_DOMAIN = 'https://raw.githubusercontent.com/Maratrain/AzurPilot/master'
 
     # API端点路径
     ANNOUNCEMENT_PATH = '/api/get/announcement'
