@@ -334,10 +334,40 @@ class TestSubmarineCallConfirmation(unittest.TestCase):
         self.combat.device.click.assert_not_called()
         self.assertEqual(self.combat.submarine_advanced.ammo, 3)
 
-    def test_timeout_without_confirmation_preserves_resources(self):
-        self.combat.submarine_call_timer = Mock(reached=Mock(return_value=True))
-        self.assertFalse(self.combat.handle_submarine_call('advanced_call'))
-        self.assertEqual((self.combat.submarine_advanced.ammo, self.combat.submarine_advanced.support), (3, 1))
+    def test_advanced_call_retries_when_button_appears_during_grace_period(self):
+        combat = self.combat
+        available = [False]
+        combat.appear.side_effect = lambda button: available[0] and button in (
+            SUBMARINE_AVAILABLE_CHECK_1, SUBMARINE_AVAILABLE_CHECK_2)
+        combat.submarine_call_timer = Mock(reached=Mock(side_effect=[True, False]))
+
+        self.assertFalse(combat.handle_submarine_call('advanced_call'))
+        available[0] = True
+        self.assertTrue(combat.handle_submarine_call('advanced_call'))
+        self.assertFalse(combat.submarine_call_flag)
+        combat.appear_then_click.assert_called_once()
+
+    def test_advanced_call_stops_after_single_grace_period(self):
+        combat = self.combat
+        combat.submarine_call_timer = Mock(reached=Mock(return_value=True))
+
+        self.assertFalse(combat.handle_submarine_call('advanced_call'))
+        self.assertFalse(combat.submarine_call_flag)
+        self.assertTrue(combat.submarine_call_grace_used)
+        combat.submarine_call_timer.reset.assert_called_once_with()
+
+        self.assertFalse(combat.handle_submarine_call('advanced_call'))
+        self.assertTrue(combat.submarine_call_flag)
+        self.assertEqual((combat.submarine_advanced.ammo, combat.submarine_advanced.support), (3, 1))
+
+    def test_legacy_call_timeout_does_not_get_advanced_grace_period(self):
+        combat = self.combat
+        combat.submarine_call_timer = Mock(reached=Mock(return_value=True))
+
+        self.assertFalse(combat.handle_submarine_call('boss_only', call=True))
+        self.assertTrue(combat.submarine_call_flag)
+        self.assertFalse(combat.submarine_call_grace_used)
+        combat.submarine_call_timer.reset.assert_not_called()
 
     def test_raw_advanced_and_old_non_call_modes_never_call(self):
         for mode in ('advanced', 'hunt_only', 'hunt_and_boss', 'boss_only', 'do_not_use'):

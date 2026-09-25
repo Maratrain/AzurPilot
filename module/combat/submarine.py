@@ -29,16 +29,19 @@ class SubmarineCall(ModuleBase):
         submarine_call_flag (bool): 本次战斗是否已呼叫过潜艇。
         submarine_call_timer (Timer): 潜艇呼叫检测计时器。
         submarine_call_click_timer (Timer): 潜艇呼叫点击间隔计时器。
+        submarine_call_grace_used (bool): 高级召唤是否已使用超时宽限。
     """
     submarine_call_flag = False
     submarine_call_timer = Timer(5)
     submarine_call_click_timer = Timer(1)
+    submarine_call_grace_used = False
     submarine_advanced = None
 
     def submarine_call_reset(self):
         """每次战斗执行前重置呼叫状态，避免不同实例共享计时器。"""
         self.submarine_call_timer = Timer(5).start()
         self.submarine_call_click_timer = Timer(2)
+        self.submarine_call_grace_used = False
         self.submarine_call_flag = False
 
     def handle_submarine_call(self, submarine='do_not_use', call=False):
@@ -74,6 +77,12 @@ class SubmarineCall(ModuleBase):
             self.submarine_call_flag = True
             return False
         if self.submarine_call_timer.reached():
+            # 预装填航母起飞时潜艇按钮会短暂不可用，高级规则再给予一次完整的召唤窗口。
+            if submarine == 'advanced_call' and not self.submarine_call_grace_used:
+                logger.info('潜艇呼叫首次超时，继续尝试')
+                self.submarine_call_grace_used = True
+                self.submarine_call_timer.reset()
+                return False
             logger.info('潜艇呼叫计时器到达')
             self.submarine_call_flag = True
             return False
