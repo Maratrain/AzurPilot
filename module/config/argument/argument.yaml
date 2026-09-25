@@ -182,7 +182,15 @@ Error:
   HandleError: true
   SaveError: true
   StrictRestart: false
-  SaveErrorCount: 30
+  SaveErrorRetentionDays:
+    value: 30
+    validate: [0, 3650]
+  SaveErrorBackUpMethod:
+    value: zip
+    option: [ delete, zip, copy ]
+  SaveErrorZipMethod:
+    value: zip
+    option: [ bz2, gzip, xz, zip ]
   OnePushConfig:
     type: textarea
     mode: yaml

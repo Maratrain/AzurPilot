@@ -729,9 +729,25 @@
       "name": "機密タスクでエラー発生時の再起動を禁止する",
       "help": "機密タスク実行中にエラーが発生した場合、ゲームを再起動せずにAzurPilotを停止します\n機密タスクには隠秘海域、深淵海域、月跨ぎデイリーなどが含まれます"
     },
-    "SaveErrorCount": {
-      "name": "エラーログ保存上限",
-      "help": "上限を超えたエラーログは削除されます。0または負の値の場合、制限はありません。"
+    "SaveErrorRetentionDays": {
+      "name": "エラーログの有効期限 (日)",
+      "help": "この日数を超えたエラー現場は以下の方法で処理します
+0 = 保存し続ける"
+    },
+    "SaveErrorBackUpMethod": {
+      "name": "期限切れエラーログの処理方法",
+      "help": "バックアップディレクトリは./log/error/<インスタンス名>/bakです。",
+      "delete": "消去",
+      "zip": "バックアップを圧縮する",
+      "copy": "バックアップをコピーする"
+    },
+    "SaveErrorZipMethod": {
+      "name": "圧縮形式",
+      "help": "",
+      "bz2": "BZ2",
+      "gzip": "gzip",
+      "xz": "xz",
+      "zip": "ZIP"
     },
     "OnePushConfig": {
       "name": "プッシュ通知設定",

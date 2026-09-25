@@ -729,9 +729,25 @@
       "name": "Prohibit restarting when errors occur in sensitive tasks",
       "help": "Stop AzurPilot when an error occurs while running sensitive tasks instead of restarting the game\nSensitive tasks include hidden sea areas, abyssal sea areas, and cross-month daily tasks."
     },
-    "SaveErrorCount": {
-      "name": "Error Log storage upper limit",
-      "help": "Error logs exceeding the upper limit will be deleted. If it is 0 or a negative value, there is no limit."
+    "SaveErrorRetentionDays": {
+      "name": "Error log expiration (days)",
+      "help": "Error scenes older than this are handled by the method below
+0 = keep everything"
+    },
+    "SaveErrorBackUpMethod": {
+      "name": "Expired error log processing method",
+      "help": "The backup directory is ./log/error/<instance>/bak",
+      "delete": "Delete",
+      "zip": "Compress backup",
+      "copy": "Copy backup"
+    },
+    "SaveErrorZipMethod": {
+      "name": "Compression format",
+      "help": "",
+      "bz2": "bz2",
+      "gzip": "gzip",
+      "xz": "xz",
+      "zip": "zip"
     },
     "OnePushConfig": {
       "name": "Wrong push settings",

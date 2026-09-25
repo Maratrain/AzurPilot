@@ -729,9 +729,25 @@
       "name": "敏感任务出错时禁止重启",
       "help": "运行敏感任务出错时停止AzurPilot，而不是重启游戏\n敏感任务包含隐秘海域、深渊坐标、跨月每日"
     },
-    "SaveErrorCount": {
-      "name": "Error Log 保存上限",
-      "help": "超出上限的错误日志将被删除，若为0或负值则没有限制"
+    "SaveErrorRetentionDays": {
+      "name": "错误日志过期天数",
+      "help": "超过天数的错误现场按下面的方式处理
+0 = 不清理"
+    },
+    "SaveErrorBackUpMethod": {
+      "name": "过期错误日志处理方式",
+      "help": "备份目录为./log/error/<实例名>/bak",
+      "delete": "删除",
+      "zip": "压缩备份",
+      "copy": "拷贝备份"
+    },
+    "SaveErrorZipMethod": {
+      "name": "压缩格式",
+      "help": "",
+      "bz2": "bz2",
+      "gzip": "gzip",
+      "xz": "xz",
+      "zip": "zip"
     },
     "OnePushConfig": {
       "name": "错误推送设置",

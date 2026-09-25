@@ -729,9 +729,25 @@
       "name": "敏感任务出错禁止重启",
       "help": "隐秘、深渊、跨月每日出错时停止AzurPilot而不是重启喵，避免损失。"
     },
-    "SaveErrorCount": {
-      "name": "错误日志保留数",
-      "help": "超过上限的日志会被清理喵，0或负数无限喵。"
+    "SaveErrorRetentionDays": {
+      "name": "错误日志过期天数喵",
+      "help": "超过天数的错误现场按下面的方式处理喵
+0 = 不清理喵"
+    },
+    "SaveErrorBackUpMethod": {
+      "name": "过期错误日志处理方式喵",
+      "help": "备份到./log/error/<实例名>/bak 喵",
+      "delete": "删除喵",
+      "zip": "压缩备份喵",
+      "copy": "拷贝备份喵"
+    },
+    "SaveErrorZipMethod": {
+      "name": "压缩格式喵",
+      "help": "",
+      "bz2": "bz2喵",
+      "gzip": "gzip喵",
+      "xz": "xz喵",
+      "zip": "zip喵"
     },
     "OnePushConfig": {
       "name": "错误推送通知喵",
