@@ -38,7 +38,8 @@ def _wmic_query(wmic_class: str, field: str) -> str:
 
 def _collect_hardware_fingerprint() -> str:
     parts = []
-    
+    hardware_parts = 0
+
     if platform.system() == 'Windows':
         hw_queries = [
             ('baseboard', 'serialnumber'),
@@ -50,12 +51,14 @@ def _collect_hardware_fingerprint() -> str:
             val = _wmic_query(cls, field)
             if val and val.lower() not in ('to be filled by o.e.m.', 'default string', 'none', ''):
                 parts.append(f'{cls}.{field}={val}')
+                hardware_parts += 1
     else:
         for mid_path in ('/etc/machine-id', '/var/lib/dbus/machine-id'):
             try:
                 mid = Path(mid_path).read_text(encoding='utf-8').strip()
                 if mid:
                     parts.append(f'machine-id={mid}')
+                    hardware_parts += 1
                     break
             except Exception:
                 pass
@@ -69,13 +72,19 @@ def _collect_hardware_fingerprint() -> str:
                 for line in result.stdout.splitlines():
                     if 'Hardware UUID' in line:
                         parts.append(f'hw-uuid={line.split(":")[-1].strip()}')
+                        hardware_parts += 1
                         break
             except Exception:
                 pass
 
     # 已完全舍弃 MAC 地址依赖
     parts.append(f'platform={platform.node()}-{platform.machine()}')
-    
+
+    # 硬件组件数 > 0 视为完整指纹；wmic 在部分 Win11 上时好时坏，
+    # 全部失败时只剩 platform 回退——这种降级指纹不能作为翻转依据
+    global _last_fingerprint_complete
+    _last_fingerprint_complete = hardware_parts > 0
+
     return '|'.join(parts)
 
 
@@ -95,6 +104,9 @@ _device_id: Optional[str] = None
 _old_device_id: Optional[str] = None # 用于记录迁移前的旧 ID
 _refresh_timer: Optional[threading.Timer] = None
 _REFRESH_INTERVAL = 300
+# 最近一次指纹采集是否包含硬件组件（wmic 在部分 Win11 上时好时坏，
+# 全部失败时只剩 platform 回退——见 _collect_hardware_fingerprint）
+_last_fingerprint_complete: bool = False
 
 
 def get_device_id() -> str:
@@ -115,10 +127,10 @@ def get_old_device_id() -> Optional[str]:
 def _init_device_id() -> str:
     global _old_device_id
     device_id = generate_device_id()
-    
+
     project_root = Path(__file__).resolve().parents[2]
     device_id_file = project_root / 'log' / 'device_id.json'
-    
+
     # 自动识别变更并暂存旧 ID 用于数据库热迁移
     if device_id_file.exists():
         try:
@@ -126,17 +138,29 @@ def _init_device_id() -> str:
                 old_data = json.load(f)
                 stored_id = old_data.get('device_id')
                 if stored_id and stored_id != device_id:
-                    _old_device_id = stored_id
-                    logger.info(f'设备ID change detected for migration! Old: {stored_id[:8]}, New: {device_id[:8]}')
+                    if not _last_fingerprint_complete:
+                        # 指纹采集降级（wmic 失败，只剩 platform 回退）：
+                        # 沿用已存 ID，不翻转也不覆写——否则一次 wmic 抖动
+                        # 就会把好 ID 冲掉，挂在旧 ID 上的本地统计数据
+                        # （azurstats_local.db::opsi_items 等带 device_id 的表）
+                        # 全部失联（2026-09-28 实测横跳 5 次即此因）。
+                        device_id = stored_id
+                        logger.warning(
+                            f'[设备-ID] 硬件指纹采集降级，沿用已存设备ID: '
+                            f'{stored_id[:8]}...（本次未翻转）'
+                        )
+                    else:
+                        _old_device_id = stored_id
+                        logger.info(f'设备ID change detected for migration! Old: {stored_id[:8]}, New: {device_id[:8]}')
         except Exception:
             pass
 
     # 立即覆写新 ID
     _overwrite_device_id(device_id, device_id_file)
     logger.info(f'设备ID initialized: {device_id[:8]}...')
-    
+
     _start_refresh_timer(device_id, device_id_file)
-    
+
     return device_id
 
 
