@@ -1826,10 +1826,9 @@ class Cl1Database:
         with self._stats_transaction() as conn:
             data = self._get_stats_in_connection(conn, instance, month)
             commissions = data.get("running_gem_commissions", [])
-            # 去重：同 name + create_time 不重复添加
+            # 去重：同 name 不重复添加，避免同一委托因 create_time 每次刷新被反复写入
             if not any(
                 c.get("name") == commission.get("name")
-                and c.get("create_time") == commission.get("create_time")
                 for c in commissions
             ):
                 commissions.append(commission)
