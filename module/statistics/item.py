@@ -280,10 +280,24 @@ class AmountOcr(Digit):
                 return amount
 
         if amount > max_val and amount >= 10:
-            truncated = int(str(amount)[:-1])
-            logger.warning(f'{item_name} amount {amount} still 超过最大值 after {self.MAX_RETRY} retries, '
-                          f'truncating to {truncated}')
-            return truncated
+            original = amount
+            # 图标残影多拼在数字左侧（高位），真实值在末位：
+            # 「1 被读成 71」「3 被读成 73」「1 被读成 7221」等。
+            # 前缀匹配的小数量物品（图纸/机密/坐标/猫箱，单次合理值 ≤5），
+            # 读数 ≥10 几乎必是残影，逐位削首位到只剩一位取末位真实值；
+            # 精确名物品（芯片/金币/石油等）可能存在真实大数，保守削到 ≤ max。
+            is_small_item = bool(item_name) and any(
+                item_name.startswith(p) for p in ITEM_AMOUNT_MAX_PREFIX
+            )
+            if is_small_item:
+                while amount >= 10:
+                    amount = int(str(amount)[1:])
+            else:
+                while amount > max_val and amount >= 10:
+                    amount = int(str(amount)[1:])
+            logger.warning(f'{item_name} amount {original} still 超过最大值 after {self.MAX_RETRY} retries, '
+                          f'truncating to {amount}')
+            return amount
 
         return amount
 
