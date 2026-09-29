@@ -183,41 +183,63 @@ class TestMumu12StateQuery(unittest.TestCase):
         with patched:
             self.assertIsNone(platform._mumu12_instances('F:/mumu/shell/MuMuPlayer.exe'))
 
-    def test_other_instance_running_detects_multi_open(self):
-        cases = [
-            (mumu_info({'is_process_started': True}, {'is_process_started': False}), False),
-            (mumu_info({'is_process_started': True}, {'is_process_started': True}), True),
-            (mumu_info({'is_process_started': False}, {'is_process_started': False}), False),
-        ]
-        for stdout, expected in cases:
-            platform, patched = self.make_platform(stdout)
-            with patched:
-                self.assertIs(expected, platform._mumu12_other_instance_running(
-                    'F:/mumu/shell/MuMuPlayer.exe', 0))
-
-    def test_other_instance_running_is_unknown_when_query_fails(self):
-        platform, patched = self.make_platform('')
+    def test_ensure_stopped_skips_when_instance_already_down(self):
+        """本实例已停止时不做任何操作，即使其它实例正在运行。"""
+        platform, patched = self.make_platform(
+            mumu_info({'is_process_started': False}, {'is_process_started': True})
+        )
+        platform.execute = Mock()
         with patched:
-            self.assertIsNone(platform._mumu12_other_instance_running(
-                'F:/mumu/shell/MuMuPlayer.exe', 0))
+            platform._ensure_mumu12_instance_stopped('F:/mumu/shell/MuMuPlayer.exe', 0)
 
-    def test_residue_cleanup_skipped_for_multi_open(self):
-        """多开时不按进程名清理，避免误伤其它实例。"""
+        platform.execute.assert_not_called()
+
+    def test_ensure_stopped_resends_shutdown_when_instance_still_up(self):
+        """shutdown 是异步的，本实例进程仍在时补发一次按实例号的关闭命令。"""
+        platform, patched = self.make_platform(
+            mumu_info({'is_process_started': True}, {'is_process_started': False})
+        )
+        platform.execute = Mock()
+        with patched:
+            platform._ensure_mumu12_instance_stopped('F:/mumu/shell/MuMuPlayer.exe', 0)
+
+        platform.execute.assert_called_once()
+        self.assertIn('api -v 0 shutdown_player', platform.execute.call_args.args[0])
+
+    def test_ensure_stopped_never_touches_shared_processes(self):
+        """多开安全：即使其它实例在跑，也只按实例号补发关闭，绝不按进程名杀共享主程序。
+
+        回归自 2026-09 的实机日志：旧的残留清理按进程名强杀 MuMuNxMain.exe
+        （GUI 单例主程序，承载全部实例窗口），导致 MuMu 整个退出。
+        """
         platform, patched = self.make_platform(
             mumu_info({'is_process_started': True}, {'is_process_started': True})
         )
+        platform.execute = Mock()
         with patched, patch.object(platform_windows.psutil, 'process_iter') as process_iter:
-            platform._clean_mumu12_residue('F:/mumu/shell/MuMuPlayer.exe', 0)
+            platform._ensure_mumu12_instance_stopped('F:/mumu/shell/MuMuPlayer.exe', 0)
 
+        # 不碰任何进程，只发针对本实例的 MuMuManager 命令
         process_iter.assert_not_called()
+        self.assertIn('api -v 0 shutdown_player', platform.execute.call_args.args[0])
 
-    def test_residue_cleanup_skipped_when_state_unknown(self):
-        """查不到状态时不清理——宁可少清理，不可误杀。"""
+    def test_ensure_stopped_does_nothing_when_state_unknown(self):
+        """查不到状态时不动手——宁可少清理，不可误杀。"""
         platform, patched = self.make_platform('')
-        with patched, patch.object(platform_windows.psutil, 'process_iter') as process_iter:
-            platform._clean_mumu12_residue('F:/mumu/shell/MuMuPlayer.exe', 0)
+        platform.execute = Mock()
+        with patched:
+            platform._ensure_mumu12_instance_stopped('F:/mumu/shell/MuMuPlayer.exe', 0)
 
-        process_iter.assert_not_called()
+        platform.execute.assert_not_called()
+
+    def test_ensure_stopped_skips_when_instance_id_unknown(self):
+        """实例号未知时无法按实例操作，直接跳过。"""
+        platform, patched = self.make_platform('')
+        platform.execute = Mock()
+        with patched:
+            platform._ensure_mumu12_instance_stopped('F:/mumu/shell/MuMuPlayer.exe', None)
+
+        platform.execute.assert_not_called()
 
     def test_wait_stopped_returns_when_instance_is_down(self):
         platform, patched = self.make_platform(mumu_info({'is_process_started': False}))
@@ -261,6 +283,61 @@ class TestMumu12StateQuery(unittest.TestCase):
             patch.object(platform_windows, 'MUMU12_STATE_POLL_INTERVAL', 0),
         ):
             self.assertTrue(platform._mumu12_wait_stopped('F:/mumu/shell/MuMuPlayer.exe', 0))
+
+
+@WINDOWS_ONLY
+class TestMumu12InstanceIdGuard(unittest.TestCase):
+    """实例号解析失败时必须拒绝启停命令。
+
+    MuMuManager 对无效的 -v 参数会回退到实例 0：发 `api -v None shutdown_player`
+    不是"关不掉"，而是"关掉别人的实例 0"。
+    """
+
+    @staticmethod
+    def make_mumu_instance(name='MyCustomVM'):
+        from module.device.platform.emulator_windows import EmulatorInstance
+
+        return EmulatorInstance(
+            serial='127.0.0.1:16384',
+            name=name,
+            path='D:/MuMu Player 12/nx_main/MuMuNxMain.exe',
+        )
+
+    def test_stop_is_refused_when_instance_id_unknown(self):
+        from module.device.platform.emulator_windows import Emulator
+
+        platform = make_platform()
+        platform.execute = Mock()
+        instance = self.make_mumu_instance()
+
+        self.assertEqual(instance, Emulator.MuMuPlayer12)
+        self.assertIsNone(instance.MuMuPlayer12_id)
+        # make_platform 把启停方法 Mock 掉了，这里需要调用真实实现
+        PlatformWindows._emulator_stop(platform, instance)
+
+        platform.execute.assert_not_called()
+
+    def test_stop_still_runs_when_instance_id_resolved(self):
+        platform = make_platform()
+        platform.execute = Mock()
+        instance = self.make_mumu_instance(name='MuMuPlayer-12.0-1')
+
+        PlatformWindows._emulator_stop(platform, instance)
+
+        platform.execute.assert_called_once()
+        self.assertIn('api -v 1 shutdown_player', platform.execute.call_args.args[0])
+
+    def test_start_raises_when_instance_id_unknown(self):
+        from module.device.platform.platform_windows import EmulatorUnknown
+
+        platform = make_platform()
+        platform.execute = Mock()
+        instance = self.make_mumu_instance()
+
+        with self.assertRaises(EmulatorUnknown):
+            PlatformWindows._emulator_start(platform, instance)
+
+        platform.execute.assert_not_called()
 
 
 @WINDOWS_ONLY
@@ -337,29 +414,29 @@ class TestDeepRestart(unittest.TestCase):
         platform.emulator_instance.emulator.path = 'F:/mumu/shell/MuMuPlayer.exe'
         platform.emulator_instance.MuMuPlayer12_id = 0
         platform.config.EmulatorInfo_Emulator = 'MuMuPlayer12'
-        platform._clean_mumu12_residue = Mock()
+        platform._ensure_mumu12_instance_stopped = Mock()
         platform._deep_clean_mumu12 = Mock()
         platform._mumu12_wait_stopped = Mock()
 
         self.assertTrue(platform.emulator_start(deep=True))
 
         platform._deep_clean_mumu12.assert_called_once()
-        platform._clean_mumu12_residue.assert_not_called()
+        platform._ensure_mumu12_instance_stopped.assert_not_called()
 
-    def test_start_without_deep_keeps_old_cleanup(self):
-        """默认仍是普通清理——深度重启必须显式开启。"""
+    def test_start_without_deep_skips_deep_clean(self):
+        """默认只确认本实例停止——深度重启必须显式开启。"""
         platform = self.make_platform()
         platform.emulator_instance = Mock()
         platform.emulator_instance.emulator.path = 'F:/mumu/shell/MuMuPlayer.exe'
         platform.emulator_instance.MuMuPlayer12_id = 0
         platform.config.EmulatorInfo_Emulator = 'MuMuPlayer12'
-        platform._clean_mumu12_residue = Mock()
+        platform._ensure_mumu12_instance_stopped = Mock()
         platform._deep_clean_mumu12 = Mock()
         platform._mumu12_wait_stopped = Mock()
 
         self.assertTrue(platform.emulator_start())
 
-        platform._clean_mumu12_residue.assert_called_once()
+        platform._ensure_mumu12_instance_stopped.assert_called_once()
         platform._deep_clean_mumu12.assert_not_called()
 
 

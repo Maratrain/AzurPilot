@@ -39,14 +39,12 @@ EMULATOR_START_PROGRESS_INTERVAL = 30
 # 启动监视期间检查 MuMu 错误对话框的间隔（秒）。枚举窗口开销较大，不每次循环都做。
 EMULATOR_START_DIALOG_CHECK_INTERVAL = 2
 
-# MuMu12 启动前需要清理的僵死进程名（小写）。
-# MuMuNxMain.exe 是 nx_main 新版布局的启动器主窗口：它卡在加载态时不清理掉，
-# 后面的 launch_player 只会把启动请求交给这个僵死的启动器，表现为
-# "窗口一直转圈、模拟器起不来"。
-MUMU12_RESIDUE_PROCESS_NAMES = (
-    'mumuplayer.exe', 'mumunxmain.exe', 'mumumanager.exe',
-    'nemuplayer.exe', 'nemuheadless.exe',
-)
+# 多开安全约束：MuMu12 的 MuMuNxMain.exe / MuMuPlayer.exe 是 GUI 单例主程序，
+# 承载全部实例的窗口，MuMuManager.exe 是共享管理工具。按进程名强杀这些共享
+# 进程会把其它实例（含用户手动多开）的窗口一并关掉，表现为"MuMu 整个退出"。
+# 因此对 MuMu12 的一切停止/清理动作都只针对单个实例（MuMuManager api -v <id>），
+# 按进程名杀共享进程仅允许出现在深度重启（MUMU12_DEEP_PROCESS_NAMES，
+# 用户显式启用「连续重启失败后的逃生口」时）。
 # 查询 MuMu12 实例状态的轮询间隔（秒）。同时用作无法查询状态时的兜底等待，
 # 与旧版"等待2秒让进程状态稳定"保持一致。
 MUMU12_STATE_POLL_INTERVAL = 2
@@ -356,7 +354,11 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             # the second launch request is handed over to a MuMuNxMain.exe that is still initializing
             # and gets silently dropped, while MuMuManager queues requests in backend service.
             if instance.MuMuPlayer12_id is None:
-                logger.warning(f'[设备-Windows] 无法从名称 {instance.name} 获取MuMu实例索引')
+                # 实例号未知时禁止发命令：无效的 -v 会被 MuMuManager 回退到
+                # 实例 0，可能把别人的实例拉起来
+                raise EmulatorUnknown(
+                    f'无法从实例名称解析 MuMu12 实例号，拒绝启动: {instance.name}'
+                )
             self.execute(f'"{Emulator.single_to_console(exe)}" api -v {instance.MuMuPlayer12_id} launch_player')
         elif instance == Emulator.LDPlayer14 or instance == Emulator.LDPlayer9:
             # ldconsole.exe launch --index 0 --mini
@@ -423,7 +425,13 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             # MuMuManager.exe api -v 1 shutdown_player
             # 使用同步执行等待关闭完成，避免异步执行导致的实例查找失败
             if instance.MuMuPlayer12_id is None:
-                logger.warning(f'[设备-Windows] 无法从名称 {instance.name} 获取MuMu实例索引')
+                # 实例号未知时禁止发命令：无效的 -v 会被 MuMuManager 回退到
+                # 实例 0，导致关掉别人的实例而不是本实例
+                logger.warning(
+                    f'[设备-Windows] 无法从名称 {instance.name} 获取MuMu实例索引，'
+                    f'跳过关闭以避免误伤其它实例'
+                )
+                return
             logger.info('[设备-Windows] MuMuPlayer12 关闭: 使用同步执行')
             self.execute(
                 f'"{Emulator.single_to_console(exe)}" api -v {instance.MuMuPlayer12_id} shutdown_player',
@@ -513,65 +521,39 @@ class PlatformWindows(PlatformBase, EmulatorManager):
             return {str(data['index']): data}
         return data
 
-    def _mumu12_other_instance_running(self, exe, index):
-        """判断除本实例外是否还有其他 MuMu 实例正在运行。
+    def _ensure_mumu12_instance_stopped(self, exe, index):
+        """确保本实例的进程已退出，仍在运行时补发关闭命令。
 
-        多开时各实例共用启动器、后台服务等进程，按进程名清理会误伤正在
-        运行的其它实例，因此只有确认没有别的实例在跑时才允许这么做。
-
-        Args:
-            exe (str): MuMu 主程序路径。
-            index (int | None): 本实例的实例号。
-
-        Returns:
-            bool | None: True/False 为判定结果；None 表示无法判定（查询失败）。
-        """
-        info = self._mumu12_instances(exe)
-        if info is None:
-            return None
-        for key, entry in info.items():
-            if str(key) == str(index):
-                continue
-            if isinstance(entry, dict) and entry.get('is_process_started'):
-                return True
-        return False
-
-    def _clean_mumu12_residue(self, exe, index):
-        """清理 MuMu12 的僵死进程，为重新启动做准备。
-
-        多开安全：MuMu 各实例共用启动器与后台服务进程，按进程名清理会误伤
-        正在运行的其它实例。因此先查询实例状态，只有确认没有别的实例在跑
-        时才按名字清理；无法判定时同样不清理——宁可少清理，不可误杀。
+        多开安全：MuMu 各实例共用主程序进程（见文件头多开安全约束），
+        按进程名清理会误伤正在运行的其它实例。因此这里只针对本实例操作：
+        查询实例状态，进程仍在时补发一次 shutdown_player；
+        共享主程序一律不动，整个 MuMu 都僵死的情况由深度重启兜底。
 
         Args:
             exe (str): MuMu 主程序路径。
             index (int | None): 本实例的实例号。
         """
-        others = self._mumu12_other_instance_running(exe, index)
-        if others is None:
-            logger.info('[设备-Windows] 无法确认其它 MuMu 实例状态，跳过按进程名清理')
-            return
-        if others:
-            logger.info(
-                '[设备-Windows] 检测到其它 MuMu 实例正在运行，'
-                '跳过按进程名清理（避免误伤多开）'
+        if index is None:
+            logger.warning(
+                '[设备-Windows] MuMuPlayer12 实例号未知，跳过停止前确认，'
+                '交由启动监视与下一轮重试兜底'
             )
             return
-
-        has_mumu_process = False
-        for proc in psutil.process_iter(['name', 'cmdline']):
-            try:
-                name = proc.info['name'] or ''
-                if name.lower() in MUMU12_RESIDUE_PROCESS_NAMES:
-                    has_mumu_process = True
-                    logger.warning(f'[设备-Windows] 检测到MuMu残留进程: {name} (PID={proc.pid})')
-                    proc.kill()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-        if has_mumu_process:
-            # 不在这里固定 sleep：调用方紧接着会用 _mumu12_wait_stopped
-            # 轮询确认实例真的没了，比盲等更准也更快
-            logger.info('[设备-Windows] MuMuPlayer12: 已终止残留进程，等待实例释放')
+        info = self._mumu12_instances(exe)
+        if info is None:
+            # 查询不可用（旧版 MuMu / 命令失败）：交给 _mumu12_wait_stopped 处理
+            return
+        entry = info.get(str(index))
+        if not (isinstance(entry, dict) and entry.get('is_process_started')):
+            return
+        logger.warning(
+            f'[设备-Windows] MuMuPlayer12 实例 {index} 进程仍在运行，补发关闭命令'
+        )
+        self.execute(
+            f'"{Emulator.single_to_console(exe)}" api -v {index} shutdown_player',
+            wait=True,
+            timeout=30
+        )
 
     @staticmethod
     def _mumu_deep_processes_alive():
@@ -587,7 +569,7 @@ class PlatformWindows(PlatformBase, EmulatorManager):
     def _deep_clean_mumu12(self, exe):
         """深度重启：结束 MuMu 的全部进程，让 MuMu 从零开始。
 
-        与 _clean_mumu12_residue 的区别：
+        与常规停止（_ensure_mumu12_instance_stopped，只针对单个实例）的区别：
 
         1. 不检查多开——用户显式开启深度重启，即表示接受「其它实例会被一并
            中断」，日志会写清楚结束掉了什么，便于事后确认发生了什么；
@@ -856,8 +838,8 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                 # 深度重启：结束 MuMu 全部进程（不检查多开）
                 self._deep_clean_mumu12(exe)
             else:
-                # 清理僵死的启动器/播放器进程（多开时自动跳过，见方法注释）
-                self._clean_mumu12_residue(exe, index)
+                # 本实例进程仍在时补发关闭命令（按实例操作，不碰共享主程序）
+                self._ensure_mumu12_instance_stopped(exe, index)
             # shutdown 是异步的，必须确认实例真的停了再启动，
             # 否则启动请求会被吞掉（命令报成功、实例起不来）
             self._mumu12_wait_stopped(exe, index)
