@@ -51,9 +51,15 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
     Attributes:
         _automation_set_timer (Timer): 自动化模式设置的防抖计时器。
         battle_status_click_interval (int): 战斗状态点击间隔。
+        exp_info_click_interval (int): 经验结算（EXP_INFO_*）点击间隔，默认间隔 2s。
     """
     _automation_set_timer = Timer(1)
     battle_status_click_interval = 0
+    # 经验结算页点击节流（秒）。游戏结算转场/加载较慢时点击会被吞，若每帧都点，
+    # 9s 内就会攒满 12 次而触发 GameTooManyClickError 误判卡死（见 2026-09-29 两份日志：
+    # 大世界自动搜索 three_oil_low_cost 结算，EXP_INFO_S 连点 12 次报错）。
+    # 2s 间隔下攒满 12 次需要 24s，足以覆盖慢加载；正常结算只点 1 次，不影响速度。
+    exp_info_click_interval = 2
 
     def combat_appear(self):
         """
@@ -594,19 +600,19 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
         """
         if self.is_combat_executing():
             return False
-        if self.appear_then_click(EXP_INFO_S):
+        if self.appear_then_click(EXP_INFO_S, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
-        if self.appear_then_click(EXP_INFO_A):
+        if self.appear_then_click(EXP_INFO_A, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
-        if self.appear_then_click(EXP_INFO_B):
+        if self.appear_then_click(EXP_INFO_B, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
-        if self.appear_then_click(EXP_INFO_C):
+        if self.appear_then_click(EXP_INFO_C, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
-        if self.appear_then_click(EXP_INFO_D):
+        if self.appear_then_click(EXP_INFO_D, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
 

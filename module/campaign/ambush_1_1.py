@@ -128,13 +128,13 @@ class AmbushCampaignOverride(CampaignBase):
             return False
         if super().handle_exp_info():
             return True
-        if self.appear_then_click(EXP_INFO_C, threshold=10):
+        if self.appear_then_click(EXP_INFO_C, threshold=10, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
-        if self.appear_then_click(EXP_INFO_D):
+        if self.appear_then_click(EXP_INFO_D, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
-        if self.appear_then_click(OPTS_INFO_D, offset=True, similarity=0.9):
+        if self.appear_then_click(OPTS_INFO_D, offset=True, similarity=0.9, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
         return False

@@ -52,7 +52,7 @@ class GuildCombat(Combat):
             return False
         if super().handle_exp_info():
             return True
-        if self.appear_then_click(EXP_INFO_CF):
+        if self.appear_then_click(EXP_INFO_CF, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
 

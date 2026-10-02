@@ -200,23 +200,23 @@ class Combat(Combat_, MapEventHandler):
         if self.is_combat_executing():
             return False
         sleep = self._get_exp_info_sleep()
-        if self.appear_then_click(EXP_INFO_S):
+        if self.appear_then_click(EXP_INFO_S, interval=self.exp_info_click_interval):
             self._clear_battle_status_s_timer()
             self.device.sleep(sleep)
             return True
-        if self.appear_then_click(EXP_INFO_A):
+        if self.appear_then_click(EXP_INFO_A, interval=self.exp_info_click_interval):
             self._clear_battle_status_s_timer()
             self.device.sleep(sleep)
             return True
-        if self.appear_then_click(EXP_INFO_B):
+        if self.appear_then_click(EXP_INFO_B, interval=self.exp_info_click_interval):
             self._clear_battle_status_s_timer()
             self.device.sleep(sleep)
             return True
-        if self.appear_then_click(EXP_INFO_C):
+        if self.appear_then_click(EXP_INFO_C, interval=self.exp_info_click_interval):
             self._clear_battle_status_s_timer()
             self.device.sleep(sleep)
             return True
-        if self.appear_then_click(EXP_INFO_D):
+        if self.appear_then_click(EXP_INFO_D, interval=self.exp_info_click_interval):
             self._clear_battle_status_s_timer()
             self.device.sleep(sleep)
             return True

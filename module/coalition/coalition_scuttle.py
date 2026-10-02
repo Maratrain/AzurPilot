@@ -195,7 +195,7 @@ class CoalitionScuttleCombat(CoalitionCombat):
         """
         if self.is_combat_executing():
             return False
-        if self.appear_then_click(EXP_INFO_D):
+        if self.appear_then_click(EXP_INFO_D, interval=self.exp_info_click_interval):
             self.device.sleep((0.25, 0.5))
             return True
         if super().handle_exp_info():
