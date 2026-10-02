@@ -220,10 +220,13 @@ class MapEventHandler(EnemySearchingHandler):
         cleared = False
         for _ in self.loop():
             if self.appear(AUTO_SEARCH_REWARD, offset=(50, 50), interval=2):
-                if self.ensure_no_info_bar():
-                    cleared = True
                 if drop:
+                    if self.ensure_no_info_bar():
+                        cleared = True
                     drop.handle_add(main=self, before=4)
+                elif self.info_bar_count():
+                    # 不记录掉落时只检查当前截图中的清除提示，直接确认奖励。
+                    cleared = True
                 self.device.click(AUTO_SEARCH_REWARD)
                 self.interval_reset([
                     AUTO_SEARCH_REWARD,
