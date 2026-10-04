@@ -217,7 +217,7 @@ class GlobeCamera(GlobeOperation, ZoneManager):
         button = Button(area=area, color=(), button=area, name=f'ZONE_{zone.zone_id}')
         return button
 
-    def globe_in_sight(self, zone, swipe_limit=(620, 340), sight=(20, 220, 980, 620)):
+    def globe_in_sight(self, zone, swipe_limit=(620, 340), sight=(20, 220, 980, 620), max_swipe=0):
         """将目标海域平移到屏幕视野范围内。
 
         如果目标海域不在指定视野区域内，通过反复平移摄像机直到其可见。
@@ -226,13 +226,22 @@ class GlobeCamera(GlobeOperation, ZoneManager):
             zone (str, int, Zone): 海域名称（CN/EN/JP/TW）、海域 ID 或 Zone 实例。
             swipe_limit (tuple[int, int]): 单次平移的最大像素距离限制。
             sight (tuple[int, int, int, int]): 屏幕上的有效视野区域 (x1, y1, x2, y2)。
+            max_swipe (int): 最大平移次数，0 表示不限制。紧贴地图边缘的海域
+                可能永远无法进入更小的视野区域，限制次数可避免无限平移。
+
+        Returns:
+            bool: 目标海域是否已进入指定视野区域。
         """
         zone = self.name_to_zone(zone)
         # logger.info(f'Globe in_sight: {zone}')
 
+        swipe_count = 0
         while 1:
             if point_in_area(self.globe2screen([zone.location])[0], area=sight):
-                break
+                return True
+            if max_swipe and swipe_count >= max_swipe:
+                logger.warning(f'[大世界-地球仪] 平移 {swipe_count} 次后海域仍未进入指定视野')
+                return False
 
             area = (400, 200, GLOBE_MAP_SHAPE[0] - 400, GLOBE_MAP_SHAPE[1] - 250)
             loca = point_limit(zone.location, area=area)
@@ -240,6 +249,7 @@ class GlobeCamera(GlobeOperation, ZoneManager):
             vector = vector / self.config.OS_GLOBE_SWIPE_MULTIPLY
             swipe = tuple(np.min([np.abs(vector), swipe_limit], axis=0) * np.sign(vector))
             self.globe_swipe(swipe)
+            swipe_count += 1
 
     def get_globe_pinned_zone(self):
         """
@@ -290,6 +300,14 @@ class GlobeCamera(GlobeOperation, ZoneManager):
         zone = self.name_to_zone(zone)
         logger.info(f'[大世界-地球仪] 聚焦到: {zone.zone_id}')
 
+        # 点击核心区：比默认视野 (20, 220, 980, 620) 内缩一圈。目标落在核心区内时
+        # 点击点远离视野边缘，透视换算最准，海域图标也不会被边缘遮挡或图标样式
+        # 变化（如月初港口被塞壬占领后的占领塔楼）截断
+        core_sight = (150, 260, 850, 580)
+        # 连续点击未钉住的次数；达到 2 后把海域拉向视野中心再点，居中最多尝试 2 次，
+        # 次数用尽后回退为原地点击，由设备层 GameTooManyClickError 兜底
+        click_failed = 0
+        center_retry = 0
         while 1:
             if self.handle_zone_pinned():
                 self.globe_update()
@@ -297,12 +315,22 @@ class GlobeCamera(GlobeOperation, ZoneManager):
 
             # Insight
             self.globe_in_sight(zone)
+            # 同一位置反复点击都未钉住时，原地重试不会自愈（如月初占领港口的
+            # 图标热区与 area_pos 标定点错位），改把目标拉向视野中心后点击
+            if click_failed >= 2 and center_retry < 2 \
+                    and not point_in_area(self.globe2screen([zone.location])[0], area=core_sight):
+                center_retry += 1
+                logger.warning(
+                    f'[大世界-地球仪] 海域 {zone.zone_id} 点击 {click_failed} 次仍未钉住，'
+                    f'尝试移向视野中心后重试 ({center_retry}/2)')
+                self.globe_in_sight(zone, sight=core_sight, max_swipe=1)
             # Click zone
             button = self.zone_to_button(zone)
             self.device.click(button)
             # Wait until zone pinned
             if self.globe_wait_until_zone_pinned(zone):
                 break
+            click_failed += 1
 
     def _globe_predict_stronghold(self, zone):
         """
