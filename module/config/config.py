@@ -373,10 +373,14 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
         if not self.modified:
             return False
 
-        # 从磁盘重新读取最新配置，避免覆盖 WebUI 在任务运行期间修改的值
+        # 从磁盘重新读取最新配置，避免覆盖 WebUI 在任务运行期间修改的值。
+        # 重读结果必须经 config_update 做类型还原（磁盘上的 NextRun/Record
+        # 等字段是 ISO 字符串，需 parse_value 转回 datetime），否则 self.data
+        # 中除本次 modified 外的 datetime 字段全部退化为字符串，后续
+        # cross_get / 重新 bind 会拿到 str 与 datetime 运算而抛 TypeError。
         disk_data = read_file(filepath_config(self.config_name, mod_name))
         if disk_data:
-            self.data = disk_data
+            self.data = self.config_update(disk_data)
 
         for path, value in self.modified.items():
             deep_set(self.data, keys=path, value=value)
