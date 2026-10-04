@@ -36,6 +36,9 @@ class CampaignHard(CampaignRun):
     def run(self):
         logger.hr('困难战役', level=1)
         name = to_map_file_name(self.config.Hard_HardStage)
+        # Hard.HardFleet 指定出击舰队，另一支在基地待命、不参与战斗。
+        # Fleet_FleetOrder 与该选择一一对应，编队准备时会据此只校验出击舰队的困难限制
+        # （见 module/map/map_fleet_preparation.py），不再强制要求两支舰队都满足困难限制。
         self.config.override(
             Campaign_Mode='hard',
             Campaign_UseFleetLock=True,

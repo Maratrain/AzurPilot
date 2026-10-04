@@ -472,9 +472,20 @@ class FleetPreparation(InfoHandler):
 
         logger.info(f'[地图-编队] 困难满足: 舰队1: {h1}, 舰队2: {h2}, 潜艇: {h3}')
         if self.config.SERVER in ['cn', 'en', 'jp']:
-            if self.config.Fleet_Fleet1:
+            # 困难关卡一次只有一支舰队实际出击，另一支在基地待命、不参与战斗，
+            # 待命舰队不应被强制要求满足困难限制（否则会误报"必须准备两只舰队"）。
+            # 出击舰队由 Fleet_FleetOrder 决定，与 Hard.HardFleet 一一对应。
+            sortie_fleet = 0  # 0: 两队均出击，1: 仅舰队1出击，2: 仅舰队2出击
+            if self.map_is_hard_mode:
+                if self.config.Fleet_FleetOrder == 'fleet1_all_fleet2_standby':
+                    sortie_fleet = 1
+                elif self.config.Fleet_FleetOrder == 'fleet1_standby_fleet2_all':
+                    sortie_fleet = 2
+                if sortie_fleet:
+                    logger.info(f'[地图-编队] 困难模式仅舰队{sortie_fleet}出击，待命舰队不做困难限制校验')
+            if self.config.Fleet_Fleet1 and sortie_fleet in (0, 1):
                 fleet_1.raise_hard_not_satisfied()
-            if self.config.Fleet_Fleet2:
+            if self.config.Fleet_Fleet2 and sortie_fleet in (0, 2):
                 fleet_2.raise_hard_not_satisfied()
             if self.config.Submarine_Fleet:
                 submarine.raise_hard_not_satisfied()
