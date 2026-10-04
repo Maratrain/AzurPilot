@@ -25,7 +25,7 @@ OpsiScheduling - 智能调度+模块
     - CoinTaskMixin: 黄币补充任务的通用 Mixin 类（供其他任务继承使用）
 """
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from module.config.config import Function, name_to_function
 from module.config.deep import deep_get
@@ -96,6 +96,8 @@ class CoinTaskMixin:
     TASK_NAME_OBSCURE = 'OpsiObscure'
     TASK_NAME_ABYSSAL = 'OpsiAbyssal'
     TASK_NAME_STRONGHOLD = 'OpsiStronghold'
+    STATE_KEY_STRONGHOLD_COOLDOWN_UNTIL = 'StrongholdCooldownUntil'  # 上次清理塞壬要塞后的冷却截止时间（ISO 字符串）
+    STRONGHOLD_COOLDOWN_MINUTES = 27  # 游戏内塞壬要塞清理后的重置间隔（分钟）
     AP_NOTIFY_MIN_INTERVAL_MINUTES = 30
 
     def _config_enabled(self, keys, default=False):
@@ -548,6 +550,47 @@ class CoinTaskMixin:
         state.pop(key, None)
         self.config.modified[self.CONFIG_PATH_SMART_STATE] = state
         self.config.save()
+
+    def _set_stronghold_cooldown(self):
+        """打完一个塞壬要塞后设置冷却（游戏内要塞重置间隔 27 分钟）。"""
+        until = current_time() + timedelta(minutes=self.STRONGHOLD_COOLDOWN_MINUTES)
+        self._set_smart_scheduling_state_value(
+            self.STATE_KEY_STRONGHOLD_COOLDOWN_UNTIL,
+            until.isoformat(),
+        )
+        logger.info(
+            f'[大世界-塞壬要塞] 设置冷却至 {until.strftime("%H:%M:%S")}'
+            f'（打完一个要塞后需间隔 {self.STRONGHOLD_COOLDOWN_MINUTES} 分钟）'
+        )
+
+    def _get_stronghold_cooldown_remain_minutes(self):
+        """
+        获取塞壬要塞冷却剩余分钟数。
+
+        未在冷却中返回 0；标记损坏（无法解析）时自动清除并返回 0。
+        """
+        until_str = self._get_smart_scheduling_state_value(
+            self.STATE_KEY_STRONGHOLD_COOLDOWN_UNTIL
+        )
+        if until_str is None:
+            return 0
+        try:
+            until = datetime.fromisoformat(until_str)
+        except (TypeError, ValueError):
+            logger.warning(
+                f'[大世界-塞壬要塞] 冷却标记损坏（{until_str!r}），清除'
+            )
+            self._clear_smart_scheduling_state_value(
+                self.STATE_KEY_STRONGHOLD_COOLDOWN_UNTIL
+            )
+            return 0
+        remain = (until - current_time()).total_seconds()
+        if remain <= 0:
+            self._clear_smart_scheduling_state_value(
+                self.STATE_KEY_STRONGHOLD_COOLDOWN_UNTIL
+            )
+            return 0
+        return int(remain // 60) + 1
 
     def _get_coin_replenish_target(self, yellow_coins, cl1_preserve):
         """

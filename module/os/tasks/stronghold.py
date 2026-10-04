@@ -26,6 +26,20 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
             out: page_os, 大世界地图
         """
         logger.hr('大世界-塞壬要塞', level=1)
+
+        # 上次清理塞壬要塞后 27 分钟冷却内，跳过本轮进攻（游戏内要塞重置间隔）
+        cooldown_remain = self._get_stronghold_cooldown_remain_minutes()
+        if cooldown_remain > 0:
+            self.config.OpsiStronghold_HasStronghold = False
+            log_msg = f'塞壬要塞清理后冷却中（剩余约{cooldown_remain}分钟），跳过本轮进攻'
+            if self.is_running_smart_scheduling_task():
+                if self._handle_coin_task_no_content('塞壬要塞', log_msg):
+                    return
+            else:
+                logger.info(f'[大世界-塞壬要塞] {log_msg}，延迟剩余时间后重跑')
+                self.config.task_delay(minute=cooldown_remain + 1, task='OpsiStronghold')
+                self.config.task_stop()
+
         with self.config.multi_set():
             self.config.OpsiStronghold_HasStronghold = True
             self.cl1_ap_preserve()
@@ -61,6 +75,17 @@ class OpsiStronghold(CoinTaskMixin, OSMap):
             self.os_globe_goto_map()
             if self._handle_coin_task_no_content('塞壬要塞', '塞壬要塞没有更多可执行内容'):
                 return
+        else:
+            # 找到更多要塞：受游戏内 27 分钟重置间隔限制，本轮不再进攻，
+            # 设置冷却并回大世界地图。
+            # 必须回地图：此前找到后直接结束会停留在地球仪/作战总览界面，
+            # 后续任务 zone_init 识别到「作战总览」导致 MapDetectionError 卡死。
+            logger.info(
+                f'[大世界-要塞] 发现更多塞壬要塞 [{next_zone.zone_id}]，'
+                f'设置 {self.STRONGHOLD_COOLDOWN_MINUTES} 分钟冷却，待下轮进攻'
+            )
+            self._set_stronghold_cooldown()
+            self.os_globe_goto_map()
 
     def os_stronghold(self):
         while True:
