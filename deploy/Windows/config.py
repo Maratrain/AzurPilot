@@ -1,12 +1,12 @@
-import copy
 import os
 import subprocess
 import sys
 from typing import Optional, Union
 
 from deploy.geo import get_country_code
+from deploy.config_transaction import DeployConfigTransaction
 from deploy.Windows.logger import logger
-from deploy.Windows.utils import DEPLOY_CONFIG, DEPLOY_TEMPLATE, cached_property, poor_yaml_read, poor_yaml_write
+from deploy.Windows.utils import DEPLOY_CONFIG, DEPLOY_TEMPLATE, cached_property
 
 
 GIT_OVER_CDN_REPOSITORY = 'git://git.pull/AzurPilot'
@@ -78,7 +78,7 @@ class ConfigModel:
     GitOverCdn: bool = False
 
 
-class DeployConfig(ConfigModel):
+class DeployConfig(DeployConfigTransaction, ConfigModel):
     def __init__(self, file=DEPLOY_CONFIG):
         """初始化部署配置。
 
@@ -86,6 +86,7 @@ class DeployConfig(ConfigModel):
             file (str): 用户部署配置文件路径。
         """
         self.file = file
+        self.template_file = DEPLOY_TEMPLATE
         self.config = {}
         self.config_template = {}
         self._github_location_checked = False
@@ -103,24 +104,6 @@ class DeployConfig(ConfigModel):
             logger.info(f"{k}: {v}")
 
         logger.info(f"Rest of the configs are the same as default")
-
-    def read(self):
-        self.config = poor_yaml_read(DEPLOY_TEMPLATE)
-        self.config_template = copy.deepcopy(self.config)
-        origin = poor_yaml_read(self.file)
-        self.config.update(origin)
-
-        for key, value in self.config.items():
-            if hasattr(self, key):
-                super().__setattr__(key, value)
-
-        self.config_redirect()
-
-        if self.config != origin:
-            self.write()
-
-    def write(self):
-        poor_yaml_write(self.config, self.file)
 
     def config_redirect(self):
         """部署配置重定向，处理旧配置到新配置的迁移。
@@ -145,7 +128,7 @@ class DeployConfig(ConfigModel):
         country_code = get_country_code()
         if country_code == 'cn':
             logger.info('检测到中国大陆网络，切换至国内 Git 更新源')
-            self.Repository = GIT_OVER_CDN_REPOSITORY
+            object.__setattr__(self, 'Repository', GIT_OVER_CDN_REPOSITORY)
             self.config['Repository'] = GIT_OVER_CDN_REPOSITORY
         elif country_code is None:
             logger.warning('无法检测网络所在国家，保留 GitHub 更新源')

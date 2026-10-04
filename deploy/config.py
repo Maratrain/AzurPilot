@@ -1,8 +1,8 @@
-import copy
 import sys
 from typing import Optional, Union
 
 from deploy.geo import get_country_code
+from deploy.config_transaction import DeployConfigTransaction
 from deploy.logger import logger
 from deploy.utils import *
 
@@ -78,7 +78,7 @@ class ConfigModel:
     GitOverCdn: bool = False
 
 
-class DeployConfig(ConfigModel):
+class DeployConfig(DeployConfigTransaction, ConfigModel):
     def __init__(self, file=DEPLOY_CONFIG):
         """初始化部署配置。
 
@@ -105,25 +105,6 @@ class DeployConfig(ConfigModel):
 
         logger.info(f"Rest of the configs are the same as default")
 
-    def read(self):
-        """读取并更新部署配置，将配置值复制到属性。"""
-        self.config = poor_yaml_read(self.template_file)
-        self.config_template = copy.deepcopy(self.config)
-        origin = poor_yaml_read(self.file)
-        self.config.update(origin)
-
-        for key, value in self.config.items():
-            if hasattr(self, key):
-                super().__setattr__(key, value)
-
-        self.config_redirect()
-
-        if self.config != origin:
-            self.write()
-
-    def write(self):
-        poor_yaml_write(self.config, self.file, template_file=self.template_file)
-
     def config_redirect(self):
         """部署配置重定向，处理旧配置到新配置的迁移。
 
@@ -146,12 +127,12 @@ class DeployConfig(ConfigModel):
             'https://git.nanoda.work/git/AzurPilot',
             'https://git.nanoda.work',
         ]:
-            self.Repository = GIT_OVER_CDN_REPOSITORY
+            object.__setattr__(self, 'Repository', GIT_OVER_CDN_REPOSITORY)
             self.config['Repository'] = GIT_OVER_CDN_REPOSITORY
         if self.PypiMirror in [
             'https://pypi.tuna.tsinghua.edu.cn/simple'
         ]:
-            self.PypiMirror = 'https://mirrors.aliyun.com/pypi/simple'
+            object.__setattr__(self, 'PypiMirror', 'https://mirrors.aliyun.com/pypi/simple')
             self.config['PypiMirror'] = 'https://mirrors.aliyun.com/pypi/simple'
 
         # 绕过 webui.config.DeployConfig.__setattr__()，不写入 deploy.yaml
@@ -175,7 +156,7 @@ class DeployConfig(ConfigModel):
         country_code = get_country_code()
         if country_code == 'cn':
             logger.info('检测到中国大陆网络，切换至国内 Git 更新源')
-            self.Repository = GIT_OVER_CDN_REPOSITORY
+            object.__setattr__(self, 'Repository', GIT_OVER_CDN_REPOSITORY)
             self.config['Repository'] = GIT_OVER_CDN_REPOSITORY
         elif country_code is None:
             logger.warning('无法检测网络所在国家，保留 GitHub 更新源')
