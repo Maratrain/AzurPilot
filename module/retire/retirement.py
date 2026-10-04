@@ -169,7 +169,11 @@ class Retirement(Enhancement, QuickRetireSettingHandler):
                 logger.warning('[退役-确认] 等待退役确认超时，假设已完成')
                 break
             # 有时 EQUIP_CONFIRM 没有黑色模糊背景，与 IN_RETIREMENT_CHECK 同时出现
-            if self.appear(IN_RETIREMENT_CHECK, offset=(20, 20)) and not self.appear(EQUIP_CONFIRM, offset=(30, 30)):
+            # 拆卸装备后的 GET_ITEMS_1 弹窗也可能与 IN_RETIREMENT_CHECK 同屏，
+            # 必须点完才能退出，否则弹窗残留导致后续流程卡死
+            if self.appear(IN_RETIREMENT_CHECK, offset=(20, 20)) \
+                    and not self.appear(EQUIP_CONFIRM, offset=(30, 30)) \
+                    and not self.appear(GET_ITEMS_1, offset=(30, 30)):
                 if executed:
                     break
             else:
@@ -353,6 +357,11 @@ class Retirement(Enhancement, QuickRetireSettingHandler):
             break
 
         logger.info(f'[退役-一键] 退役总轮数: {total // 10}')
+        # 拆卸装备的"获得物资"弹窗可能在 _retirement_confirm 退出后才延迟弹出，
+        # 残留弹窗会卡死后续流程，出现时补一遍确认流程
+        if self.appear(GET_ITEMS_1, offset=(30, 30)):
+            logger.info('[退役-一键] 检测到残留的获得物资弹窗，补充确认')
+            self._retirement_confirm()
         return total
 
     def retire_ships_old(self, amount=None, rarity=None):
