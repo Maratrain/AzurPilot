@@ -21,7 +21,7 @@ from module.config.config_manual import ManualConfig, OutputConfig
 from module.config.config_updater import ConfigUpdater, ensure_time, get_server_next_update, nearest_future
 from module.config.deep import deep_get, deep_set
 from module.config.time_source import now as current_time
-from module.config.utils import DEFAULT_TIME, dict_to_kv, filepath_config, get_os_reset_remain, path_to_arg, is_good_gpu
+from module.config.utils import DEFAULT_TIME, dict_to_kv, filepath_config, get_os_reset_remain, path_to_arg, is_good_gpu, read_file
 from module.config.watcher import ConfigWatcher
 from module.exception import RequestHumanTakeover, ScriptError
 from module.logger import logger
@@ -372,6 +372,11 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
     def save(self, mod_name='alas'):
         if not self.modified:
             return False
+
+        # 从磁盘重新读取最新配置，避免覆盖 WebUI 在任务运行期间修改的值
+        disk_data = read_file(filepath_config(self.config_name, mod_name))
+        if disk_data:
+            self.data = disk_data
 
         for path, value in self.modified.items():
             deep_set(self.data, keys=path, value=value)
