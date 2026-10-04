@@ -1551,6 +1551,85 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
 
                 drop.set_combat_count(self._auto_search_battle_count)
 
+    # 点击地图格子前的安全边距 (左, 上, 右, 下)，单位为 1280x720 资源空间下的像素。
+    # 大世界地图四周全是固定 UI：左侧舰队成员条与折叠箭头、左下角舰队切换按钮、
+    # 底部按钮排（储物舱/情报/作战总览）、右侧雷达与按钮列、顶部资源栏。
+    # 目标格子的点击区域一旦碰到这些区域，点击就会落到 UI 上而不是地图格子，
+    # 曾出现"点明石点到舰队切换按钮、把舰队列表点开导致任务卡死"的事故。
+    GRID_CLICK_SAFE_MARGIN = (170, 140, 250, 110)
+
+    # 需要"点击前先对准镜头"的地图事件标记，同时用作聚焦后重新定位事件的检索条件。
+    CLICK_EVENT_FLAGS = ("is_akashi", "is_scanning_device", "is_logging_tower")
+
+    def _is_grid_in_click_safe_area(self, grid):
+        """判断目标格子的点击区域是否完整落在屏幕中央的安全区内。
+
+        Args:
+            grid: `self.view` 中的目标格子。
+
+        Returns:
+            bool: 完整落在安全区内返回 True；取不到点击区域或截图时保守返回 False。
+        """
+        try:
+            x1, y1, x2, y2 = grid.button
+            height, width = self.device.image.shape[:2]
+        except (AttributeError, TypeError, ValueError):
+            return False
+
+        left, top, right, bottom = self.GRID_CLICK_SAFE_MARGIN
+        return (
+            x1 >= left
+            and y1 >= top
+            and x2 <= width - right
+            and y2 <= height - bottom
+        )
+
+    def _focus_grid_before_click(self, grid):
+        """点击地图事件（明石/塞壬装置/记录塔）前，先把镜头对准目标格子。
+
+        重扫地图会把镜头停在扫描点，此时发现的事件可能落在屏幕边缘，
+        点击区域与四周的固定 UI 重合，点击会被 UI 吃掉而不是落到格子上。
+        因此在点击前先聚焦到目标格子，让它回到屏幕中央的可点区域。
+
+        Args:
+            grid: `self.view` 中的目标格子。
+
+        Returns:
+            Grid: 点击时应使用的格子。已经处于安全区、或无法定位时原样返回
+                入参 grid，保持调用方原有的行为。
+        """
+        if self._is_grid_in_click_safe_area(grid):
+            return grid
+
+        try:
+            location = self.convert_local_to_global(grid.location).location
+        except KeyError:
+            logger.warning(
+                f"[大世界] 目标 {grid} 位于屏幕边缘，但换算全局坐标失败，按原位置点击"
+            )
+            return grid
+
+        logger.info(
+            f"[大世界] 目标 {grid} 的点击区域 {grid.button} 贴屏幕边缘，先聚焦镜头再点击"
+        )
+        self.focus_to(location)
+
+        # 镜头已经移动，用刷新后的视野重新定位目标事件：检测结果自带当前屏幕
+        # 坐标，不依赖相机坐标换算，避免换算偏差把点击送到别的格子上。
+        for flag in self.CLICK_EVENT_FLAGS:
+            if not getattr(grid, flag, False):
+                continue
+            for candidate in self.view.select(**{flag: True}):
+                if tuple(candidate.location) == tuple(location):
+                    return candidate
+            break
+
+        try:
+            return self.convert_global_to_local(location)
+        except KeyError:
+            logger.warning(f"[大世界] 聚焦到 {location} 后找不到该格子，按原位置点击")
+            return grid
+
     def map_rescan_current(self, drop=None, clicked_grids=None):
         """
         Args:
@@ -1611,6 +1690,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
             logger.info(f"[大世界-搜索] 在 {grid} 找到明石")
             fleet = self.convert_radar_to_local((0, 0))
             if fleet.distance_to(grid) > 1:
+                grid = self._focus_grid_before_click(grid)
                 self.device.click(grid)
                 with self.config.temporary(STORY_ALLOW_SKIP=False):
                     walk_time = 1.5 + 0.6 * grid.distance_to(fleet)
@@ -1629,6 +1709,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                         fleet = self.convert_radar_to_local((0, 0))
                         if fleet.distance_to(grid) <= 1:
                             logger.info(f"[大世界-搜索] 明石 ({grid}) 靠近当前舰队 ({fleet})")
+                            grid = self._focus_grid_before_click(grid)
                             if self._buy_akashi_supply_with_retry(grid):
                                 self._solved_map_event.add("is_akashi")
                                 return True
@@ -1645,6 +1726,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                         return False
             else:
                 logger.info(f"[大世界-搜索] 明石 ({grid}) 靠近当前舰队 ({fleet})")
+                grid = self._focus_grid_before_click(grid)
                 if self._buy_akashi_supply_with_retry(grid):
                     self._solved_map_event.add("is_akashi")
                     return True
@@ -1670,6 +1752,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
 
             # ========== 移动并处理 ==========
             logger.info(f"[大世界] [移动装置] 开始移动到装置位置: {grid}")
+            grid = self._focus_grid_before_click(grid)
             self.device.click(grid)
 
             # 重置标志位
@@ -1763,6 +1846,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         ):
             grid = grids[0]
             logger.info(f"[大世界-搜索] 在 {grid} 找到记录塔")
+            grid = self._focus_grid_before_click(grid)
             self.device.click(grid)
             with self.config.temporary(STORY_ALLOW_SKIP=False):
                 result = self.wait_until_walk_stable(
