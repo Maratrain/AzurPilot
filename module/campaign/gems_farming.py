@@ -219,7 +219,7 @@ class GemsEquipmentHandler(EquipmentCodeHandler):
         success = self.code_clear()
         if not success:
             logger.warning('[战役-紧急委托] 装备码导出失败，停止换船以避免装备状态丢失。')
-            raise RequestHumanTakeover
+            raise RequestHumanTakeover('装备码备份或卸装失败')
         return success
 
     def apply_equip_code(self, code=None):
@@ -242,7 +242,7 @@ class GemsEquipmentHandler(EquipmentCodeHandler):
             success = self._code_apply(code=code)
         if not success:
             logger.warning('[战役-紧急委托] 装备码应用失败，请人工检查当前舰队装备。')
-            raise RequestHumanTakeover
+            raise RequestHumanTakeover('装备码应用失败，当前舰船装备尚未恢复')
         return success
 
 
@@ -964,10 +964,10 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
         """
         if self.hard_mode:
             if not self.dock_enter(self.fleet_detail_enter_flagship):
-                return True
-            self.ship_down_hard()  
+                raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
+            self.ship_down_hard()
         if not self.dock_enter(self.fleet_enter_flagship):
-            return True
+            raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
 
         ship = self.get_common_rarity_cv()
         if ship:
@@ -986,7 +986,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
                 self.flagship_change_with_emotion(ship)
             else:
                 if self.hard_mode:
-                    raise RequestHumanTakeover
+                    raise RequestHumanTakeover('困难舰队已卸下舰船，但没有可用舰船补位')
                 self._dock_reset()
                 self.ui_back(check_button=self.page_fleet_check_button)
             return False
@@ -1013,10 +1013,10 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
         """
         if self.hard_mode:
             if not self.dock_enter(self.fleet_detail_enter):
-                return True
-            self.ship_down_hard()  
+                raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
+            self.ship_down_hard()
         if not self.dock_enter(self.fleet_enter):
-            return True
+            raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
 
         ship = self.get_common_rarity_dd()
         if ship:
@@ -1030,7 +1030,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
                 self.vanguard_change_with_emotion(ship)
             else:
                 if self.hard_mode:
-                    raise RequestHumanTakeover
+                    raise RequestHumanTakeover('困难舰队已卸下舰船，但没有可用舰船补位')
                 self._dock_reset()
                 self.ui_back(check_button=self.page_fleet_check_button)
             return False
@@ -1109,7 +1109,7 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
             initial_check = False
             is_limit = self.config.StopCondition_RunCount
             try:
-                super().run(name=name, folder=folder, total=total)
+                super().run(name=name, folder=folder, mode=mode, total=total)
             except CampaignEnd as e:
                 if e.args[0] == 'Emotion control':
                     self._trigger_emotion = True
@@ -1118,32 +1118,23 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
                     self.set_emotion(0)
                 else:
                     raise e
-            except HardNotSatisfied:
-                try:
-                    if self.change_flagship and self.change_vanguard:
-                        self.hard_mode_override()
-                        self.vanguard_change()
-                        self.flagship_change()
-                    else:
-                        raise RequestHumanTakeover
-                except RequestHumanTakeover:
-                    raise
-                except Exception:
-                    from module.exception import GameStuckError
-                    raise GameStuckError
             except RequestHumanTakeover as e:
-                try:
-                    if e.args and e.args[0] == 'Hard not satisfied' and self.change_flagship and self.change_vanguard:
-                        self.hard_mode_override()
-                        self.vanguard_change()
-                        self.flagship_change()
-                    else:
-                        raise
-                except RequestHumanTakeover:
+                # HardNotSatisfied 是 RequestHumanTakeover 的子类，两分支合并处理：
+                # 困难限制不满足且开启换船时，先尝试换船补位；其余情况原样抛出。
+                hard_unsatisfied = isinstance(e, HardNotSatisfied) or (
+                    e.args and e.args[0] == 'Hard not satisfied')
+                if not (hard_unsatisfied and self.change_flagship and self.change_vanguard):
                     raise
-                except Exception:
-                    from module.exception import GameStuckError
-                    raise GameStuckError
+                self.hard_mode_override()
+                vanguard_success = self.vanguard_change()
+                flagship_success = self.flagship_change()
+                if not (vanguard_success and flagship_success):
+                    # 换船不成功，带着未确认的舰队状态继续出击有风险，
+                    # 退出自动搜索、延迟 60 分钟并停止任务等人工处理。
+                    logger.warning('[战役-紧急委托] 换船失败，延迟 60 分钟并停止任务')
+                    self.campaign.ensure_auto_search_exit()
+                    self.config.task_delay(minute=60)
+                    self.config.task_stop()
 
             # 结束条件
             if self._trigger_lv32 or self._trigger_emotion:
@@ -1176,7 +1167,8 @@ class GemsFarming(CampaignRun, FleetEquipment, GemsEquipmentHandler, Retirement)
                     self.campaign.ensure_auto_search_exit()
                     self.config.task_stop()
                 elif not success and (self.config.GemsFarming_DelayTaskIFNoFlagship \
-                        or self._trigger_emotion):
+                        or self._trigger_emotion
+                        or (self.change_flagship and not self.config.GemsFarming_AllowHighFlagshipLevel)):
                     self._trigger_emotion = False
                     self.campaign.ensure_auto_search_exit()
                     self.config.task_delay(minute=60)

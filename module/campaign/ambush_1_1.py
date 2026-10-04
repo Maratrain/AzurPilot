@@ -251,7 +251,7 @@ class Ambush11(CampaignRun, FleetEquipment, Retirement):
         success = self.code_clear()
         if not success:
             logger.warning('[战役-伏击] 装备码导出失败，停止换船以避免装备状态丢失。')
-            raise RequestHumanTakeover
+            raise RequestHumanTakeover('装备码备份或卸装失败')
         return success
 
     def apply_equip_code(self, code=None):
@@ -272,7 +272,7 @@ class Ambush11(CampaignRun, FleetEquipment, Retirement):
             success = self._code_apply(code=code)
         if not success:
             logger.warning('[战役-伏击] 装备码应用失败，请人工检查当前舰队装备。')
-            raise RequestHumanTakeover
+            raise RequestHumanTakeover('装备码应用失败，当前舰船装备尚未恢复')
         return success
 
     # ==================== 模式与页面导航 ====================
@@ -551,11 +551,11 @@ class Ambush11(CampaignRun, FleetEquipment, Retirement):
         for button in [MAIN_2]:
             if self.hard_mode:
                 if not self.dock_enter(self.fleet_detail_enter_flagship):
-                    continue
+                    raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
                 self.ship_down_hard()
 
             if not self.dock_enter(button):
-                continue
+                raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
 
             ship = self.get_common_rarity_cv()
             if ship:
@@ -574,7 +574,7 @@ class Ambush11(CampaignRun, FleetEquipment, Retirement):
                     self.flagship_change_with_emotion(ship)
                 else:
                     if self.hard_mode:
-                        raise RequestHumanTakeover
+                        raise RequestHumanTakeover('困难舰队已卸下舰船，但没有可用舰船补位')
                     self._dock_reset()
                     self.ui_back(check_button=self.page_fleet_check_button)
 
@@ -596,10 +596,10 @@ class Ambush11(CampaignRun, FleetEquipment, Retirement):
 
         if self.hard_mode:
             if not self.dock_enter(self.fleet_detail_enter):
-                return True
+                raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
             self.ship_down_hard()
         if not self.dock_enter(VANGUARD_1):
-            return True
+            raise RequestHumanTakeover('进入换船船坞超时，无法确认舰队状态')
 
         ship = self.get_common_rarity_dd()
         if ship:
@@ -613,7 +613,7 @@ class Ambush11(CampaignRun, FleetEquipment, Retirement):
                 self.vanguard_change_with_emotion(ship)
             else:
                 if self.hard_mode:
-                    raise RequestHumanTakeover
+                    raise RequestHumanTakeover('困难舰队已卸下舰船，但没有可用舰船补位')
                 self._dock_reset()
                 self.ui_back(check_button=self.page_fleet_check_button)
             return False
