@@ -329,6 +329,10 @@ class OSMapOperation(MapOrderHandler, MissionHandler, PortHandler, StorageHandle
         """
         return self.appear(MAP_EXIT, offset=(20, 20), similarity=0.75)
 
+    # 地图退出的空闲兜底超时（秒）：连续这么久没有任何点击就结束退出流程。
+    # 必须小于设备层的 60 秒卡死判定，否则会被判死并中断整个任务。
+    map_exit_idle_timeout = 40
+
     def map_exit(self):
         """
         从隐秘海域、深渊海域或要塞中退出。
@@ -339,6 +343,11 @@ class OSMapOperation(MapOrderHandler, MissionHandler, PortHandler, StorageHandle
         """
         logger.hr('[大世界-地图操作] 地图退出')
         confirm_timer = Timer(1, count=2)
+        # 空闲兜底：连续 map_exit_idle_timeout 秒没有任何点击，说明既退不出去、
+        # 也没有可点内容（游戏卡在认不出的画面，或已退出但没有地图事件可处理）。
+        # 干等下去会被设备层的 60 秒卡死检测判死、整个任务中断，这里主动收尾，
+        # 由后面的 zone_init() 重新定位当前区域。
+        idle_timer = Timer(self.map_exit_idle_timeout).start()
         changed = False
         for _ in self.loop():
             # 结束条件
@@ -353,17 +362,31 @@ class OSMapOperation(MapOrderHandler, MissionHandler, PortHandler, StorageHandle
 
             # 点击
             if self.appear_then_click(MAP_EXIT, offset=(20, 20), interval=3, similarity=0.75):
+                idle_timer.reset()
                 continue
             if self.handle_popup_confirm('MAP_EXIT'):
                 self.interval_reset(MAP_EXIT)
+                idle_timer.reset()
                 continue
             if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50)):
                 # 偶尔会出现
                 self.device.screenshot_interval_set()
+                idle_timer.reset()
                 continue
             if self.handle_map_event():
                 self.interval_reset(MAP_EXIT)
                 changed = True
+                idle_timer.reset()
                 continue
+
+            # 本帧没有任何可点内容：空闲超时后结束退出流程。
+            # 这里不做盲点击（屏幕上可能是剧情选项或弹窗，点错比卡住更糟），
+            # 恢复交给紧随其后的 zone_init()：它会处理弹窗/奖励并重新读取区域名。
+            if idle_timer.reached():
+                logger.warning(
+                    f'地图退出：连续 {self.map_exit_idle_timeout} 秒没有任何操作，'
+                    f'结束退出流程，交给区域初始化重新定位'
+                )
+                break
 
         self.zone_init()
