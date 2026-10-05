@@ -4,10 +4,12 @@
 from __future__ import annotations
 import ctypes
 import json
+import os
 import re
 import subprocess
 import threading
 import time
+from ctypes import wintypes
 from functools import wraps
 
 import psutil
@@ -135,12 +137,44 @@ def emulator_op_exclusive(name):
 
 def get_focused_window():
     """获取当前前台窗口的句柄。"""
-    return ctypes.windll.user32.GetForegroundWindow()
+    get_foreground_window = ctypes.windll.user32.GetForegroundWindow
+    get_foreground_window.restype = wintypes.HWND
+    return get_foreground_window() or 0
 
 
 def set_focus_window(hwnd):
     """将指定窗口设置为前台窗口。"""
-    ctypes.windll.user32.SetForegroundWindow(hwnd)
+    ctypes.windll.user32.SetForegroundWindow(wintypes.HWND(hwnd))
+
+
+def get_window_process_id(hwnd):
+    """获取窗口所属进程；窗口已销毁时返回 0。"""
+    pid = wintypes.DWORD()
+    ctypes.windll.user32.GetWindowThreadProcessId(wintypes.HWND(hwnd), ctypes.byref(pid))
+    return pid.value
+
+
+def get_process_window(pid):
+    """按进程定位唯一可见主窗口，多个候选窗口时不猜测目标。"""
+    if pid <= 0:
+        return 0
+
+    user32 = ctypes.windll.user32
+    user32.GetWindow.restype = wintypes.HWND
+    windows = []
+
+    def enum_callback(hwnd, _):
+        handle = wintypes.HWND(hwnd)
+        if (user32.IsWindowVisible(handle)
+                and not user32.GetWindow(handle, 4)  # GW_OWNER，排除附属弹窗。
+                and get_window_process_id(hwnd) == pid):
+            windows.append(hwnd)
+        return True
+
+    callback = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)(enum_callback)
+    if not user32.EnumWindows(callback, 0):
+        return 0
+    return windows[0] if len(windows) == 1 else 0
 
 
 def get_window_text(hwnd):
@@ -203,7 +237,7 @@ def check_mumu_error_dialog():
 
 def minimize_window(hwnd):
     """最小化指定窗口。"""
-    ctypes.windll.user32.ShowWindow(hwnd, 6)
+    ctypes.windll.user32.ShowWindow(wintypes.HWND(hwnd), 6)
 
 
 def get_window_title(hwnd):
@@ -225,7 +259,7 @@ def get_window_title(hwnd):
 
 def flash_window(hwnd, flash=True):
     """闪烁指定窗口以吸引注意力。"""
-    ctypes.windll.user32.FlashWindow(hwnd, flash)
+    ctypes.windll.user32.FlashWindow(wintypes.HWND(hwnd), flash)
 
 
 class PlatformWindows(PlatformBase, EmulatorManager):
@@ -649,6 +683,83 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                 return False
             time.sleep(MUMU12_STATE_POLL_INTERVAL)
 
+    def _get_emulator_window(self):
+        """定位当前实例的窗口；查询失败或归属不明确时跳过窗口操作。"""
+        instance = self.emulator_instance
+        exe = instance.emulator.path
+        if instance == Emulator.MuMuPlayer12:
+            info = self._mumu12_instances(exe)
+            entry = (info or {}).get(str(instance.MuMuPlayer12_id))
+            if not isinstance(entry, dict) or not entry.get('is_process_started'):
+                return 0
+            try:
+                pid = int(entry.get('pid', 0))
+            except (TypeError, ValueError):
+                return 0
+            # 新版 GUI 可能由多个实例共享，不能把共享进程当作某个实例。
+            if any(other is not entry and isinstance(other, dict)
+                   and other.get('is_process_started') and str(other.get('pid')) == str(pid)
+                   for other in info.values()):
+                return 0
+            return get_process_window(pid)
+
+        if instance == Emulator.LDPlayerFamily:
+            try:
+                result = subprocess.run(
+                    [Emulator.single_to_console(exe), 'list2'],
+                    timeout=5,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    capture_output=True,
+                    text=True,
+                    errors='replace',
+                )
+            except (OSError, subprocess.TimeoutExpired) as e:
+                logger.warning(f'[设备-Windows] 无法查询雷电实例窗口: {e}')
+                return 0
+            if result.returncode:
+                return 0
+            for line in result.stdout.splitlines():
+                fields = line.split(',')
+                if len(fields) < 7 or fields[0] != str(instance.LDPlayer_id):
+                    continue
+                try:
+                    hwnd, pid = int(fields[2]), int(fields[5])
+                except ValueError:
+                    return 0
+                if (hwnd > 0 and pid > 0 and get_window_process_id(hwnd) == pid
+                        and ctypes.windll.user32.IsWindowVisible(wintypes.HWND(hwnd))):
+                    return hwnd
+            return 0
+
+        if instance == Emulator.MuMuPlayer:
+            marker = []  # MuMu6 只有单实例。
+        elif instance == Emulator.MuMuPlayerX:
+            marker = ['-m', instance.name]
+        elif instance == Emulator.NoxPlayerFamily:
+            marker = [f'-clone:{instance.name}']
+        elif instance == Emulator.BlueStacks5:
+            marker = ['--instance', instance.name]
+        elif instance == Emulator.BlueStacks4:
+            marker = ['-vmname', instance.name]
+        elif instance == Emulator.MEmuPlayer:
+            marker = [instance.name]
+        else:
+            return 0
+
+        path = os.path.normcase(os.path.abspath(exe))
+        pids = []
+        for proc in psutil.process_iter(['exe', 'cmdline']):
+            try:
+                process_exe = proc.info['exe']
+                if not process_exe or os.path.normcase(os.path.abspath(process_exe)) != path:
+                    continue
+                args = (proc.info['cmdline'] or [])[1:]
+                if not marker or any(args[i:i + len(marker)] == marker for i in range(len(args))):
+                    pids.append(proc.pid)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return get_process_window(pids[0]) if len(pids) == 1 else 0
+
     def emulator_start_watch(self, timeout=None):
         """
         监控模拟器启动过程，等待启动完成。
@@ -697,7 +808,6 @@ class PlatformWindows(PlatformBase, EmulatorManager):
         timeout_timer = Timer(timeout).start()
         progress = Timer(EMULATOR_START_PROGRESS_INTERVAL).start()
         dialog_check = Timer(EMULATOR_START_DIALOG_CHECK_INTERVAL).start()
-        new_window = 0
         while 1:
             interval.wait()
             interval.reset()
@@ -724,15 +834,6 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                 return False
 
             try:
-                # 检查模拟器窗口是否弹出
-                if current_window != 0 and new_window == 0:
-                    new_window = get_focused_window()
-                    if current_window != new_window:
-                        logger.info(f'[设备-Windows] 新窗口出现: {new_window}，焦点返回')
-                        set_focus_window(current_window)
-                    else:
-                        new_window = 0
-
                 # 检查设备连接
                 devices = self.list_device().select(serial=serial)
                 if devices:
@@ -777,15 +878,18 @@ class PlatformWindows(PlatformBase, EmulatorManager):
                 logger.exception(e)
                 continue
 
-        if new_window != 0 and new_window != current_window:
-            logger.info(f'[设备-Windows] 最小化新窗口: {new_window}')
-            minimize_window(new_window)
-        if current_window:
-            logger.info(f'[设备-Windows] 取消闪烁当前窗口: {current_window}')
-            flash_window(current_window, flash=False)
+        # 按实例重新定位窗口，不把用户启动期间切换到的应用当作模拟器。
+        new_window = self._get_emulator_window()
         if new_window:
+            if current_window and current_window != new_window and get_focused_window() == new_window:
+                logger.info(f'[设备-Windows] 模拟器窗口获得焦点，返回原窗口: {current_window}')
+                set_focus_window(current_window)
+            logger.info(f'[设备-Windows] 最小化模拟器窗口: {new_window}')
+            minimize_window(new_window)
             logger.info(f'[设备-Windows] 闪烁新窗口: {new_window}')
             flash_window(new_window, flash=True)
+        else:
+            logger.info('[设备-Windows] 未能确认本实例窗口，跳过最小化')
         logger.info('[设备-Windows] 模拟器启动完成')
         return True
 
