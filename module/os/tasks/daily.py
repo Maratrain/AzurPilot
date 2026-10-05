@@ -17,6 +17,7 @@ from module.exception import ScriptError
 from module.logger import logger
 from module.map.map_grids import SelectedGrids
 from module.os.map import OSMap
+from module.os.globe_operation import OSExploreError
 from module.os_handler.action_point import ActionPointLimit
 from module.os_handler.assets import MISSION_COMPLETE_POPUP
 from module.ui.assets import OS_CHECK
@@ -102,6 +103,10 @@ class OpsiDaily(OSMap):
                 self.globe_goto(zone, types='SAFE', refresh=True)
             except ActionPointLimit:
                 continue
+            except OSExploreError:
+                self._os_defer_mission_zone(zone)
+                self._os_return_from_unavailable_mission()
+                continue
             self.fleet_set(self.config.OpsiFleet_Fleet)
             self.os_order_execute(recon_scan=False, submarine_call=False)
             self.run_auto_search()
@@ -132,21 +137,47 @@ class OpsiDaily(OSMap):
         """
         logger.hr('大世界-大世界每日+ 完成每日任务', level=1)
         count = 0
+        mission_index = 0
+        skip_unavailable = self.config.task.command == 'OpsiDaily'
+        self._os_daily_mission_unavailable = False
         # 防止港口类型每日任务的无限刷新循环（如对话/拾取/商店交互等自动搜索无法完成的情况）
         stuck_port_zone_id = None
         stuck_port_retry = 0
         abort_due_to_stuck_port = False
         while True:
-            result = self.os_get_next_mission(skip_siren_mission=skip_siren_mission)
+            if skip_unavailable:
+                result = self.os_get_next_mission(skip_siren_mission=skip_siren_mission,
+                                                  skip_unavailable=True, mission_index=mission_index)
+                mission_index = self._os_mission_index
+            else:
+                result = self.os_get_next_mission(skip_siren_mission=skip_siren_mission)
             if not result:
                 break
+            if result == 'mission_zone_unavailable':
+                self._os_daily_mission_unavailable = True
+                mission_index += 1
+                continue
 
             if result != 'pinned_at_archive_zone':
                 # 档案海域的名称是 "archive zone"，不是已存在的区域。
                 # 完成档案海域后会自动返回之前的区域。
                 self.zone_init()
             if result == 'already_at_mission_zone':
-                self.globe_goto(self.zone, refresh=True)
+                zone = self.zone
+                if skip_unavailable and zone.zone_id in self._os_deferred_mission_zones():
+                    self._os_daily_mission_unavailable = True
+                    mission_index += 1
+                    continue
+                try:
+                    self.globe_goto(zone, refresh=True)
+                except OSExploreError:
+                    if not skip_unavailable:
+                        raise
+                    self._os_defer_mission_zone(zone)
+                    self._os_return_from_unavailable_mission()
+                    self._os_daily_mission_unavailable = True
+                    mission_index += 1
+                    continue
             self.fleet_set(self.config.OpsiFleet_Fleet)
             self.os_order_execute(
                 recon_scan=False,
@@ -210,20 +241,22 @@ class OpsiDaily(OSMap):
             self.config.OpsiDaily_KeepMissionZone = False
 
         skip_siren_mission = self.config.OpsiDaily_SkipSirenResearchMission
+        self._os_daily_mission_unavailable = False
         while True:
             # 如果无法接收更多每日任务，先完成已有任务再重试
             success = self.os_mission_overview_accept(skip_siren_mission=skip_siren_mission)
             # 重新初始化区域名称
             # MISSION_ENTER 从右侧出现，需确认动画结束，否则会点击到 MAP_GOTO_GLOBE
             self.zone_init()
-            if self.os_finish_daily_mission(
-                    skip_siren_mission=skip_siren_mission,
-                    keep_mission_zone=self.config.OpsiDaily_KeepMissionZone) and skip_siren_mission:
+            finished = self.os_finish_daily_mission(
+                skip_siren_mission=skip_siren_mission,
+                keep_mission_zone=self.config.OpsiDaily_KeepMissionZone)
+            if finished and skip_siren_mission:
                 continue
             if self.is_in_opsi_explore():
                 self.os_port_mission()
                 break
-            if success:
+            if success or (not finished and self._os_daily_mission_unavailable):
                 break
 
         if self.config.OpsiDaily_KeepMissionZone:

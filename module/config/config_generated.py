@@ -653,6 +653,7 @@ class GeneratedConfig:
     OpsiDaily_SkipSirenResearchMission = False
     OpsiDaily_KeepMissionZone = False
     OpsiDaily_MissionZones = None
+    OpsiDaily_DeferredMissions = None
     OpsiDaily_CollectTargetReward = False
 
     # 配置组 `OpsiObscure`

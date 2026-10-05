@@ -3433,6 +3433,10 @@
       "name": "月底需清理的海域",
       "help": "自动记录，一般不需改喵。"
     },
+    "DeferredMissions": {
+      "name": "延期委托记录喵",
+      "help": "暂存无法进入的委托海域及下次重试时间，其他每日委托照常执行喵。"
+    },
     "CollectTargetReward": {
       "name": "领取成就奖励喵",
       "help": ""

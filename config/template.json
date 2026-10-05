@@ -2648,6 +2648,7 @@
       "SkipSirenResearchMission": false,
       "KeepMissionZone": false,
       "MissionZones": null,
+      "DeferredMissions": null,
       "CollectTargetReward": false
     },
     "OpsiFleet": {

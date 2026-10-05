@@ -13634,6 +13634,11 @@
         "value": null,
         "display": "hide"
       },
+      "DeferredMissions": {
+        "type": "stored",
+        "value": null,
+        "display": "hide"
+      },
       "CollectTargetReward": {
         "type": "checkbox",
         "value": false

@@ -4,16 +4,20 @@
 任务奖励领取、任务结算界面导航以及月度 Boss 任务的特殊处理。
 通过 OCR 和图像匹配检测任务状态，自动完成任务流程。
 """
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from module.base.decorator import cached_property
+from module.base.template import Template
 from module.base.timer import Timer
 from module.base.utils import *
-from module.config.utils import DEFAULT_TIME, get_os_next_reset
+from module.config.time_source import now as current_time
+from module.config.utils import DEFAULT_TIME, get_os_next_reset, get_server_next_update
+from module.exception import MapDetectionError
 from module.logger import logger
 from module.map_detection.utils import fit_points
 from module.os.assets import GLOBE_GOTO_MAP
 from module.os.globe_detection import GLOBE_MAP_SHAPE
-from module.os.globe_operation import GlobeOperation
+from module.os.globe_operation import GlobeOperation, OSExploreError
 from module.os.globe_zone import Zone, ZoneManager
 from module.os_handler.assets import *
 
@@ -25,27 +29,125 @@ class MissionAtCurrentZone(Exception):
 
 class MissionHandler(GlobeOperation, ZoneManager):
     _os_mission_submitted = False
+    _os_mission_index = 0
 
-    def _os_find_checkout_offset_skip_monthly_boss(self, checkout_offset):
+    @cached_property
+    def _os_mission_checkout_template(self):
+        template = Template(MISSION_CHECKOUT.file)
+        MISSION_CHECKOUT.ensure_template()
+        template.image = MISSION_CHECKOUT.image
+        return template
+
+    def _os_mission_checkout_offsets(self):
+        """从当前页匹配任务按钮，避免滚动后仍按固定行号点击。"""
+        offsets = []
+        for button in self._os_mission_checkout_template.match_multi(self.device.image, similarity=0.78):
+            x, y, _, bottom = button.area
+            if (abs(x - MISSION_CHECKOUT.area[0]) <= 20 and 190 <= y and bottom <= 650
+                    and color_similar(button.color, MISSION_CHECKOUT.color, threshold=30)):
+                offsets.append(area_offset((-20, -20, 20, 20),
+                                           (x - MISSION_CHECKOUT.area[0], y - MISSION_CHECKOUT.area[1])))
+        return sorted(offsets, key=lambda offset: offset[1])
+
+    def _os_find_checkout_offset_skip_monthly_boss(self, checkout_offset, skip=0):
         """
         查找非月度Boss的任务结算行。
 
         Args:
             checkout_offset (tuple): 初始结算按钮偏移量。
+            skip (int): 跳过本轮已延期的未完成委托数量，不计月度 Boss。
 
         Returns:
-            tuple | None: 非月度Boss任务行的偏移量，如果未找到则返回 None。
+            tuple | None: 跳过指定数量的未完成委托和月度 Boss 后，下一任务按钮的偏移。
         """
-        row_offset = checkout_offset
-        # 任务行垂直排列，间隔约 110 像素
-        # 扫描多行以处理月度Boss不在第一行的情况
-        for _ in range(8):
-            has_checkout = self.match_template_color(MISSION_CHECKOUT, offset=row_offset, similarity=0.78)
-            if has_checkout and not self.appear(MISSION_MONTHLY_BOSS, offset=row_offset):
-                return row_offset
-            row_offset = area_offset(row_offset, (0, 110))
+        if not skip:
+            # 没有延期行时保持原有选择逻辑，避免改变其他任务。
+            row_offset = checkout_offset
+            # 任务行垂直排列，间隔约 110 像素
+            # 扫描多行以处理月度Boss不在第一行的情况
+            for _ in range(8):
+                has_checkout = self.match_template_color(MISSION_CHECKOUT, offset=row_offset, similarity=0.78)
+                if has_checkout and not self.appear(MISSION_MONTHLY_BOSS, offset=row_offset):
+                    return row_offset
+                row_offset = area_offset(row_offset, (0, 110))
+            return None
 
-        return None
+        # 延期委托仍留在列表中，超过一页时继续查找后面的委托。
+        scrolling = None
+        stable = Timer(0.3, count=2)
+        timeout = Timer(5, count=10)
+        scroll_distance = None
+        for _ in self.loop():
+            if scrolling is not None:
+                anchor, anchor_y, previous = scrolling
+                image = self.image_crop((600, 170, 1000, 650), copy=False)
+                result = cv2.matchTemplate(image, anchor, cv2.TM_CCOEFF_NORMED)
+                _, similarity, _, point = cv2.minMaxLoc(result)
+                if similarity >= 0.90:
+                    distance = anchor_y - (170 + point[1])
+                    if scroll_distance is None or abs(distance - scroll_distance) > 2:
+                        scroll_distance = distance
+                        stable.reset()
+                    elif stable.reached():
+                        if distance > 2:
+                            skip -= sum(MISSION_CHECKOUT.area[1] + offset[1] + 20 - distance < 190
+                                        for offset in previous)
+                            skip = max(skip, 0)
+                            scrolling = None
+                            continue
+                        if abs(distance) <= 2:
+                            # 拖动后任务行稳定停在原位置，已到列表底部。
+                            return None
+                else:
+                    stable.reset()
+                if timeout.reached():
+                    raise MapDetectionError('无法确认大世界任务列表滚动位置')
+                continue
+
+            offsets = self._os_mission_checkout_offsets()
+            eligible = [offset for offset in offsets if not self.appear(MISSION_MONTHLY_BOSS, offset=offset)]
+            if skip < len(eligible):
+                return eligible[skip]
+            if not offsets:
+                return None
+            y = MISSION_CHECKOUT.area[1] + offsets[-1][1] + 20
+            anchor_y = max(170, y - 35)
+            anchor = self.image_crop((600, anchor_y, 1000, min(650, y + 45)))
+            scrolling = (anchor, anchor_y, eligible)
+            scroll_distance = None
+            stable.reset()
+            timeout.reset()
+            self.device.drag((820, 550), (820, 330), name='MISSION_SCROLL')
+
+    def _os_deferred_mission_zones(self):
+        """延期记录只保存进不了的委托目标海域，到下次日更自动失效。"""
+        state = self.config.cross_get('OpsiDaily.OpsiDaily.DeferredMissions')
+        if not isinstance(state, dict):
+            return set()
+        try:
+            until = datetime.fromisoformat(state['until'])
+        except (KeyError, TypeError, ValueError):
+            return set()
+        if until.tzinfo is not None:
+            return set()
+        if current_time() >= until:
+            self.config.cross_set('OpsiDaily.OpsiDaily.DeferredMissions', None)
+            return set()
+        zones = state.get('zones', [])
+        return {zone for zone in zones if type(zone) is int} if isinstance(zones, list) else set()
+
+    def _os_defer_mission_zone(self, zone):
+        zones = self._os_deferred_mission_zones() | {zone.zone_id}
+        until = get_server_next_update(
+            self.config.cross_get('OpsiDaily.Scheduler.ServerUpdate', default='00:00'))
+        self.config.cross_set('OpsiDaily.OpsiDaily.DeferredMissions',
+                              dict(until=until.isoformat(), zones=sorted(zones)))
+        logger.warning(f'每日委托目标海域 {zone} 无法进入，仅延期该海域的委托至 {until}，继续其他委托')
+
+    def _os_return_from_unavailable_mission(self):
+        self.ensure_no_zone_pinned()
+        self.os_globe_goto_map()
+
 
     def get_mission_zone(self):
         """
@@ -88,6 +190,7 @@ class MissionHandler(GlobeOperation, ZoneManager):
             out: MISSION_CHECK
         """
         logger.info('[大世界处理-任务] 进入大世界任务')
+        self._os_mission_submitted = False
         checkout_offset = (-20, -20, 20, 20)
         confirm_timer = Timer(2, count=6).start()
         for _ in self.loop():
@@ -119,6 +222,7 @@ class MissionHandler(GlobeOperation, ZoneManager):
                     continue
             else:
                 if self.appear_then_click(MISSION_FINISH, offset=checkout_offset, interval=2):
+                    self._os_mission_submitted = True
                     confirm_timer.reset()
                     continue
                 if self.handle_popup_confirm('MISSION_FINISH'):
@@ -153,7 +257,7 @@ class MissionHandler(GlobeOperation, ZoneManager):
             if self.appear_then_click(MISSION_QUIT, offset=(20, 20), interval=3):
                 continue
 
-    def os_get_next_mission(self, skip_siren_mission=False):
+    def os_get_next_mission(self, skip_siren_mission=False, skip_unavailable=False, mission_index=0):
         """
         获取下一个大世界任务。
 
@@ -162,13 +266,21 @@ class MissionHandler(GlobeOperation, ZoneManager):
 
         Args:
             skip_siren_mission (bool): 是否跳过塞壬研究任务。
+            skip_unavailable (bool): 仅每日任务使用，延期进不了海域的委托并继续后续委托。
+            mission_index (int): 本轮已经跳过的未完成委托数量。
 
         Returns:
             str: pinned_at_mission_zone、already_at_mission_zone、pinned_at_archive_zone，
-                如果没有更多任务则返回 False。
+                mission_zone_unavailable 表示仅延期本条委托；没有更多任务则返回 False。
         """
         checkout_offset = self.os_mission_enter(skip_siren_mission=skip_siren_mission)
-        checkout_offset = self._os_find_checkout_offset_skip_monthly_boss(checkout_offset)
+        skip_unavailable = skip_unavailable and self.config.task.command == 'OpsiDaily'
+        self._os_mission_index = 0 if self._os_mission_submitted else mission_index
+        if skip_unavailable:
+            checkout_offset = self._os_find_checkout_offset_skip_monthly_boss(
+                checkout_offset, skip=self._os_mission_index)
+        else:
+            checkout_offset = self._os_find_checkout_offset_skip_monthly_boss(checkout_offset)
         if checkout_offset is None:
             logger.info('[大世界处理-任务] 没有更多非月度Boss的大世界任务')
             self.os_mission_quit()
@@ -189,6 +301,21 @@ class MissionHandler(GlobeOperation, ZoneManager):
                     return 'pinned_at_archive_zone'
                 else:
                     logger.info('[大世界处理-任务] 固定在任务区域')
+                    if skip_unavailable:
+                        # 从当前固定海域定位真实目标，不把历史占位海域 72 当成委托身份。
+                        self.globe_update()
+                        zone = self.get_globe_pinned_zone()
+                        if zone.zone_id in self._os_deferred_mission_zones():
+                            logger.info(f'每日委托目标海域 {zone} 仍在延期中，继续其他委托')
+                            self._os_return_from_unavailable_mission()
+                            return 'mission_zone_unavailable'
+                        try:
+                            self.globe_enter(zone=zone)
+                        except OSExploreError:
+                            self._os_defer_mission_zone(zone)
+                            self._os_return_from_unavailable_mission()
+                            return 'mission_zone_unavailable'
+                        return 'pinned_at_mission_zone'
                     self.globe_enter(zone=self.name_to_zone(72))
                     return 'pinned_at_mission_zone'
             if self.is_in_map() and self.info_bar_count():
