@@ -51,12 +51,25 @@ class DeveloperUpdateMixin(WebUIMixinBase):
             put_scope("updater_table")
         put_scope("updater_detail")
 
+        def page_active() -> bool:
+            """本任务渲染前检查页面归属。
+
+            get_commit() 底层是 git 子进程调用，可能阻塞数百毫秒以上；
+            期间用户可能已切换菜单并清空 content。后台任务线程的 scope
+            栈顶是 ROOT，此时 use_scope 会在 ROOT 下创建孤儿容器并渲染
+            更新器表格，全屏盖住当前页面。此函数可能被回调线程直接调用，
+            不在这里自移除任务（remove_current_task 依赖任务循环线程上下文）。
+            """
+            return self.page == "Update"
+
         def update_table():
+            local_commit = updater.get_commit(short_sha1=True)
+            upstream_commit = updater.get_commit(
+                f"origin/{updater.Branch}", short_sha1=True
+            )
+            if not page_active():
+                return
             with use_scope("updater_table", clear=True):
-                local_commit = updater.get_commit(short_sha1=True)
-                upstream_commit = updater.get_commit(
-                    f"origin/{updater.Branch}", short_sha1=True
-                )
                 put_table(
                     [
                         [t("Gui.Update.Local"), *local_commit],
@@ -70,11 +83,13 @@ class DeveloperUpdateMixin(WebUIMixinBase):
                         t("Gui.Update.Message"),
                     ],
                 )
+            history = updater.get_commit(
+                f"origin/{updater.Branch}", n=20, short_sha1=True
+            )
+            if not page_active():
+                return
             with use_scope("updater_detail", clear=True):
                 put_text(t("Gui.Update.DetailedHistory"))
-                history = updater.get_commit(
-                    f"origin/{updater.Branch}", n=20, short_sha1=True
-                )
                 put_table(
                     [commit for commit in history],
                     header=[
@@ -87,6 +102,13 @@ class DeveloperUpdateMixin(WebUIMixinBase):
 
         def u(state):
             if state == -1:
+                return
+            # 页面守卫：快速切换菜单时，本任务可能在 init_menu 移除 pending 任务
+            # 之后才被注册而残留。此时更新器的 scope 已随 content 清空，继续渲染
+            # 会把提交历史表格写到 ROOT 下的孤儿容器，全屏盖住当前页面。
+            # 发现页面已切走时移除自身，停止渲染。
+            if self.page != "Update":
+                self.task_handler.remove_current_task()
                 return
             clear("updater_loading")
             clear("updater_state")

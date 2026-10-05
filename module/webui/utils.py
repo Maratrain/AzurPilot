@@ -212,7 +212,13 @@ class TaskHandler:
             self._condition.notify()
 
     def remove_current_task(self) -> None:
-        self.remove_task(self._task, nowait=True)
+        with self._condition:
+            self._remove_task(self._task)
+            # 任务已就地终止时同步清除 pending 标记，避免下次
+            # remove_pending_task() 对不存在的任务报"移除失败"。
+            if self._task in self.pending_remove_tasks:
+                self.pending_remove_tasks.remove(self._task)
+            self._condition.notify()
 
     def get_task(self, name) -> Task:
         with self._lock:
