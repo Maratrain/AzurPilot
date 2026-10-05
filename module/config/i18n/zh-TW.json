@@ -6632,6 +6632,8 @@
       "GitProxyHelp": "HTTP 或 SOCKS5 代理地址，留空表示不使用代理。",
       "SSLVerify": "Git SSL 驗證",
       "SSLVerifyHelp": "連線可信網路時建議開啟。",
+      "SkipRepositoryUpdate": "啟動時跳過倉庫更新",
+      "SkipRepositoryUpdateHelp": "啟用後，啟動器啟動時不再即時拉取 GitHub 倉庫，直接使用本地已有程式碼，適合離線環境或希望鎖定版本的使用者。首次安裝不受影響。",
       "PythonExecutable": "Python 可執行檔",
       "PythonExecutableHelp": "用於執行 AzurPilot 的 Python 路徑。",
       "PypiMirror": "PyPI 鏡像",

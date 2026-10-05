@@ -31,6 +31,13 @@ Deploy:
     # [其他情况] 连接到不受信任的网络时使用 false
     # [Other] Use false to when connected to an untrusted network
     SSLVerify: true
+    # 启动器启动时跳过仓库更新
+    # Skip repository update on launcher startup
+    # [大多数情况] 使用 false，每次启动检查更新
+    # [In most cases] Use false to check updates on every startup
+    # [离线/锁定版本] 使用 true，不再实时拉取 GitHub 仓库
+    # [Offline / pinned version] Use true to stop pulling the repository from GitHub
+    SkipRepositoryUpdate: false
   Python:
     # Python 可执行文件路径
     # Filepath of python executable.

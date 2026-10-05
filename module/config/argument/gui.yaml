@@ -252,6 +252,8 @@ DeploySetting:
   GitProxyHelp:
   SSLVerify:
   SSLVerifyHelp:
+  SkipRepositoryUpdate:
+  SkipRepositoryUpdateHelp:
   PythonExecutable:
   PythonExecutableHelp:
   PypiMirror:

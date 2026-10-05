@@ -6632,6 +6632,8 @@
       "GitProxyHelp": "HTTP or SOCKS5 proxy. Leave empty to disable.",
       "SSLVerify": "Git SSL Verify",
       "SSLVerifyHelp": "Recommended when connected to trusted networks.",
+      "SkipRepositoryUpdate": "Skip Repository Update on Startup",
+      "SkipRepositoryUpdateHelp": "When enabled, the launcher stops pulling the repository from GitHub on startup and uses local code instead. Suitable for offline environments or pinned versions. First-time installation is unaffected.",
       "PythonExecutable": "Python Executable",
       "PythonExecutableHelp": "Python used to run AzurPilot.",
       "PypiMirror": "PyPI Mirror",

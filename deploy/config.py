@@ -23,6 +23,8 @@ class ConfigModel:
     GitExecutable: str = "./.venv/Scripts/git/cmd/git.exe" if sys.platform == "win32" else "./.venv/bin/git"
     GitProxy: Optional[str] = None
     SSLVerify: bool = False
+    # 启动器启动时跳过仓库更新（不实时拉取 GitHub）
+    SkipRepositoryUpdate: bool = False
 
     # Python 配置
     PythonExecutable: str = "./.venv/Scripts/python.exe" if sys.platform == "win32" else "./.venv/bin/python"
