@@ -39,6 +39,12 @@ OCR_BUY_FOOD_AMOUNT = Digit(OCR_DORM_BUY_FOOD_AMOUNT, letter=(96, 96, 100), thre
 class OcrDormFood(DigitCounter):
     """宿舍食物 OCR，识别食物数量格式如 `1000/5800`。"""
 
+    # 识别区域包含数字左侧的图标，OCR 可能在数字前多读出一个 '7'。
+    # 从最左侧橙色像素处截断图像即可让图标不参与 OCR：颜色相似度图里
+    # 橙色数字约 250，图标、灰色总数（40000）与背景均低于 130。
+    ORANGE_THRESHOLD = 150
+    ORANGE_MARGIN = 5
+
     def pre_process(self, image):
         orange = color_similarity_2d(image, color=(239, 158, 49))
         gray = color_similarity_2d(image, color=(99, 97, 99))
@@ -47,6 +53,12 @@ class OcrDormFood(DigitCounter):
         cv2.max(orange, gray, dst=gray)
         cv2.bitwise_not(gray, dst=gray)
         cv2.convertScaleAbs(gray, alpha=2, dst=gray)
+
+        # 保留橙色数字及其左侧 ORANGE_MARGIN 像素，截掉其余部分
+        columns = np.where(orange.max(axis=0) > self.ORANGE_THRESHOLD)[0]
+        if len(columns):
+            gray = gray[:, max(int(columns[0]) - self.ORANGE_MARGIN, 0):]
+
         return gray
 
     def after_process(self, result):
