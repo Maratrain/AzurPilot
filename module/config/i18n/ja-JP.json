@@ -1397,12 +1397,6 @@
       "name": "一括消費の時刻",
       "help": "実行日のこの時刻以降に実行します。形式 HH:MM（例 12:00）"
     },
-    "MaintainOverride": {
-      "name": "メンテナンス前の作戦委託",
-      "help": "毎日メンテナンス告知を確認します。今日メンテナンスがあり、まだ始まっていない場合は、\nこの実行をメンテナンス 10 分前に回し、作戦回数を最大にして最後の一回を実行します\n（「作戦全権委託書を使用」「時間の自動補充」の影響は受けます）。\n過去の日付や今日でない場合は通常どおり動作します。データ元 api-blhx-maintain（CN サーバーのみ）",
-      "True": "有効",
-      "False": "無効"
-    },
     "OilLimit": {
       "name": "燃料が X 未満なら延期",
       "help": "燃料がこの値より少ない間はタスクを延期し、足りたら再開します\n0 で無効"
@@ -6623,7 +6617,7 @@
       "GroupRemoteAccess": "リモートアクセス",
       "GroupWebui": "WebUI 設定",
       "Repository": "AzurPilot リポジトリ",
-      "RepositoryHelp": "インストールと更新に使う Git リポジトリです。中国本土では git://git.pull/AzurPilot も使用できます。",
+      "RepositoryHelp": "インストールと更新に使う Git リポジトリです。",
       "Branch": "ブランチ",
       "BranchHelp": "安定版は通常 master、開発やテストでは dev、app などを指定します。",
       "GitExecutable": "Git 実行ファイル",

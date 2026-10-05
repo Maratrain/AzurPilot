@@ -148,8 +148,4 @@ patch_mimetype()
 fix_py37_subprocess_communicate()
 
 task_handler = TaskHandler()
-RESTRICTED_DEVICE_IDS = {"1", "2"}
-RESTRICTED_DEVICE_MESSAGE = (
-    "你的公网IP已泄露 请加群https://join.nanoda.work/#/join联系我们解除安全限制"
-)
 PUBLIC_WEBUI_PASSWORD_GENERATE_FAILED_MESSAGE = "当前配置允许所有设备访问，但自动生成密码失败，请手动在 config/deploy.yaml 设置 Password 后重启。"

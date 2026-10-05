@@ -1397,12 +1397,6 @@
       "name": "Trigger time",
       "help": "Trigger at or after this time on the trigger day, format HH:MM, e.g. 12:00"
     },
-    "MaintainOverride": {
-      "name": "Handover before maintenance",
-      "help": "Check the CN maintenance notice once a day. If the maintenance is today and has not started yet, this run is\npostponed to 10 minutes before it and then runs with max sorties (still respecting Use Handover Book and\nauto-supplement time). Past or non-today maintenance is ignored. Data from api-blhx-maintain, CN server only",
-      "True": "On",
-      "False": "Off"
-    },
     "OilLimit": {
       "name": "Postpone if Oil below X",
       "help": "Postpone the task while oil is below this value, resume when oil is enough\n0 to disable"
@@ -6623,7 +6617,7 @@
       "GroupRemoteAccess": "Remote Access",
       "GroupWebui": "WebUI",
       "Repository": "AzurPilot Repository",
-      "RepositoryHelp": "Git repository used for install and update. CN users may use git://git.pull/AzurPilot.",
+      "RepositoryHelp": "Git repository used for install and update.",
       "Branch": "Branch",
       "BranchHelp": "Use master for stable releases, or dev/app for testing.",
       "GitExecutable": "Git Executable",

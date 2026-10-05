@@ -225,7 +225,6 @@ class GeneratedConfig:
     OperationHandover_ConsumeAllBook = False  # True, False
     OperationHandover_ConsumeAllBookWeekday = 'sun'  # mon, tue, wed, thu, fri, sat, sun
     OperationHandover_ConsumeAllBookTime = '00:00'
-    OperationHandover_MaintainOverride = False  # True, False
     OperationHandover_OilLimit = 1000
     OperationHandover_ConsumeAllBookRecord = None
     OperationHandover_CommissionEnd = datetime.datetime(2020, 1, 1, 0, 0)

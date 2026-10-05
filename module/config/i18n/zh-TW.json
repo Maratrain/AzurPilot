@@ -1397,12 +1397,6 @@
       "name": "一鍵消耗觸發時間",
       "help": "觸發日當天到這個時間之後才會觸發，格式 HH:MM，例如 12:00"
     },
-    "MaintainOverride": {
-      "name": "維護當天作戰委託",
-      "help": "開啟後每天查一次停服維護公告：維護就在今天且還沒開始時，本次執行會延後到維護前 10 分鐘，\n到點把作戰次數拉滿跑最後一次（受「使用作戰全權委託書」「自動補充時間」影響）。\n維護時間已經過去、或者不是今天，都照正常流程走。資料來自 api-blhx-maintain，僅國服",
-      "True": "已啟用",
-      "False": "關閉"
-    },
     "OilLimit": {
       "name": "石油低於 X 後延後",
       "help": "石油低於該數值時延後任務，石油夠了再繼續出擊\n0 表示不檢查"
@@ -6623,7 +6617,7 @@
       "GroupRemoteAccess": "遠端訪問",
       "GroupWebui": "WebUI 設定",
       "Repository": "AzurPilot 倉庫地址",
-      "RepositoryHelp": "用於更新和安裝的 Git 倉庫地址。中國大陸使用者可使用 git://git.pull/AzurPilot。",
+      "RepositoryHelp": "用於更新和安裝的 Git 倉庫地址。",
       "Branch": "分支",
       "BranchHelp": "穩定版通常使用 master，開發或測試可填寫 dev、app 等分支。",
       "GitExecutable": "Git 可執行檔",

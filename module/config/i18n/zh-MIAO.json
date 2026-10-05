@@ -1397,12 +1397,6 @@
       "name": "几点开烧喵",
       "help": "到了这个点才开始烧，格式 HH:MM 喵"
     },
-    "MaintainOverride": {
-      "name": "维护前也要薅一把喵",
-      "help": "每天看一眼停服公告喵~ 今天要维护的话，就在维护前 10 分钟把作战次数拉满，跑最后一次喵！\n已经停服了或者不是今天就当无事发生喵 (´・ω・`)",
-      "True": "开着喵",
-      "False": "关着喵"
-    },
     "OilLimit": {
       "name": "石油低于 X 就歇着喵",
       "help": "油不够就先别跑，等油攒够了再来喵~ (￣ω￣)"
@@ -6623,7 +6617,7 @@
       "GroupRemoteAccess": "远程访问喵",
       "GroupWebui": "WebUI 配置喵",
       "Repository": "AzurPilot 仓库地址",
-      "RepositoryHelp": "用于更新和安装的 Git 仓库地址。国内用户可使用 git://git.pull/AzurPilot 喵。",
+      "RepositoryHelp": "用于更新和安装的 Git 仓库地址喵。",
       "Branch": "分支",
       "BranchHelp": "稳定版通常使用 master，开发或测试可填写 dev、app 等分支喵。",
       "GitExecutable": "Git 可执行文件",

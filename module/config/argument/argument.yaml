@@ -422,10 +422,6 @@ OperationHandover:
   ConsumeAllBookTime:
     value: "00:00"
     valuetype: str
-  MaintainOverride:
-    type: checkbox
-    value: false
-    option: [true, false]
   OilLimit:
     value: 1000
     validate: [0, 999999]

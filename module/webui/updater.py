@@ -79,32 +79,8 @@ class Updater(DeployConfig, GitManager):
         else:
             return logs
 
-    def _check_cloud_update(self) -> bool:
-        """检查云端更新开关"""
-        return self.cloud_auto_update_enabled()
-
     def _check_update(self) -> bool:
         self.state = "checking"
-
-        cloud_update = self._check_cloud_update()
-        if cloud_update is None:
-            self.cloud_update_access_failed(fatal=False)
-            return False
-        if not cloud_update:
-            logger.info("云更新标志为false，跳过更新检查")
-            return False
-
-        if State.deploy_config.GitOverCdn:
-            status = self.goc_client.get_status()
-            if status == "uptodate":
-                logger.info(f"无更新")
-                return False
-            elif status == "behind":
-                logger.info(f"有新更新可用")
-                return True
-            else:
-                # failed, should fallback to `git pull`
-                pass
 
         source = "origin"
         for _ in range(3):

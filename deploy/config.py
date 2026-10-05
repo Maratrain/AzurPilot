@@ -1,15 +1,13 @@
 import sys
 from typing import Optional, Union
 
-from deploy.geo import get_country_code
 from deploy.config_transaction import DeployConfigTransaction
 from deploy.logger import logger
 from deploy.utils import *
 
 
-GIT_OVER_CDN_REPOSITORY = 'git://git.pull/AzurPilot'
-GIT_OVER_CDN_FALLBACK_REPOSITORY = 'https://gitcode.com/ddl2/AzurLaneAutoScript'
 GITHUB_REPOSITORY = 'https://github.com/wess09/AzurPilot'
+MARATRAIN_REPOSITORY = 'https://github.com/Maratrain/AzurPilot'
 
 
 class ExecutionError(Exception):
@@ -18,7 +16,7 @@ class ExecutionError(Exception):
 
 class ConfigModel:
     # Git 配置
-    Repository: str = GITHUB_REPOSITORY
+    Repository: str = MARATRAIN_REPOSITORY
     Branch: str = "master"
     GitExecutable: str = "./.venv/Scripts/git/cmd/git.exe" if sys.platform == "win32" else "./.venv/bin/git"
     GitProxy: Optional[str] = None
@@ -76,9 +74,6 @@ class ConfigModel:
     CDN: Union[str, bool] = False
     Run: Optional[str] = None
 
-    # 动态配置
-    GitOverCdn: bool = False
-
 
 class DeployConfig(DeployConfigTransaction, ConfigModel):
     def __init__(self, file=DEPLOY_CONFIG):
@@ -91,7 +86,6 @@ class DeployConfig(DeployConfigTransaction, ConfigModel):
         self.template_file = get_deploy_template()
         self.config = {}
         self.config_template = {}
-        self._github_location_checked = False
         self.read()
 
         self.show_config()
@@ -113,57 +107,28 @@ class DeployConfig(DeployConfigTransaction, ConfigModel):
         每次 `read()` 之后必须调用。
         """
         self.config.pop('AutoUpdate', None)
-        self._redirect_github_repository()
         if self.Repository in [
             'https://gitee.com/LmeSzinc/AzurLaneAutoScript',
             'https://gitee.com/lmeszinc/azur-lane-auto-script-mirror',
             'https://e.coding.net/llop18870/alas/AzurLaneAutoScript.git',
             'https://e.coding.net/saarcenter/alas/AzurLaneAutoScript.git',
             'https://git.saarcenter.com/LmeSzinc/AzurLaneAutoScript.git',
-            'git://git.lyoko.io/AzurLaneAutoScript',
+            'https://git.lyoko.io/AzurLaneAutoScript',
             'https://gitcode.com/ddl2/AzurLaneAutoScript',
             'https://gitcode.com/ZhangMusan/AzurLaneAutoScript',
             'https://gitcode.com/nerom/AzurLaneAutoScript',
             'https://gitee.com/wqeaxc/AzurLaneAutoScript1',
-            'https://git.nanoda.work/git/AzurLaneAutoScript',
-            'https://git.nanoda.work/git/AzurPilot',
-            'https://git.nanoda.work',
         ]:
-            object.__setattr__(self, 'Repository', GIT_OVER_CDN_REPOSITORY)
-            self.config['Repository'] = GIT_OVER_CDN_REPOSITORY
+            object.__setattr__(self, 'Repository', MARATRAIN_REPOSITORY)
+            self.config['Repository'] = MARATRAIN_REPOSITORY
         if self.PypiMirror in [
             'https://pypi.tuna.tsinghua.edu.cn/simple'
         ]:
             object.__setattr__(self, 'PypiMirror', 'https://mirrors.aliyun.com/pypi/simple')
             self.config['PypiMirror'] = 'https://mirrors.aliyun.com/pypi/simple'
 
-        # 绕过 webui.config.DeployConfig.__setattr__()，不写入 deploy.yaml
-        super().__setattr__(
-            'GitOverCdn',
-            self.Repository == GIT_OVER_CDN_REPOSITORY and self.Branch == 'master'
-        )
-        if self.Repository == GIT_OVER_CDN_REPOSITORY:
-            super().__setattr__('Repository', GIT_OVER_CDN_FALLBACK_REPOSITORY)
-        if self.Repository in ['global']:
-            super().__setattr__('Repository', 'https://github.com/wess09/AzurPilot')
-        if self.Repository in ['cn']:
-            super().__setattr__('Repository', GIT_OVER_CDN_REPOSITORY)
-
-    def _redirect_github_repository(self):
-        """为官方 GitHub 源一次性选择适合当前网络的更新镜像。"""
-        if self._github_location_checked or self.Repository != GITHUB_REPOSITORY:
-            return
-
-        self._github_location_checked = True
-        country_code = get_country_code()
-        if country_code == 'cn':
-            logger.info('检测到中国大陆网络，切换至国内 Git 更新源')
-            object.__setattr__(self, 'Repository', GIT_OVER_CDN_REPOSITORY)
-            self.config['Repository'] = GIT_OVER_CDN_REPOSITORY
-        elif country_code is None:
-            logger.warning('无法检测网络所在国家，保留 GitHub 更新源')
-        else:
-            logger.info('当前网络不在中国大陆，保留 GitHub 更新源')
+        if self.Repository in ['global', 'cn']:
+            super().__setattr__('Repository', MARATRAIN_REPOSITORY)
 
     def filepath(self, key):
         """根据配置键获取绝对文件路径。

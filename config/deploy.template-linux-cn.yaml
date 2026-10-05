@@ -6,7 +6,7 @@ Deploy:
     # [CN user] Use 'git://git.pull/AzurPilot' for faster and more stable download
     # [其他用户] 使用 'https://github.com/wess09/AzurPilot'
     # [Other] Use 'https://github.com/wess09/AzurPilot'
-    Repository: git://git.pull/AzurPilot
+    Repository: https://github.com/Maratrain/AzurPilot
     # AzurPilot 分支
     # Branch of AzurPilot
     # [开发者] 使用 'dev'、'app' 等分支体验新功能

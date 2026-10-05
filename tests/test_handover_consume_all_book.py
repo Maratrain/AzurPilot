@@ -121,14 +121,14 @@ class TestConsumeAllBookGiveUp(unittest.TestCase):
         fake = FakeHandover(record=None)
         calls = []
         fake.handover_commission_clear = lambda: calls.append('clear')
-        fake.handover_idle_delay = lambda maintain: calls.append(('idle', maintain))
+        fake.handover_idle_delay = lambda: calls.append('idle')
 
         with patch('module.handover.handover.current_time', return_value=NOW):
-            fake.handover_consume_all_book_give_up('没有可投入的作战全权委托书', None)
+            fake.handover_consume_all_book_give_up('没有可投入的作战全权委托书')
 
         self.assertEqual(fake.config.OperationHandover_ConsumeAllBookRecord, NOW_WEEK)
         # 放弃本周前要先清掉旧的委托结束时间，否则下一次还会白进一次游戏
-        self.assertEqual(calls, ['clear', ('idle', None)])
+        self.assertEqual(calls, ['clear', 'idle'])
 
         # 放弃之后本周不再触发，下一次重试要等到下周
         with patch('module.handover.handover.current_time', return_value=NOW):

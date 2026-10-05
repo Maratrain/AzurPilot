@@ -3,14 +3,11 @@ import subprocess
 import sys
 from typing import Optional, Union
 
-from deploy.geo import get_country_code
 from deploy.config_transaction import DeployConfigTransaction
 from deploy.Windows.logger import logger
 from deploy.Windows.utils import DEPLOY_CONFIG, DEPLOY_TEMPLATE, cached_property
 
 
-GIT_OVER_CDN_REPOSITORY = 'git://git.pull/AzurPilot'
-GIT_OVER_CDN_FALLBACK_REPOSITORY = 'https://gitcode.com/ddl2/AzurLaneAutoScript'
 GITHUB_REPOSITORY = 'https://github.com/wess09/AzurPilot'
 
 
@@ -74,9 +71,6 @@ class ConfigModel:
     AppAsarUpdate: bool = True
     NoSandbox: bool = True
 
-    # 动态配置
-    GitOverCdn: bool = False
-
 
 class DeployConfig(DeployConfigTransaction, ConfigModel):
     def __init__(self, file=DEPLOY_CONFIG):
@@ -89,7 +83,6 @@ class DeployConfig(DeployConfigTransaction, ConfigModel):
         self.template_file = DEPLOY_TEMPLATE
         self.config = {}
         self.config_template = {}
-        self._github_location_checked = False
         self.read()
 
         self.show_config()
@@ -111,29 +104,8 @@ class DeployConfig(DeployConfigTransaction, ConfigModel):
         每次 `read()` 之后必须调用。
         """
         self.config.pop('AutoUpdate', None)
-        self._redirect_github_repository()
-        # 绕过 webui.config.DeployConfig.__setattr__()，不写入 deploy.yaml
-        super().__setattr__('GitOverCdn', self.Repository in ['cn', GIT_OVER_CDN_REPOSITORY])
-        if self.Repository in ['global']:
-            super().__setattr__('Repository', 'https://github.com/wess09/AzurPilot')
-        if self.Repository in ['cn', GIT_OVER_CDN_REPOSITORY]:
-            super().__setattr__('Repository', GIT_OVER_CDN_FALLBACK_REPOSITORY)
-
-    def _redirect_github_repository(self):
-        """为官方 GitHub 源一次性选择适合当前网络的更新镜像。"""
-        if self._github_location_checked or self.Repository != GITHUB_REPOSITORY:
-            return
-
-        self._github_location_checked = True
-        country_code = get_country_code()
-        if country_code == 'cn':
-            logger.info('检测到中国大陆网络，切换至国内 Git 更新源')
-            object.__setattr__(self, 'Repository', GIT_OVER_CDN_REPOSITORY)
-            self.config['Repository'] = GIT_OVER_CDN_REPOSITORY
-        elif country_code is None:
-            logger.warning('无法检测网络所在国家，保留 GitHub 更新源')
-        else:
-            logger.info('当前网络不在中国大陆，保留 GitHub 更新源')
+        if self.Repository in ['global', 'cn', 'git://git.pull/AzurPilot']:
+            super().__setattr__('Repository', GITHUB_REPOSITORY)
 
     def filepath(self, path):
         """获取绝对文件路径。

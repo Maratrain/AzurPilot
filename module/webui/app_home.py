@@ -119,9 +119,7 @@ class HomeMixin(WebUIMixinBase):
             AzurPilot 是基於上游專案 Alas (AzurLaneAutoScript) 的修改版本，採用 GPL-3.0 許可證，免費開源。如果您透過任何管道付費購買，請申請退款。
 
             上游项目 / Upstream / 上流プロジェクト / 상류 프로젝트 / 上游專案：`https://github.com/LmeSzinc/AzurLaneAutoScript`
-            本项目 / This project / 本プロジェクト / 본 프로젝트 / 本專案：`https://github.com/wess09/AzurPilot`
-
-            如需支持，请联系 / For support, please contact / サポートについてはこちらへ / 지원이 필요하면 아래로 / 如需支援請聯繫：`https://addgroup.nanoda.work/`
+            本项目 / This project / 本プロジェクト / 본 프로젝트 / 本專案：`https://github.com/Maratrain/AzurPilot`
             """
             ).style("text-align: center")
 

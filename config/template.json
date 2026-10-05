@@ -2227,7 +2227,6 @@
       "ConsumeAllBook": false,
       "ConsumeAllBookWeekday": "sun",
       "ConsumeAllBookTime": "00:00",
-      "MaintainOverride": false,
       "OilLimit": 1000,
       "ConsumeAllBookRecord": null,
       "CommissionEnd": "2020-01-01 00:00:00"
