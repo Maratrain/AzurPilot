@@ -12,12 +12,15 @@ from module.webui.app_dependencies import (
     start_ocr_server_process,
     stop_ocr_server_process,
     task_handler,
+    threading,
     updater,
 )
 
 from module.webui.app_helpers import (
     is_demo_mode,
 )
+
+from module.config.time_source import refresh_time
 
 
 def _clearup_step(name, handler) -> bool:
@@ -35,10 +38,21 @@ def _clearup_step(name, handler) -> bool:
         return False
 
 
+def _warm_up_network_time() -> None:
+    """后台预热 NTP 校时，与用户浏览主页的时间窗口重叠，
+    避免首次切换实例时 refresh() 同步阻塞约 3 秒。"""
+    try:
+        refresh_time()
+    except Exception as exc:
+        logger.warning(f'NTP 预热异常: {exc}')
+
+
 def startup() -> None:
     """初始化 WebUI 进程级后台服务。"""
     State.init()
     lang.reload()
+    # 尽早起后台线程预热 NTP 校时，避免首次切换实例时同步阻塞。
+    threading.Thread(target=_warm_up_network_time, daemon=True).start()
     updater.event = State.manager.Event()
     if updater.delay > 0:
         task_handler.add(updater.check_update, updater.delay)
