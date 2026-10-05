@@ -15,7 +15,7 @@ import cv2
 
 import module.config.server as server
 from module.base.timer import Timer
-from module.base.utils import area_pad
+from module.base.utils import area_pad, rgb2luma
 from module.combat.assets import GET_ITEMS_1
 from module.exception import GameStuckError, ScriptError
 from module.logger import logger
@@ -267,6 +267,7 @@ class Enhancement(Dock):
         search = (center[0] - radius, center[1] - radius, center[0] + radius, center[1] + radius)
 
         EMPTY_ENHANCE_SLOT_PLUS.ensure_template()
+        EMPTY_ENHANCE_SLOT_PLUS.ensure_luma_template()
         # 仅点击一次取消选中：再次点击空槽位会打开舰船选择弹窗，
         # 使强化界面卡死（曾触发 GameStuckError）
         self.device.click(cv)
@@ -278,12 +279,32 @@ class Enhancement(Dock):
             if confirm.reached():
                 logger.warning('[退役-强化] 反选确认超时，继续强化流程')
                 break
+            # 灰度匹配比颜色匹配更能容忍槽位底色的细微差异，
+            # 阈值相应从 0.85 降到 0.75（移植自上游 7f4d24da1）
             image = self.image_crop(search, copy=False)
-            result = cv2.matchTemplate(EMPTY_ENHANCE_SLOT_PLUS.image, image, cv2.TM_CCOEFF_NORMED)
+            image = rgb2luma(image)
+            result = cv2.matchTemplate(EMPTY_ENHANCE_SLOT_PLUS.image_luma, image, cv2.TM_CCOEFF_NORMED)
             _, similarity, _, _ = cv2.minMaxLoc(result)
-            if similarity > 0.85:
+            if similarity > 0.75:
                 logger.info('反选普通航母完成')
                 break
+            # 误点已选中的槽位会打开船坞：说明槽位本就没有强化材料，
+            # 退出船坞后按反选完成处理（移植自上游 7f4d24da1）
+            if self.appear(DOCK_CHECK, offset=(20, 20)):
+                logger.info('[退役-强化] 反选中误入船坞，视为槽位已空')
+                self._enhance_exit_dock()
+                logger.info('[退役-强化] 反选普通航母完成（从船坞返回）')
+                break
+
+    def _enhance_exit_dock(self):
+        """从船坞返回强化页面。"""
+        for _ in self.loop():
+            if self.appear(ENHANCE_RECOMMEND, offset=(5, 5)):
+                break
+            if self.appear(DOCK_CHECK, offset=(20, 20), interval=3):
+                logger.info(f'{DOCK_CHECK} -> {BACK_ARROW}')
+                self.device.click(BACK_ARROW)
+                continue
 
     def _enhance_choose(self, ship_count, skip_first_screenshot=True):
         """
