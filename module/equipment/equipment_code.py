@@ -229,7 +229,7 @@ class EquipmentCodeHandler(StorageHandler):
                 logger.warning("启用FastInputIME超时")
                 break
 
-            h = self.device.dump_hierarchy_adb()
+            h = self.device.dump_hierarchy()
 
             def appear(xpath):
                 return bool(HierarchyButton(h, xpath))
@@ -251,6 +251,18 @@ class EquipmentCodeHandler(StorageHandler):
                 continue
             if appear('//*[@resource-id="android:id/title" and @text="FastInputIME"]/following-sibling::*[@resource-id="android:id/switch_widget" and @checked="true"]') \
                     and not appear('//*[@resource-id="android:id/title" and @text!="FastInputIME"]/following-sibling::*[@resource-id="android:id/switch_widget" and @enabled="true" and @checked="true"]'):
+                break
+
+            # Android 15（如新版 MuMu 12）的设置页把同一个开关换成
+            # com.android.settings:id/switchWidget，上面的旧 resource-id
+            # 保持不动，在这里单独处理新 id。
+            if appear_then_click('//*[@resource-id="android:id/title" and @text="FastInputIME"]/following-sibling::*[@resource-id="com.android.settings:id/switchWidget" and @checked="false"]'):
+                continue
+            # 每次只停用一个其他已启用的输入法
+            if appear_then_click('(//*[@resource-id="android:id/title" and @text!="FastInputIME"]/following-sibling::*[@resource-id="com.android.settings:id/switchWidget" and @enabled="true" and @checked="true"])[1]'):
+                continue
+            if appear('//*[@resource-id="android:id/title" and @text="FastInputIME"]/following-sibling::*[@resource-id="com.android.settings:id/switchWidget" and @checked="true"]') \
+                    and not appear('//*[@resource-id="android:id/title" and @text!="FastInputIME"]/following-sibling::*[@resource-id="com.android.settings:id/switchWidget" and @enabled="true" and @checked="true"]'):
                 break
 
         self.device.adb_shell(['input', 'keyevent', '4'])
