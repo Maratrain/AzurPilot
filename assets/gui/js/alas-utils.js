@@ -212,7 +212,9 @@
         controlReady: false,
         controlQueue: [],
         keyboardComposing: false,
-        rawPending: null
+        rawPending: null,
+        jpegUrl: '',
+        mediaOpenTimer: null
     };
 
     var BITRATE_STEPS = [0.35, 0.5, 0.7, 1, 1.25];
@@ -229,6 +231,22 @@
         return String(text || '').replace(/[<>&]/g, function (ch) {
             return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[ch];
         });
+    }
+
+    // 判断浏览器是否支持通过 MSE 播放 H264 fragmented MP4（截图兜底模式依赖）。
+    function supportsMseH264() {
+        try {
+            return 'MediaSource' in window
+                && typeof MediaSource.isTypeSupported === 'function'
+                && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"');
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // 根据浏览器能力选择截图兜底模式：MSE 可用走 screenshot，否则走 JPEG 逐帧。
+    function pickFallbackMode() {
+        return supportsMseH264() ? 'screenshot' : 'jpeg';
     }
 
     function ensurePanel() {
@@ -322,6 +340,14 @@
                 if (state.mediaSource.readyState === 'open') state.mediaSource.endOfStream();
             } catch (e) { }
             state.mediaSource = null;
+        }
+        if (state.mediaOpenTimer) {
+            clearTimeout(state.mediaOpenTimer);
+            state.mediaOpenTimer = null;
+        }
+        if (state.jpegUrl) {
+            try { URL.revokeObjectURL(state.jpegUrl); } catch (e) { }
+            state.jpegUrl = '';
         }
         releaseMediaElement();
         if (state.objectUrl) {
@@ -552,8 +578,10 @@
         var video = panel.querySelector('.alas-live-preview-video');
         var canvas = panel.querySelector('.alas-live-preview-canvas');
         if (!('VideoDecoder' in window) || !('EncodedVideoChunk' in window)) {
-            state.mode = 'screenshot';
-            reconnectForQuality('当前浏览器不支持 WebCodecs，回退截图模式');
+            state.mode = pickFallbackMode();
+            reconnectForQuality(state.mode === 'jpeg'
+                ? '当前浏览器不支持 WebCodecs，回退 JPEG 逐帧模式'
+                : '当前浏览器不支持 WebCodecs，回退截图模式');
             return;
         }
 
@@ -693,6 +721,68 @@
         };
     }
 
+    // JPEG 逐帧模式：直接在 canvas 绘制后端发来的 JPEG，兼容所有浏览器。
+    function attachJpeg(socket, msg, transportId) {
+        var panel = ensurePanel();
+        var video = panel.querySelector('.alas-live-preview-video');
+        var canvas = panel.querySelector('.alas-live-preview-canvas');
+
+        video.style.display = 'none';
+        canvas.style.display = 'block';
+        canvas.width = msg.width || 640;
+        canvas.height = msg.height || 360;
+        state.socket = socket;
+        state.reconnectingForQuality = false;
+
+        var prevUrl = '';
+        socket.onmessage = function (event) {
+            if (!state.open || transportId !== state.transportId || state.socket !== socket) return;
+            if (typeof event.data === 'string') {
+                try {
+                    var textMsg = JSON.parse(event.data);
+                    if (textMsg.type === 'error') setStatus(textMsg.message);
+                } catch (e) { }
+                return;
+            }
+            state.lastChunkAt = Date.now();
+            if (!state.firstChunkAt) state.firstChunkAt = state.lastChunkAt;
+            if (state.jpegUrl) {
+                try { URL.revokeObjectURL(state.jpegUrl); } catch (e) { }
+                state.jpegUrl = '';
+            }
+            var url = URL.createObjectURL(new Blob([event.data], { type: 'image/jpeg' }));
+            var img = new Image();
+            img.onload = function () {
+                if (transportId !== state.transportId) {
+                    try { URL.revokeObjectURL(url); } catch (e) { }
+                    return;
+                }
+                try {
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    state.videoPressure = false;
+                    setStatus('');
+                } finally {
+                    if (prevUrl) {
+                        try { URL.revokeObjectURL(prevUrl); } catch (e) { }
+                    }
+                    prevUrl = url;
+                    state.jpegUrl = url;
+                }
+            };
+            img.onerror = function () {
+                try { URL.revokeObjectURL(url); } catch (e) { }
+                setStatus('JPEG 帧解码失败');
+            };
+            img.src = url;
+        };
+        socket.onerror = function () {
+            if (transportId === state.transportId) setStatus('实时截图连接错误');
+        };
+        socket.onclose = function () {
+            if (state.open && transportId === state.transportId) setStatus('实时截图已断开');
+        };
+    }
+
     function nearestBitrateStep(scale) {
         var best = BITRATE_STEPS[0];
         var diff = Math.abs(scale - best);
@@ -763,14 +853,22 @@
 
     function updateQuality(transportId) {
         if (!state.open || transportId !== state.transportId) return;
+        // JPEG 逐帧模式本身即为最终兜底，帧率取决于截屏速度，不做质量调节。
+        if (state.mode === 'jpeg') return;
         var now = Date.now();
         var noChunkMs = state.lastChunkAt ? now - state.lastChunkAt : 0;
         var startupMs = state.firstChunkAt ? now - state.firstChunkAt : 0;
         var stalled = false;
 
         if (!state.firstChunkAt && state.lastReconnectAt && now - state.lastReconnectAt > 12000) {
-            state.mode = 'screenshot';
-            reconnectForQuality('scrcpy 暂无可播放画面，回退截图模式');
+            if (state.mode === 'screenshot') {
+                // 截图兜底模式超过 12 秒仍无画面，说明 MSE 播放异常，升级为 JPEG 逐帧。
+                state.mode = 'jpeg';
+                reconnectForQuality('截图流无画面，回退 JPEG 逐帧模式');
+            } else {
+                state.mode = 'screenshot';
+                reconnectForQuality('scrcpy 暂无可播放画面，回退截图模式');
+            }
             return;
         }
         if (!state.firstChunkAt) return;
@@ -846,9 +944,14 @@
             if (!state.open || transportId !== state.transportId || state.socket !== socket) {
                 return;
             }
+            if (state.mediaOpenTimer) {
+                clearTimeout(state.mediaOpenTimer);
+                state.mediaOpenTimer = null;
+            }
             if (!MediaSource.isTypeSupported(mime)) {
-                setStatus(codec.toUpperCase() + ' 当前浏览器不支持');
-                cleanupTransport();
+                // MSE 不支持该编码，升级为 JPEG 逐帧模式而不是直接失败。
+                state.mode = 'jpeg';
+                reconnectForQuality('当前浏览器不支持 H264 播放，回退 JPEG 逐帧模式');
                 return;
             }
             state.reconnectingForQuality = false;
@@ -866,6 +969,17 @@
                 if (state.open && transportId === state.transportId) setStatus('实时截图已断开');
             };
         }, { once: true });
+
+        // 兼容性兜底：部分旧内核浏览器 MediaSource 存在但 sourceopen 永不触发，
+        // 导致状态永远停留在"连接中"。超时后升级为 JPEG 逐帧模式。
+        state.mediaOpenTimer = setTimeout(function () {
+            state.mediaOpenTimer = null;
+            if (!state.open || transportId !== state.transportId) return;
+            if (state.firstChunkAt) return;
+            if (state.mediaSource && state.mediaSource.readyState === 'open') return;
+            state.mode = 'jpeg';
+            reconnectForQuality('视频流无响应，回退 JPEG 逐帧模式');
+        }, 10000);
     }
 
     function getSocketCandidates() {
@@ -938,9 +1052,13 @@
                     if (msg.maxrate) {
                         state.maxrate = msg.maxrate;
                         setStatus('连接中，' + (msg.mode || 'preview') + '，' + state.fps + ' FPS，码率上限 ' + msg.maxrate);
+                    } else {
+                        setStatus('连接中，' + (msg.mode || 'preview'));
                     }
                     if (msg.format === 'raw_h264') {
                         attachRawH264(socket, msg, transportId);
+                    } else if (msg.format === 'jpeg') {
+                        attachJpeg(socket, msg, transportId);
                     } else {
                         attachMedia(socket, state.codec, msg.mime, transportId);
                     }

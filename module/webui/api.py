@@ -1016,6 +1016,81 @@ def _init_live_screenshot_fallback(instance):
     return device, device.screenshot()
 
 
+async def _ws_live_jpeg_fallback(websocket, instance, fps, target_width):
+    """
+    JPEG 逐帧兜底模式：后端逐帧截屏并编码 JPEG，前端直接绘制到 canvas。
+
+    不依赖 WebCodecs、MediaSource 和 ffmpeg，任何浏览器均可显示，
+    供不支持 WebCodecs 且 MSE 播放异常的旧内核浏览器使用。
+    """
+    stop_event = threading.Event()
+
+    try:
+        device, first = await asyncio.to_thread(_init_live_screenshot_fallback, instance)
+        src_height, src_width = first.shape[:2]
+        target_height = int(round(target_width * src_height / src_width))
+        if target_height % 2:
+            target_height += 1
+        size = (target_width, target_height)
+
+        await websocket.send_text(json.dumps({
+            "type": "ready",
+            "mode": "jpeg",
+            "format": "jpeg",
+            "width": target_width,
+            "height": target_height,
+            "fps": fps,
+            "bitrate_mode": "none",
+            "maxrate": "",
+            "bitrate_scale": 1,
+        }))
+
+        def normalize_frame(image):
+            if image.shape[1] != target_width or image.shape[0] != target_height:
+                image = cv2.resize(image, size, interpolation=cv2.INTER_AREA)
+            # device.screenshot() 返回 RGB，而 cv2.imencode 按 BGR 编码，
+            # 必须先转回 BGR，否则浏览器按 RGB 解码会出现红蓝通道互换。
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            ok, buf = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+            if not ok:
+                raise RuntimeError("JPEG 编码失败")
+            return buf.tobytes()
+
+        # JPEG 模式下限速，避免截屏与编码挤占正在运行任务的设备资源。
+        frame_interval = 1 / max(1, min(fps, 10))
+        logger.attr("WebUI实时预览", "JPEG 逐帧兜底模式")
+
+        data = await asyncio.to_thread(normalize_frame, first)
+        while not stop_event.is_set():
+            await websocket.send_bytes(data)
+            next_frame = time.perf_counter() + frame_interval
+            try:
+                image = await asyncio.to_thread(device.screenshot)
+                data = await asyncio.to_thread(normalize_frame, image)
+            except WebSocketDisconnect:
+                raise
+            except Exception as e:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "message": f"截屏失败: {_live_preview_error_message(e)}",
+                }))
+                break
+            delay = next_frame - time.perf_counter()
+            if delay > 0:
+                await asyncio.sleep(delay)
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        message = _live_preview_error_message(e)
+        logger.error(f"ws_live_jpeg error: {message}")
+        try:
+            await websocket.send_text(json.dumps({"type": "error", "message": message}))
+        except Exception:
+            pass
+    finally:
+        stop_event.set()
+
+
 async def ws_live_screenshot(websocket):
     await websocket.accept()
     if is_demo_mode():
@@ -1028,7 +1103,7 @@ async def ws_live_screenshot(websocket):
 
     instance = websocket.query_params.get("instance", DEFAULT_CONFIG_NAME)
     mode = websocket.query_params.get("mode", "auto").lower()
-    if mode not in ("auto", "scrcpy", "screenshot"):
+    if mode not in ("auto", "scrcpy", "screenshot", "jpeg"):
         mode = "auto"
     codec = "h264"
     fps = _parse_int(websocket.query_params.get("fps", "60"), 60, 15, 240)
@@ -1057,6 +1132,10 @@ async def ws_live_screenshot(websocket):
                     pass
                 return
             logger.warning(f"[WebUI] scrcpy 预览不可用，回退截图模式: {_live_preview_error_message(e)}")
+
+    if mode == "jpeg":
+        await _ws_live_jpeg_fallback(websocket, instance, fps, target_width)
+        return
 
     ffmpeg = _get_ffmpeg_path()
     if not ffmpeg:
