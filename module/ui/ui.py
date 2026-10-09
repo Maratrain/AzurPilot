@@ -42,7 +42,8 @@ from module.ocr.ocr import Ocr
 from module.os_handler.assets import (AUTO_SEARCH_REWARD, EXCHANGE_CHECK, RESET_FLEET_PREPARATION, RESET_TICKET_POPUP)
 from module.raid.assets import *
 from module.ui.assets import *
-from module.ui.page import Page, page_academy, page_campaign, page_event, page_main, page_main_white, page_sp
+from module.ui.page import Page, page_academy, page_campaign, page_event, page_main, page_main_white, page_sp, \
+    page_tactical
 from module.ui_white.assets import *
 
 
@@ -68,10 +69,14 @@ class UI(InfoHandler):
         """
         if page == page_main:
             return self.appear(page_main.check_button, offset=(5, 5), interval=interval)
-        # 英文本地化导致学院标题字体宽度变化，需要额外检查其他按钮
-        if self.config.SERVER == 'en' and page == page_academy:
-            if self.appear(ACADEMY_GOTO_MUNITIONS, offset=offset, interval=interval):
-                return True
+        # 英文本地化导致学院和战术学院标题字体宽度变化，需要额外检查其他按钮
+        if self.config.SERVER == 'en':
+            if page == page_academy:
+                if self.appear(ACADEMY_GOTO_MUNITIONS, offset=offset, interval=interval):
+                    return True
+            if page == page_tactical:
+                if self.appear(TACTICAL_CHECK_2, offset=offset, interval=interval):
+                    return True
         return self.appear(page.check_button, offset=offset, interval=interval)
 
     def is_in_main(self, offset=(30, 30), interval=0):
@@ -679,6 +684,11 @@ class UI(InfoHandler):
         if self.appear_then_click(LOGIN_CHECK, offset=(30, 30), interval=3):
             return True
         if self.appear_then_click(MAINTENANCE_ANNOUNCE, offset=(30, 30), interval=3):
+            return True
+        # 复刻活动选择页，误入时退回上一级
+        if self.appear(RERUN_SELECT_CHECK, offset=(30, 30), interval=3):
+            logger.info(f'[UI-额外] {RERUN_SELECT_CHECK} -> {SHOP_BACK_ARROW}')
+            self.device.click(SHOP_BACK_ARROW)
             return True
 
         # 误点击

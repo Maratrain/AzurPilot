@@ -11,23 +11,23 @@ MODE_SWITCH_20240912.add_state('story', SWITCH_20241219_STORY, offset=(444, 4))
 
 
 class CampaignBase(CampaignBase_):
-    def campaign_ensure_mode(self, mode='normal'):
-        """
-        Args:
-            mode (str): 'normal', 'hard', 'ex', 'story'
+    # def campaign_ensure_mode(self, mode='normal'):
+    #     """
+    #     Args:
+    #         mode (str): 'normal', 'hard', 'ex', 'story'
 
-        Returns:
-            bool: If mode changed.
-        """
-        # event_20240912_cn has two mode switches at bottom
-        # The classic one, MODE_SWITCH_* is at bottom-left,
-        # and MODE_SWITCH_20240912 is at bottom-middle
-        if mode == "story":
-            MODE_SWITCH_20240912.set('story', main=self)
-        elif mode in ['normal', 'hard', 'ex']:
-            # First switch to combat mode and then select Hard or Normal.
-            MODE_SWITCH_20240912.set('combat', main=self)
-            super().campaign_ensure_mode(mode)
+    #     Returns:
+    #         bool: If mode changed.
+    #     """
+    #     # event_20240912_cn has two mode switches at bottom
+    #     # The classic one, MODE_SWITCH_* is at bottom-left,
+    #     # and MODE_SWITCH_20240912 is at bottom-middle
+    #     if mode == "story":
+    #         MODE_SWITCH_20240912.set('story', main=self)
+    #     elif mode in ['normal', 'hard', 'ex']:
+    #         # First switch to combat mode and then select Hard or Normal.
+    #         MODE_SWITCH_20240912.set('combat', main=self)
+    #         super().campaign_ensure_mode(mode)
 
     def campaign_set_chapter_20241219(self, chapter, stage, mode='combat'):
         """按当前选关页选择首发或复刻的导航布局。
