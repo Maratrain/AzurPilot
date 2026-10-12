@@ -7943,7 +7943,8 @@
       },
       "LastStage": {
         "type": "input",
-        "value": 0
+        "value": "0",
+        "mode": "text"
       }
     },
     "Campaign": {
@@ -8439,7 +8440,8 @@
       },
       "LastStage": {
         "type": "input",
-        "value": 0
+        "value": "0",
+        "mode": "text"
       }
     },
     "Campaign": {
@@ -8935,7 +8937,8 @@
       },
       "LastStage": {
         "type": "input",
-        "value": 0
+        "value": "0",
+        "mode": "text"
       }
     },
     "Campaign": {
@@ -9431,7 +9434,8 @@
       },
       "LastStage": {
         "type": "input",
-        "value": 0
+        "value": "0",
+        "mode": "text"
       }
     },
     "Campaign": {

@@ -677,7 +677,10 @@ TaskBalancer:
 EventDaily:
   StageFilter: |-
     A1 > A2 > A3
-  LastStage: 0
+  LastStage:
+    # 关卡名包含字母；文本模式兼容旧配置和跨天重置留下的数字 0。
+    mode: text
+    value: '0'
 Raid:
   Mode:
     value: hard
