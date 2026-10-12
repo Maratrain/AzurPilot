@@ -23,13 +23,13 @@ from module.os_simulator.logger import OSSLogger, TqdmToLogger
 @nb.njit(cache=True, fastmath=True)
 def _akashi_sample():
     """
-    不放回采样: 从 AKASHI (长度24) 中选6个。
+    不放回采样：从 AKASHI 的 28 个选项中选 6 个。
     """
     total = 0.0
     mask = 0
     for _ in range(6):
         while True:
-            idx = np.random.randint(0, 24)
+            idx = np.random.randint(0, len(AKASHI))
             if not ((mask >> idx) & 1):
                 mask |= (1 << idx)
                 total += AKASHI[idx]
