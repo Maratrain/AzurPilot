@@ -276,6 +276,9 @@ DailyMission:
     Daily:
       - Scheduler
       - Daily
+    LimitChallenge:
+      - Scheduler
+      - LimitChallenge
     Hard:
       - Scheduler
       - Hard

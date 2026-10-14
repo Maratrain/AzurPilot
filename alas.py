@@ -1477,6 +1477,10 @@ class AzurLaneAutoScript:
         from module.daily.daily import Daily
         Daily(config=self.config, device=self.device).run()
 
+    def limit_challenge(self):
+        from module.limit_challenge.limit_challenge import LimitChallenge
+        LimitChallenge(config=self.config, device=self.device).run()
+
     def hard(self):
         from module.hard.hard import CampaignHard
         CampaignHard(config=self.config, device=self.device).run()

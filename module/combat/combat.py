@@ -511,6 +511,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
         if self.is_combat_executing():
             return False
         if self.appear(BATTLE_STATUS_S, interval=self.battle_status_click_interval):
+            self._combat_rank = 'S'
             if drop:
                 drop.handle_add(self)
             else:
@@ -519,6 +520,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             return True
         if self.appear(BATTLE_STATUS_A, interval=self.battle_status_click_interval):
             logger.warning('[战斗-结算] 战斗评价 A')
+            self._combat_rank = 'A'
             if drop:
                 drop.handle_add(self)
             else:
@@ -527,6 +529,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             return True
         if self.appear(BATTLE_STATUS_B, interval=self.battle_status_click_interval):
             logger.warning('[战斗-结算] 战斗评价 B')
+            self._combat_rank = 'B'
             if drop:
                 drop.handle_add(self)
             else:
@@ -535,6 +538,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             return True
         if self.appear(BATTLE_STATUS_C, interval=self.battle_status_click_interval):
             logger.warning('[战斗-结算] 战斗评价 C')
+            self._combat_rank = 'C'
             if drop:
                 drop.handle_add(self)
             else:
@@ -543,6 +547,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
             return True
         if self.appear(BATTLE_STATUS_D, interval=self.battle_status_click_interval):
             logger.warning('[战斗-结算] 战斗评价 D')
+            self._combat_rank = 'D'
             if drop:
                 drop.handle_add(self)
             else:
@@ -682,6 +687,7 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
         self.device.click_record_clear()
         battle_status = False
         exp_info = False  # 用于处理游戏白屏 bug
+        self._combat_rank = None  # 本次结算的评价，S/A/B/C/D，未确认时保持 None
         for _ in self.loop():
 
             # 检测预期结束状态

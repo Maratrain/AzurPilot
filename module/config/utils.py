@@ -415,6 +415,28 @@ def ensure_time(second, n=3, precision=3):
         return second
 
 
+def get_os_next_reset_after(moment):
+    """
+    获取指定时间之后的下一次大世界重置时间。
+
+    与 get_os_next_reset() 的区别：以传入时间为基准，可用来判断某个历史时间点
+    之后会先撞上哪次重置。
+
+    Args:
+        moment (datetime.datetime): 基准时间（本地时间）。
+
+    Returns:
+        datetime.datetime: 该时间之后的下一次重置的本地时间。
+    """
+    diff = server_time_offset()
+    server_moment = moment - diff
+    server_reset = (server_moment.replace(day=1) + timedelta(days=32)) \
+        .replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    server_reset = server_reset.replace(tzinfo=timezone(server_timezone()))
+    local_reset = server_reset.astimezone().replace(tzinfo=None)
+    return local_reset
+
+
 def get_os_next_reset():
     """
     获取下个月的第一天（大世界重置时间）。
@@ -422,13 +444,7 @@ def get_os_next_reset():
     Returns:
         datetime.datetime: 下次重置的本地时间。
     """
-    diff = server_time_offset()
-    server_now = current_time() - diff
-    server_reset = (server_now.replace(day=1) + timedelta(days=32)) \
-        .replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    server_reset = server_reset.replace(tzinfo=timezone(server_timezone()))
-    local_reset = server_reset.astimezone().replace(tzinfo=None)
-    return local_reset
+    return get_os_next_reset_after(current_time())
 
 
 def get_os_reset_remain():

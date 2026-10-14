@@ -23,6 +23,7 @@ import traceback
 from module.coalition.assets import *
 from module.event_hospital.assets import HOSIPITAL_CHECK
 from module.freebies.assets import MAIL_ENTER
+from module.limit_challenge.assets import CHALLENGE_PREPARATION
 from module.raid.assets import *
 from module.retire.assets import DOCK_CHECK
 from module.ui.assets import *
@@ -125,6 +126,14 @@ page_campaign_menu.link(button=GOTO_MAIN, destination=page_main)
 page_campaign.link(button=GOTO_MAIN, destination=page_main)
 page_campaign.link(button=BACK_ARROW, destination=page_campaign_menu)
 page_fleet.link(button=GOTO_MAIN, destination=page_main)
+
+# 限界挑战与专用编队页，返回时不能误用每日出击入口。
+page_limit_challenge = Page(LIMIT_CHALLENGE_CHECK)
+page_campaign_menu.link(button=CAMPAIGN_MENU_GOTO_LIMIT_CHALLENGE, destination=page_limit_challenge)
+page_limit_challenge.link(button=BACK_ARROW, destination=page_campaign_menu)
+page_limit_challenge.link(button=GOTO_MAIN, destination=page_main)
+page_limit_challenge_preparation = Page(CHALLENGE_PREPARATION)
+page_limit_challenge_preparation.link(button=BACK_ARROW, destination=page_limit_challenge)
 
 # 主界面（白色主题）
 # 2024.05.22, 新 UI 中 MAIN_GOTO_CAMPAIGN_WHITE 是主界面最后显示的按钮
