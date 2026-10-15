@@ -1087,6 +1087,59 @@ def color_similarity_2d(image, color):
     return positive
 
 
+def color_mask(image, color, threshold=30):
+    """生成与指定颜色接近的像素的二值掩码。
+
+    result = 255 if diff <= threshold else 0
+    其中 diff = sat_add(max_c(sat_sub(image - c)), max_c(sat_sub(c - image)))，
+    c = (r, g, b)，sat_sub/sat_add 为 uint8 饱和运算，
+    max_c 取各通道间的逐像素最大值。
+    该容差定义与 color_similar() 相同。
+
+    Args:
+        image: 形状为 (height, width, channel) 的图像数组。
+        color: (r, g, b)。
+        threshold (int): 默认 30。容差小于等于 threshold 的像素视为匹配。
+
+    Returns:
+        np.ndarray: 形状 (height, width) 的 uint8 数组，
+            匹配像素为 255，其余为 0。
+    """
+    h, w = image.shape[:2]
+    if h * w < 30000:
+        # 3 通道路径在极小图上更快（单次调用开销占主导）
+        diff = cv2.subtract(image, (*color, 0))
+        r, g, b = cv2.split(diff)
+        cv2.max(r, g, dst=r)
+        cv2.max(r, b, dst=r)
+        positive = r
+        cv2.subtract((*color, 0), image, dst=diff)
+        r, g, b = cv2.split(diff)
+        cv2.max(r, g, dst=r)
+        cv2.max(r, b, dst=r)
+        negative = r
+        cv2.add(positive, negative, dst=positive)
+        cv2.threshold(positive, threshold, 255, cv2.THRESH_BINARY_INV, dst=positive)
+        return positive
+    # 大图逐通道减法 + 缓冲区复用更优
+    r, g, b = cv2.split(image)
+    cr, cg, cb = color
+    positive = cv2.subtract(r, cr)
+    cv2.subtract(cr, r, dst=r)
+    negative = r
+    diff = cv2.subtract(g, cg)
+    cv2.max(positive, diff, dst=positive)
+    cv2.subtract(cg, g, dst=diff)
+    cv2.max(negative, diff, dst=negative)
+    cv2.subtract(b, cb, dst=diff)
+    cv2.max(positive, diff, dst=positive)
+    cv2.subtract(cb, b, dst=diff)
+    cv2.max(negative, diff, dst=negative)
+    cv2.add(positive, negative, dst=positive)
+    cv2.threshold(positive, threshold, 255, cv2.THRESH_BINARY_INV, dst=positive)
+    return positive
+
+
 def image_color_count(image, color, threshold=221, count=50):
     """判断图像中与指定颜色相似的像素数量是否超过阈值。
 
