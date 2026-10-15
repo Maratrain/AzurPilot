@@ -308,6 +308,23 @@ def _configure_windows_ml_sessions(
     return ocr
 
 
+def _onnx_thread_options():
+    """限制单个 OCR ONNX 会话的线程数，避免多实例重复创建大型线程池。
+
+    默认每个 session 使用 2 个计算线程；可在启动前通过
+    AZURPILOT_OCR_THREADS 调整为 1–16。独立实例各自使用这一上限。
+    """
+    try:
+        requested = int(os.environ.get('AZURPILOT_OCR_THREADS', '2'))
+    except ValueError:
+        requested = 2
+    threads = min(max(1, requested), os.cpu_count() or 1, 16)
+    return {
+        'EngineConfig.onnxruntime.intra_op_num_threads': threads,
+        'EngineConfig.onnxruntime.inter_op_num_threads': 1,
+    }
+
+
 def _create_ocr(name):
     backend = config.ocr_backend
     if backend == 'ncnn':
@@ -335,6 +352,7 @@ def _create_ocr(name):
             "EngineConfig.onnxruntime.use_dml": use_dml,
             "EngineConfig.onnxruntime.use_coreml": use_coreml,
             "EngineConfig.onnxruntime.coreml_ep_cfg.MLComputeUnits": "CPUAndNeuralEngine",
+            **_onnx_thread_options(),
         }
         ocr = RecOnlyOCR(params=params)
         return _configure_windows_ml_sessions(
@@ -421,6 +439,7 @@ def _create_det_ocr_for_onnx(name):
         "EngineConfig.onnxruntime.use_dml": use_dml,
         "EngineConfig.onnxruntime.use_coreml": use_coreml,
         "EngineConfig.onnxruntime.coreml_ep_cfg.MLComputeUnits": "CPUAndNeuralEngine",
+        **_onnx_thread_options(),
     }
     ocr = RapidOCR(params=params)
     return _configure_windows_ml_sessions(
@@ -443,6 +462,7 @@ def _create_det_ocr_for_ncnn():
         "Det.model_path": DET_MODEL_PATH,
         "Cls.model_path": None,
         "Rec.model_path": None,
+        **_onnx_thread_options(),
     }
     return DetOnlyOCR(params=params)
 
