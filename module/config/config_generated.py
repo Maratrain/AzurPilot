@@ -534,6 +534,8 @@ class GeneratedConfig:
     Gacha_Pool = 'light'  # light, heavy, special, event, wishing_well
     Gacha_Amount = 1  # 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
     Gacha_UseTicket = True
+    Gacha_TicketAmount = 1  # 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    Gacha_ClearTicket = True
     Gacha_UseDrill = False
 
     # 配置组 `BattlePass`

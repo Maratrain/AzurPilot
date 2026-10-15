@@ -4,15 +4,22 @@
 
 # 此文件处理建造（Gacha/Build）相关的操作。
 # 包括多级建造页面的导航、资源消耗预计算、提交建造订单以及自动化收菜和队列清理逻辑。
+
+import re
+from datetime import date, timezone
+
+import module.config.server as server
 from module.base.timer import Timer
 from module.campaign.campaign_status import CampaignStatus
 from module.combat.assets import GET_SHIP
-from module.exception import ScriptError
+from module.config.time_source import now as current_time
+from module.config.utils import server_timezone
+from module.exception import GameStuckError, ScriptError
 from module.gacha.assets import *
 from module.gacha.ui import GachaUI
 from module.handler.assets import POPUP_CONFIRM, STORY_SKIP
 from module.logger import logger
-from module.ocr.ocr import Digit
+from module.ocr.ocr import Digit, Ocr
 from module.retire.retirement import Retirement
 from module.log_res import LogRes
 
@@ -22,6 +29,7 @@ OCR_BUILD_CUBE_COUNT = Digit(BUILD_CUBE_COUNT, letter=(255, 247, 247), threshold
 OCR_BUILD_TICKET_COUNT = Digit(BUILD_TICKET_COUNT, letter=(255, 247, 247), threshold=64)
 OCR_BUILD_SUBMIT_COUNT = Digit(BUILD_SUBMIT_COUNT, letter=(255, 247, 247), threshold=64)
 OCR_BUILD_SUBMIT_WW_COUNT = Digit(BUILD_SUBMIT_WW_COUNT, letter=(255, 247, 247), threshold=64)
+OCR_BUILD_EVENT_TIME = Ocr(BUILD_EVENT_TIME, lang='cnocr')
 
 
 class RewardGacha(GachaUI, Retirement, CampaignStatus):
@@ -288,12 +296,118 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
             if self.appear(BUILD_FINISH_ORDERS):
                 break
 
+    @staticmethod
+    def _process_ocr_digit(raw: str):
+        """修正活动日期中常见的数字误识别。"""
+        replacements = str.maketrans({
+            'D': '0', 'I': '1', '己': '2', '已': '2', '乙': '2', 'Z': '2', 'z': '2',
+            'S': '5', 'B': '8', '日': '8', '曰': '8',
+        })
+        return int(raw.strip().translate(replacements))
+
+    def _get_event_deadline(self, today=None):
+        """读取当前活动的结束日期，年份按服务器日期和活动起止月份推断。
+
+        Pages:
+            in: page_build（活动卡池）
+        """
+        # 目前只有国服日期区域和中文格式得到核实，不使用其他服务器的回退资源清券。
+        if server.server != 'cn':
+            return None
+        if today is None:
+            today = current_time(timezone(server_timezone())).date()
+        period = OCR_BUILD_EVENT_TIME.ocr(self.device.image)
+        digits = r'[\dDIZz己已乙SB日曰]'
+        matches = re.findall(fr'(?<!{digits})({digits}{{1,2}})\s*月\s*({digits}{{1,2}})\s*日', period)
+        if len(matches) != 2:
+            return None
+        start_month, start_day = map(self._process_ocr_digit, matches[0])
+        end_month, end_day = map(self._process_ocr_digit, matches[1])
+        cross_year = end_month < start_month
+        for start_year in (today.year - 1, today.year):
+            try:
+                start = date(start_year, start_month, start_day)
+                end = date(start_year + cross_year, end_month, end_day)
+            except ValueError:
+                continue
+            if start <= today <= end:
+                return end
+        return None
+
+    def _handle_clear_ticket(self):
+        """在已确认的活动末日分批清券，准备失败时交给上层恢复。
+
+        Returns:
+            bool: 已完成清券返回 True，未满足清券条件返回 False。
+
+        Pages:
+            in: page_build（活动卡池）
+            out: page_build（活动卡池）
+        """
+        if not self.config.Gacha_UseTicket or not self.config.Gacha_ClearTicket or self.build_ticket_count <= 0:
+            return False
+        today = current_time(timezone(server_timezone())).date()
+        result = self._get_event_deadline(today=today)
+        if result is None:
+            logger.warning('[建造-卡池] 无法获得当前卡池结束时间')
+            return False
+        logger.attr('活动结束日期', result)
+        if result != today:
+            return False
+
+        logger.hr('清理活动建造券')
+        while self.build_ticket_count > 0:
+            consumption = min(10, self.build_ticket_count)
+            forced_use_drill = self.build_ticket_count > 10
+            if not self.gacha_run_once('event', consumption, True, forced_use_drill):
+                raise GameStuckError('[建造-清券] 无法准备建造订单')
+
+        return True
+
+    def gacha_run_once(self, pool, count, use_ticket, forced_use_drill=False):
+        """提交一批订单，成功后更新资源记录并返回建造池页面。
+
+        Returns:
+            bool: 已提交订单返回 True，数量为零或准备失败返回 False。
+
+        Pages:
+            in: page_build（建造池选择）
+            out: page_build（建造池选择；准备失败时保持当前页面）
+        """
+        if count <= 0:
+            return False
+        # 不能使用 handle_popup_confirm，因为该窗口没有 POPUP_CANCEL
+        actual_pool = self.gacha_goto_pool(pool)
+        if use_ticket and (actual_pool != 'event' or not self.appear(BUILD_TICKET_CHECK, offset=(30, 30))):
+            raise GameStuckError('[建造-卡池] 活动池或建造券不可用，停止提交用券订单')
+        gold_cost = 600
+        cube_cost = 1
+        if actual_pool in ['heavy', 'special', 'event', 'wishing_well']:
+            gold_cost = 1500
+            cube_cost = 2
+        buy_count = count if use_ticket else self.gacha_calculate(count, gold_cost, cube_cost)
+
+        if not self.gacha_prep(buy_count):
+            return False
+
+        self.gacha_submit()
+        if use_ticket:
+            self.build_ticket_count -= buy_count
+
+        # 按配置使用快速完成工具收取建造结果。
+        if forced_use_drill or self.config.Gacha_UseDrill:
+            self.gacha_flush_queue()
+        # 提交会进入队列页；未使用快速完成时先返回建造页再切换卡池。
+        elif not self.gacha_side_navbar_ensure(upper=1):
+            raise GameStuckError('[建造-卡池] 无法从队列返回建造页面')
+        return True
+
     def gacha_run(self):
         """
         执行建造操作，提交建造订单。
 
         Returns:
-            bool: 执行成功返回 True，否则返回 False。
+            bool: 至少一批订单提交成功时返回 True，否则返回 False。
 
         Pages:
             in: 任意页面
@@ -309,47 +423,36 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
         # OCR 识别金币和魔方数量
         self.build_coin_count = self.get_coin()
         self.build_cube_count = OCR_BUILD_CUBE_COUNT.ocr(self.device.image)
+        LogRes(self.config).record('Cube', self.build_cube_count,
+                                   observed=bool(getattr(OCR_BUILD_CUBE_COUNT, 'last_valid', False)))
 
-        # 导航到目标建造池，同时返回对应的建造消耗
-        actual_pool = self.gacha_goto_pool(self.config.Gacha_Pool)
-
-        # 根据 gacha_goto_pool 的结果确定消耗
-        gold_cost = 600
-        cube_cost = 1
-        if actual_pool in ['heavy', 'special', 'event', 'wishing_well']:
-            gold_cost = 1500
-            cube_cost = 2
-
-        # OCR 识别建造券数量，决定是否使用魔方/金币
-        # buy = [使用建造券的次数, 使用魔方的次数]
-        buy = [self.config.Gacha_Amount, 0]
-        if actual_pool == "event" and self.config.Gacha_UseTicket:
-            if self.appear(BUILD_TICKET_CHECK, offset=(30, 30)):
+        # 开启用券时先检查活动池，不受用户设定的卡池类型限制。
+        self.build_ticket_count = 0
+        if self.config.Gacha_UseTicket:
+            actual_pool = self.gacha_goto_pool('event')
+            if actual_pool == 'event' and self.appear(BUILD_TICKET_CHECK, offset=(30, 30)):
                 self.build_ticket_count = OCR_BUILD_TICKET_COUNT.ocr(self.device.image)
-            else:
-                logger.info('未检测到建造券，使用魔方和物资')
-        if self.config.Gacha_Amount > self.build_ticket_count:
-            buy[0] = self.build_ticket_count
-            # 根据配置和资源计算允许的建造次数
-            buy[1] = self.gacha_calculate(self.config.Gacha_Amount - self.build_ticket_count, gold_cost, cube_cost)
-        else:
-            LogRes(self.config).Cube = self.build_cube_count
+            logger.attr('单次建造券', self.build_ticket_count)
+            if not self.build_ticket_count:
+                logger.info('活动池无可用单次建造券，按设定卡池建造')
+
+        # 建造券只支付活动池订单；无券或券不足时，剩余次数交给设定卡池。
+        ticket_count = self.build_ticket_count
+        if not self._handle_clear_ticket():
+            ticket_target = self.config.Gacha_TicketAmount
+            # 活动池会自动使用余券；补足最低次数时也必须按券记账。
+            if self.config.Gacha_Pool == 'event':
+                ticket_target = max(ticket_target, self.config.Gacha_Amount)
+            ticket_count = min(ticket_target, self.build_ticket_count)
+            if ticket_count and not self.gacha_run_once('event', ticket_count, True):
+                return False
+        remain_count = max(0, self.config.Gacha_Amount - ticket_count)
+        if not remain_count:
+            LogRes(self.config).record('Cube', self.build_cube_count, observed=False)
             self.config.update()
-
-        # 提交 buy_count 并执行
-        # 不能使用 handle_popup_confirm，因为该窗口没有 POPUP_CANCEL
-        result = False
-        for buy_count in buy:
-            if self.gacha_prep(buy_count):
-                self.gacha_submit()
-
-                # 如果配置了建造后使用心智魔方
-                if self.config.Gacha_UseDrill:
-                    self.gacha_flush_queue()
-                # 任意一次提交成功则返回 True
-                result = True
-
-        return result
+            return ticket_count > 0
+        result = self.gacha_run_once(self.config.Gacha_Pool, remain_count, False)
+        return result or ticket_count > 0
 
     def run(self):
         """

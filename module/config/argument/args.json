@@ -13172,6 +13172,26 @@
         "type": "checkbox",
         "value": true
       },
+      "TicketAmount": {
+        "type": "select",
+        "value": 1,
+        "option": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      "ClearTicket": {
+        "type": "checkbox",
+        "value": true
+      },
       "UseDrill": {
         "type": "checkbox",
         "value": false

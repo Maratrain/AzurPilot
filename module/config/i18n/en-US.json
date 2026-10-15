@@ -2875,6 +2875,24 @@
       "name": "Use single build permit",
       "help": "When enabled, pools that support build permits will use them first. When no permits are available or building in a standard pool, Cubes will be used instead."
     },
+    "TicketAmount": {
+      "name": "Use X single build permits daily",
+      "help": "Requires single build permits to be enabled. Use all remaining permits if fewer are available; this amount may exceed the daily build minimum. When the event pool is selected, also use remaining permits to meet the minimum.",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9",
+      "10": "10"
+    },
+    "ClearTicket": {
+      "name": "Use all permits on the last event day",
+      "help": "Requires single build permits to be enabled. Event date recognition currently supports CN only. Use all permits in batches on the event end date. With more than 10 permits, force Quick Finishers for intermediate batches; the final batch follows the Quick Finisher setting. Still complete the daily build minimum afterward."
+    },
     "UseDrill": {
       "name": "Use Quick Finisher to complete construction",
       "help": "If set to No, ships will be launched tomorrow instead, saving one Quick Finisher."
