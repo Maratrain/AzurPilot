@@ -23,6 +23,9 @@ class StrategicSearchHandler(MapEventHandler):
                 return True
             if self.handle_map_event():
                 continue
+            # 作战情报页面未关闭时先关闭，避免在错误页面上等待导致卡死
+            if self.appear_then_click(MISSION_QUIT, offset=(20, 20), interval=2):
+                continue
             if self.appear(AUTO_SEARCH_REWARD, offset=(50, 50)):
                 continue
             if self.match_template_color(STRATEGIC_SEARCH_MAP_OPTION_OFF, offset=(20, 20), interval=2):

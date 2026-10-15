@@ -192,6 +192,21 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
         self._record_ap_and_coins(sea_miles=sea_miles)
 
         # ===== 执行侵蚀 1 战略搜索与战后处理 =====
+        # 海里数检测失败后可能仍停留在作战情报等页面，开战前确保回到大世界地图
+        if not self.is_in_map():
+            logger.info("[大世界-侵蚀1练级] 开战前不在大世界地图，返回大世界地图")
+            try:
+                if self.appear(MISSION_CHECK, offset=(20, 20)):
+                    self.ui_click(
+                        MISSION_QUIT,
+                        check_button=self.is_in_map,
+                        offset=(20, 20),
+                        skip_first_screenshot=True,
+                    )
+                else:
+                    self.ui_back(check_button=self.is_in_map)
+            except Exception as e:
+                logger.warning(f"[大世界-侵蚀1练级] 返回大世界地图失败: {e}")
         self._cl1_run_battle()
 
     def os_check_leveling(self):
