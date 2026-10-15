@@ -609,6 +609,7 @@ class GeneratedConfig:
     # 配置组 `OpsiGeneral`
     OpsiGeneral_UseLogger = True
     OpsiGeneral_BuyActionPointLimit = 0  # 0, 1, 2, 3, 4, 5
+    OpsiGeneral_ActionPointCheckInterval = 0
     OpsiGeneral_OilLimit = 1000
     OpsiGeneral_RepairThreshold = 0.4
     OpsiGeneral_UseRepairPack = False

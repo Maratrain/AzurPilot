@@ -160,12 +160,14 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
 
             if not smart_scheduled and self.is_cl1_mode_enabled and cl1_yellow_enough:
                 try:
-                    self.action_point_set(cost=0, keep_current_ap=keep_current_ap, check_rest_ap=check_rest_ap)
+                    self.action_point_set(cost=0, keep_current_ap=keep_current_ap, check_rest_ap=check_rest_ap,
+                                          routine=True)
                 except ActionPointLimit:
                     self.config.task_delay(server_update=True)
                     self.config.task_stop()
             else:
-                self.action_point_set(cost=0, keep_current_ap=keep_current_ap, check_rest_ap=check_rest_ap)
+                self.action_point_set(cost=0, keep_current_ap=keep_current_ap, check_rest_ap=check_rest_ap,
+                                      routine=True)
 
             if not smart_scheduled:
                 self.check_and_notify_action_point_threshold()
@@ -234,7 +236,7 @@ class OpsiMeowfficerFarming(MeowfficerTargetZoneMixin, CoinTaskMixin, OSMap):
         if self.zone.zone_id != zone.zone_id or not self.is_zone_name_hidden:
             self.globe_goto(zone, types='SAFE', refresh=True)
 
-        self.action_point_set(cost=120, keep_current_ap=True, check_rest_ap=True)
+        self.action_point_set(cost=120, keep_current_ap=True, check_rest_ap=True, routine=True)
         self.fleet_set(self.config.OpsiFleet_Fleet)
         self.os_order_execute(recon_scan=False, submarine_call=self.config.OpsiFleet_Submarine)
 

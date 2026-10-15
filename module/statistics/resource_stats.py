@@ -81,7 +81,7 @@ def _ensure_table():
     _table_ensured = True
 
 
-def record_resource_snapshot(instance: str, resources: Dict[str, Any]) -> bool:
+def record_resource_snapshot(instance: str, resources: Dict[str, Any], *, observed_at: datetime = None) -> bool:
     """记录一次资源快照。
 
     当游戏内任何资源数值发生变化时调用，记录所有资源的当前值。
@@ -97,7 +97,7 @@ def record_resource_snapshot(instance: str, resources: Dict[str, Any]) -> bool:
     """
     try:
         _ensure_table()
-        now = datetime.now().isoformat()
+        now = (observed_at or datetime.now()).isoformat()
 
         row = {
             'instance': instance,
@@ -136,6 +136,20 @@ def record_resource_snapshot(instance: str, resources: Dict[str, Any]) -> bool:
     except Exception as e:
         logger.warning(f'[统计-资源] 记录资源快照失败: {e}')
         return False
+
+
+def async_record_resource_snapshot(instance: str, resources: Dict[str, Any], *, observed_at: datetime = None):
+    """固定主线程采样值与时间后排队，不向后台传递可变配置对象。"""
+    from module.base.async_executor import async_executor
+    future = async_executor.submit(record_resource_snapshot, instance, dict(resources),
+                                   observed_at=observed_at or datetime.now())
+
+    def finished(result):
+        if result.cancelled() or result.exception() is not None:
+            logger.warning('[统计-资源] 后台快照写入失败')
+
+    future.add_done_callback(finished)
+    return future
 
 
 def get_resource_timeline(

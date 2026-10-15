@@ -1173,6 +1173,10 @@ OpsiGeneral:
   BuyActionPointLimit:
     value: 0
     option: [0, 1, 2, 3, 4, 5]
+  ActionPointCheckInterval:
+    value: 0
+    valuetype: int
+    validate: ^\d+$
   OilLimit: 1000
   RepairThreshold: 0.4
   UseRepairPack: false

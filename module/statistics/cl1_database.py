@@ -727,7 +727,8 @@ class Cl1Database:
             data["akashi_ap"] = data.get("akashi_ap", 0) + amount
             self._save_stats_in_connection(conn, instance, month, data)
 
-    def add_ap_snapshot(self, instance: str, ap_current: int, source: str = "cl1", distance: int = None, ap_total: int = None):
+    def add_ap_snapshot(self, instance: str, ap_current: int, source: str = "cl1", distance: int = None,
+                        ap_total: int = None, *, observed_at: datetime = None):
         """记录行动力快照（真实剩余体力），并计算资产
 
         Args:
@@ -737,10 +738,11 @@ class Cl1Database:
             distance: 海里数（可选）
             ap_total: 总体力（含行动力箱子）
         """
-        month = datetime.now().strftime("%Y-%m")
+        observed_at = observed_at or datetime.now()
+        month = observed_at.strftime("%Y-%m")
         with self._stats_transaction() as conn:
             data = self._get_stats_in_connection(conn, instance, month)
-            now = datetime.now()
+            now = observed_at
 
             # CL5 效率：1700 / 30 ≈ 56.67
             cl5_efficiency = 1700.0 / 30.0
@@ -826,7 +828,7 @@ class Cl1Database:
             self._save_stats_in_connection(conn, instance, month, data)
 
     def add_yellow_coin_snapshot(
-        self, instance: str, yellow_coin: int, source: str = "dashboard"
+        self, instance: str, yellow_coin: int, source: str = "dashboard", *, observed_at: datetime = None
     ):
         """记录黄币快照（用于统计页分时叠加曲线）
 
@@ -835,13 +837,14 @@ class Cl1Database:
             yellow_coin: 当前黄币
             source: 数据来源标记
         """
-        month = datetime.now().strftime("%Y-%m")
+        observed_at = observed_at or datetime.now()
+        month = observed_at.strftime("%Y-%m")
         with self._stats_transaction() as conn:
             data = self._get_stats_in_connection(conn, instance, month)
             yellow_coin = self._coerce_int(yellow_coin)
 
             snapshot = {
-                "ts": datetime.now().isoformat(),
+                "ts": observed_at.isoformat(),
                 "yellow_coin": yellow_coin,
                 "source": source,
             }
@@ -861,6 +864,9 @@ class Cl1Database:
         yellow_coins: int,
         purple_coins: int = None,
         source: str = "cl1",
+        *,
+        observed_at: datetime = None,
+        carry_purple: bool = False,
     ):
         """记录凭证快照（作战补给凭证/特别兑换凭证）
 
@@ -870,14 +876,20 @@ class Cl1Database:
             purple_coins: 当前特别兑换凭证（紫币）数量，None 表示不记录（如 hazard 循环不知道真实值）
             source: 数据来源标记 (cl1 / meow 等)
         """
-        month = datetime.now().strftime("%Y-%m")
+        observed_at = observed_at or datetime.now()
+        month = observed_at.strftime("%Y-%m")
         with self._stats_transaction() as conn:
             data = self._get_stats_in_connection(conn, instance, month)
             yellow_coins = self._coerce_int(yellow_coins)
             purple_coins = self._coerce_int(purple_coins) if purple_coins is not None else None
+            if carry_purple and purple_coins is None:
+                previous = next((point for point in reversed(data.get('coins_snapshots', []))
+                                 if point.get('purple_coins') is not None), None)
+                if previous is not None and previous.get('purple_coins') is not None:
+                    purple_coins = self._coerce_int(previous['purple_coins'])
 
             snapshot = {
-                "ts": datetime.now().isoformat(),
+                "ts": observed_at.isoformat(),
                 "yellow_coins": yellow_coins,
                 "source": source,
             }
@@ -909,13 +921,27 @@ class Cl1Database:
         yellow_coins: int,
         purple_coins: int = None,
         source: str = "cl1",
+        *,
+        observed_at: datetime = None,
+        carry_purple: bool = False,
     ):
         """异步记录凭证快照"""
         from module.base.async_executor import async_executor
 
-        return async_executor.submit(
-            self.add_coins_snapshot, instance, yellow_coins, purple_coins, source
+        future = async_executor.submit(
+            self.add_coins_snapshot, instance, yellow_coins, purple_coins, source,
+            observed_at=observed_at or datetime.now(), carry_purple=carry_purple,
         )
+        future.add_done_callback(self._snapshot_finished)
+        return future
+
+    @staticmethod
+    def _snapshot_finished(future):
+        """后台统计失败必须可见，不能影响主线程的游戏状态。"""
+        if future.cancelled():
+            logger.warning('[统计-快照] 后台写入被取消')
+        elif future.exception() is not None:
+            logger.error(f'[统计-快照] 后台写入失败: {type(future.exception()).__name__}')
 
     def migrate_from_json(self, json_path: Path, instance: str):
         """从 JSON 文件迁移数据到数据库"""
@@ -1398,11 +1424,15 @@ class Cl1Database:
         )
 
     def async_add_ap_snapshot(
-        self, instance: str, ap_current: int, source: str = "cl1", distance: int = None, ap_total: int = None
+        self, instance: str, ap_current: int, source: str = "cl1", distance: int = None, ap_total: int = None,
+        *, observed_at: datetime = None,
     ):
         from module.base.async_executor import async_executor
 
-        return async_executor.submit(self.add_ap_snapshot, instance, ap_current, source, distance, ap_total)
+        future = async_executor.submit(self.add_ap_snapshot, instance, ap_current, source, distance, ap_total,
+                                       observed_at=observed_at or datetime.now())
+        future.add_done_callback(self._snapshot_finished)
+        return future
 
     def async_set_last_ap_notification(self, instance: str, ap_current: int):
         from module.base.async_executor import async_executor
@@ -1412,13 +1442,16 @@ class Cl1Database:
         )
 
     def async_add_yellow_coin_snapshot(
-        self, instance: str, yellow_coin: int, source: str = "dashboard"
+        self, instance: str, yellow_coin: int, source: str = "dashboard", *, observed_at: datetime = None
     ):
         from module.base.async_executor import async_executor
 
-        return async_executor.submit(
-            self.add_yellow_coin_snapshot, instance, yellow_coin, source
+        future = async_executor.submit(
+            self.add_yellow_coin_snapshot, instance, yellow_coin, source,
+            observed_at=observed_at or datetime.now(),
         )
+        future.add_done_callback(self._snapshot_finished)
+        return future
 
     def async_increment_meow_battle_count(
         self, instance: str, hazard_level: int = None, delta: float = None

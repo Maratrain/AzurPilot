@@ -851,13 +851,21 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
                 self.config._bind_task_override = previous_bind
                 self.config.bind(previous_bind)
 
-    def _get_scheduling_action_point(self):
+    def _get_scheduling_action_point(self, *, allow_cached=False):
         """
         读取智能调度+决策所需的行动力。
+
+        Args:
+            allow_cached (bool): 仅常规调度允许按用户间隔复用库存，月末等强制读取不复用。
 
         Returns:
             tuple[int, int]: (总行动力, 当前真实行动力)
         """
+        if allow_cached:
+            cached = self.action_point_cached_read()
+            if cached is not None:
+                self.check_and_notify_action_point_threshold()
+                return cached
         self.action_point_enter()
         self.action_point_safe_get()
         self.action_point_quit()
@@ -1033,7 +1041,7 @@ class OpsiScheduling(CoinTaskMixin, OSMap):
             return
 
         yellow_coins = self.get_yellow_coins()
-        total_ap, current_ap = self._get_scheduling_action_point()
+        total_ap, current_ap = self._get_scheduling_action_point(allow_cached=True)
 
         # 月末清理行动力检查（优先级最高，先于黄币和侵蚀1调度）
         self._reset_month_end_cleanup_first_run_if_new_month()

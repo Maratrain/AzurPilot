@@ -208,7 +208,8 @@ class AmountOcr(Digit):
             )
         return image.astype(np.uint8)
 
-    def ocr_with_validation(self, image, item_name=None, direct_ocr=False, trim=True):
+    def ocr_with_validation(self, image, item_name=None, direct_ocr=False, trim=True,
+                            *, initial_result=None):
         """带验证的 OCR 识别，超过最大值时重试最多 3 次，仍无效则截断末位数字。
 
         首轮读数超过上限时，若启用了碎片过滤（remove_fragments），
@@ -223,11 +224,19 @@ class AmountOcr(Digit):
             trim: 是否调用 crop_to_text 裁剪空白边框。委托收入场景关闭：
                 图标碎片过滤后数字右对齐在原图中，裁剪会改变文字位置，
                 导致 OCR 结果变差（例如 71 被读成 2）。
+            initial_result: 合批首轮已推理的原始结果，跳过预处理和 OCR 调用。
 
         Returns:
             int: 验证后的数量。
         """
         max_val = get_item_amount_max(item_name)
+
+        # 首轮合批时直接使用已推理结果，跳过预处理和 OCR 调用
+        # last_valid 由 after_process 按原始读数给出：空文本回退成的 0 不算已确认
+        if initial_result is not None:
+            amount = self.after_process(initial_result)
+            if amount <= max_val and (amount > 0 or not trim):
+                return amount
 
         if direct_ocr:
             pre_image = self.pre_process(image)
@@ -255,7 +264,8 @@ class AmountOcr(Digit):
         if trim:
             images = [crop_to_text(i) for i in images]
 
-        result_str = self.cnocr.atomic_ocr_for_single_lines(images, self.alphabet)[0]
+        result_str = (self.cnocr.atomic_ocr_for_single_lines(images, self.alphabet)[0]
+                      if initial_result is None else initial_result)
         amount = self.after_process(result_str)
 
         if amount == 0 and trim:
@@ -280,6 +290,7 @@ class AmountOcr(Digit):
                 return amount
 
         if amount > max_val and amount >= 10:
+            self.last_valid = False
             original = amount
             # 图标残影多拼在数字左侧（高位），真实值在末位：
             # 「1 被读成 71」「3 被读成 73」「1 被读成 7221」等。
@@ -299,15 +310,18 @@ class AmountOcr(Digit):
                           f'truncating to {amount}')
             return amount
 
+        self.last_valid = False
         return amount
 
-    def ocr_batch_with_validation(self, image_list, item_names=None, direct_ocr=True, trim=True):
+    def ocr_batch_with_validation(self, image_list, item_names=None, direct_ocr=True, trim=True,
+                                  *, batch_first=False):
         """批量带验证的 OCR 识别，逐个物品进行校验。
 
         Args:
             item_names: 物品名称列表，与图像列表一一对应。
             direct_ocr: 为 True 时跳过裁剪。
             trim: 是否调用 crop_to_text 裁剪空白边框。
+            batch_first: 为 True 时合并首轮推理，未裁剪兜底、超限复识别和逐项校验仍走原流程。
 
         Returns:
             list[int]: 验证后的数量列表。
@@ -315,10 +329,24 @@ class AmountOcr(Digit):
         if item_names is None:
             item_names = [None] * len(image_list)
 
+        initial_results = [None] * len(image_list)
+        if batch_first and direct_ocr and image_list and not getattr(self, 'use_digit_templates', False):
+            prepared = [self.pre_process(image) for image in image_list]
+            if trim:
+                prepared = [crop_to_text(image) for image in prepared]
+            initial_results = self.cnocr.atomic_ocr_for_single_lines(prepared, self.alphabet)
+            if len(initial_results) != len(image_list):
+                raise ValueError('数量 OCR 合批返回数量不一致')
+
         results = []
-        for image, item_name in zip(image_list, item_names):
-            amount = self.ocr_with_validation(image, item_name=item_name, direct_ocr=direct_ocr, trim=trim)
+        validities = []
+        for image, item_name, initial in zip(image_list, item_names, initial_results):
+            options = {'initial_result': initial} if initial is not None else {}
+            amount = self.ocr_with_validation(image, item_name=item_name, direct_ocr=direct_ocr,
+                                              trim=trim, **options)
             results.append(amount)
+            validities.append(bool(getattr(self, 'last_valid', False)))
+        self.last_batch_validity = tuple(validities)
         return results
 
 

@@ -51,7 +51,10 @@ class LogRes:
                         try:
                             from module.statistics.cl1_database import db as cl1_db
                             instance_name = getattr(self.config, 'config_name', 'default')
-                            cl1_db.async_add_yellow_coin_snapshot(instance_name, int(value), source='dashboard')
+                            cl1_db.async_add_yellow_coin_snapshot(
+                                instance_name, int(value), source='dashboard',
+                                observed_at=self.__dict__.get('_recorded_at'),
+                            )
                         except Exception:
                             logger.exception('[日志资源] 保存金币快照失败')
                     # 记录全量资源快照
@@ -72,7 +75,9 @@ class LogRes:
                         try:
                             from module.statistics.opsi_runtime import record_ap_snapshot
                             source = 'dashboard'
-                            task = getattr(getattr(self.config, 'task', None), 'command', None)
+                            task = getattr(self.config, '_bind_task_override', None) or getattr(
+                                getattr(self.config, 'task', None), 'command', None
+                            )
                             if task:
                                 source = task
                             # 统计口径使用始终含体力箱的总行动力，避免被 OS_ACTION_POINT_BOX_USE
@@ -85,6 +90,7 @@ class LogRes:
                                 ap_current=value.get('Value'),
                                 ap_total=ap_total,
                                 source=source,
+                                observed_at=self.__dict__.get('_recorded_at'),
                             )
                         except Exception:
                             logger.exception('保存行动力快照失败')
@@ -98,10 +104,20 @@ class LogRes:
             logger.info('[日志资源] 仪表盘中无此资源')
             super().__setattr__(name=key, value=value)
 
+    def record(self, name, value, *, observed=True, source=None, defer_history=False):
+        """缓存回退与失败读数可以保留旧记录，但不能更新成功观察时间。"""
+        self.__dict__['_defer_history'] = defer_history
+        self.__dict__['_recorded_at'] = datetime.now()
+        try:
+            setattr(self, name, value)
+        finally:
+            self.__dict__.pop('_defer_history', None)
+            self.__dict__.pop('_recorded_at', None)
+
     def _record_all_resource_snapshot(self, overrides=None):
         """读取当前所有 Dashboard 资源值并记录快照"""
         try:
-            from module.statistics.resource_stats import record_resource_snapshot
+            from module.statistics.resource_stats import async_record_resource_snapshot, record_resource_snapshot
             instance_name = getattr(self.config, 'config_name', 'default')
             overrides = overrides or {}
             resources = {}
@@ -120,7 +136,10 @@ class LogRes:
                         resources[group_name] = int(value)
                     except (TypeError, ValueError):
                         pass
-            record_resource_snapshot(instance_name, resources)
+            if self.__dict__.get('_defer_history', False):
+                async_record_resource_snapshot(instance_name, resources, observed_at=self.__dict__.get('_recorded_at'))
+            else:
+                record_resource_snapshot(instance_name, resources)
         except Exception:
             logger.exception('[日志资源] 记录资源快照失败')
 

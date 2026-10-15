@@ -82,17 +82,20 @@ def refresh_action_point(main: Any) -> bool:
     return True
 
 
-def record_ap_snapshot(config: Any, ap_current: int, source: str, distance: int = None, ap_total: int = None) -> None:
+def record_ap_snapshot(config: Any, ap_current: int, source: str, distance: int = None, ap_total: int = None,
+                       *, observed_at: datetime = None) -> None:
     """按来源记录行动力快照。"""
     try:
         from module.statistics.cl1_database import db as cl1_db
 
+        options = {'observed_at': observed_at} if observed_at is not None else {}
         cl1_db.async_add_ap_snapshot(
             instance_name_from_config(config),
             ap_current,
             source=source,
             distance=distance,
             ap_total=ap_total,
+            **options,
         )
     except Exception:
         logger.exception("保存行动力快照失败")

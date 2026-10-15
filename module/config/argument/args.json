@@ -13468,6 +13468,12 @@
           5
         ]
       },
+      "ActionPointCheckInterval": {
+        "type": "input",
+        "value": 0,
+        "valuetype": "int",
+        "validate": "^\\d+$"
+      },
       "OilLimit": {
         "type": "input",
         "value": 1000

@@ -158,7 +158,7 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
 
         # 侵蚀 1 练级时，行动力优先用于此任务，而非耄耋相接。
         self.action_point_set(
-            cost=120, keep_current_ap=True, check_rest_ap=True
+            cost=120, keep_current_ap=True, check_rest_ap=True, routine=True
         )
 
         yellow_coins = self.get_yellow_coins()
@@ -783,22 +783,12 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
                 )
 
             logger.info("[大世界-侵蚀1练级] 读取当前货币")
-            yellow_coins = self.get_yellow_coins()
+            yellow_coins = self.get_yellow_coins(reuse=True)
             from module.statistics.cl1_database import db as cl1_db
-            from module.statistics.opsi_month import get_coins_timeline
             instance_name = getattr(self.config, 'config_name', 'default')
-            # 从 DB 查找上次已知紫币值（商店写入），保持图表连续
-            purple_coins_val = None
-            try:
-                coin_timeline = get_coins_timeline(instance_name=instance_name)
-                for pt in reversed(coin_timeline):
-                    if "purple_coins" in pt and pt["purple_coins"] > 0:
-                        purple_coins_val = int(pt["purple_coins"])
-                        break
-            except Exception:
-                pass
+            # 读取历史紫币只为图表连续，由后台在同一统计事务内完成。
             cl1_db.async_add_coins_snapshot(
-                instance_name, yellow_coins, purple_coins=purple_coins_val, source='hazard1'
+                instance_name, yellow_coins, source='hazard1', carry_purple=True,
             )
             self.config.save()
         except Exception as e:

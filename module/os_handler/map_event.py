@@ -160,6 +160,7 @@ class MapEventHandler(EnemySearchingHandler):
                 self._story_timeout.reset()
 
                 # 重启应用
+                reset_resource_caches(self)
                 self.device.app_stop()
                 self.device.app_start()
 

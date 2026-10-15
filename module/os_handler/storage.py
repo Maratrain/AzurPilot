@@ -47,6 +47,7 @@ class StorageHandler(GlobeOperation, ZoneManager):
             out: STORAGE_CHECK
         """
         logger.info('[大世界-仓库] 进入仓库')
+        self.invalidate_action_point_cache()
         wait_seconds = 0
         for _ in self.loop():
             # End

@@ -3263,6 +3263,10 @@
       "4": "4 times (6000 Oil, 600 AP)",
       "5": "5 times (10000 Oil, 1000 AP)"
     },
+    "ActionPointCheckInterval": {
+      "name": "Routine AP check interval (minutes)",
+      "help": "0 disables the interval. Applies only to corrosion 1 leveling, smart scheduling and meowfficer farming. Time is measured from the last successful full AP panel read; only current AP is read from the map during the interval. Replenishment, inventory changes and recognition failures force a full check. Purchases and box use are always confirmed."
+    },
     "OilLimit": {
       "name": "When buying AP, keep X Oil",
       "help": ""

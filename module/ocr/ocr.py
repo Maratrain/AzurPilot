@@ -145,6 +145,32 @@ class OcrYuv(Ocr):
         return diff
 
 
+def ocr_batch(image, readers):
+    """合并同一模型的单区域识别，分别保留预处理、后处理和有效性标记。
+
+    Args:
+        image (np.ndarray): 同一张原始截图。
+        readers (list[Ocr]): 每个识别器必须只有一个区域，语言及字符表相同。
+
+    Returns:
+        list: 与识别器顺序一致的结果。
+    """
+    if not readers:
+        return []
+    first = readers[0]
+    if any(len(reader.buttons) != 1 or (reader.lang, reader.alphabet) != (first.lang, first.alphabet)
+           for reader in readers):
+        raise ValueError('合批识别要求单区域、相同语言与字符表')
+    started = time.perf_counter()
+    crops = [crop_to_text(reader.pre_process(crop(image, reader.buttons[0]))) for reader in readers]
+    raw = first.cnocr.atomic_ocr_for_single_lines(crops, first.alphabet)
+    if len(raw) != len(readers):
+        raise ValueError('OCR 合批返回数量与区域数量不一致')
+    results = [reader.after_process(''.join(value)) for reader, value in zip(readers, raw)]
+    logger.attr(f'OCR_BATCH {time.perf_counter() - started:.3f}s', results)
+    return results
+
+
 class Digit(Ocr):
     """数字 OCR 识别器，识别如 `45` 这样的数字。
 
@@ -156,11 +182,21 @@ class Digit(Ocr):
         super().__init__(buttons, lang=lang, letter=letter, threshold=threshold, alphabet=alphabet, name=name)
 
     def after_process(self, result):
+        """将易混淆字符替换修正并转换为整数。
+
+        Args:
+            result (str): 原始识别字符串。
+
+        Returns:
+            int: 转换后的整数结果，为空或解析失败时返回 0。
+        """
         result = super().after_process(result)
         result = result.replace('I', '1').replace('D', '0').replace('S', '5')
         result = result.replace('B', '8')
 
         prev = result
+        # 数字 0 与空文本回退都返回 0；资源新鲜度必须区分二者。
+        self.last_valid = bool(result and result.isdigit())
         result = int(result) if result else 0
         if self.SHOW_REVISE_WARNING:
             if str(result) != prev:
