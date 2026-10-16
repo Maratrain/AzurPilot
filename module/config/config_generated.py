@@ -135,6 +135,12 @@ class GeneratedConfig:
     Error_LlmApiBase = 'https://api.xiaomimimo.com/v1'
     Error_LlmModel = 'mimo-v2.5-pro'
 
+    # 配置组 `TaskFailureProtection`
+    TaskFailureProtection_Enable = False  # True, False
+    TaskFailureProtection_PushNotify = False  # True, False
+    TaskFailureProtection_MaxFailures = 3
+    TaskFailureProtection_TimeWindowHours = 24
+
     # 配置组 `DailySummary`
     DailySummary_Enable = False  # True, False
     DailySummary_TriggerTime = '20:00'

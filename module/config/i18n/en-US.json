@@ -813,6 +813,32 @@
       "help": "Enter a model name supported by your purchased service, as shown on https://platform.deepseek.com/ or https://platform.xiaomimimo.com/."
     }
   },
+  "TaskFailureProtection": {
+    "_info": {
+      "name": "Prevent Excessive Task Failure Restarts",
+      "help": "Automatically disables a task when it fails with the same error a set number of times within a time window, instead of repeatedly restarting the game. The task must be manually re-enabled after being disabled."
+    },
+    "Enable": {
+      "name": "Enable Failure Protection",
+      "help": "When enabled, a task that fails the set number of times will be automatically disabled instead of repeatedly restarting the game.",
+      "True": "Enabled",
+      "False": "Disabled"
+    },
+    "PushNotify": {
+      "name": "Push Failure Notification",
+      "help": "When enabled, sends a notification via Error.OnePushConfig when a task is automatically disabled.",
+      "True": "Enabled",
+      "False": "Disabled"
+    },
+    "MaxFailures": {
+      "name": "Max Failures",
+      "help": "Number of times the same error must occur within the time window before the task is automatically disabled. Range: 1~10."
+    },
+    "TimeWindowHours": {
+      "name": "Time Window (hours)",
+      "help": "The time range for counting failures. Failure count resets after this period. For example, set to 3 to require the set number of failures within 3 hours. Range: 1~168."
+    }
+  },
   "DailySummary": {
     "_info": {
       "name": "Daily Summary",

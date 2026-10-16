@@ -813,6 +813,32 @@
       "help": "填写已购买服务支持的模型名称，请以 https://platform.deepseek.com/ 或 https://platform.xiaomimimo.com/ 平台展示为准。"
     }
   },
+  "TaskFailureProtection": {
+    "_info": {
+      "name": "防止任务失败过多导致频繁重启",
+      "help": "当任务在设定的时间窗口内因同一错误原因连续失败达到设定次数时，自动关闭该任务，避免反复重启游戏。关闭后需手动重新启用该任务。"
+    },
+    "Enable": {
+      "name": "启用失败保护",
+      "help": "开启后，任务连续失败达到设定次数时会自动关闭该任务，而非反复重启游戏。",
+      "True": "开启",
+      "False": "关闭"
+    },
+    "PushNotify": {
+      "name": "推送失败通知",
+      "help": "开启后，任务被自动关闭时按照错误推送设置（Error.OnePushConfig）发送通知。",
+      "True": "开启",
+      "False": "关闭"
+    },
+    "MaxFailures": {
+      "name": "最大失败次数",
+      "help": "在时间窗口内同一错误原因累计失败达到此次数后，自动关闭该任务。取值范围 1~10。"
+    },
+    "TimeWindowHours": {
+      "name": "累计时间窗口（小时）",
+      "help": "统计失败次数的时间范围。超过此时间后失败计数自动清零。例如设为 3，表示 3 小时内同一错误累计达到设定次数才关闭任务。取值范围 1~168。"
+    }
+  },
   "DailySummary": {
     "_info": {
       "name": "每日总结",
