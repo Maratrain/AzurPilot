@@ -223,6 +223,21 @@ Error:
   LlmModel:
     value: "mimo-v2.5-pro"
     valuetype: str
+TaskFailureProtection:
+  Enable:
+    type: checkbox
+    value: false
+    option: [true, false]
+  PushNotify:
+    type: checkbox
+    value: false
+    option: [true, false]
+  MaxFailures:
+    value: 3
+    validate: [1, 10]
+  TimeWindowHours:
+    value: 24
+    validate: [1, 168]
 DailySummary:
   Enable:
     type: checkbox

@@ -26,6 +26,7 @@ from module.config.utils import (
     read_file,
 )
 from module.exception import *
+from module.handler.task_failure_protection import PROTECTION_EXEMPT_TASKS
 from module.logger import logger
 from module.notify import handle_notify, notify_webui
 
@@ -105,6 +106,13 @@ class AzurLaneAutoScript:
         self.script_error_count = 0
         # 上次计划重启模拟器的时间戳
         self.last_emulator_restart_time = time.monotonic()
+        # 最近一次任务执行的错误原因（异常类名），供任务失败保护使用
+        self._last_task_error: str | None = None
+        # 任务失败保护跟踪器：跟踪任务失败记录，失败过多时自动关闭任务
+        from module.handler.task_failure_protection import TaskFailureTracker
+        self.failure_tracker = TaskFailureTracker(config_name)
+        # 因失败保护被自动关闭的任务集合（配置持久化之外的运行时双保险）
+        self._disabled_tasks_by_protection: set = set()
         # 渠道服悬浮球会话标志：调度器启动/游戏重启后仅处理一次
         self._channel_float_done = False
         # 看门狗状态
@@ -831,6 +839,121 @@ class AzurLaneAutoScript:
         )
         exit(1)
 
+    def _check_task_failure_protection(self, task: str, success) -> bool:
+        """检查并执行任务失败保护。
+
+        当用户启用了 ``TaskFailureProtection`` 时，在时间窗口内同一错误原因
+        累计达到阈值则自动关闭该任务（设置 ``Scheduler.Enable = False``），
+        并生成通知供 WebUI 弹窗展示，避免任务失败过多导致频繁重启。
+
+        Args:
+            task: 任务名称（如 ``Main``）。
+            success: ``run()`` 的返回值（True / False / 'recoverable'）。
+
+        Returns:
+            如果任务被自动关闭返回 True，否则返回 False。
+        """
+        try:
+            if not self.config.TaskFailureProtection_Enable:
+                return False
+        except Exception:
+            return False
+
+        # 任务成功时不记录失败
+        if success == True:
+            return False
+
+        # 获取错误原因
+        reason = self._last_task_error or 'UnknownError'
+
+        max_failures = int(self.config.TaskFailureProtection_MaxFailures)
+        time_window = int(self.config.TaskFailureProtection_TimeWindowHours)
+
+        # 定期清理过期记录
+        self.failure_tracker.cleanup_old_failures(time_window)
+
+        # 记录本次失败
+        count = self.failure_tracker.record_failure(task, reason)
+
+        # 系统恢复关键任务豁免自动关闭（如 Restart）：Restart 是所有恢复路径
+        # 的基石（游戏未运行/卡死/异常均依赖 task_call('Restart')），且 GUI 中
+        # 该开关设计上不可关闭，一旦被自动关闭，游戏永远无法启动且用户无恢复
+        # 手段。此类任务失败达到 3 次时由调度器的连续失败退出逻辑终止程序，
+        # 请求人工介入。
+        if task in PROTECTION_EXEMPT_TASKS:
+            logger.warning(
+                f'[Alas] 任务 `{task}` 是系统恢复关键任务，失败保护不会自动关闭它'
+                f'（当前累计 {count}/{max_failures} 次）'
+            )
+            return False
+
+        # 检查是否达到阈值
+        if self.failure_tracker.should_disable_task(task, reason, max_failures, time_window):
+            logger.warning(
+                f'[Alas] 任务失败保护触发：任务 `{task}` 因 `{reason}` '
+                f'在 {time_window} 小时内失败 {count}/{max_failures} 次，'
+                f'正在自动关闭该任务'
+            )
+
+            # 关闭任务：设置 Scheduler.Enable = False
+            self.config.modified[f'{task}.Scheduler.Enable'] = False
+            self.config.save()
+
+            # 加入运行时禁用列表，即使配置持久化未生效也确保不再调度该任务
+            self._disabled_tasks_by_protection.add(task)
+
+            # 生成通知
+            self.failure_tracker.add_notification(task, reason, count)
+
+            # 推送通知（仅当 PushNotify 开启时发送）
+            try:
+                push_enabled = self.config.TaskFailureProtection_PushNotify
+            except Exception:
+                push_enabled = False
+
+            task_display = _get_task_display_name(task)
+
+            # 汇总所有未读通知，构造暂停任务列表
+            all_unread = self.failure_tracker.get_unread_notifications()
+            paused_tasks = [
+                _get_task_display_name(n.get('task', ''))
+                for n in all_unread
+            ]
+            paused_count = len(paused_tasks)
+            paused_list = '、'.join(paused_tasks)
+
+            title = (
+                f"[AzurPilot] <{self.config_name}> {paused_count} 个任务已自动关闭"
+                if paused_count > 1
+                else f"[AzurPilot] <{self.config_name}> 1 个任务已自动关闭"
+            )
+
+            if push_enabled:
+                content = (
+                    f"<{self.config_name}> 本次任务 {task_display} 因 {reason} "
+                    f"连续失败 {count} 次已自动关闭。\n\n"
+                    f"当前共暂停 {paused_count} 个任务：{paused_list}\n\n"
+                    f"请检查各任务配置后重新启用。"
+                )
+                handle_notify(
+                    self.config.Error_OnePushConfig,
+                    title=title,
+                    content=content,
+                )
+
+            notify_webui(
+                self.config_name,
+                title=title,
+                content=f"当前共暂停 {paused_count} 个任务：{paused_list}",
+            )
+
+            # 重置该任务的失败计数器，避免下次启用后立即触发
+            deep_set(self.failure_record, keys=task, value=0)
+            self._last_task_error = None
+            return True
+
+        return False
+
     def handle_channel_float(self):
         """处理渠道服（4399）启动悬浮球（每个会话仅一次）。
 
@@ -872,10 +995,13 @@ class AzurLaneAutoScript:
             if not self._channel_float_done:
                 self.handle_channel_float()
             self.__getattribute__(command)()
+            self._last_task_error = None
             return True
         except TaskEnd:
+            self._last_task_error = None
             return True
         except GameNotRunningError as e:
+            self._last_task_error = 'GameNotRunningError'
             # 游戏未运行，调度 Restart 任务自动恢复
             logger.error_context(
                 title='游戏进程未运行',
@@ -901,6 +1027,7 @@ class AzurLaneAutoScript:
             self.config.task_call('Restart')
             return 'recoverable'
         except (GameStuckError, GameTooManyClickError) as e:
+            self._last_task_error = type(e).__name__
             # 游戏卡住或点击过多，尝试重启游戏；连续卡死则重启模拟器
             logger.error_context(
                 title='游戏状态无法推进',
@@ -939,6 +1066,7 @@ class AzurLaneAutoScript:
             self.device.sleep(10)
             return 'recoverable'
         except GameBugError as e:
+            self._last_task_error = 'GameBugError'
             # 游戏客户端 bug，重启游戏修复
             logger.error_context(
                 title='游戏客户端发生异常',
@@ -965,6 +1093,7 @@ class AzurLaneAutoScript:
             self.device.sleep(10)
             return 'recoverable'
         except GamePageUnknownError as e:
+            self._last_task_error = 'GamePageUnknownError'
             logger.info('[Alas] 游戏服务器可能正在维护或网络连接中断，正在检查服务器状态')
             self.checker.check_now()
             if self.checker.is_available():
@@ -992,6 +1121,7 @@ class AzurLaneAutoScript:
                 self.checker.wait_until_available()
                 return False
         except ScriptError as e:
+            self._last_task_error = 'ScriptError'
             logger.exception_context(
                 title='任务脚本执行失败', exc=e,
                 impact='当前任务无法继续，调度器将终止并保留错误现场。',
@@ -1011,6 +1141,7 @@ class AzurLaneAutoScript:
             )
             raise
         except EmulatorNotRunningError as e:
+            self._last_task_error = 'EmulatorNotRunningError'
             # 模拟器离线或死机，尝试自动重启
             logger.error_context(
                 title='模拟器连接中断',
@@ -1056,6 +1187,7 @@ class AzurLaneAutoScript:
                 )
                 exit(1)
         except RequestHumanTakeover:
+            self._last_task_error = 'RequestHumanTakeover'
             logger.error_context(
                 title='任务需要人工介入',
                 reason='当前状态无法由自动化流程安全判断或修复。',
@@ -1076,6 +1208,7 @@ class AzurLaneAutoScript:
             )
             exit(1)
         except AutoSearchSetError as e:
+            self._last_task_error = 'AutoSearchSetError'
             logger.error_context(
                 title='自动搜索设置失败',
                 reason='无法将游戏切换到所需的自动搜索状态。',
@@ -1087,6 +1220,7 @@ class AzurLaneAutoScript:
             self.save_error_scene()
             exit(1)
         except Exception as e:
+            self._last_task_error = type(e).__name__
             # 未预期异常，先重启游戏，连续多次失败才重启模拟器
             logger.exception_context(
                 title=f'任务执行发生未处理异常（{command}）', exc=e,
@@ -1890,6 +2024,27 @@ class AzurLaneAutoScript:
             self.config.task = task
             self.config.bind(task)
 
+            # 任务因失败保护被自动关闭后的运行时双保险。
+            # get_next() 已过滤 Enable=False 的任务，此处命中说明配置中
+            # 该任务已重新启用，解除禁用即可；仅当配置仍未持久化启用状态
+            # 时（异常场景）才跳过并延迟。
+            if task.command in self._disabled_tasks_by_protection:
+                enabled = self.config.cross_get(
+                    keys=f'{task.command}.Scheduler.Enable', default=False
+                )
+                if enabled:
+                    logger.info(
+                        f'[Alas] 任务 `{task.command}` 已重新启用，解除失败保护禁用'
+                    )
+                    self._disabled_tasks_by_protection.discard(task.command)
+                else:
+                    logger.info(
+                        f'[Alas] 任务 `{task.command}` 因失败保护处于禁用状态，跳过调度'
+                    )
+                    self.config.task_delay(task.command, target=current_time() + timedelta(hours=24))
+                    del_cached_property(self, 'config')
+                    continue
+
             from module.base.resource import release_resources
             if self.config.task.command != 'Alas':
                 release_resources(next_task=task.command)
@@ -2009,6 +2164,18 @@ class AzurLaneAutoScript:
         MAX_GLOBAL_FAILURES = 3
         RESTART_DELAY = 20
         LONG_WAIT = 300
+
+        # 自愈：Restart 任务设计上不可关闭（GUI 中无开关）。历史版本的任务
+        # 失败保护曾可能误关闭它，导致游戏永远无法启动且用户无恢复手段。
+        # 启动时强制恢复启用状态，覆盖存量损坏配置。
+        try:
+            if not self.config.cross_get(keys='Restart.Scheduler.Enable', default=True):
+                logger.warning('[Alas] 检测到 Restart 任务被禁用（设计上不可关闭），自动恢复启用')
+                self.config.modified['Restart.Scheduler.Enable'] = True
+                self.config.save()
+                self._disabled_tasks_by_protection.discard('Restart')
+        except Exception as e:
+            logger.warning(f'[Alas] Restart 任务启用状态自愈失败: {e}')
 
         while 1:
             try:
@@ -2138,10 +2305,29 @@ class AzurLaneAutoScript:
                     failed = failed + 1  # 不可恢复错误，增加计数
                 deep_set(self.failure_record, keys=task, value=failed)
 
+                # 任务失败保护：在时间窗口内同一错误原因累计达到阈值时自动关闭任务
+                if self._check_task_failure_protection(task, success):
+                    # 任务已被自动关闭，跳过后续的退出逻辑，继续调度其他任务
+                    # 同时重置 failure_record，避免残留计数在用户重新启用任务后误触发退出
+                    deep_set(self.failure_record, keys=task, value=0)
+                    del_cached_property(self, 'config')
+                    self.checker.check_now()
+                    continue
+
+                # 当 TaskFailureProtection 启用时，由失败保护统一控制失败次数阈值，
+                # 跳过硬编码 3 次退出逻辑，避免失败保护配置大于 3 时被提前终止
+                try:
+                    tfp_enabled = self.config.TaskFailureProtection_Enable
+                except Exception:
+                    tfp_enabled = False
+
                 strict_restart = self.config.Error_StrictRestart and failed >= 1 and self.config.cross_get(
                     keys=f'{task}.Scheduler.Sensitive', default=False
                 )
-                if failed >= 3 or strict_restart:
+                # 豁免任务（如 Restart）不允许被失败保护自动关闭，因此不能被失败
+                # 保护接管失败阈值——否则会无限失败无限重启，必须保留 3 次退出逻辑
+                tfp_exempt = task in PROTECTION_EXEMPT_TASKS
+                if (failed >= 3 and (not tfp_enabled or tfp_exempt)) or strict_restart:
                     reason = '任务配置或使用方式不符合要求，也可能是任务本身存在问题。'
                     action = '检查任务选项帮助和错误现场；确认配置正确后再重试。'
                     if strict_restart:
@@ -2172,6 +2358,8 @@ class AzurLaneAutoScript:
                     self.consecutive_game_stuck = 0
                     self.consecutive_adb_offline = 0
                     self.consecutive_unexpected_error = 0
+                    # 任务成功，清除该任务的失败保护记录
+                    self.failure_tracker.clear_task_failures(task)
                     continue
                 elif success == 'recoverable' or self.config.Error_HandleError:
                     # 可恢复错误或启用了错误处理，刷新配置后继续循环
@@ -2187,6 +2375,24 @@ class AzurLaneAutoScript:
                 consecutive_global_failures += 1
                 self.is_first_task = False
                 import traceback
+
+                # 任务失败保护：全局异常也计入失败次数
+                try:
+                    current_task = None
+                    try:
+                        current_task = task
+                    except NameError:
+                        pass
+                    if current_task is not None:
+                        if self._check_task_failure_protection(current_task, False):
+                            # 任务已被自动关闭，跳过重启，继续调度其他任务
+                            del_cached_property(self, 'config')
+                            self.checker.check_now()
+                            consecutive_global_failures = 0
+                            continue
+                except Exception:
+                    logger.warning('[Alas] 失败保护检查异常，已跳过')
+
                 already_saved = getattr(self, '_error_scene_saved', False)
                 if already_saved:
                     # 任务级异常处理已保存错误现场并输出完整堆栈，这里只记

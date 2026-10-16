@@ -555,6 +555,40 @@
         "valuetype": "str"
       }
     },
+    "TaskFailureProtection": {
+      "Enable": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "PushNotify": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "MaxFailures": {
+        "type": "input",
+        "value": 3,
+        "validate": [
+          1,
+          10
+        ]
+      },
+      "TimeWindowHours": {
+        "type": "input",
+        "value": 24,
+        "validate": [
+          1,
+          168
+        ]
+      }
+    },
     "DailySummary": {
       "Enable": {
         "type": "checkbox",

@@ -698,5 +698,17 @@ class TaskConfigMixin(WebUIMixinBase):
                 )
                 config_updater.write_file(config_name, config)
                 self._invalidate_config_search_cache()
+
+                # 用户重新启用任务时，清除该任务的失败保护记录
+                for k, v in modified.items():
+                    if k.endswith('.Scheduler.Enable') and v is True:
+                        task_name = k.split('.')[0]
+                        try:
+                            from module.handler.task_failure_protection import TaskFailureTracker
+                            tracker = TaskFailureTracker(config_name)
+                            tracker.reset_task(task_name)
+                            logger.info(f'[WebUI-任务配置] 用户重新启用任务 `{task_name}`，已清除失败保护记录')
+                        except Exception:
+                            pass
         except Exception as e:
             logger.exception(e)

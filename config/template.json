@@ -113,6 +113,12 @@
       "LlmApiBase": "https://api.xiaomimimo.com/v1",
       "LlmModel": "mimo-v2.5-pro"
     },
+    "TaskFailureProtection": {
+      "Enable": false,
+      "PushNotify": false,
+      "MaxFailures": 3,
+      "TimeWindowHours": 24
+    },
     "DailySummary": {
       "Enable": false,
       "TriggerTime": "20:00"
