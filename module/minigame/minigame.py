@@ -26,12 +26,17 @@ Pages:
     学院页面：page_academy
 """
 
+import numpy as np
+
 import module.config.server as server
+from module.base.timer import Timer
+from module.base.utils import random_rectangle_point
 from module.combat.assets import GET_ITEMS_1
+from module.exception import RequestHumanTakeover
 from module.logger import logger
 from module.minigame.assets import *
 from module.ocr.ocr import Digit
-from module.ui.assets import ACADEMY_GOTO_GAME_ROOM, GAME_ROOM_CHECK
+from module.ui.assets import ACADEMY_GOTO_GAME_ROOM
 from module.ui.page import page_academy, page_game_room
 from module.ui.scroll import Scroll
 from module.ui.ui import UI
@@ -46,9 +51,128 @@ else:
                     name='OCR_COIN',
                     letter=(211, 196, 95),
                     threshold=128)
-MINIGAME_SCROLL = Scroll(MINIGAME_SCROLL_AREA, color=(247, 247, 247), name='MINIGAME_SCROLL')
 
-class MinigameRun(UI):
+
+class MinigameScroll(Scroll):
+    """
+    小游戏专用滚动条，避免残留开始按钮的白色边框干扰定位。
+    """
+
+    def cal_position(self, main):
+        """
+        按滑块模板计算位置，不再使用白色像素的平均位置。
+
+        Args:
+            main (MinigameUI): 持有当前截图的小游戏界面。
+
+        Returns:
+            float | None: 归一化位置，0 为顶部，1 为底部；滑块被遮挡时为 None。
+        """
+        y = main.minigame_scroll_y()
+        if y is None:
+            return None
+        # 参考资源中的滑块位于轨道顶部，用其中心反推滑块长度
+        reference_y = (MINIGAME_SCROLL_KNOB.area[1] + MINIGAME_SCROLL_KNOB.area[3]) / 2
+        self.length = 2 * (reference_y - self.area[1])
+        position = (y - reference_y) / (self.total - self.length)
+        position = min(max(position, 0.0), 1.0)
+        logger.attr(self.name, f'{position:.2f} (knob y={y})')
+        return position
+
+    def set(self, position, main, random_range=(-0.05, 0.05), distance_check=True, skip_first_screenshot=True):
+        """
+        定位到指定百分比，滑块被遮挡时通过滑动卡片恢复。
+
+        Args:
+            position (float): 目标位置，0 为顶部，1 为底部。
+            main (MinigameUI): 持有当前截图的小游戏界面。
+            random_range (tuple): 目标滑块位置的随机偏移范围。
+            distance_check (bool): 是否检查滑动距离。
+            skip_first_screenshot (bool): 是否复用已有截图。
+
+        Returns:
+            int: 实际执行的滑动次数，已在目标位置时为 0。
+
+        Raises:
+            RequestHumanTakeover: 达到 8 次滑动或 20 秒仍未确认定位完成。
+
+        Pages:
+            in: page_game_room 选游戏界面
+            out: page_game_room 选游戏界面
+        """
+        logger.info(f'{self.name} set to {position}')
+        timeout = Timer(20).start()
+        interval = Timer(1)
+        dragged = 0
+        previous = None
+        stationary = 0
+        while 1:
+            if skip_first_screenshot:
+                skip_first_screenshot = False
+            else:
+                main.device.screenshot()
+            current = self.cal_position(main)
+            if current is not None and abs(position - current) < self.drag_threshold:
+                return dragged
+            if dragged >= 8 or timeout.reached():
+                raise RequestHumanTakeover('无法定位小游戏滚动条')
+            if not interval.reached():
+                continue
+            if position >= 1 - self.edge_threshold:
+                # 底部滑块可能被遮挡，通过连续滑动后卡片不再移动确认到底
+                cards = main.image_crop((300, 110, 600, 500))
+                if previous is not None and np.mean(np.abs(cards.astype(float) - previous)) < 1:
+                    stationary += 1
+                    if stationary >= 2:
+                        return dragged
+                else:
+                    stationary = 0
+                previous = cards.astype(float)
+                p1, p2 = (600, 550), (600, 250)
+            elif current is None:
+                # 通过卡片向顶部滚动，直到重新识别到滑块
+                p1, p2 = (600, 250), (600, 550)
+            else:
+                p1 = random_rectangle_point(self.position_to_screen(current), n=1)
+                p2 = random_rectangle_point(self.position_to_screen(position, random_range=random_range), n=1)
+            main.device.swipe(p1, p2, name=self.name, distance_check=distance_check)
+            dragged += 1
+            interval.reset()
+
+
+MINIGAME_SCROLL = MinigameScroll(MINIGAME_SCROLL_AREA, color=(247, 247, 247), name='MINIGAME_SCROLL')
+
+
+class MinigameUI(UI):
+    """
+    小游戏任务和具体游戏共享的页面识别。
+    """
+
+    def minigame_scroll_y(self):
+        """
+        Returns:
+            int | None: 当前截图中的滑块中心纵坐标，滑块被遮挡时为 None。
+        """
+        if self.appear(MINIGAME_SCROLL_KNOB, offset=(-9, -73, 12, 495)):
+            return int((MINIGAME_SCROLL_KNOB.button[1] + MINIGAME_SCROLL_KNOB.button[3]) // 2)
+        return None
+
+    def minigame_list_appear(self):
+        """
+        用滚动条与卡片标记共同确认当前截图为游戏列表。
+        列表页面上可能残留 GOTO_CHOOSE_GAME 开始按钮，不能以该按钮消失作为就绪条件。
+
+        Returns:
+            bool: 是否在选游戏界面。
+        """
+        # 两列分别使用自身模板作为横向锚点，并沿纵向搜索滚动后的卡片
+        return MINIGAME_SCROLL.appear(main=self) and (
+            self.appear(GAME_LIST_CHECK_LEFT, offset=(5, 500))
+            or self.appear(GAME_LIST_CHECK_RIGHT, offset=(5, 500))
+        )
+
+
+class MinigameRun(MinigameUI):
     """
     小游戏运行基类。
 
@@ -70,7 +194,7 @@ class MinigameRun(UI):
         """
         Pages:
             in: page_game_room main_page
-            out: page_game_room main_page
+            out: page_game_room main_page or choose_game
         Return:
             False if unable or unnecessary to play
         """
@@ -84,10 +208,9 @@ class MinigameRun(UI):
             else:
                 self.device.screenshot()
             # End
-            # both minigame main and minigame list has GOTO_CHOOSE_GAME
-            if self.appear(GAME_ROOM_CHECK, offset=(5, 5)) and not self.appear(GOTO_CHOOSE_GAME, offset=(20, 20)):
-                if MINIGAME_SCROLL.appear(main=self):
-                    break
+            # 列表页可能残留开始按钮，用卡片与滚动条共同确认列表
+            if self.minigame_list_appear():
+                break
             # unable to get more ticket popup
             if self.deal_popup():
                 continue
@@ -152,7 +275,7 @@ class MinigameRun(UI):
         pass
 
 
-class Minigame(UI):
+class Minigame(MinigameUI):
     """
     小游戏主任务类。
 
@@ -205,8 +328,7 @@ class Minigame(UI):
                 continue
             if self.appear_then_click(COIN_POPUP, offset=(5, 5), interval=2):
                 continue
-            if self.appear(GAME_ROOM_CHECK, offset=(5, 5)) \
-                    and not self.appear(GOTO_CHOOSE_GAME, offset=(5, 5)):
+            if self.minigame_list_appear():
                 self.appear_then_click(BACK, offset=(5, 5), interval=2)
                 continue
             if self.appear(GOTO_CHOOSE_GAME, offset=(5, 5)):
@@ -229,8 +351,7 @@ class Minigame(UI):
             if self.appear_then_click(COIN_POPUP, offset=(5, 5), interval=3):
                 continue
             # game room and choose game have same header, go to game room first
-            if self.appear(GAME_ROOM_CHECK, offset=(5, 5)) \
-                    and not self.appear(GOTO_CHOOSE_GAME, offset=(5, 5)):
+            if self.minigame_list_appear():
                 self.appear_then_click(BACK, offset=(5, 5), interval=3)
                 continue
             # collect coins
