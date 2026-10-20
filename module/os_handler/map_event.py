@@ -263,6 +263,26 @@ class MapEventHandler(EnemySearchingHandler):
 
         return cleared
 
+    _os_auto_search_battle_settle_time = 2
+
+    def _os_auto_search_battle_settle_start(self):
+        """记录一场战斗刚刚结束。
+
+        战斗结算返回地图后的短暂时间内，自律寻敌按钮可能仍显示关闭外观
+        但游戏尚未完成状态切换，此时点击会把仍在执行的自律寻敌点停。
+        """
+        if '_os_auto_search_battle_settle_timer' not in self.__dict__:
+            self._os_auto_search_battle_settle_timer = Timer(
+                self._os_auto_search_battle_settle_time)
+        self._os_auto_search_battle_settle_timer.reset()
+
+    def _os_auto_search_battle_settling(self):
+        """是否处于战斗结算返回地图后的过渡窗口。"""
+        timer = self.__dict__.get('_os_auto_search_battle_settle_timer')
+        if timer is None:
+            return False
+        return not timer.reached()
+
     def handle_os_auto_search_map_option(self, drop=None, enable: Optional[bool] = True):
         """
         处理大世界自动搜索地图选项。
@@ -296,6 +316,10 @@ class MapEventHandler(EnemySearchingHandler):
         if enable is None:
             pass
         elif enable:
+            if self._os_auto_search_battle_settling():
+                # 战斗结算刚回到地图，按钮可能还是界面重建的过渡外观；
+                # 此期间点击会把仍在执行的自律寻敌关掉，等状态稳定后再处理。
+                return False
             if self.match_template_color(AUTO_SEARCH_OS_MAP_OPTION_OFF, offset=(5, 120), interval=3):
                 self.device.click(AUTO_SEARCH_OS_MAP_OPTION_OFF)
                 self.interval_reset(AUTO_SEARCH_OS_MAP_OPTION_OFF_DISABLED)

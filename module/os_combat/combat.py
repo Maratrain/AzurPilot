@@ -450,8 +450,9 @@ class Combat(Combat_, MapEventHandler):
         """
         自动搜索模式下的经验结算页面处理。
 
-        依次检查 S/A/B/C/D 经验结算按钮，点击后清除 S 评价计时器并等待随机时间。
-        等待时间根据是否有掉落物决定（有掉落 1.5-2 秒，无掉落 0.25-0.5 秒）。
+        依次检查 S/A/B/C/D 经验结算按钮并点击，点击后清除 S 评价计时器。
+        点击沿用战斗结算的点击冷却，避免同一页面被连点；页面是否关闭由调用方
+        继续截图确认，不再用固定时长休眠猜测界面状态。
 
         Pages:
             in: 经验结算页面（S/A/B/C/D 任一可见）
@@ -460,11 +461,9 @@ class Combat(Combat_, MapEventHandler):
         Returns:
             bool: 是否点击了经验结算按钮。
         """
-        sleep = self._get_exp_info_sleep()
         for exp_info_button in [EXP_INFO_S, EXP_INFO_A, EXP_INFO_B, EXP_INFO_C, EXP_INFO_D]:
-            if self.appear_then_click(exp_info_button):
+            if self.appear_then_click(exp_info_button, interval=self.battle_status_click_interval):
                 self._clear_battle_status_s_timer()
-                self.device.sleep(sleep)
                 return True
         return False
 
@@ -550,7 +549,9 @@ class Combat(Combat_, MapEventHandler):
             if self.is_combat_executing():
                 battle_status_s_timer.clear()
                 continue
-            if self.config.OpsiGeneral_RepairThreshold > 0 and self.handle_auto_search_exp_info():
+            # 自律被游戏或任务中断后，经验结算页需要主动确认才能回到地图，
+            # 与是否启用自动修理无关；此前按修理阈值门控会在关闭修理时卡在结算页。
+            if self.handle_auto_search_exp_info():
                 battle_status_s_timer.clear()
                 success = None
                 continue
@@ -562,6 +563,9 @@ class Combat(Combat_, MapEventHandler):
                 continue
             
         logger.info('战斗结束。')
+        # 刚回到地图时界面仍在重建，自律寻敌按钮可能是过渡外观；记录窗口，
+        # 期间不操作地图自律开关，避免把仍在执行的自律寻敌点停。
+        self._os_auto_search_battle_settle_start()
         
         # 通过相同的指标源结束，避免 CL1 和 short-meow 样本意外共享存储键。
         finish_battle_timer(self.config, battle_timer_source)
