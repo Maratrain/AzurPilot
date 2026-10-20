@@ -211,6 +211,11 @@ class MissionHandler(GlobeOperation, ZoneManager):
                 confirm_timer.reset()
 
             # 点击
+            # 保留海域中断自律并退出战斗后，结算「合计获得奖励」会延迟弹出，
+            # 可能到进入任务列表这一步才盖住界面；不处理会一直等不到任务列表
+            if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
+                confirm_timer.reset()
+                continue
             if self.appear_then_click(MISSION_ENTER, offset=(200, 5), interval=5):
                 confirm_timer.reset()
                 continue
@@ -322,6 +327,9 @@ class MissionHandler(GlobeOperation, ZoneManager):
                 logger.info('[大世界处理-任务] 已在任务区域')
                 return 'already_at_mission_zone'
 
+            # 保留海域中断自律后的结算弹窗也会延迟到这一步才弹出，先点掉
+            if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
+                continue
             if self.appear_then_click(MISSION_CHECKOUT, offset=checkout_offset, interval=2, similarity=0.78):
                 continue
             if self.handle_popup_confirm('OS_MISSION_CHECKOUT'):
