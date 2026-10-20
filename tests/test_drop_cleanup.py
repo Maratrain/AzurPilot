@@ -8,6 +8,7 @@
 import os
 import shutil
 import tempfile
+import threading
 import time
 import unittest
 from types import SimpleNamespace
@@ -29,6 +30,8 @@ class DropCleanupTestCase(unittest.TestCase):
         self._saved_cleanup = drop_cleanup._LAST_CLEANUP
         # 避免测试过程中真的去扫日志目录
         drop_cleanup._LAST_CLEANUP = float('inf')
+        self._saved_thread = drop_cleanup._CLEANUP_THREAD
+        drop_cleanup._CLEANUP_THREAD = None
         self._patch = patch.object(
             drop_cleanup, 'COMMISSION_REWARD_FOLDER', self.commission_folder)
         self._patch.start()
@@ -36,6 +39,7 @@ class DropCleanupTestCase(unittest.TestCase):
     def tearDown(self):
         self._patch.stop()
         drop_cleanup._LAST_CLEANUP = self._saved_cleanup
+        drop_cleanup._CLEANUP_THREAD = self._saved_thread
         shutil.rmtree(self.root, ignore_errors=True)
 
     def config(self, days=0, instance='alas', folder=None):
@@ -164,34 +168,58 @@ class TestCleanupIfDue(DropCleanupTestCase):
         super().setUp()
         drop_cleanup._LAST_CLEANUP = 0.0  # 让首次调用一定执行清理
 
+    def if_due(self, config):
+        """触发节流清理入口并等待后台线程结束（清理已改为异步执行）。"""
+        result = drop_cleanup.cleanup_drop_screenshots_if_due(config)
+        thread = drop_cleanup._CLEANUP_THREAD
+        if thread is not None:
+            thread.join(timeout=30)
+            self.assertFalse(thread.is_alive(), '后台清理线程未在超时内结束')
+        return result
+
     def test_uses_configured_retention_days(self):
         old = self.drop_image('1704067200000.png', 3 * 86400)
-        self.assertEqual(
-            drop_cleanup.cleanup_drop_screenshots_if_due(self.config(1)), 1)
+        self.assertEqual(self.if_due(self.config(1)), 0)
         self.assertFalse(os.path.exists(old))
 
     def test_disabled_setting_does_not_scan(self):
         kept = self.drop_image('1704067200000.png', 400 * 86400)
-        self.assertEqual(
-            drop_cleanup.cleanup_drop_screenshots_if_due(self.config(0)), 0)
+        self.assertEqual(self.if_due(self.config(0)), 0)
         self.assertTrue(os.path.exists(kept))
 
     def test_second_call_is_throttled(self):
         self.drop_image('1704067200000.png', 3 * 86400)
-        self.assertEqual(
-            drop_cleanup.cleanup_drop_screenshots_if_due(self.config(1)), 1)
+        self.assertEqual(self.if_due(self.config(1)), 0)
 
         still_there = self.drop_image('1704067200001.png', 3 * 86400)
         # 节流期内不再扫描，文件仍然留着
-        self.assertEqual(
-            drop_cleanup.cleanup_drop_screenshots_if_due(self.config(1)), 0)
+        self.assertEqual(self.if_due(self.config(1)), 0)
         self.assertTrue(os.path.exists(still_there))
 
     def test_invalid_setting_does_not_delete(self):
         kept = self.drop_image('1704067200000.png', 400 * 86400)
-        self.assertEqual(
-            drop_cleanup.cleanup_drop_screenshots_if_due(self.config('abc')), 0)
+        self.assertEqual(self.if_due(self.config('abc')), 0)
         self.assertTrue(os.path.exists(kept))
+
+    def test_cleanup_runs_in_background(self):
+        """入口调用不等待清理完成：清理被卡住时也要立刻返回。"""
+        started = threading.Event()
+        release = threading.Event()
+
+        def slow_cleanup(config, days):
+            started.set()
+            release.wait(timeout=10)
+
+        try:
+            with patch.object(drop_cleanup, 'cleanup_drop_screenshots', slow_cleanup):
+                self.assertEqual(
+                    drop_cleanup.cleanup_drop_screenshots_if_due(self.config(1)), 0)
+                self.assertTrue(started.wait(timeout=10), '后台清理未启动')
+                # 清理线程仍被挡住，但入口已经返回
+                self.assertTrue(drop_cleanup._CLEANUP_THREAD.is_alive())
+        finally:
+            release.set()
+        drop_cleanup._CLEANUP_THREAD.join(timeout=10)
 
 
 class TestDropRecordWiring(unittest.TestCase):

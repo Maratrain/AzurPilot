@@ -644,7 +644,7 @@ class AzurStats:
             DropImage:
         """
         # 掉落记录的每个提交周期都会走到这里，用它作为过期截图的清理时机
-        # （内部有节流，不会每场战斗都扫目录）
+        # （内部有节流，实际清理在后台线程执行，不会阻塞游戏主循环）
         cleanup_drop_screenshots_if_due(self.config)
 
         method_value = None

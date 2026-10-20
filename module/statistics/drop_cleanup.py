@@ -15,6 +15,7 @@
 
 import os
 import re
+import threading
 import time
 
 from module.logger import logger
@@ -31,6 +32,9 @@ COMMISSION_REWARD_FOLDER = os.path.join('.', 'log', 'commission_rewards')
 DROP_IMAGE_PATTERN = re.compile(r'^\d{13}(_.+)?\.png$')
 
 _LAST_CLEANUP = 0.0
+
+# 后台清理线程句柄，用于避免上一轮未完时并发再扫同一批目录
+_CLEANUP_THREAD = None
 
 
 def drop_screenshot_retention_days(config):
@@ -129,13 +133,17 @@ def cleanup_drop_screenshots_if_due(config):
     由 ``AzurStats.new()`` 调用：掉落记录提交在战斗中很频繁，
     但清理没必要跟着那么勤。
 
+    实际清理放在后台线程执行：积压多时压缩备份耗时以分钟计
+    （曾实测 802 张堵住游戏主循环 2.5 分钟，期间完全不截图、
+    不处理任何游戏状态，表现为大世界流程莫名卡住）。
+
     Args:
         config: 当前运行实例的 AzurLaneConfig。
 
     Returns:
-        int: 本次实际删除的文件数；未到清理时间或保留天数为 0 时返回 0。
+        int: 恒为 0，表示是否安排清理由节流决定，处理数量见后台日志。
     """
-    global _LAST_CLEANUP
+    global _LAST_CLEANUP, _CLEANUP_THREAD
 
     days = drop_screenshot_retention_days(config)
     if days <= 0:
@@ -144,6 +152,13 @@ def cleanup_drop_screenshots_if_due(config):
     now = time.time()
     if now - _LAST_CLEANUP < CLEANUP_INTERVAL:
         return 0
+    if _CLEANUP_THREAD is not None and _CLEANUP_THREAD.is_alive():
+        # 极端积压时上一轮可能还没结束，不并发扫同一批目录
+        return 0
     _LAST_CLEANUP = now
 
-    return cleanup_drop_screenshots(config, days)
+    _CLEANUP_THREAD = threading.Thread(
+        target=cleanup_drop_screenshots, args=(config, days),
+        name='DropScreenshotCleanup', daemon=True)
+    _CLEANUP_THREAD.start()
+    return 0
