@@ -44,7 +44,7 @@ class _FakeOcr:
 
 def _ocr_patches(collect, daily):
     return (
-        patch('module.os_ash.ash.DigitCounter', return_value=_FakeOcr(collect)),
+        patch('module.os_ash.ash.AshDigitCounter', return_value=_FakeOcr(collect)),
         patch('module.os_ash.ash.DailyDigitCounter', return_value=_FakeOcr(daily)),
     )
 
