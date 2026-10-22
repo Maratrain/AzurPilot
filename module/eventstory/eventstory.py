@@ -44,7 +44,7 @@ class EventStory(CampaignUI, Combat, LoginHandler):
         导航至活动剧情入口并获取当前剧情状态。
 
         Pages:
-            page_sp: SP 活动页面（如 event_20251023_cn）
+            page_sp: SP 活动页面（如 event_20251023_cn、event_20261022_cn）
             page_event: 常规活动页面（大多数活动）
 
         Returns:
@@ -53,6 +53,7 @@ class EventStory(CampaignUI, Combat, LoginHandler):
         event = self.config.cross_get('Event.Campaign.Event', '')
         if event in [
             'event_20251023_cn',
+            'event_20261022_cn',
         ]:
             # SP 活动使用 page_sp 页面
             self.ui_ensure(page_sp)

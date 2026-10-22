@@ -284,6 +284,9 @@ class CampaignRun(CampaignEvent, ShopStatus):
             'event_20251023_cn',
             'event_20260326_cn',
             'event_20260625_cn',
+            # 借鉴 wess09/AzurPilot 提交 83d0c31e：飓风与雾霭回廊同样使用
+            # A1~A6 / SP1~SP6 作为 T1~T6 的别名。
+            'event_20261022_cn',
             'war_archives_20230525_cn',
             'war_archives_20231026_cn',
             'war_archives_20240725_cn',
@@ -323,6 +326,9 @@ class CampaignRun(CampaignEvent, ShopStatus):
             'event_20251023_cn',
             'event_20260326_cn',
             'event_20260625_cn',
+            # 借鉴 wess09/AzurPilot 提交 83d0c31e：同属 T/HT 章节体系，
+            # 让 A/B/C/D 与 T/HT 之间的双向转换对该活动生效。
+            'event_20261022_cn',
             'war_archives_20230525_cn',
             'war_archives_20231026_cn',
             'war_archives_20240725_cn',
