@@ -597,6 +597,7 @@ class GeneratedConfig:
     Hard_HardStage = '11-4'
     Hard_HardFleet = 1  # 1, 2
     Hard_UseRecommendFleet = False
+    Hard_RunAt18 = False
 
     # 配置组 `Exercise`
     Exercise_DelayUntilHoursBeforeNextUpdate = 12  # 1, 2, 3, 4, 5, 12

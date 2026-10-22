@@ -4,13 +4,15 @@
 但使用独立的战役入口和额外的限制条件（如每日出击次数、舰队锁定等）。
 通过 OCR 识别剩余出击次数，循环执行直到用尽。
 
-配置路径: Hard.HardStage (关卡选择), Hard.HardFleet (舰队选择), Hard.UseRecommendFleet (自动配队)
+配置路径: Hard.HardStage (关卡选择), Hard.HardFleet (舰队选择), Hard.UseRecommendFleet (自动配队), Hard.RunAt18 (18点运行)
 """
 
 import importlib
 
 from campaign.campaign_hard.campaign_hard import Campaign
 from module.campaign.run import CampaignRun
+from module.config.time_source import now as current_time
+from module.config.utils import server_time_offset
 from module.handler.fast_forward import to_map_file_name
 from module.hard.assets import *
 from module.logger import logger
@@ -25,6 +27,10 @@ class CampaignHard(CampaignRun):
     继承自 CampaignRun，负责执行困难模式关卡。从普通模式战役加载地图数据，
     强制启用舰队锁定和自动搜索，通过 OCR 识别每日剩余出击次数并循环执行。
 
+    开启 Hard.RunAt18 时，服务器时间 18:00 前被调起只延后到当天 18:00，
+    不进入困难关卡；18:00 后到期则正常执行剩余次数，完成后安排到下一次 18:00。
+    关闭时沿用零点调度。
+
     Attributes:
         equipment_has_take_on: 装备是否已穿戴（当前未使用）。
         campaign: 战役执行实例，由 CampaignRun 提供。
@@ -35,6 +41,10 @@ class CampaignHard(CampaignRun):
 
     def run(self):
         logger.hr('困难战役', level=1)
+        if self.config.Hard_RunAt18 and (current_time() - server_time_offset()).hour < 18:
+            self.config.task_delay(server_update='18:00')
+            self.config.task_stop()
+
         name = to_map_file_name(self.config.Hard_HardStage)
         # Hard.HardFleet 指定出击舰队，另一支在基地待命、不参与战斗。
         # Fleet_FleetOrder 与该选择一一对应，编队准备时会据此只校验出击舰队的困难限制
@@ -72,5 +82,5 @@ class CampaignHard(CampaignRun):
         # self.campaign.equipment_take_off_when_finished()
 
         # 调度器
-        self.config.task_delay(server_update=True)
+        self.config.task_delay(server_update='18:00' if self.config.Hard_RunAt18 else True)
         self.config.task_call('Reward', force_call=False)

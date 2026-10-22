@@ -1163,6 +1163,7 @@ Hard:
     value: 1
     option: [1, 2]
   UseRecommendFleet: false
+  RunAt18: false
 Exercise:
   DelayUntilHoursBeforeNextUpdate:
     value: 12

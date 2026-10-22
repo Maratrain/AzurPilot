@@ -3202,6 +3202,10 @@
     "UseRecommendFleet": {
       "name": "Auto Fleet Composition",
       "help": "Use the game's built-in recommended fleet to automatically compose hard mode fleets"
+    },
+    "RunAt18": {
+      "name": "Run at 18:00",
+      "help": "Disabled by default. When enabled, daily runs move from midnight to 18:00 server time. Runs due before 18:00 are postponed."
     }
   },
   "Exercise": {
