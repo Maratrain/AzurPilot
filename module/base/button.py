@@ -106,6 +106,9 @@ class Button(Resource):
 
     @property
     def button(self):
+        # _button_offset 只允许由成功的模板匹配写入（见 match/match_binary/match_luma）。
+        # 按钮对象跨模块共享且偏移长期残留，失败匹配的残点会把其它模块的点击区
+        # 平移到无关位置（如战斗结算误点开掉落舰船的档案页导致卡死）。
         if self._button_offset is None:
             return self._button
         else:
@@ -228,15 +231,17 @@ class Button(Resource):
             for template in self.image:
                 res = cv2.matchTemplate(template, image, cv2.TM_CCOEFF_NORMED)
                 _, sim, _, point = cv2.minMaxLoc(res)
-                self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
                 if sim > similarity:
+                    self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
                     return True
             return False
         else:
             res = cv2.matchTemplate(self.image, image, cv2.TM_CCOEFF_NORMED)
             _, sim, _, point = cv2.minMaxLoc(res)
-            self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
-            return sim > similarity
+            if sim > similarity:
+                self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
+                return True
+            return False
 
     def match_binary(self, image, offset=30, similarity=0.85):
         """通过二值化模板匹配检测按钮。部分按钮的位置可能不固定。
@@ -271,8 +276,8 @@ class Button(Resource):
                 # 模板匹配
                 res = cv2.matchTemplate(template, image_binary, cv2.TM_CCOEFF_NORMED)
                 _, sim, _, point = cv2.minMaxLoc(res)
-                self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
                 if sim > similarity:
+                    self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
                     return True
             return False
         else:
@@ -283,8 +288,10 @@ class Button(Resource):
             # 模板匹配
             res = cv2.matchTemplate(self.image_binary, image_binary, cv2.TM_CCOEFF_NORMED)
             _, sim, _, point = cv2.minMaxLoc(res)
-            self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
-            return sim > similarity
+            if sim > similarity:
+                self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
+                return True
+            return False
 
     def match_luma(self, image, offset=30, similarity=0.85):
         """通过 Y 通道（亮度）模板匹配检测按钮。
@@ -315,15 +322,17 @@ class Button(Resource):
             for template in self.image_luma:
                 res = cv2.matchTemplate(template, image_luma, cv2.TM_CCOEFF_NORMED)
                 _, sim, _, point = cv2.minMaxLoc(res)
-                self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
                 if sim > similarity:
+                    self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
                     return True
         else:
             image_luma = rgb2luma(image)
             res = cv2.matchTemplate(self.image_luma, image_luma, cv2.TM_CCOEFF_NORMED)
             _, sim, _, point = cv2.minMaxLoc(res)
-            self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
-            return sim > similarity
+            if sim > similarity:
+                self._button_offset = area_offset(self._button, offset[:2] + np.array(point))
+                return True
+            return False
 
     def match_template_color(self, image, offset=(20, 20), similarity=0.85, threshold=30):
         """先进行模板匹配，再进行颜色匹配。

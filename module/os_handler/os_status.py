@@ -210,6 +210,11 @@ class OSStatus(UI):
                 else:
                     last_valid_value = current_value
 
+        # 清理模板匹配写入的点击偏移：这些按钮与战斗结算共用（如 GET_SHIP），
+        # 残留偏移会把掉落卡片的点击平移出安全区，曾导致误点开舰船档案页后卡死
+        for _button in (GET_ITEMS_1, GET_ITEMS_2, GET_SHIP):
+            _button.clear_offset()
+
         # 如果最终仍未获取到有效数值，使用上次缓存的值（线程安全）
         observed = yellow_coins > 0
         with self._cache_lock:
