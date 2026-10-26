@@ -60,6 +60,7 @@ class ServerChecker:
         """
         通过 API 获取服务器状态。
 
+        公共 API 的连接和读取超时各为 3 秒，避免慢接口长时间阻塞任务启动。
         若服务器不可用，记录原因。API 出现异常时抛出 ScriptError。
         """
         if self._server == 'disabled':
@@ -74,7 +75,7 @@ class ServerChecker:
                 params={
                     'server_name': self._server
                 },
-                timeout=15
+                timeout=(3, 3)
             )
             if resp.status_code == 200:
                 j = resp.json()
@@ -104,9 +105,10 @@ class ServerChecker:
                     raise ScriptError(f'Server "{self._server}" does not exist!')
             else:
                 raise ScriptError(f'Get status_code {resp.status_code}. Response is {resp.text}')
-        except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout) as e:
-            logger.error(e)
-            logger.error('连接服务器检查API超时。')
+        # Timeout 覆盖 ConnectTimeout 与 ReadTimeout：慢接口只连接不响应时，
+        # 读超时同样按「API 不可达」处理，走快速重试而不是逸出构造函数
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.warning(f'[服务器检查] 公共状态 API 查询失败，尝试快速重试：{e}')
             if self._retry:
                 self._state.append(False)
             else:
