@@ -205,6 +205,8 @@ class AutoSearchHandler(EnemySearchingHandler):
     _auto_search_offset = (5, 5)
     # 当 MULTIPLE_SORTIE 出现时向左偏移 213px
     _auto_search_menu_offset = (250, 30)
+    # 上一次确认到 OFF 时的截图，用于要求两次确认来自不同的截图
+    _auto_search_off_frame = None
 
     def is_auto_search_running(self):
         """
@@ -220,14 +222,25 @@ class AutoSearchHandler(EnemySearchingHandler):
         """
         确保地图中的自动搜索选项已开启。
 
+        推测战斗结算退场后存在一段过早点击窗口：此时点击会翻转开关的显示状态，
+        但游戏不下发移动指令，表现为「图标显示运行中而舰队静止」。为降低该风险，
+        要求同一流程内两次观察到不同截图均确认为 OFF 后才操作，以画面状态取代
+        固定休眠。流程入口会清空确认状态，避免跨流程沿用旧的确认。
+
         Returns:
             bool: 是否进行了点击操作。
         """
-        if self.appear(AUTO_SEARCH_MAP_OPTION_OFF, offset=self._auto_search_offset) \
-                and self.appear_then_click(AUTO_SEARCH_MAP_OPTION_OFF, interval=2):
-            return True
-
-        return False
+        if not self.match_template_color(AUTO_SEARCH_MAP_OPTION_OFF,
+                                         offset=self._auto_search_offset, threshold=30):
+            self._auto_search_off_frame = None
+            return False
+        if self._auto_search_off_frame is None:
+            self._auto_search_off_frame = self.device.image
+            return False
+        if self._auto_search_off_frame is self.device.image:
+            return False
+        self._auto_search_off_frame = None
+        return self.appear_then_click(AUTO_SEARCH_MAP_OPTION_OFF, interval=2)
 
     def is_in_auto_search_menu(self):
         """
