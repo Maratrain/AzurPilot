@@ -62,14 +62,12 @@ class MissionHandler(GlobeOperation, ZoneManager):
         """
         if not skip:
             # 没有延期行时保持原有选择逻辑，避免改变其他任务。
-            row_offset = checkout_offset
-            # 任务行垂直排列，间隔约 110 像素
-            # 扫描多行以处理月度Boss不在第一行的情况
-            for _ in range(8):
-                has_checkout = self.match_template_color(MISSION_CHECKOUT, offset=row_offset, similarity=0.78)
-                if has_checkout and not self.appear(MISSION_MONTHLY_BOSS, offset=row_offset):
+            # 直接扫描全屏定位「查看」，不依赖固定行距。
+            # 旧实现按 110 像素步进，行距不同时会漏掉后面的任务行。
+            for y, _ in self._os_mission_scan_rows(MISSION_CHECKOUT, similarity=0.78):
+                row_offset = area_offset(checkout_offset, (0, y - MISSION_CHECKOUT.area[1]))
+                if not self.appear(MISSION_MONTHLY_BOSS, offset=row_offset):
                     return row_offset
-                row_offset = area_offset(row_offset, (0, 110))
             return None
 
         # 延期委托仍留在列表中，超过一页时继续查找后面的委托。
@@ -195,9 +193,21 @@ class MissionHandler(GlobeOperation, ZoneManager):
         confirm_timer = Timer(2, count=6).start()
         for _ in self.loop():
             # 结束
-            if self.is_in_os_mission() \
-                    and not self.appear(MISSION_FINISH, offset=checkout_offset) \
-                    and not self.match_template_color(MISSION_CHECKOUT, offset=checkout_offset, similarity=0.78):
+            # 跳过塞壬研究时按全屏扫描判断剩余任务：任务行可能不含「领取」
+            # 或只剩塞壬研究行，按固定窗口判断会误判成「没有任务」而提前退出。
+            if self.is_in_os_mission():
+                if skip_siren_mission:
+                    has_finish = bool(self._os_mission_scan_rows(MISSION_FINISH))
+                    has_siren = bool(self._os_mission_scan_rows(MISSION_SIREN_RESEARCH))
+                else:
+                    has_finish = self.appear(MISSION_FINISH, offset=checkout_offset)
+                    has_siren = False
+                no_task = (not has_finish and not has_siren
+                           and not self.match_template_color(
+                               MISSION_CHECKOUT, offset=checkout_offset, similarity=0.78))
+            else:
+                no_task = False
+            if no_task:
                 # 未找到任务，等待确认。任务可能加载较慢。
                 if confirm_timer.reached():
                     logger.info('[大世界处理-任务] 未找到大世界任务')
@@ -219,32 +229,102 @@ class MissionHandler(GlobeOperation, ZoneManager):
             if self.appear_then_click(MISSION_ENTER, offset=(200, 5), interval=5):
                 confirm_timer.reset()
                 continue
-            if skip_siren_mission and self.appear(MISSION_SIREN_RESEARCH, offset=checkout_offset):
-                if self.appear(MISSION_FINISH, offset=checkout_offset):
-                    # 两个任务行之间大约 110 像素
-                    checkout_offset = area_offset(checkout_offset, (0, 110))
+            if skip_siren_mission:
+                # 扫描全屏比对行坐标，不依赖固定行距，避免漏判导致误领塞壬研究
+                if self._os_mission_claim_skip_siren():
                     confirm_timer.reset()
                     continue
+                # 剩余任务全是塞壬研究：没有可领取项，退出循环避免空转
+                if self._os_mission_scan_rows(MISSION_SIREN_RESEARCH):
+                    logger.info('[大世界处理-任务] 剩余任务均为塞壬研究，跳过不领取')
+                    break
             else:
                 if self.appear_then_click(MISSION_FINISH, offset=checkout_offset, interval=2):
                     self._os_mission_submitted = True
                     confirm_timer.reset()
                     continue
-                if self.handle_popup_confirm('MISSION_FINISH'):
-                    confirm_timer.reset()
-                    continue
-                if self.handle_map_get_items():
-                    confirm_timer.reset()
-                    continue
-                if self.handle_info_bar():
-                    confirm_timer.reset()
-                    continue
+
+            # 弹窗与结算处理对所有分支生效，跳过塞壬研究时同样需要处理
+            if self.handle_popup_confirm('MISSION_FINISH'):
+                confirm_timer.reset()
+                continue
+            if self.handle_map_get_items():
+                confirm_timer.reset()
+                continue
+            if self.handle_info_bar():
+                confirm_timer.reset()
+                continue
 
             if self.appear_then_click(GLOBE_GOTO_MAP, offset=(20, 20), interval=2):
                 # 意外进入地球仪
                 confirm_timer.reset()
                 continue
         return checkout_offset
+
+    @cached_property
+    def _os_mission_scan_templates(self):
+        """任务行扫描用的模板缓存（按钮名 → 已加载图片的 Template）。"""
+        templates = {}
+        for button in (MISSION_CHECKOUT, MISSION_FINISH, MISSION_SIREN_RESEARCH):
+            template = Template(button.file)
+            button.ensure_template()
+            template.image = button.image
+            templates[button.name] = template
+        return templates
+
+    def _os_mission_scan_rows(self, button, similarity=0.85):
+        """扫描全屏，返回某个按钮所有匹配位置，按 y 升序排列。
+
+        用于在不依赖固定行距的前提下，一次性定位任务列表中的全部目标行，
+        避免逐行累加固定偏移量时因行距变化而漏判。
+
+        Args:
+            button (Button): 待扫描的按钮，需在 _os_mission_scan_templates 中注册。
+            similarity (float): 模板匹配相似度阈值。
+
+        Returns:
+            list[tuple[int, int]]: 每个匹配位置的 (y, x)。
+
+        Pages:
+            in: MISSION_CHECK
+            out: MISSION_CHECK
+        """
+        template = self._os_mission_scan_templates[button.name]
+        rows = [(b.area[1], b.area[0])
+                for b in template.match_multi(self.device.image, similarity=similarity)]
+        return sorted(rows)
+
+    def _os_mission_claim_skip_siren(self):
+        """只领取非塞壬研究任务，跳过所有带「研究」的任务行。
+
+        塞壬研究任务使用黄币兑换紫币，开启「不做塞壬研究任务」后应保持不领取。
+        旧实现依赖「命中塞壬行后偏移 +110 像素」的逐行推进，行距变化或塞壬研究
+        不在首行时都会漏判，导致误领。本方法扫描全屏后按 y 坐标比对：
+        与任意塞壬研究行纵向重叠的「领取」按钮一律跳过。
+
+        Returns:
+            bool: 是否点击了某个领取按钮。
+
+        Pages:
+            in: MISSION_CHECK
+            out: MISSION_CHECK
+        """
+        siren_rows = self._os_mission_scan_rows(MISSION_SIREN_RESEARCH)
+        finish_rows = self._os_mission_scan_rows(MISSION_FINISH)
+
+        for y, _ in finish_rows:
+            # 「研究」文字与同一行「领取」按钮的中心纵向相差约 21 像素，取 45 像素容差
+            if any(abs(y - siren_y) < 45 for siren_y, _ in siren_rows):
+                logger.info('[大世界处理-任务] 跳过塞壬研究任务')
+                continue
+            # 名称带行号，避免多行领取共用同名按钮时触发点击洪水保护
+            target = MISSION_FINISH.move((0, y - MISSION_FINISH.area[1]), name=f'MISSION_FINISH_Y{y}')
+            self.device.click(target)
+            self._os_mission_submitted = True
+            logger.info('[大世界处理-任务] 领取非塞壬研究任务')
+            return True
+
+        return False
 
     def os_mission_quit(self):
         """
