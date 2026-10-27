@@ -6,8 +6,8 @@
 
 from module.combat.assets import *
 from module.handler.assets import *
-from module.statistics.assets import GET_ITEMS_ODD
 from module.statistics.item import *
+from module.statistics.item_layout import single_row_is_odd
 from module.statistics.utils import *
 
 ITEM_GROUP = ItemGrid(None, {}, template_area=(40, 21, 89, 70), amount_area=(60, 71, 91, 92))
@@ -42,8 +42,7 @@ class GetItemsStatistics:
         Returns:
             bool: If the number of items in row is odd.
         """
-        image = crop(image, GET_ITEMS_ODD.area, copy=False)
-        return np.mean(rgb2gray(image) > 127) > 0.1
+        return single_row_is_odd(image)
 
     def _stats_get_items_load(self, image):
         """

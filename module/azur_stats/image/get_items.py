@@ -5,18 +5,16 @@
 处理物品网格定位和数量 OCR，以及信息栏遮挡的异常情况。
 """
 
-import numpy as np
 import typing as t
 
 from module.azur_stats.image.base import ImageBase
 from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
-from module.base.utils import crop, rgb2gray
 from module.combat.assets import GET_ITEMS_1, GET_ITEMS_2, GET_ITEMS_3
 from module.handler.assets import INFO_BAR_1
 from module.logger import logger
-from module.statistics.assets import GET_ITEMS_ODD
 from module.statistics.item import Item, ItemGrid
+from module.statistics.item_layout import single_row_is_odd
 from module.statistics.utils import ImageError
 
 ITEM_GRIDS_1_ODD = ButtonGrid(origin=(336, 298), delta=(128, 0), button_shape=(96, 96), grid_shape=(5, 1))
@@ -66,8 +64,7 @@ def has_odd_items(image):
     Returns:
         bool: If there're 1/3/5 items in one row
     """
-    image = crop(image, GET_ITEMS_ODD.area)
-    return np.mean(rgb2gray(image) > 127) > 0.1
+    return single_row_is_odd(image)
 
 
 class GetItems(ImageBase):
