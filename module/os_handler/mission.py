@@ -319,7 +319,13 @@ class MissionHandler(GlobeOperation, ZoneManager):
                 continue
             # 名称带行号，避免多行领取共用同名按钮时触发点击洪水保护
             target = MISSION_FINISH.move((0, y - MISSION_FINISH.area[1]), name=f'MISSION_FINISH_Y{y}')
+            # 补给兑换等可重复任务领取后按钮原样保留，点击需限速：
+            # 未到间隔时返回 False，让外层循环先处理确认弹窗与奖励结算
+            timer = self.get_interval_timer(target, interval=2, renew=True)
+            if not timer.reached():
+                continue
             self.device.click(target)
+            timer.reset()
             self._os_mission_submitted = True
             logger.info('[大世界处理-任务] 领取非塞壬研究任务')
             return True

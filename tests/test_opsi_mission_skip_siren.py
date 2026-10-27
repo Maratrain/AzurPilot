@@ -16,6 +16,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
+from module.base.base import ModuleBase
 from module.base.template import Template
 from module.os_handler.assets import MISSION_FINISH, MISSION_SIREN_RESEARCH
 from module.os_handler.mission import MissionHandler
@@ -45,9 +46,12 @@ class _ScanStub:
 
     _os_mission_scan_rows = MissionHandler._os_mission_scan_rows
     _os_mission_claim_skip_siren = MissionHandler._os_mission_claim_skip_siren
+    # 领取点击限速复用 ModuleBase 的计时器登记，桩上需要真实的实现与存储
+    get_interval_timer = ModuleBase.get_interval_timer
 
     def __init__(self, canvas, siren_tpl, finish_tpl):
         self.device = _DeviceStub(canvas)
+        self.interval_timer = {}
         self._os_mission_submitted = False
         self._os_mission_scan_templates = {
             MISSION_SIREN_RESEARCH.name: _synthetic_template(MISSION_SIREN_RESEARCH, siren_tpl),
@@ -142,6 +146,32 @@ class TestOpsiMissionSkipSiren(unittest.TestCase):
         handler = self._make_handler([('finish', 186)])
         self.assertTrue(handler._os_mission_claim_skip_siren())
         self.assertTrue(handler._os_mission_submitted)
+
+    def test_claim_rate_limited_on_repeatable_row(self):
+        """可重复任务（如补给兑换）领取后按钮原样保留，连点必须被限速。
+
+        历史问题：领取点击无间隔限制，弹窗未及时弹出时对同一行连点
+        12 次触发 GameTooManyClickError（2026-10-28 OpsiDaily 事故）。
+        """
+        handler = self._make_handler([('finish', 186)])
+        self.assertTrue(handler._os_mission_claim_skip_siren())
+        self.assertEqual(len(handler.clicked), 1)
+        # 间隔未到时再次调用应被拦截，不产生新点击
+        self.assertFalse(handler._os_mission_claim_skip_siren())
+        self.assertEqual(len(handler.clicked), 1)
+        # 超过间隔后允许再次领取（回拨计时器起点模拟时间流逝）
+        name = handler.clicked[0].name
+        handler.interval_timer[name]._start -= 3
+        self.assertTrue(handler._os_mission_claim_skip_siren())
+        self.assertEqual(len(handler.clicked), 2)
+
+    def test_rate_limit_is_per_row(self):
+        """限速按行隔离：同一行受间隔约束，其余行领取不受影响。"""
+        handler = self._make_handler([('finish', 186), ('finish', 322)])
+        self.assertTrue(handler._os_mission_claim_skip_siren())
+        self.assertTrue(handler._os_mission_claim_skip_siren())
+        self.assertEqual(len(handler.clicked), 2)
+        self.assertNotEqual(handler.clicked[0].name, handler.clicked[1].name)
 
 
 class TestSkipSirenSourceLock(unittest.TestCase):
