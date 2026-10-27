@@ -13,8 +13,6 @@ from module.commission.commission import RewardCommission
 from module.commission.planner import (
     DEFAULT_VALUE_MODEL,
     VALUE_SCALE,
-    CommissionPlan,
-    CommissionPlanAction,
     CommissionPlanJob,
     CommissionValueModel,
     delay_threshold_seconds,
@@ -42,22 +40,49 @@ def commission(name, genre, duration=1):
 
 
 def selectable_commission(name, genre, duration=1):
-    """构造可直接进入委托选择算法的测试对象。"""
-    value = object.__new__(Commission)
-    value.name = name
-    value.genre = genre
-    value.category_str, value.genre_str = genre.split('_', 1)
-    value.status = 'pending'
-    value.valid = True
-    value.duration = timedelta(hours=duration)
-    value.duration_hm = f'{duration}:00'
-    value.duration_hour = str(duration)
-    value.suffix_hash = ''
-    value.suffix_image = None
-    value.available_time = timedelta(0)
-    value.deadline_time = None
-    value.repeat_count = 1
-    return value
+    """跳过截图识别，通过真实初始化构造可进入选择算法的委托。"""
+    def parse(value):
+        value.name = name
+        value.genre = genre
+        value.status = 'pending'
+        value.duration = timedelta(hours=duration)
+        value.suffix_hash = ''
+        value.suffix_image = None
+        value.available_time = timedelta(0)
+
+    with patch.object(Commission, 'commission_parse', parse):
+        return Commission(image=None, y=0, config=SimpleNamespace())
+
+
+class TestCommissionDurationFilter(unittest.TestCase):
+    def test_duration_hour_preserves_significant_zeroes(self):
+        for minutes, expected in (
+            (15, '0.25'), (20, '0.33'), (30, '0.5'), (45, '0.75'),
+            (60, '1'), (90, '1.5'), (100, '1.66'), (120, '2'),
+            (240, '4'), (300, '5'), (480, '8'), (600, '10'), (720, '12'),
+        ):
+            with self.subTest(minutes=minutes):
+                value = selectable_commission('额外魔方', 'extra_cube', duration=minutes / 60)
+
+                self.assertEqual(value.duration_hour, expected)
+
+    def test_decimal_and_clock_duration_rules_match_only_the_intended_commission(self):
+        half_hour = selectable_commission('半小时魔方', 'extra_cube', duration=0.5)
+        five_hours = selectable_commission('五小时魔方', 'extra_cube', duration=5)
+        ten_hours = selectable_commission('十小时魔方', 'extra_cube', duration=10)
+
+        for rule, expected in (
+            ('ExtraCube-0.5', half_hour), ('ExtraCube-0:30', half_hour),
+            ('ExtraCube-5', five_hours), ('ExtraCube-5:00', five_hours),
+            ('ExtraCube-10', ten_hours), ('ExtraCube-10:00', ten_hours),
+        ):
+            with self.subTest(rule=rule):
+                COMMISSION_FILTER.load(rule)
+
+                self.assertEqual(
+                    COMMISSION_FILTER.apply([half_hour, five_hours, ten_hours]),
+                    [expected],
+                )
 
 
 def brute_force_plan(jobs, slot_available, horizon, model=DEFAULT_VALUE_MODEL):
@@ -334,6 +359,33 @@ class TestCommissionAlgorithmSwitch(unittest.TestCase):
 
                 self.assertEqual(daily_choose.grids, [])
                 self.assertEqual(urgent_choose.grids, [allowed])
+
+    def test_long_cube_blacklist_keeps_half_hour_commission_in_both_algorithms(self):
+        half_hour = selectable_commission('舰队护卫演习', 'extra_cube', duration=0.5)
+        blocked = [
+            selectable_commission(f'{hours}小时魔方', 'extra_cube', duration=hours)
+            for hours in (4, 5, 8)
+        ]
+
+        for dynamic in (False, True):
+            with self.subTest(dynamic=dynamic):
+                worker = object.__new__(RewardCommission)
+                worker.config = SimpleNamespace(
+                    Commission_PresetFilter='custom',
+                    Commission_CustomFilter=(
+                        'ExtraCube-0:30 > ExtraCube-4 > ExtraCube-5 > ExtraCube-8'
+                    ),
+                    Commission_Blacklist='ExtraCube-8, ExtraCube-5, ExtraCube-4 #魔方',
+                    Commission_DoMajorCommission=True,
+                    Commission_DynamicProgramming=dynamic,
+                )
+
+                daily_choose, urgent_choose = worker._commission_choose(
+                    SelectedGrids([half_hour, *blocked]), SelectedGrids([]),
+                )
+
+                self.assertEqual(daily_choose.grids, [half_hour])
+                self.assertEqual(urgent_choose.grids, [])
 
     def test_high_value_count_uses_first_rules_and_pending_status(self):
         urgent = selectable_commission('高价值紧急委托', 'urgent_cube')

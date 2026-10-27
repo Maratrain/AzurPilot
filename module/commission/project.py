@@ -277,7 +277,8 @@ class Commission:
         self.duration_hm = 'unknown'
         if self.valid:
             self.category_str, self.genre_str = self.genre.split('_', 1)
-            self.duration_hour = str(int(self.duration.total_seconds() / 36) / 100).strip('.0')
+            # 仅去掉整数小时的 .0 后缀，保留 0.5 的前导零和 10 的个位零。
+            self.duration_hour = str(int(self.duration.total_seconds() / 36) / 100).removesuffix('.0')
             self.duration_hm = str(self.duration).rsplit(':', 1)[0]
 
     @property
