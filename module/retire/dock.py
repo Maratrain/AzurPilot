@@ -58,12 +58,45 @@ class Dock(Equipment):
     服务器差异：TW 服务器的筛选器按钮布局与其他服务器不同，
     通过 @Config.when 装饰器分发。
     """
+    # 等级区域出现 >= 该亮度的像素即认为卡片已渲染（「Lv.」为白色文字，
+    # 未渲染的空骨架最亮也在 150 以下）。
+    DOCK_CARD_RENDERED_BRIGHTNESS = 200
+    # 等待卡片渲染的兜底超时（秒）。原值 1.2s 在慢机器上不足。
+    DOCK_CARDS_RENDER_TIMEOUT = 3.0
+
+    def _dock_cards_rendered(self):
+        """判断当前截图里是否已经有渲染完成的舰船卡片。
+
+        船坞卡片渲染是异步的：点击筛选确认后，列表区域会先显示空骨架，
+        过一会儿才填入立绘和「Lv.XX」文字。仅靠「连续两帧哈希相同」判断
+        加载完成会误判——空骨架自身也是稳定的，于是刚点完确认就立刻退出，
+        后续 OCR 拿到一整页空区域，全部读成 0，最终报「没有合适的舰船」。
+
+        这里改为检查等级区域是否出现足够亮的像素（「Lv.」是白色文字）。
+        未渲染卡片时该区域是暗色骨架，最大值很低；渲染后会出现接近 255
+        的白色字形。
+
+        Returns:
+            bool: True 表示已至少有一张卡片渲染出等级文字。
+        """
+        from module.base.utils import crop
+        image = self.device.image
+        if image is None:
+            return False
+        for button in CARD_LEVEL_GRIDS.buttons:
+            region = crop(image, button.area, copy=False)
+            if region.size and int(region.max()) >= self.DOCK_CARD_RENDERED_BRIGHTNESS:
+                return True
+        return False
+
     def handle_dock_cards_loading(self, skip_first_screenshot=True):
         """
         等待船坞卡片加载完成。
 
         通过哈希比对连续两帧截图判断画面是否稳定，若船坞为空则立即退出。
-        使用 Timer(1.2s) 作为兜底超时，无法使用 confirm_timer 方法。
+        卡片渲染是异步的，空白骨架本身也「稳定」，因此哈希相同还不足以
+        说明加载完成：必须同时确认等级区域已经出现白色文字，否则继续等到
+        超时。使用 Timer 作为兜底，无法使用 confirm_timer 方法。
 
         Args:
             skip_first_screenshot: 是否跳过首次截图，复用上一状态循环的截图。
@@ -75,7 +108,7 @@ class Dock(Equipment):
             self.device.screenshot()
             skip_first_screenshot = True
         new_result = scanner.scan(self.device.image)
-        timeout = Timer(1.2, count=1).start()
+        timeout = Timer(self.DOCK_CARDS_RENDER_TIMEOUT, count=1).start()
         while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
@@ -89,7 +122,8 @@ class Dock(Equipment):
                 break
             if timeout.reached():
                 break
-            if old_result == new_result:
+            # 画面稳定且确实渲染出了卡片，才算加载完成
+            if old_result == new_result and self._dock_cards_rendered():
                 break
 
     def dock_favourite_set(self, enable=False, wait_loading=True):
