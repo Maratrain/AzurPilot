@@ -132,7 +132,8 @@ class CampaignBase(CampaignBase_):
         increase as more war archives campaigns are added
         """
         loading_checked = False
-        for _ in range(20):
+        swipe_count = 0
+        while 1:
             if skip_first_screenshot:
                 skip_first_screenshot = False
             else:
@@ -164,11 +165,17 @@ class CampaignBase(CampaignBase_):
                 if entrance is not None:
                     return entrance
 
+            # 滑动次数过多：档案列表随活动增多持续变大，
+            # 改为限制滑动次数而不是截图次数
+            if swipe_count >= 20:
+                break
+
             if WAR_ARCHIVES_SCROLL.appear(main=self):
                 if WAR_ARCHIVES_SCROLL.at_bottom(main=self):
                     WAR_ARCHIVES_SCROLL.set_top(main=self)
                 else:
                     WAR_ARCHIVES_SCROLL.next_page(main=self, page=0.66)
+                    swipe_count += 1
                 continue
             else:
                 break
