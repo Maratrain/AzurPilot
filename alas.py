@@ -775,6 +775,12 @@ class AzurLaneAutoScript:
                 level=50,
             )
             exit(1)
+        except EmulatorNotRunningError:
+            # 设备侧恢复失败不是配置错误：原样上抛，由调度循环退避重试。
+            # 历史缺陷（cq81 2026-10-26）：这里被下方 except Exception 抓住后
+            # 走 exit(1)，模拟器恢复失败一次就杀死整个调度进程，停机 3.5 小时。
+            # 恢复失败本属设备侧问题，7x24 场景下必须靠退避重试自愈。
+            raise
         except Exception as e:
             logger.exception_context(
                 title='设备初始化失败', exc=e,
@@ -2394,6 +2400,30 @@ class AzurLaneAutoScript:
                 else:
                     self._stop_daily_summary_scheduler()
                     break
+
+            # 设备侧恢复失败（模拟器没能重启起来）不是脚本缺陷：退避后继续，
+            # 不累计到全局失败上限而退出进程。与任务执行层的
+            # EmulatorNotRunningError 恢复分支保持同一套退避口径。
+            except EmulatorNotRunningError as e:
+                consecutive_global_failures += 1
+                self.is_first_task = False
+                del_cached_property(self, 'device')
+                wait_seconds = min(300, RESTART_DELAY * max(1, consecutive_global_failures))
+                logger.error(
+                    f'[Alas] 本轮设备恢复未成功，{wait_seconds} 秒后重试: {e}'
+                )
+                if consecutive_global_failures >= MAX_GLOBAL_FAILURES:
+                    logger.error_context(
+                        title='模拟器连续恢复失败',
+                        reason=f'已连续 {consecutive_global_failures} 轮恢复未成功。',
+                        impact=f'调度器不会退出，将退避 {wait_seconds} 秒后继续尝试。',
+                        action='检查模拟器进程是否卡死、宿主机资源是否耗尽；'
+                               '必要时手动重启模拟器或关闭崩溃保护。',
+                        level=30,
+                    )
+                self._watchdog_active = False
+                time.sleep(wait_seconds)
+                continue
 
             # 捕获全局异常并执行重启
             except Exception as e:

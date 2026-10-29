@@ -45,6 +45,13 @@ class ArknightsAutoScript(AzurLaneAutoScript):
 
     @cached_property
     def config(self):
+        """加载 MAA 桥接配置；失败原样上抛，由调度循环退避重试。
+
+        历史实现里任意异常都走 exit(1)：配置文件的瞬时读写失败（占用、
+        磁盘抖动、同步盘延迟）会静默结束桥接子进程，需手动点启动。
+        RequestHumanTakeover 保留为不可恢复语义，其余异常一律上抛；
+        cached_property 在异常路径不写缓存，下一次访问会重新构造。
+        """
         try:
             config = ArknightsConfig(config_name=self.config_name)
             return config
@@ -53,7 +60,7 @@ class ArknightsAutoScript(AzurLaneAutoScript):
             exit(1)
         except Exception as e:
             logger.exception(e)
-            exit(1)
+            raise
 
     @staticmethod
     def callback(self):

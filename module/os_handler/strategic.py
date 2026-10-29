@@ -123,9 +123,14 @@ class StrategicSearchHandler(MapEventHandler):
 
     def strategic_search_confirm(self):
         logger.info('[大世界-策略] 策略搜索确认')
+        confirmed = False
         for _ in self.loop():
             if self.appear(STRATEGIC_SEARCH_POPUP_CHECK, offset=(20, 20)) \
                     and self.handle_popup_confirm(offset=(30, 30), name='STRATEGIC_SEARCH'):
+                confirmed = True
+                continue
+            # 计划作战确认后，当前海域正在搜寻的指挥喵可能触发召回弹窗。
+            if confirmed and self.handle_popup_confirm(offset=(30, 30), name='STRATEGIC_SEARCH_MEOWFFICER'):
                 continue
             if self.is_in_map():
                 return True
