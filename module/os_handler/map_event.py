@@ -4,6 +4,7 @@
 故事跳过、舰队锁定开关、余烬信标弹窗、海域清除奖励以及
 自动搜索奖励等，是大世界战斗和探索流程的基础事件层。
 """
+from time import monotonic
 from typing import Optional
 
 from module.base.timer import Timer
@@ -34,6 +35,10 @@ fleet_lock.add_state('off', check_button=OS_FLEET_UNLOCKED)
 
 class MapEventHandler(EnemySearchingHandler):
     ash_popup_canceled = False
+    # 出发确认弹窗的重复保护：统计窗口秒数与窗口内允许的确认次数，
+    # 超出后认为脚本认错了弹窗，改为点取消止损。
+    _depart_confirm_window = 15
+    _depart_confirm_limit = 4
 
     def handle_map_get_items(self, interval=2, drop=None):
         if self.is_in_map():
@@ -112,6 +117,70 @@ class MapEventHandler(EnemySearchingHandler):
         else:
             return False
 
+    def handle_depart_confirm(self):
+        """处理出发确认弹窗，避免把未知弹窗当成出发确认点掉。
+
+        通用的 POPUP_CONFIRM 只认得出"确认/取消"两个按钮，区分不了弹窗来源。
+        信标/META 类提示一旦被当成出发确认点掉，游戏会跳到脚本不认识的页面，
+        上层循环既识别不了也退不出来，最终按截图未变化卡死。
+
+        真正的出发确认点掉之后画面会立刻推进，不会反复出现；因此当同一个出发
+        确认在 _depart_confirm_window 秒内出现超过 _depart_confirm_limit 次时，
+        判定为认错了弹窗，改为点击取消止损并告警。
+
+        Returns:
+            bool: 是否处理了弹窗。
+        """
+        if not (self.appear(POPUP_CANCEL, offset=self._popup_offset)
+                and self.appear(POPUP_CONFIRM, offset=self._popup_offset, interval=2)):
+            return False
+
+        if self._count_depart_confirm() > self._depart_confirm_limit:
+            POPUP_CANCEL.name = POPUP_CANCEL.name + '_DEPART_CONFIRM'
+            self.device.click(POPUP_CANCEL)
+            POPUP_CANCEL.name = POPUP_CANCEL.name[:-len('_DEPART_CONFIRM')]
+            logger.warning(
+                '[大世界处理-事件] 出发确认弹窗反复出现，已改为点击取消止损，'
+                '请确认该弹窗是否为信标/META 类提示'
+            )
+            self._depart_confirm_records.clear()
+            return True
+
+        POPUP_CONFIRM.name = POPUP_CONFIRM.name + '_DEPART_CONFIRM'
+        self.device.click(POPUP_CONFIRM)
+        POPUP_CONFIRM.name = POPUP_CONFIRM.name[:-len('_DEPART_CONFIRM')]
+        return True
+
+    def _count_depart_confirm(self):
+        """记录一次出发确认点击，并返回统计窗口内的累计次数。"""
+        records = self.__dict__.setdefault('_depart_confirm_records', [])
+        now = monotonic()
+        records.append(now)
+        self._depart_confirm_records = [
+            record for record in records if now - record <= self._depart_confirm_window
+        ]
+        return len(self._depart_confirm_records)
+
+    def handle_meta_beacon_page(self):
+        """从信标·META 页面返回上一层。
+
+        误点通用确认弹窗会把游戏带进信标·META 界面（即 META 主页面 page_meta），
+        自动搜索循环不认识这个页面、也没有退出动作，只能等到截图无变化被判卡死。
+        这里识别页面标题后点击左上角返回，让上层流程继续跑。
+
+        该方法刻意不挂在 handle_map_event 上：OpsiAshBeacon 之类的 META 任务
+        本身就工作在这个页面，若在通用事件链里返回会直接打断它们的流程。
+
+        Returns:
+            bool: 当前是否处于信标·META 页面。
+        """
+        if self.appear(META_BEACON_CHECK, offset=(20, 20)):
+            if self.appear_then_click(META_BEACON_BACK, offset=(20, 20), interval=2):
+                logger.info('[大世界处理-事件] 检测到信标·META 页面，点击返回')
+            return True
+
+        return False
+
     def handle_map_event(self, drop=None):
         """
         处理大世界地图事件。
@@ -129,8 +198,8 @@ class MapEventHandler(EnemySearchingHandler):
             return 'ash_popup'
         # 处理指挥猫搜寻时退出海域的确认弹窗 (issue #100)
         # 这类弹窗会阻止其他操作,必须优先处理
-        # handle_popup_confirm 的 name 参数仅用于日志记录,实际识别使用通用的 POPUP_CONFIRM 按钮
-        if self.handle_popup_confirm('DEPART_CONFIRM'):
+        # handle_depart_confirm 内部做了重复保护，认错弹窗时会改点取消止损
+        if self.handle_depart_confirm():
             return 'depart_confirm'
         if self.handle_map_get_items(drop=drop):
             return 'map_get_items'

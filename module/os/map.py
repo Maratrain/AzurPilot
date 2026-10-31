@@ -1059,6 +1059,10 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                         auto_search_time_limit_timer.reset()
                         continue
                 auto_search_time_limit_timer.reset()
+            if self.handle_meta_beacon_page():
+                # 误点通用确认弹窗会跳到信标·META 页面，这里返回后继续自动搜索。
+                auto_search_time_limit_timer.reset()
+                continue
             if self.handle_map_event():
                 # 自动搜索无法处理塞壬搜索装置。
                 auto_search_time_limit_timer.reset()
