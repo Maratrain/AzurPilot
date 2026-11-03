@@ -25,6 +25,17 @@ ISLAND_MAP_DESTINATION_WAIT = 45
 # 目的地确认按钮只允许在点击后前 10s 内补点重试，
 # 防止地图一直停留在确认弹窗时反复点击同一按钮触发 GameTooManyClickError。
 ISLAND_MAP_CONFIRM_RETRY_WAIT = 10
+# 岗位列表可见区域下沿（post_manage_up_swipe 滑动框 y=69~656），按钮下沿超出时先上推列表再点击
+POST_LIST_VISIBLE_BOTTOM = 640
+POST_EDGE_NUDGE_MARGIN = 120
+POST_EDGE_NUDGE_LIMIT = 3
+
+# 种子/鱼苗商店只列出账号已解锁的商品，未解锁的商品不占格子，后面的商品会整体前移，
+# 各账号、各服务器的格子顺序都可能不同（如国际服未解锁洋葱时，草莓格子上是棉花）。
+# 因此商品按图标在整页范围内模板搜索定位，而不是在国服坐标上做颜色检测；
+# 种子包外观相同、只有中间图案不同，相似度需提高到 0.93 才不会误认成其他商品。
+ISLAND_SHOP_ITEM_SEARCH_OFFSET = (700, 300)
+ISLAND_SHOP_ITEM_SIMILARITY = 0.93
 
 # 岗位产品选择滑动惯性消除安全区域
 SELECT_PRODUCT_INERTIA_STOP = Button(
@@ -858,8 +869,11 @@ class Island(SelectCharacter):
         retry_swipe_timer = Timer(3, count=3).start()
         retry_swipe_used = 0
         full_retry_used = 0
-        for image in self.loop(timeout=45, skip_first=False):
-            post_appear = self.appear(post,offset=300)
+        edge_nudge_used = 0
+        # 滑动定位/整页重试/上推补点多轮可达十几秒，45 秒预算在低端机上撑不满整条重试链，
+        # 放宽到 90 秒；正常路径在命中时就退出，不受影响。
+        for image in self.loop(timeout=90, skip_first=False):
+            post_appear = self.appear(post, offset=300)
             if post_appear:
                 retry_swipe_timer.reset()
                 cell_image = crop(image, post.button)
@@ -870,6 +884,15 @@ class Island(SelectCharacter):
             if self.appear(ISLAND_POST_SELECT, offset=1):
                 return True
             if post_appear:
+                # 岗位列表可见区域下沿约 y=656（见 post_manage_up_swipe 的滑动框）。岗位按钮匹配在下沿之下时，
+                # 点击落在列表外或画面外（y>720）不会打开岗位，会一直重复点击到 GameTooManyClickError
+                # （啾咖啡岗位 1 在滑动后常停在 y≈680~720）。先把列表上推一点再点击。
+                bottom = post.button[3]
+                if bottom > POST_LIST_VISIBLE_BOTTOM and edge_nudge_used < POST_EDGE_NUDGE_LIMIT:
+                    edge_nudge_used += 1
+                    logger.info(f"[岛屿] 岗位按钮 {post} 位于列表可见区域下沿之下 (y={bottom})，上推列表后再点击")
+                    self.post_manage_up_swipe(bottom - POST_LIST_VISIBLE_BOTTOM + POST_EDGE_NUDGE_MARGIN)
+                    continue
                 self.device.sleep(0.1)
                 self.device.click(post)
                 self.device.sleep(0.5)
@@ -994,10 +1017,16 @@ class Island(SelectCharacter):
             # 不能退化为颜色检测，避免商店 3D 背景像素恰好匹配导致误判
             if self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1)):
                 break
-            if self.appear_then_click(item_button, interval=1.2):
+            # 按图标搜索整页定位商品；商品未解锁或不在列表时不会误点其他格子，超时后放弃购买
+            if self.appear_then_click(
+                    item_button,
+                    offset=ISLAND_SHOP_ITEM_SEARCH_OFFSET,
+                    similarity=ISLAND_SHOP_ITEM_SIMILARITY,
+                    interval=1.2,
+            ):
                 continue
         else:
-            logger.warning(f"[岛屿] 打开购买弹窗超时: {item_name or item_button}")
+            logger.warning(f"[岛屿] 打开购买弹窗超时（商店中未找到该商品，可能未解锁）: {item_name or item_button}")
             return False
 
         if self.appear(ISLAND_SHOPPING_CHECK, offset=(1, 1)):
