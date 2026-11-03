@@ -97,8 +97,9 @@ class AzurLaneAutoScript:
         self.is_first_task = True
         # 任务失败计数器，key 为任务名，value 为连续失败次数
         self.failure_record = {}
-        # 连续卡死/ADB 离线计数，用于判断是否需要重启模拟器
+        # 连续卡死/游戏退出/ADB 离线计数，用于判断是否需要重启模拟器
         self.consecutive_game_stuck = 0
+        self.consecutive_game_not_running = 0
         self.consecutive_adb_offline = 0
         # 未预期异常连续计数，先重启游戏，连续多次才重启模拟器
         self.consecutive_unexpected_error = 0
@@ -435,7 +436,9 @@ class AzurLaneAutoScript:
             # 而本函数超限即放弃，不归零会让自动重启累计 3 次离线后永久停摆。
             # 只认平台显式返回的 False 为起不来（SSH 等平台成功时返回 None，不能算失败）
             if started is not False:
+                # 新的模拟器会话不沿用重启前的离线或游戏退出计数。
                 self.consecutive_adb_offline = 0
+                self.consecutive_game_not_running = 0
             return True
         except EmulatorOpBusy as e:
             # 上一轮的重启操作还在后台跑（很可能正在冷启动模拟器）。
@@ -1021,7 +1024,7 @@ class AzurLaneAutoScript:
             return True
         except GameNotRunningError as e:
             self._last_task_error = 'GameNotRunningError'
-            # 游戏未运行，调度 Restart 任务自动恢复
+            # 游戏未运行先重启游戏；反复退出说明仅重启游戏未能恢复环境
             logger.error_context(
                 title='游戏进程未运行',
                 reason='任务执行前未检测到碧蓝航线游戏进程。',
@@ -1033,6 +1036,18 @@ class AzurLaneAutoScript:
                 with_traceback=False,
             )
             self._check_sensitive_exit(command, e)
+            if self.config.Error_GameStuckRestart:
+                self.consecutive_game_not_running += 1
+                limit = int(self.config.Error_GameStuckThreshold)
+                logger.warning(
+                    f'[Alas] GameNotRunningError: '
+                    f'{self.consecutive_game_not_running}/{limit}'
+                )
+                if self.consecutive_game_not_running >= limit:
+                    logger.warning('[Alas] 游戏反复退出，正在重启模拟器恢复运行环境...')
+                    # 游戏尚未恢复运行，不能据此认定当前业务任务故障。
+                    if self._try_restart_emulator():
+                        self.consecutive_game_not_running = 0
             handle_notify(
                 self.config.Error_OnePushConfig,
                 title=f"AzurPilot <{self.config_name}> 警告",
@@ -2385,6 +2400,7 @@ class AzurLaneAutoScript:
                     del_cached_property(self, 'config')
                     consecutive_global_failures = 0 # 任务成功时重置全局失败计数器
                     self.consecutive_game_stuck = 0
+                    self.consecutive_game_not_running = 0
                     self.consecutive_adb_offline = 0
                     self.consecutive_unexpected_error = 0
                     # 任务成功，清除该任务的失败保护记录

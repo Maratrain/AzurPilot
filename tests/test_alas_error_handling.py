@@ -33,8 +33,11 @@ class TestGameNotRunningErrorHandling(unittest.TestCase):
         # __new__ 绕过了 __init__，需补齐 run() 依赖的实例属性
         script.__dict__['_channel_float_done'] = False
         script.__dict__['consecutive_unexpected_error'] = 0
+        script.__dict__['consecutive_game_not_running'] = 0
         script.__dict__['config'] = Mock()
         script.config.cross_get.return_value = False
+        script.config.Error_GameStuckRestart = True
+        script.config.Error_GameStuckThreshold = 3
         error = GameNotRunningError('Game not running')
         script.__dict__['commission'] = Mock(side_effect=error)
 
