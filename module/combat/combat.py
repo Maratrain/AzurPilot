@@ -601,25 +601,16 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
         处理经验结算画面（S/A/B/C/D 评价）。
 
         Returns:
-            是否点击了经验结算画面。
+            是否识别到经验结算画面，包括等待点击间隔时。
         """
         if self.is_combat_executing():
             return False
-        if self.appear_then_click(EXP_INFO_S, interval=self.exp_info_click_interval):
-            self.device.sleep((0.25, 0.5))
-            return True
-        if self.appear_then_click(EXP_INFO_A, interval=self.exp_info_click_interval):
-            self.device.sleep((0.25, 0.5))
-            return True
-        if self.appear_then_click(EXP_INFO_B, interval=self.exp_info_click_interval):
-            self.device.sleep((0.25, 0.5))
-            return True
-        if self.appear_then_click(EXP_INFO_C, interval=self.exp_info_click_interval):
-            self.device.sleep((0.25, 0.5))
-            return True
-        if self.appear_then_click(EXP_INFO_D, interval=self.exp_info_click_interval):
-            self.device.sleep((0.25, 0.5))
-            return True
+        for button in (EXP_INFO_S, EXP_INFO_A, EXP_INFO_B, EXP_INFO_C, EXP_INFO_D):
+            if self.appear(button):
+                # 冷却期内点击会被 interval 拦下，但画面仍处于经验结算，需返回 True
+                if self.appear_then_click(button, interval=self.exp_info_click_interval):
+                    self.device.sleep((0.25, 0.5))
+                return True
 
         return False
 
