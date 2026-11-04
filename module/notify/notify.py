@@ -76,7 +76,8 @@ def handle_notify(_config: str, **kwargs) -> bool:
 
         resp = notifier.notify(**config)
         if isinstance(resp, Response):
-            if resp.status_code != 200:
+            # 部分推送服务成功时返回 201/204 等 2xx 状态码，均视为推送成功
+            if not 200 <= resp.status_code < 300:
                 logger.warning("推送通知失败!")
                 logger.warning(f"[通知] HTTP状态码:{resp.status_code}")
                 return False
