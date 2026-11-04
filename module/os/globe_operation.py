@@ -382,6 +382,24 @@ class GlobeOperation(ActionPointHandler):
 
         return True
 
+    def handle_combat_result_on_exit(self):
+        """离开海域时关闭刚结束的战斗结算页。
+
+        要塞中一支舰队阵亡后自律寻敌停止，其他舰队正在进行的战斗仍会结束并停在
+        「PERFECT S / Touch to continue」结算页，不关闭就无法返回全球地图。
+        战斗处理方法在 OSMap 混入的 Combat 中，单独使用本类时跳过。
+
+        Returns:
+            bool: 是否处理了结算页。
+        """
+        if not hasattr(self, 'handle_battle_status'):
+            return False
+        if self.handle_battle_status():
+            return True
+        if self.handle_exp_info():
+            return True
+        return False
+
     def os_map_goto_globe(self, unpin=True):
         """
         从海域地图返回全球地图。
@@ -400,20 +418,22 @@ class GlobeOperation(ActionPointHandler):
                 break
 
             if self.appear_then_click(MAP_GOTO_GLOBE, offset=(200, 5), interval=5):
-                # 仅用于初始化 MAP_GOTO_GLOBE_FOG 的间隔计时器
-                self.appear(MAP_GOTO_GLOBE_FOG, interval=5)
-                self.interval_reset(MAP_GOTO_GLOBE_FOG)
+                self.get_interval_timer(MAP_GOTO_GLOBE_FOG, interval=5, renew=True).reset()
                 click_count += 1
                 if click_count >= 5:
                     # 当海域存在探索奖励时，游戏不会允许你离开。
                     logger.warning('[大世界-操作] 无法前往全球地图, 可能有未收集的海域探索奖励阻止退出')
                     raise RewardUncollectedError
                 continue
-            if self.appear_then_click(MAP_GOTO_GLOBE_FOG, interval=5):
-                # 仅在要塞中遇到；即使地图中有未领取的探索奖励，游戏也不会阻止退出
+            # 仅在要塞中遇到；即使地图中有未领取的探索奖励，游戏也不会阻止退出
+            # 离开要塞后迷雾可能残留，港口内按钮还会向左偏移。
+            if self.match_template_color(MAP_GOTO_GLOBE_FOG, offset=(200, 5), interval=5, threshold=40):
+                self.device.click(MAP_GOTO_GLOBE_FOG)
                 self.interval_reset(MAP_GOTO_GLOBE)
                 continue
             if self.handle_map_event():
+                continue
+            if self.handle_combat_result_on_exit():
                 continue
             # 意外进入港口
             if self.appear(PORT_CHECK, offset=(20, 20), interval=5):

@@ -18,7 +18,8 @@ class EnemySearchingHandler(EnemySearchingHandler_):
         if self.appear(IN_MAP, offset=(200, 5), interval=0, similarity=0.8):
             return True
 
-        if self.match_template_color(MAP_GOTO_GLOBE_FOG, offset=(5, 5)):
+        # 港口内按钮向左偏移，迷雾覆盖时按钮颜色也会变亮。
+        if self.match_template_color(MAP_GOTO_GLOBE_FOG, offset=(200, 5), threshold=40):
             return True
 
         return False

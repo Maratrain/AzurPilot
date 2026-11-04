@@ -536,6 +536,8 @@ class TestResourceCacheInvalidation(unittest.TestCase):
         handler.config = SimpleNamespace(task=SimpleNamespace(command='OpsiHazard1Leveling'))
         handler.device = Mock()
         handler.appear = Mock(return_value=True)
+        # 迷雾检测已改用 match_template_color（按钮偏移/褪色兼容），桩同样返回 True
+        handler.match_template_color = Mock(return_value=True)
         handler.ui_ensure = Mock()
         names = ('_ap_snapshot', '_ap_purchase_count', '_yellow_coin_read', '_paired_purple_read')
         for name in names:
