@@ -362,7 +362,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 return item['name']
         return None
 
-    def decided_lists(self, post_button, post_id, category, time_var_name):
+    def decided_lists(self, post_button, post_id, category, time_var_name) -> bool:
         """
         检查指定岗位的状态并更新相关列表。
 
@@ -376,9 +376,19 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
             post_id (str): 岗位标识，如 'ISLAND_FARM_POST1'。
             category (str): 区域类型，'farm'、'orchard' 或 'nursery'。
             time_var_name (str): 对应的时间变量名，用于存储完成时间。
+
+        Returns:
+            bool: 成功打开岗位时为 True；岗位尚未解锁时为 False。
         """
         self.post_close()
-        self.post_open(post_button)
+        if not self.post_open(post_button):
+            self.posts[post_id]['crop'] = None
+            setattr(self, time_var_name, None)
+            post_index = int(post_id[-1]) - 1
+            if category in self.time_vars and post_index < len(self.time_vars[category]):
+                self.time_vars[category][post_index] = None
+            logger.info(f"[岛屿-农田] {post_id}: 岗位未解锁，跳过")
+            return False
         self.device.screenshot()
         if self.appear(ISLAND_WORK_COMPLETE, offset=1):
             self.posts[post_id]['crop'] = None
@@ -399,6 +409,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
             self.posts[post_id]['crop'] = None
             setattr(self, time_var_name, None)
         self.post_get_and_close()
+        return True
 
     def get_orchard_character_filter(self, product):
         """根据小天城橡胶树开关生成果园派遣角色优先级。"""
@@ -618,17 +629,16 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
 
             need_default = max(0, default_count - already_planted_default)
 
-            if to_plant_list:
-                # 未达标作物：每个未达标作物最多分配一个岗位，避免单个作物
-                # 被重复分配到所有空闲岗位（如香蕉缺 1 个却 4 个岗位全种香蕉）。
-                for i in range(min(idle_count, len(to_plant_list))):
-                    all_plants_to_plant[category].append(to_plant_list[i])
-            else:
-                # 所有未达标作物都已安排后才种植默认作物
-                if idle_count > 0 and need_default > 0:
-                    actual_default = min(idle_count, need_default)
-                    for _ in range(actual_default):
-                        all_plants_to_plant[category].append(default_crop)
+            # 未达标作物：每个未达标作物最多分配一个岗位，避免单个作物
+            # 被重复分配到所有空闲岗位（如香蕉缺 1 个却 4 个岗位全种香蕉）。
+            restock = to_plant_list[:idle_count]
+            all_plants_to_plant[category].extend(restock)
+            # 所有未达标作物都已安排后，剩余空闲岗位才种植默认作物
+            spare = idle_count - len(restock)
+            # 默认作物本身也在补种时，那个岗位同样算作默认作物岗位
+            need_default = max(0, need_default - restock.count(default_crop))
+            if spare > 0 and need_default > 0:
+                all_plants_to_plant[category].extend([default_crop] * min(spare, need_default))
 
             if all_plants_to_plant[category]:
                 logger.info(f"[岛屿-农田] \n{category}需要种植的作物: {all_plants_to_plant[category]}")

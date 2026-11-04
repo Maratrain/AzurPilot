@@ -564,9 +564,11 @@ class Island(SelectCharacter):
         return False
 
     def _handle_select_product_failure(self, product):
-        """select_product 失败时的统一处理：记录警告、关闭岗位面板、返回 False"""
+        """select_product 失败时的统一处理：记录警告、退回岗位管理页、返回 False"""
         logger.warning(f"[岛屿] select_product 失败：未能找到产品 {self._item_cn(product)} 的选择项")
-        self.device.click(POST_CLOSE)
+        # 此时停在产品选择页，岗位详情的关闭按钮不在画面上；
+        # 直接点 POST_CLOSE 会无效并导致后续岗位打开卡死，改为逐层退回岗位管理页
+        self.back_to_postmanage_from_dispatch()
         return False
 
     def post_close(self):
