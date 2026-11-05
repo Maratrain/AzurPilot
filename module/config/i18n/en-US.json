@@ -933,7 +933,17 @@
     },
     "CloseEmulatorDuringLongWait": {
       "name": "Close Emulator During Long Wait",
-      "help": "When the next task is more than 3 hours away, close the emulator during the wait to save memory and CPU.",
+      "help": "When the next task is more than the threshold below, close the emulator during the wait to save memory and CPU.",
+      "True": "True",
+      "False": "False"
+    },
+    "CloseEmulatorLongWaitMinutes": {
+      "name": "Emulator Close Threshold (minutes)",
+      "help": "When the next task is more than this many minutes away, close the emulator during the wait. Default 180 minutes (3 hours), range 1~10080 (7 days)."
+    },
+    "CloseEmulatorDuringMaintenance": {
+      "name": "Close Emulator During Maintenance",
+      "help": "When enabled, the emulator is closed during server maintenance to save memory and CPU, and the server status is polled over HTTP every minute. When the server is back, the emulator starts and logs in automatically. Note: the reopening can only be noticed by polling, so the startup is 1~2 minutes later than the actual reopening; remote devices (wireless ADB / SSH) have no local emulator instance to close, this switch has no effect.",
       "True": "True",
       "False": "False"
     },

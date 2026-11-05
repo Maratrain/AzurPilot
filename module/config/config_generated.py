@@ -157,6 +157,8 @@ class GeneratedConfig:
     Optimization_CombatScreenshotInterval = 1.0
     Optimization_TaskHoardingDuration = 0
     Optimization_CloseEmulatorDuringLongWait = True  # True, False
+    Optimization_CloseEmulatorLongWaitMinutes = 180
+    Optimization_CloseEmulatorDuringMaintenance = False  # True, False
     Optimization_WhenTaskQueueEmpty = 'goto_main'  # stay_there, goto_main, close_game
     Optimization_WhenSchedulerStopped = 'stay_there'  # stay_there, goto_main, close_game, close_emulator
 

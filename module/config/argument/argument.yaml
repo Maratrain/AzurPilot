@@ -276,6 +276,13 @@ Optimization:
     type: checkbox
     value: true
     option: [true, false]
+  CloseEmulatorLongWaitMinutes:
+    value: 180
+    validate: [1, 10080]
+  CloseEmulatorDuringMaintenance:
+    type: checkbox
+    value: false
+    option: [true, false]
   WhenTaskQueueEmpty:
     value: goto_main
     option: [stay_there, goto_main, close_game]

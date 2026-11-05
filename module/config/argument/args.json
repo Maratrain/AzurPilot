@@ -698,6 +698,22 @@
           false
         ]
       },
+      "CloseEmulatorLongWaitMinutes": {
+        "type": "input",
+        "value": 180,
+        "validate": [
+          1,
+          10080
+        ]
+      },
+      "CloseEmulatorDuringMaintenance": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
       "WhenTaskQueueEmpty": {
         "type": "select",
         "value": "goto_main",

@@ -56,6 +56,24 @@ class ServerChecker:
 
         self.check_now()
 
+    def _push_state(self, available: bool, message: str) -> None:
+        """记录一次服务器状态，并在日志里按需降级。
+
+        维护期间调度器会定时轮询，一次维护通常几个小时；状态没变化时还每轮
+        打一条 INFO 会把日志区淹掉，所以只有「首次查询」和「状态真正变化」
+        （可用 ↔ 不可用）才用 INFO，其余降到 DEBUG（默认不显示）。
+
+        Args:
+            available (bool): 本次查询得到的可用性。
+            message (str): 状态说明，如 `服务器 "X" 维护中。`。
+        """
+        changed = not self._state or self._state[-1] != available
+        self._state.append(available)
+        if changed:
+            logger.info(f'[服务器检查] {message}')
+        else:
+            logger.debug(f'[服务器检查] {message}')
+
     def _load_server(self) -> None:
         """
         通过 API 获取服务器状态。
@@ -80,11 +98,9 @@ class ServerChecker:
             if resp.status_code == 200:
                 j = resp.json()
                 if j['state'] != 1:
-                    self._state.append(True)
-                    logger.info(f'[服务器检查] 服务器 "{self._server}" 可用。')
+                    self._push_state(True, f'服务器 "{self._server}" 可用。')
                 else:
-                    self._state.append(False)
-                    logger.info(f'[服务器检查] 服务器 "{self._server}" 维护中。')
+                    self._push_state(False, f'服务器 "{self._server}" 维护中。')
 
                 # 检查 API 服务端是否已停止更新
                 if j['last_update'] > self._timestamp:
@@ -98,8 +114,7 @@ class ServerChecker:
                 # API 数据库可能未收录新增服务器（如"长弓计划"），
                 # 检查本地服务器列表确认该服务器是否真实存在
                 if self._server_in_local_list():
-                    self._state.append(True)
-                    logger.info(f'[服务器检查] 服务器 "{self._server}" 可用（本地已验证，API未知）。')
+                    self._push_state(True, f'服务器 "{self._server}" 可用（本地已验证，API未知）。')
                 else:
                     self._state.append(False)
                     raise ScriptError(f'Server "{self._server}" does not exist!')
@@ -143,7 +158,8 @@ class ServerChecker:
             else:
                 if self._timer.limit < 600:
                     self._timer.limit += 120
-                logger.info(f'服务器检查er will retry after {self._timer.limit}s')
+                # 轮询期间的内部计时信息，每轮都打会占满日志区，降级到 DEBUG
+                logger.debug(f'[服务器检查] {self._timer.limit} 秒后重试')
             self._timer.reset()
         except ScriptError as e:
             logger.warning(str(e))
