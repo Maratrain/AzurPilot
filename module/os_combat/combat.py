@@ -34,9 +34,27 @@ class Combat(Combat_, MapEventHandler):
     连续战斗检测、S 评价延迟点击、大世界专用物品获取逻辑。
 
     Attributes:
-        battle_status_s_autoclick_delay (int): S 评价页面自动点击延迟秒数。
+        battle_status_s_autoclick_delay (int): 自律寻敌路径下 S 评价页面的兜底等待（秒）。
+            只服务自律寻敌（塞壬要塞、侵蚀1练级等）：那条链路上游戏会自行推进
+            评价页，抢着点会打架。
+            手动作战只有深渊海域与月困（月度 Boss）两处，不使用任何等待，见
+            _handle_auto_battle_status_s()。
+        _os_siren_battle (bool): 本轮进攻是否出现过塞壬强敌的战斗准备界面。
+        _os_battle_victory (bool): 本轮进攻是否取得了战斗评价（即战斗胜利）。
     """
+    # 这个值最初也是唯一的用意：自律寻敌（塞壬要塞、侵蚀1练级等）会自行推进
+    # S 评价页，等它自己走完再兜底点。2026-11-04 深渊坐标日志暴露了它的副作用——
+    # 大世界里真正不能自律、只能手动作战的只有深渊海域和月困（月度 Boss），
+    # 这两个场景游戏根本不会自己推进 S 评价页，脚本却在上面死等 20.1 秒
+    # （22:48:56 结算 → 22:49:16 才点）。现在手动作战零等待，这里只留给自律路径。
+    # 也曾试过"画面静止即点"，但战果页自带光效/闪动，整帧永远不会完全一致，
+    # 那个判据在真机上等于永远不成立，已废弃。
     battle_status_s_autoclick_delay = 20
+    # 手动作战（深渊海域 / 月困）点击 S 评价页被游戏吞掉后的重试间隔。
+    # 评价页是"点掉就前进"的页面，点空一次等 7 秒毫无意义，1 秒重试即可；
+    # 连续点同一按钮会被设备层的点击洪水检测（15 帧窗口内同按钮/同网格 ≥12 次）
+    # 误判成卡死，所以每次点完用 click_record_remove() 豁免该按钮。
+    battle_status_s_retry_interval = 1
 
     def combat_appear(self):
         """
@@ -76,19 +94,19 @@ class Combat(Combat_, MapEventHandler):
         """
         获取或重建 S 评价延迟点击计时器。
 
-        大世界自动战斗中，S 评价页面需要延迟一段时间再点击，
-        避免与自动搜索的自动推进产生冲突。
+        只服务自律寻敌路径（等游戏自行推进评价页）；手动作战路径不使用这个等待。
 
         Returns:
             Timer: S 评价延迟计时器实例。
         """
+        delay = self.battle_status_s_autoclick_delay
         try:
             timer = self._os_battle_status_s_timer
         except AttributeError:
-            timer = Timer(self.battle_status_s_autoclick_delay)
+            timer = Timer(delay)
             self._os_battle_status_s_timer = timer
-        if timer.limit != self.battle_status_s_autoclick_delay:
-            timer = Timer(self.battle_status_s_autoclick_delay)
+        if timer.limit != delay:
+            timer = Timer(delay)
             self._os_battle_status_s_timer = timer
         return timer
 
@@ -98,30 +116,83 @@ class Combat(Combat_, MapEventHandler):
         """
         self._battle_status_s_timer().clear()
 
+    def os_battle_result_reset(self):
+        """
+        清空上一场战斗留下的结果标记。
+
+        在每次针对 Boss 发起进攻前调用，保证「塞壬战胜利」这个兜底判据
+        只反映本轮进攻，不会被上一支舰队的战斗结果污染。
+        """
+        self._os_siren_battle = False
+        self._os_battle_victory = False
+
+    def os_boss_defeated(self):
+        """
+        本轮进攻是否已经把 Boss 打掉。
+
+        判据：战斗中出现了塞壬强敌的战斗准备界面（SIREN_PREPARATION），
+        且随后取得了战斗评价（S/A/B/C/D 任一，出现评价页即本场胜利）。
+
+        这是 boss_clear() 里「战后雷达上还有问号」之外的兜底判据。
+        2026-11-04 深渊坐标事故：Boss 确实被打掉（S 评价 + 6 次掉落），
+        但战后雷达上既没有敌人也没有问号（深渊海域浓雾叠加视野/雷达覆盖不足），
+        旧逻辑只认问号，于是把 4 支舰队的行动机会全部空耗在「无Boss可前往」上，
+        最终误报「无法击败boss，舰队已耗尽」并请求人工介入。
+
+        Returns:
+            bool: 本轮进攻是否已击败 Boss。
+        """
+        siren = getattr(self, '_os_siren_battle', False)
+        victory = getattr(self, '_os_battle_victory', False)
+        return bool(siren and victory)
+
     def _handle_auto_battle_status_s(self, drop=None, timer=None):
         """
-        大世界自动模式下，等待后再点击 BATTLE_STATUS_S。
+        点击 S 评价页（BATTLE_STATUS_S），点击时机按路径区分。
 
-        自动搜索通常会自行推进 S 评价结果页面，此处仅作为客户端卡住时的延迟兜底处理。
-        先启动计时器，到达延迟阈值后才执行点击，避免与自动搜索冲突。
+        自律寻敌路径（调用方传入 timer）：游戏会自行推进评价结果页面，
+        等满 battle_status_s_autoclick_delay 再兜底点击，避免与自动推进冲突。
+        手动作战路径（使用内部 timer，实际不参与判定）：大世界里不能自律、只能
+        手动推图打 Boss 的只有深渊海域与月困（月度 Boss），这两处游戏不会自己
+        推进评价页，「战斗评价页出现」本身就是战斗结束的信号，检测到即点击，
+        不做任何时间等待（塞壬要塞走自律寻敌，属于上面的 auto_advance 分支，不受影响）：
+          - 掉落截图自带等待：DropImage.handle_add() 会先 sleep
+            WAIT_BEFORE_SAVING_SCREEN_SHOT（默认 1s）再取图；
+          - 点击被吞就重试：按 battle_status_s_retry_interval（1s）重试，
+            直到评价页消失；点完用 click_record_remove() 豁免该按钮，
+            不会被设备层的点击洪水检测误判成卡死；
+          - 卡死兜底：combat_status() 的结算阶段超时（300s）兜底。
 
         Args:
             drop (DropImage): 掉落图像对象，用于处理战斗掉落。
-            timer (Timer): 可选的外部计时器，为 None 时使用内部计时器。
+            timer (Timer): 可选的外部计时器，为 None 时使用内部计时器
+                （即手动作战路径，此时不使用等待）。
 
         Returns:
             tuple: (是否出现, 是否点击)。
         """
+        auto_advance = timer is not None
         timer = timer or self._battle_status_s_timer()
         if not self.appear(BATTLE_STATUS_S):
             timer.clear()
             return False, False
 
-        timer.start()
-        if not timer.reached():
-            return True, False
+        if auto_advance:
+            # 自律寻敌：让位给游戏的自动推进，只在上限到达时兜底点击
+            timer.start()
+            if not timer.reached():
+                return True, False
+            handled = self._handle_single_battle_status(BATTLE_STATUS_S, 'S', drop)
+        else:
+            # 手动作战：评价页出现即点；点空（被转场吞掉）就 1 秒后再点，
+            # 一直重试到页面消失为止，不再等任何固定秒数。
+            handled = self._handle_single_battle_status(
+                BATTLE_STATUS_S, 'S', drop, interval=self.battle_status_s_retry_interval)
+            if handled:
+                # 「点掉就前进」的页面重复点同一按钮是正常行为，把它从点击洪水
+                # 记录里剔除，否则 1 秒重试会在 12 秒内被误判成卡死。
+                self.device.click_record_remove(BATTLE_STATUS_S)
 
-        handled = self._handle_single_battle_status(BATTLE_STATUS_S, 'S', drop)
         timer.clear()
         return True, handled
 
@@ -157,6 +228,9 @@ class Combat(Combat_, MapEventHandler):
             if self.appear_then_click(BATTLE_PREPARATION, interval=2):
                 continue
             if self.appear_then_click(SIREN_PREPARATION, offset=(20, 20), interval=2):
+                # 只有塞壬强敌才走这个准备界面，用它标记「本轮进攻打的是 Boss」，
+                # 供 boss_clear() 在雷达判据失效时兜底判定
+                self._os_siren_battle = True
                 continue
             if self.handle_popup_confirm('ENHANCED_ENEMY'):
                 continue
@@ -333,6 +407,8 @@ class Combat(Combat_, MapEventHandler):
             save_get_items (bool): 是否保存物品获取截图。
             **kwargs: 传递给父类 combat 的关键字参数。
         """
+        # 每场战斗独立记账：清掉上一场的结果标记，避免跨战斗污染 boss_clear() 的判据
+        self.os_battle_result_reset()
         for count in range(3):
             self._clear_battle_status_s_timer()
             if count >= 2:
@@ -347,7 +423,7 @@ class Combat(Combat_, MapEventHandler):
             finally:
                 self._clear_battle_status_s_timer()
 
-    def _handle_single_battle_status(self, status_button, status_letter, drop):
+    def _handle_single_battle_status(self, status_button, status_letter, drop, interval=None):
         """
         处理单个战斗评价状态按钮（S/A/B/C/D）。
 
@@ -358,11 +434,13 @@ class Combat(Combat_, MapEventHandler):
             status_button (Button): 评价状态按钮资源。
             status_letter (str): 评价等级字母（'S'/'A'/'B'/'C'/'D'）。
             drop (DropImage): 掉落图像对象，为 None 时仅等待随机时间。
+            interval (int): 点击节流秒数，None 时使用 battle_status_click_interval。
 
         Returns:
             bool: 是否检测到并点击了评价按钮。
         """
-        if self.appear(status_button, interval=self.battle_status_click_interval):
+        interval = self.battle_status_click_interval if interval is None else interval
+        if self.appear(status_button, interval=interval):
             if status_letter == 'S':
                 logger.info(f'[大世界战斗] 战斗评价 {status_letter}')
             else:
@@ -372,6 +450,9 @@ class Combat(Combat_, MapEventHandler):
             else:
                 self.device.sleep((0.25, 0.5))
             self.device.click(status_button)
+            # 出现战斗评价页即本场战斗胜利（战斗失败只会走舰队阵亡/撤退路径，
+            # 不会出现 S/A/B/C/D 评价页）
+            self._os_battle_victory = True
             return True
         return False
 

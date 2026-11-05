@@ -990,7 +990,8 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
             allow_submarine_call (bool): 是否允许呼叫潜艇。
 
         Returns:
-            bool: 是否成功击败 Boss。
+            bool: 是否成功击败 Boss。判据为「战后雷达出现问号」或
+                「本轮塞壬战已胜利」（后者仅非月度 Boss 生效）。
 
         Pages:
             in: 塞壬日志（深渊），Boss 已出现。
@@ -1045,12 +1046,26 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                                                index=0)
 
                 # 攻击
+                # 清空上一支舰队留下的战斗结果标记，「塞壬战胜利」兜底判据只认本轮
+                self.os_battle_result_reset()
                 self.boss_goto(location=(0, 0), has_fleet_step=has_fleet_step, drop=drop, is_month=is_month)
 
                 # 结束条件
+                # 主判据仍是战后雷达上重新出现的问号；月度 Boss 需要多支舰队接力消耗，
+                # 「打赢一场塞壬战」不等于清完，因此兜底判据只在非月度 Boss 生效。
                 self.predict_radar()
-                if self.radar.select(is_question=True):
+                cleared = bool(self.radar.select(is_question=True))
+                if cleared:
                     logger.info('[大世界-战斗] Boss已清除')
+                elif not is_month and self.os_boss_defeated():
+                    # 2026-11-04 深渊坐标事故：Boss 已被打掉（S 评价 + 6 次掉落），
+                    # 但战后雷达上既无敌人也无问号（深渊海域浓雾叠加视野/雷达覆盖不足），
+                    # 旧逻辑只认问号，于是把 4 支舰队的行动机会全耗在「无Boss可前往」上，
+                    # 最后误报「无法击败boss，舰队已耗尽」并请求人工介入。
+                    logger.info('[大世界-战斗] Boss已清除（本轮塞壬战已胜利，战后雷达无问号）')
+                    cleared = True
+
+                if cleared:
                     if drop.count:
                         drop.add(self.device.image)
                     self.map_exit()
