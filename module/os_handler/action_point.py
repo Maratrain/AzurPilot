@@ -749,7 +749,8 @@ class ActionPointHandler(UI, MapEventHandler):
                 # 剧情是透明的，处理剧情时可能检测到 OS_CHECK
                 self.interval_reset(OS_CHECK)
                 continue
-            if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50)):
+            # 结算弹窗或残留战斗结算页会遮挡行动力入口，必须先关闭
+            if self.handle_os_battle_settlement():
                 continue
             # 作战情报页面未关闭时先关闭，避免在错误页面上等待导致卡死
             if self.appear_then_click(MISSION_QUIT, offset=(20, 20), interval=2):

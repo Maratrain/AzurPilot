@@ -218,6 +218,33 @@ class MapEventHandler(EnemySearchingHandler):
 
         return ''
 
+    def handle_os_battle_settlement(self):
+        """
+        关闭大世界流程切换时残留的结算界面。
+
+        游戏会在「上一个海域已清除」后延迟弹出 AUTO_SEARCH_REWARD（合计获得奖励），
+        也可能残留上一场战斗的 VICTORY / 经验结算页。这些界面会遮挡地图，
+        handle_map_event() 不负责处理；进入页面的循环若只检测而不点击，
+        就会一直空转，最终被判为 GameStuckError 并重启游戏。
+
+        Returns:
+            bool: 是否点击了结算界面。
+        """
+        # 游戏 bug：上一个已清除海域的 AUTO_SEARCH_REWARD 弹出
+        if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
+            return True
+        # 残留的战斗评价页（VICTORY 大获全胜等）
+        for button in (BATTLE_STATUS_S, BATTLE_STATUS_A, BATTLE_STATUS_B,
+                       BATTLE_STATUS_C, BATTLE_STATUS_D):
+            if self.appear_then_click(button, offset=(20, 20), interval=2):
+                logger.info('[大世界处理-事件] 关闭残留的战斗结算界面')
+                return True
+        # 评价页之后的经验结算页
+        for button in (EXP_INFO_S, EXP_INFO_A, EXP_INFO_B, EXP_INFO_C, EXP_INFO_D):
+            if self.appear_then_click(button, offset=(20, 20), interval=2):
+                return True
+        return False
+
     _story_timeout = Timer(60)
 
     def handle_story_skip(self, drop=None):
