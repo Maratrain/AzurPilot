@@ -462,6 +462,10 @@ class InfoHandler(ModuleBase):
         - 塞壬探测装置：5 个选项（探测敌人/探测资源/离开），按 Siren_Mode 选择；
         - 塞壬信息收集装置 / 探测装置产物柱子：3 个选项，点中间选项即完成。
 
+        3 选项剧情并不都是塞壬装置：深渊 / 隐秘 / 要塞 / 跨月 用 STORY_OPTION=0
+        指定点第一项（解除封锁的强制确认，中间项是「查阅作战说明」），
+        因此显式指定了 STORY_OPTION 时按配置选择，只有自动选择（-2）才按柱子处理。
+
         Args:
             options: 检测到的剧情选项按钮列表。
 
@@ -498,7 +502,16 @@ class InfoHandler(ModuleBase):
                 return options[3]
 
         elif len(options) == 3:
-            # 塞壬信息收集装置 / 探测装置产物柱子：点中间选项完成
+            # 3 选项剧情的正确选项随海域而变，不能一律点中间项：
+            # - 深渊 / 隐秘 / 要塞 / 跨月 用 STORY_OPTION=0 指定点第一项，
+            #   例如深渊解除封锁的强制确认，中间项是「查阅作战说明」；
+            # - 大世界其余任务为 STORY_OPTION=-2（自动选择），3 选项时
+            #   即塞壬信息收集装置 / 探测装置产物柱子的「提交物品」。
+            story_option = self.config.STORY_OPTION
+            if 0 <= story_option < len(options):
+                logger.info(f'[Handler] [Story] 3 选项剧情，按 STORY_OPTION 选择第 {story_option + 1} 项')
+                return options[story_option]
+            # 未显式指定选项，按塞壬信息收集装置 / 柱子处理
             logger.info('[Handler] [Story] 塞壬信息收集装置/柱子，点中间选项完成')
             self.siren_device_mode = 'collected'
             return options[1]
@@ -557,6 +570,13 @@ class InfoHandler(ModuleBase):
             else:
                 self._story_option_record = options_count
                 self._story_option_confirm.reset()
+            if options_count:
+                # 选项已出现：等待确认窗口完成后点击选项，期间不点空白区。
+                # 安全区点击会抢在选项确认完成前触发（STORY_SKIP_3 出现 0.5 秒
+                # 即达成，而选项确认需要 0.3 秒稳定期），把选择对话直接放掉——
+                # 隐秘海域 2 选项对话被放掉后战斗不再触发，舰队停在塞壬精英
+                # 身上无操作空转，直到自律寻敌卡死。
+                return False
         if self.appear(STORY_SKIP_3, offset=(20, 20), interval=2):
             # 确认是剧情画面
             # 当剧情播放速度为"非常快"时，AzurPilot 可能点击了跳过但剧情已消失
