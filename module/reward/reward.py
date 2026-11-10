@@ -6,6 +6,7 @@ from module.base.button import ButtonGrid
 from module.base.decorator import cached_property
 from module.base.timer import Timer
 from module.combat.assets import *
+from module.handler.assets import NEW_SHIP_SKIP
 from module.logger import logger
 from module.reward.assets import *
 from module.ui.navbar import Navbar
@@ -131,6 +132,8 @@ class Reward(UI):
                 continue
             if self.appear_then_click(GET_SHIP, interval=1):
                 continue
+            if self._reward_handle_new_ship_popup():
+                continue
             if self.handle_mission_popup_ack():
                 continue
             if self.handle_vote_popup():
@@ -139,6 +142,28 @@ class Reward(UI):
                 continue
             if self.handle_popup_confirm('MISSION_REWARD'):
                 continue
+
+    def _reward_handle_new_ship_popup(self):
+        """
+        处理任务奖励领取后可能弹出的新船入手演出。
+
+        里程碑 / 周常等任务奖励含舰船时，领完 GET_ITEMS 会接着弹出
+        新船 debut 页。它盖住任务页，且不在领取循环的任何等待状态内，
+        认不出来就会无操作空转到 GameStuckError（2026-11-09 连领 3 个
+        含舰船奖励连续卡死 3 次并触发人工接管通知）。
+
+        点右上角 SKIP 收掉。SKIP 底条是半透明的，船的稀有度不同、
+        底下的立绘不同，底色就跟着变；归一化模板匹配本身会抵消整体
+        底色偏移，这里再把阈值放宽一点兜住立绘的渐变（其它画面实测
+        相似度都在 0.16 以下，放宽不会误判）。
+
+        Returns:
+            bool: 是否处理了新船入手画面，调用方应重新截图。
+        """
+        if self.appear_then_click(NEW_SHIP_SKIP, offset=(20, 20), interval=2, similarity=0.75):
+            return True
+
+        return False
 
     def _reward_wait_mission_list(self):
         """
