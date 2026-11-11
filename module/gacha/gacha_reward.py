@@ -17,7 +17,7 @@ from module.config.utils import server_timezone
 from module.exception import GameStuckError, ScriptError
 from module.gacha.assets import *
 from module.gacha.ui import GachaUI
-from module.handler.assets import POPUP_CONFIRM, STORY_SKIP
+from module.handler.assets import NEW_SHIP_SKIP, POPUP_CONFIRM, STORY_SKIP
 from module.logger import logger
 from module.ocr.ocr import Digit, Ocr
 from module.retire.retirement import Retirement
@@ -252,6 +252,9 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
             if self.handle_get_items_ship():
                 continue
 
+            if self._gacha_handle_new_ship_popup():
+                continue
+
             if self.appear(BUILD_FINISH_RESULTS, offset=(20, 150), interval=3):
                 self.device.click(BUILD_FINISH_ORDERS)  # 安全区域
                 confirm_timer.reset()
@@ -266,6 +269,27 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
         if self.appear(BUILD_SUBMIT_WW_ORDERS):
             logger.info('在许愿池中，返回普通池')
             self.gacha_side_navbar_ensure(upper=1)
+
+    def _gacha_handle_new_ship_popup(self):
+        """
+        处理完工弃船时可能弹出的新船入手演出。
+
+        完工首次获得新船时，收完 GET_ITEMS 接着弹出的是全屏新船 debut 页。
+        它盖住建造页，且不在 gacha_flush_queue 的任何等待状态内，认不出来
+        就会无操作空转到 GameStuckError（2026-11-12 完工收富特卡死重启游戏）。
+
+        点右上角 SKIP 收掉。SKIP 底条是半透明的，船的稀有度不同、底下的
+        立绘不同，底色就跟着变；归一化模板匹配本身会抵消整体底色偏移，这里
+        再把阈值放宽一点兜住立绘的渐变（同 handover/reward，其它画面实测
+        相似度都在 0.16 以下，放宽不会误判）。
+
+        Returns:
+            bool: 是否处理了新船入手画面，调用方应重新截图。
+        """
+        if self.appear_then_click(NEW_SHIP_SKIP, offset=(20, 20), interval=2, similarity=0.75):
+            return True
+
+        return False
 
     def gacha_submit(self, skip_first_screenshot=True):
         """
