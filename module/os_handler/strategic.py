@@ -6,6 +6,7 @@
 """
 from module.base.utils import get_color
 from module.logger import logger
+from module.os.assets import GLOBE_GOTO_MAP
 from module.os_handler.assets import *
 from module.os_handler.map_event import MapEventHandler
 from module.ui.scroll import Scroll
@@ -22,6 +23,11 @@ class StrategicSearchHandler(MapEventHandler):
             if self.appear(STRATEGIC_SEARCH_POPUP_CHECK, offset=(20, 20)):
                 return True
             if self.handle_map_event():
+                continue
+            # 误入作战总览（地球仪）页面时没有策略搜索开关，先点回海域地图，
+            # 否则循环只截图不操作，最终被判为 GameStuckError 并重启游戏
+            if self.appear_then_click(GLOBE_GOTO_MAP, offset=(20, 20), interval=3):
+                logger.info('[大世界-策略] 误入作战总览，返回海域地图')
                 continue
             # 作战情报页面未关闭时先关闭，避免在错误页面上等待导致卡死
             if self.appear_then_click(MISSION_QUIT, offset=(20, 20), interval=2):
