@@ -204,7 +204,18 @@ class OpsiHazard1Leveling(CoinTaskMixin, OSMap):
                         skip_first_screenshot=True,
                     )
                 else:
-                    self.ui_back(check_button=self.is_in_map)
+                    # globe_goto 换海域后「合计获得奖励」/战斗结算窗口会延迟弹出
+                    # 并盖住地图，不清掉的话 ui_back 只会点返回箭头，在窗口上
+                    # 空转到 GameStuckError（11-10 23:44 / 11-12 19:36）。
+                    for _ in self.loop():
+                        if self.is_in_map():
+                            break
+                        if self.handle_os_battle_settlement():
+                            continue
+                        if self.appear_then_click(MISSION_QUIT, offset=(20, 20), interval=2):
+                            continue
+                        self.ui_back(check_button=self.is_in_map)
+                        break
             except Exception as e:
                 logger.warning(f"[大世界-侵蚀1练级] 返回大世界地图失败: {e}")
         self._cl1_run_battle()

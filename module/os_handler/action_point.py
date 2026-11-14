@@ -19,11 +19,12 @@ from module.config.time_source import now as current_time
 from module.config.utils import filepath_config, get_server_next_update, read_file, server_time_offset
 from module.logger import logger
 from module.ocr.ocr import Digit, DigitCounter
+from module.os.assets import GLOBE_GOTO_MAP
 from module.os_handler.assets import *
 from module.os_handler.map_event import MapEventHandler
 from module.os_handler.resource_state import ActionPointSnapshot, resource_fast_path
 from module.statistics.item import Item, ItemGrid
-from module.ui.assets import OS_CHECK
+from module.ui.assets import BACK_ARROW, OS_CHECK
 from module.ui.ui import UI
 from module.log_res import LogRes
 
@@ -812,6 +813,21 @@ class ActionPointHandler(UI, MapEventHandler):
         for _ in self.loop():
             if self.appear(IN_MAP, offset=(200, 5)):
                 break
+            # 兜底：关闭弹窗的同一次点击可能穿透到其下层界面——点中塞壬舰队
+            # 会弹出编队出击准备页，点中右下按钮排会误入作战总览 / 作战情报页。
+            # 此前的循环没有任何操作，会空转到 GameStuckError 并重启游戏
+            # （11-10 13:32 / 11-11 05:43 / 11-13 22:40 逆迴十六夜）。
+            if self.appear(OS_PREPARATION_CHECK, offset=(20, 20), interval=3):
+                logger.warning('[大世界-行动点] 弹窗关闭后停在编队出击准备页，返回')
+                self.device.click(BACK_ARROW)
+                continue
+            if self.appear(MISSION_CHECK, offset=(20, 20), interval=3):
+                logger.warning('[大世界-行动点] 弹窗关闭后停在作战情报页，关闭返回')
+                self.device.click(MISSION_QUIT)
+                continue
+            if self.appear_then_click(GLOBE_GOTO_MAP, offset=(20, 20), interval=3):
+                logger.warning('[大世界-行动点] 弹窗关闭后误入作战总览，返回海域地图')
+                continue
 
         return True
 

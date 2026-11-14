@@ -10,6 +10,7 @@ from module.base.decorator import cached_property
 from module.base.template import Template
 from module.base.timer import Timer
 from module.base.utils import *
+from module.combat.assets import GET_ITEMS_1, GET_ITEMS_2
 from module.config.time_source import now as current_time
 from module.config.utils import DEFAULT_TIME, get_os_next_reset, get_server_next_update
 from module.exception import MapDetectionError
@@ -20,6 +21,7 @@ from module.os.globe_detection import GLOBE_MAP_SHAPE
 from module.os.globe_operation import GlobeOperation, OSExploreError
 from module.os.globe_zone import Zone, ZoneManager
 from module.os_handler.assets import *
+from module.os_handler.map_event import OS_SETTLEMENT_DISMISS_POINT
 
 
 class MissionAtCurrentZone(Exception):
@@ -415,6 +417,14 @@ class MissionHandler(GlobeOperation, ZoneManager):
 
             # 保留海域中断自律后的结算弹窗也会延迟到这一步才弹出，先点掉
             if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
+                continue
+            # 接取任务后可能立即弹出「获得道具」（塞壬坐标记等任务接取即给道具），
+            # 弹窗盖住接取按钮与固定海域判定，不处理会空转到 GameStuckError
+            # （2026-11-15 00:13 逆迴十六夜接取任务卡死）。任意点击可关闭，
+            # 用固定安全点避免关闭瞬间穿透到下层海域地图的右下按钮排。
+            if self.appear(GET_ITEMS_1, offset=(20, 20), interval=2) \
+                    or self.appear(GET_ITEMS_2, offset=(20, 20), interval=2):
+                self.device.click(OS_SETTLEMENT_DISMISS_POINT)
                 continue
             if self.appear_then_click(MISSION_CHECKOUT, offset=checkout_offset, interval=2, similarity=0.78):
                 continue

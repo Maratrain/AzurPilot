@@ -242,7 +242,25 @@ class OSMapOperation(MapOrderHandler, MissionHandler, PortHandler, StorageHandle
         try:
             self.zone = self.name_to_zone(name)
         except ScriptError as e:
-            raise MapDetectionError(*e.args) from e
+            # 兜底：误留在作战总览（地球仪）页面时地图名 OCR 读到「作战总览」，
+            # 此前直接抛 MapDetectionError 使整个任务崩溃并重启游戏
+            # （2026-11-15 02:44 opsi_scheduling 侵蚀1练级）。点左上角地球仪
+            # 图标返回海域地图后重新识别一次。
+            if not self.appear(GLOBE_GOTO_MAP, offset=(20, 20)):
+                raise MapDetectionError(*e.args) from e
+            logger.warning('[大世界-地图操作] 误入作战总览，返回海域地图后重新识别')
+            self.ui_click(
+                GLOBE_GOTO_MAP,
+                check_button=lambda: self.appear(IN_MAP, offset=(200, 5)),
+                offset=(20, 20),
+                skip_first_screenshot=True,
+            )
+            name = self.get_zone_name()
+            logger.info(f'[大世界-地图操作] 地图名称已处理: {name}')
+            try:
+                self.zone = self.name_to_zone(name)
+            except ScriptError as e2:
+                raise MapDetectionError(*e2.args) from e2
         logger.attr('海域', self.zone)
         self.zone_config_set()
         return self.zone

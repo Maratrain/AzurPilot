@@ -17,18 +17,22 @@ from pathlib import Path
 
 from module.combat.assets import BATTLE_STATUS_S, EXP_INFO_S
 from module.os_handler.assets import AUTO_SEARCH_REWARD
-from module.os_handler.map_event import MapEventHandler
+from module.os_handler.map_event import OS_SETTLEMENT_DISMISS_POINT, MapEventHandler
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class _FakeHandler:
-    """只实现兜底方法依赖的 appear_then_click，避免构造真实设备。"""
+    """只实现兜底方法依赖的 appear / appear_then_click，避免构造真实设备。"""
 
     def __init__(self, visible):
         self.visible = set(visible)
         self.clicked = []
         self.intervals = {}
+
+    def appear(self, button, **kwargs):
+        self.intervals[button.name] = kwargs.get('interval', 0)
+        return button.name in self.visible
 
     def appear_then_click(self, button, **kwargs):
         self.intervals[button.name] = kwargs.get('interval', 0)
@@ -36,6 +40,17 @@ class _FakeHandler:
             self.clicked.append(button.name)
             return True
         return False
+
+    class _Device:
+        def __init__(self, owner):
+            self._owner = owner
+
+        def click(self, point):
+            self._owner.clicked.append(point)
+
+    @property
+    def device(self):
+        return _FakeHandler._Device(self)
 
 
 class TestOsBattleSettlement(unittest.TestCase):
@@ -46,14 +61,15 @@ class TestOsBattleSettlement(unittest.TestCase):
         self.assertGreaterEqual(handler.intervals[AUTO_SEARCH_REWARD.name], 2)
 
     def test_victory_page_clicked(self):
+        """战斗评价页命中后点固定安全点关闭，避免随机落点穿透到地图右下按钮排。"""
         handler = _FakeHandler([BATTLE_STATUS_S.name])
         self.assertTrue(MapEventHandler.handle_os_battle_settlement(handler))
-        self.assertEqual(handler.clicked, [BATTLE_STATUS_S.name])
+        self.assertEqual(handler.clicked, [OS_SETTLEMENT_DISMISS_POINT])
 
     def test_exp_info_page_clicked(self):
         handler = _FakeHandler([EXP_INFO_S.name])
         self.assertTrue(MapEventHandler.handle_os_battle_settlement(handler))
-        self.assertEqual(handler.clicked, [EXP_INFO_S.name])
+        self.assertEqual(handler.clicked, [OS_SETTLEMENT_DISMISS_POINT])
 
     def test_no_settlement(self):
         handler = _FakeHandler([])

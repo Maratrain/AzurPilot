@@ -19,6 +19,12 @@ from module.statistics.azurstats import DropImage
 from module.ui.assets import BACK_ARROW
 from module.ui.switch import Switch
 
+# 大世界全屏结算页（战斗评价 / 经验结算）的固定关闭坐标。
+# 结算页任意点击即可关闭，选地图顶部「距离大型作战重置」横幅区：
+# 在海域地图 / 区域地图 / 作战总览 / 编队页上均无交互，避免关闭窗口的
+# 点击穿透到下层界面的右下按钮排或塞壬舰队上。
+OS_SETTLEMENT_DISMISS_POINT = (250, 35)
+
 
 class FleetLockSwitch(Switch):
     def handle_additional(self, main):
@@ -234,14 +240,25 @@ class MapEventHandler(EnemySearchingHandler):
         if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
             return True
         # 残留的战斗评价页（VICTORY 大获全胜等）
+        # 全屏结算页任意点击即可关闭，但按钮点击区都压在地图右下
+        # （EXP_INFO 系按钮区 (1133,634,1262,650) 与「作战总览」按钮区
+        # (1069,641,1260,695) 大面积重叠）。窗口被上一次点击关闭后，
+        # 截图滞后的下一击会穿透到下层海域地图，随机落点命中右下按钮排
+        # 或塞壬舰队：误入作战总览 / 情报页 / 编队出击准备页，后续循环
+        # 只等海域地图元素，空转到 GameStuckError 甚至 MapDetectionError
+        # （11-10 ~ 11-15 逆迴十六夜多次卡死与崩溃的共同根因）。
+        # 因此改为固定安全点点击：地图顶部「距离大型作战重置」横幅区，
+        # 在海域地图 / 区域地图 / 作战总览 / 编队页上均无交互。
         for button in (BATTLE_STATUS_S, BATTLE_STATUS_A, BATTLE_STATUS_B,
                        BATTLE_STATUS_C, BATTLE_STATUS_D):
-            if self.appear_then_click(button, offset=(20, 20), interval=2):
+            if self.appear(button, offset=(20, 20), interval=2):
+                self.device.click(OS_SETTLEMENT_DISMISS_POINT)
                 logger.info('[大世界处理-事件] 关闭残留的战斗结算界面')
                 return True
         # 评价页之后的经验结算页
         for button in (EXP_INFO_S, EXP_INFO_A, EXP_INFO_B, EXP_INFO_C, EXP_INFO_D):
-            if self.appear_then_click(button, offset=(20, 20), interval=2):
+            if self.appear(button, offset=(20, 20), interval=2):
+                self.device.click(OS_SETTLEMENT_DISMISS_POINT)
                 return True
         return False
 
