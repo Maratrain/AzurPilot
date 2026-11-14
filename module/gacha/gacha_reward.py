@@ -278,15 +278,23 @@ class RewardGacha(GachaUI, Retirement, CampaignStatus):
         它盖住建造页，且不在 gacha_flush_queue 的任何等待状态内，认不出来
         就会无操作空转到 GameStuckError（2026-11-12 完工收富特卡死重启游戏）。
 
-        点右上角 SKIP 收掉。SKIP 底条是半透明的，船的稀有度不同、底下的
+        优先点右上角 SKIP 收掉。SKIP 底条是半透明的，船的稀有度不同、底下的
         立绘不同，底色就跟着变；归一化模板匹配本身会抵消整体底色偏移，这里
         再把阈值放宽一点兜住立绘的渐变（同 handover/reward，其它画面实测
         相似度都在 0.16 以下，放宽不会误判）。
+
+        部分 debut 页没有右上角 SKIP（2026-11-14 00:04 绫波 SR 实测，整页
+        顶部均无 SKIP），改用右下角「重复获得提示」开关识别，点击页面空白处
+        推进/关闭入手演出（debut 页任意点击均可推进，中央立绘区无按钮）。
 
         Returns:
             bool: 是否处理了新船入手画面，调用方应重新截图。
         """
         if self.appear_then_click(NEW_SHIP_SKIP, offset=(20, 20), interval=2, similarity=0.75):
+            return True
+
+        if self.appear(NEW_SHIP_LAUNCHED_CHECK, offset=(20, 20), interval=2):
+            self.device.click((640, 360))
             return True
 
         return False
