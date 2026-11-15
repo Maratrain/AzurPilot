@@ -14,16 +14,23 @@ from module.handler.assets import POPUP_CANCEL, POPUP_CONFIRM, STORY_SKIP_3
 from module.logger import logger
 from module.os.assets import GLOBE_GOTO_MAP
 from module.os_handler.assets import *
+from module.base.button import Button
 from module.os_handler.enemy_searching import EnemySearchingHandler
 from module.statistics.azurstats import DropImage
 from module.ui.assets import BACK_ARROW
 from module.ui.switch import Switch
 
-# 大世界全屏结算页（战斗评价 / 经验结算）的固定关闭坐标。
+# 大世界全屏结算页（战斗评价 / 经验结算）的固定关闭按钮。
 # 结算页任意点击即可关闭，选地图顶部「距离大型作战重置」横幅区：
 # 在海域地图 / 区域地图 / 作战总览 / 编队页上均无交互，避免关闭窗口的
 # 点击穿透到下层界面的右下按钮排或塞壬舰队上。
-OS_SETTLEMENT_DISMISS_POINT = (250, 35)
+# Device.click 只接受 Button 对象，不能用裸坐标元组。
+OS_SETTLEMENT_DISMISS_POINT = Button(
+    area=(220, 20, 280, 50),
+    color=(48, 54, 71),
+    button=(220, 20, 280, 50),
+    name='OS_SETTLEMENT_DISMISS_POINT',
+)
 
 
 class FleetLockSwitch(Switch):

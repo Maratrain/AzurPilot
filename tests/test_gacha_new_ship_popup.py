@@ -8,7 +8,7 @@
 import unittest
 
 from module.gacha.assets import NEW_SHIP_LAUNCHED_CHECK
-from module.gacha.gacha_reward import RewardGacha
+from module.gacha.gacha_reward import NEW_SHIP_DISMISS_POINT, RewardGacha
 from module.handler.assets import NEW_SHIP_SKIP
 
 
@@ -54,7 +54,7 @@ class TestGachaNewShipPopup(unittest.TestCase):
         """无 SKIP 的 debut 页（2026-11-14 绫波 SR）通过「重复获得提示」识别并点击空白处关闭。"""
         fake = FakeGacha(launched=True)
         self.assertTrue(fake._gacha_handle_new_ship_popup())
-        self.assertEqual(fake.clicked, [(640, 360)])
+        self.assertEqual(fake.clicked, [NEW_SHIP_DISMISS_POINT])
 
     def test_other_screens_not_mistaken(self):
         """其它画面不误触（放宽到 0.75 的阈值不会误判）。"""
