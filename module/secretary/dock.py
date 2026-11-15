@@ -30,39 +30,66 @@ else:
     CARD_FAVORABILITY_GRIDS = CARD_GRIDS.crop(area=(21, 29, 71, 48), name='FAVORABILITY')
 
 class SecretaryDockMixin:
+    # 等级区域出现 >= 该亮度的像素即认为卡片已渲染（「Lv.」为白色文字，
+    # 未渲染的空骨架最亮也在 150 以下）。与 module/retire/dock.py 的
+    # 76cdd7ba9 修复同款：仅靠「连续两帧哈希相同」判断加载完成会误判，
+    # 空骨架自身也是稳定的，提前退出会让后续 OCR 全读成 0。
+    DOCK_CARD_RENDERED_BRIGHTNESS = 200
+    # 等待卡片渲染的兜底超时（秒）。原值 1.2s 在慢机器上不足。
+    DOCK_CARDS_RENDER_TIMEOUT = 3.0
+
+    def _dock_cards_rendered(self):
+        """判断当前截图里是否已经有渲染完成的舰船卡片。
+
+        Returns:
+            bool: True 表示已至少有一张卡片渲染出等级文字。
+        """
+        from module.base.utils import crop
+        image = self.device.image
+        if image is None:
+            return False
+        for button in CARD_LEVEL_GRIDS.buttons:
+            region = crop(image, button.area, copy=False)
+            if region.size and int(region.max()) >= self.DOCK_CARD_RENDERED_BRIGHTNESS:
+                return True
+        return False
+
     def handle_dock_cards_loading(self, skip_first_screenshot=True):
-            """
-            等待船坞卡片加载完成。
+        """
+        等待船坞卡片加载完成。
 
-            通过哈希比对连续两帧截图判断画面是否稳定，若船坞为空则立即退出。
-            使用 Timer(1.2s) 作为兜底超时，无法使用 confirm_timer 方法。
+        通过哈希比对连续两帧截图判断画面是否稳定，若船坞为空则立即退出。
+        卡片渲染是异步的，空白骨架本身也「稳定」，因此哈希相同还不足以
+        说明加载完成：必须同时确认等级区域已经出现白色文字，否则继续等到
+        超时。使用 Timer 作为兜底，无法使用 confirm_timer 方法。
 
-            Args:
-                skip_first_screenshot: 是否跳过首次截图，复用上一状态循环的截图。
-            """
-            from module.retire.scanner import HashGenerator
-            scanner = HashGenerator()
-            old_result = None
-            if not skip_first_screenshot:
+        Args:
+            skip_first_screenshot: 是否跳过首次截图，复用上一状态循环的截图。
+        """
+        from module.retire.scanner import HashGenerator
+        scanner = HashGenerator()
+        old_result = None
+        if not skip_first_screenshot:
+            self.device.screenshot()
+            skip_first_screenshot = True
+        new_result = scanner.scan(self.device.image)
+        timeout = Timer(self.DOCK_CARDS_RENDER_TIMEOUT, count=1).start()
+        while 1:
+            if skip_first_screenshot:
+                skip_first_screenshot = False
+            else:
+                old_result = new_result
                 self.device.screenshot()
-                skip_first_screenshot = True
-            new_result = scanner.scan(self.device.image)
-            timeout = Timer(1.2, count=1).start()
-            while 1:
-                if skip_first_screenshot:
-                    skip_first_screenshot = False
-                else:
-                    old_result = new_result
-                    self.device.screenshot()
-                    new_result = scanner.scan(self.device.image)
+                new_result = scanner.scan(self.device.image)
 
-                if self.appear(DOCK_EMPTY):
-                    logger.info('Dock empty')
-                    break
-                if timeout.reached():
-                    break
-                if old_result == new_result:
-                    break
+            if self.appear(DOCK_EMPTY):
+                logger.info('船坞为空')
+                break
+            if timeout.reached():
+                break
+            # 画面稳定且确实渲染出了卡片，才算加载完成
+            if old_result == new_result and self._dock_cards_rendered():
+                break
 
     def dock_favourite_set(self, enable=False, wait_loading=True):
         """
