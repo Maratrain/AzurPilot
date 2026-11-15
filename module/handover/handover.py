@@ -42,7 +42,8 @@ from module.base.timer import Timer
 from module.base.utils import crop
 from module.campaign.run import CampaignRun
 from module.config.time_source import now as current_time
-from module.handler.assets import NEW_SHIP_SKIP, POPUP_CONFIRM
+from module.gacha.assets import NEW_SHIP_LAUNCHED_CHECK
+from module.handler.assets import NEW_SHIP_SKIP, NEW_SHIP_DISMISS_POINT, POPUP_CONFIRM
 from module.handler.fast_forward import to_map_file_name
 from module.logger import logger
 from module.map.assets import (FLEET_PREPARATION, HANDOVER_BOOK_AMOUNT_OCR,
@@ -334,6 +335,13 @@ class OperationHandover(CampaignRun):
         # 底色就跟着变；归一化模板匹配本身会减掉整体底色偏移，这里再把阈值放宽一点
         # 兜住立绘的渐变（其它画面实测都在 0.16 以下，放宽不会误判）
         if self.appear_then_click(NEW_SHIP_SKIP, offset=(20, 20), interval=2, similarity=0.75):
+            return True
+
+        # 部分 debut 页没有右上角 SKIP（2026-11-14 绫波 SR 实测，与建造完工
+        # 7b160023f 同款），改用右下角「重复获得提示」开关识别，点击页面中央
+        # 推进/关闭入手演出（debut 页任意点击均可推进，中央立绘区无按钮）
+        if self.appear(NEW_SHIP_LAUNCHED_CHECK, offset=(20, 20), interval=2):
+            self.device.click(NEW_SHIP_DISMISS_POINT)
             return True
 
         return False

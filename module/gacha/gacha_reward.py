@@ -17,9 +17,8 @@ from module.config.utils import server_timezone
 from module.exception import GameStuckError, ScriptError
 from module.gacha.assets import *
 from module.gacha.ui import GachaUI
-from module.handler.assets import NEW_SHIP_SKIP, POPUP_CONFIRM, STORY_SKIP
+from module.handler.assets import NEW_SHIP_SKIP, NEW_SHIP_DISMISS_POINT, POPUP_CONFIRM, STORY_SKIP
 from module.logger import logger
-from module.base.button import Button
 from module.ocr.ocr import Digit, Ocr
 from module.retire.retirement import Retirement
 from module.log_res import LogRes
@@ -31,15 +30,6 @@ OCR_BUILD_TICKET_COUNT = Digit(BUILD_TICKET_COUNT, letter=(255, 247, 247), thres
 OCR_BUILD_SUBMIT_COUNT = Digit(BUILD_SUBMIT_COUNT, letter=(255, 247, 247), threshold=64)
 OCR_BUILD_SUBMIT_WW_COUNT = Digit(BUILD_SUBMIT_WW_COUNT, letter=(255, 247, 247), threshold=64)
 OCR_BUILD_EVENT_TIME = Ocr(BUILD_EVENT_TIME, lang='cnocr')
-
-# 无 SKIP 的 debut 页关闭按钮：debut 页任意点击均可推进，选中央立绘区
-# （该区域无交互元素）。Device.click 只接受 Button 对象，不能用裸坐标元组。
-NEW_SHIP_DISMISS_POINT = Button(
-    area=(630, 350, 650, 370),
-    color=(0, 0, 0),
-    button=(630, 350, 650, 370),
-    name='NEW_SHIP_DISMISS_POINT',
-)
 
 
 class RewardGacha(GachaUI, Retirement, CampaignStatus):
