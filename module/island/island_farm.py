@@ -427,7 +427,7 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
             return ["Amagi_chan", *characters]
         return characters
 
-    def post_plant(self, post_button, product, category, time_var_name):
+    def post_plant(self, post_button, product, category, time_var_name) -> bool | None:
         """
         在指定岗位上执行播种操作。
 
@@ -441,10 +441,12 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
             time_var_name (str): 对应的时间变量名，用于存储完成时间。
 
         Returns:
-            bool: 播种是否成功。
+            bool | None: 成功为 True，作物相关失败为 False，岗位未解锁为 None。
         """
         self.post_close()
-        self.post_open(post_button)
+        if not self.post_open(post_button):
+            logger.info(f"[岛屿-农田] 岗位{post_button}未解锁，跳过{product}播种")
+            return None
         self.device.screenshot()
         time_work = Duration(ISLAND_WORKING_TIME)
         selection = self.name_to_config[product]['selection']
@@ -569,7 +571,8 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 time_var_name = f'{category}_time_{i}'
 
                 button = post_id_to_button[post_id]
-                self.decided_lists(button, post_id, category, time_var_name)
+                if not self.decided_lists(button, post_id, category, time_var_name):
+                    continue
 
                 if self.posts[post_id]['crop'] is None:
                     idle_posts[category].append({
@@ -592,7 +595,8 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
             time_var_name = f'{category}_time_{i}'
 
             button = post_id_to_button[post_id]
-            self.decided_lists(button, post_id, category, time_var_name)
+            if not self.decided_lists(button, post_id, category, time_var_name):
+                continue
 
             if self.posts[post_id]['crop'] is None:
                 idle_posts[category].append({
@@ -654,46 +658,14 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
                 if not idle_posts[category]:
                     continue
 
-                idle_posts_list = idle_posts[category]
-                crops_to_plant = all_plants_to_plant[category]
-
-                for i, post_info in enumerate(idle_posts_list):
-                    if i >= len(crops_to_plant):
-                        logger.info(f"[岛屿-农田] 跳过{category}岗位{post_info['post_id']}: 没有需要种植的作物")
-                        continue
-
-                    crop_to_plant = crops_to_plant[i]
-                    logger.info(f"[岛屿-农田] 尝试播种{category}岗位{post_info['post_id']}: {crop_to_plant}")
-
-                    success = self.post_plant(post_info['button'], crop_to_plant, category, post_info['time_var_name'])
-
-                    if success:
-                        logger.info(f"[岛屿-农田] 播种{category}岗位{post_info['post_id']}成功: {crop_to_plant}")
-                        if crop_to_plant in self.to_plant_lists[category]:
-                            self.to_plant_lists[category].remove(crop_to_plant)
+                self._plant_idle_posts(category, idle_posts[category], all_plants_to_plant[category])
 
             # 然后处理苗圃的播种
             category = 'nursery'
             if idle_posts[category]:
                 self.post_manage_up_swipe(450)
                 self.device.sleep(0.5)
-                idle_posts_list = idle_posts[category]
-                crops_to_plant = all_plants_to_plant[category]
-
-                for i, post_info in enumerate(idle_posts_list):
-                    if i >= len(crops_to_plant):
-                        logger.info(f"[岛屿-农田] 跳过{category}岗位{post_info['post_id']}: 没有需要种植的作物")
-                        continue
-
-                    crop_to_plant = crops_to_plant[i]
-                    logger.info(f"[岛屿-农田] 尝试播种{category}岗位{post_info['post_id']}: {crop_to_plant}")
-
-                    success = self.post_plant(post_info['button'], crop_to_plant, category, post_info['time_var_name'])
-
-                    if success:
-                        logger.info(f"[岛屿-农田] 播种{category}岗位{post_info['post_id']}成功: {crop_to_plant}")
-                        if crop_to_plant in self.to_plant_lists[category]:
-                            self.to_plant_lists[category].remove(crop_to_plant)
+                self._plant_idle_posts(category, idle_posts[category], all_plants_to_plant[category])
 
         logger.info("[岛屿-农田] \n农田管理完成！")
         future_finish = []
@@ -713,6 +685,46 @@ class IslandFarm(Island, WarehouseOCR, LoginHandler):
         if self.island_error:
             from module.exception import GameBugError
             raise GameBugError("检测到岛屿ERROR1，需要重启")
+
+    def _plant_idle_posts(self, category, idle_posts, crops_to_plant):
+        """按空闲岗位顺序播种，并区分岗位不可用与作物种植失败。
+
+        岗位在扫描后变为未解锁时，保留当前作物交给下一个空闲岗位；若作物本身
+        无法种植（种子不足、无可用角色等），则继续尝试下一个作物。
+
+        Args:
+            category (str): 区域类型，'farm'、'orchard' 或 'nursery'。
+            idle_posts (list[dict]): 待播种岗位信息。
+            crops_to_plant (list[str]): 本轮计划播种的作物。
+        """
+        crop_index = 0
+        for post_info in idle_posts:
+            if crop_index >= len(crops_to_plant):
+                logger.info(f"[岛屿-农田] 跳过{category}岗位{post_info['post_id']}: 没有需要种植的作物")
+                continue
+
+            crop_to_plant = crops_to_plant[crop_index]
+            logger.info(f"[岛屿-农田] 尝试播种{category}岗位{post_info['post_id']}: {crop_to_plant}")
+            result = self.post_plant(
+                post_info['button'],
+                crop_to_plant,
+                category,
+                post_info['time_var_name'],
+            )
+
+            if result is None:
+                logger.info(
+                    f"[岛屿-农田] {category}岗位{post_info['post_id']}不可用，"
+                    f"保留作物{crop_to_plant}等待下一个岗位"
+                )
+                continue
+
+            crop_index += 1
+            if result:
+                logger.info(f"[岛屿-农田] 播种{category}岗位{post_info['post_id']}成功: {crop_to_plant}")
+                if crop_to_plant in self.to_plant_lists[category]:
+                    self.to_plant_lists[category].remove(crop_to_plant)
+
     def test(self):
         self.warehouse_inventory('farm')
 if __name__ == "__main__":
