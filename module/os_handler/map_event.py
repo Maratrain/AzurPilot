@@ -19,6 +19,7 @@ from module.os_handler.enemy_searching import EnemySearchingHandler
 from module.statistics.azurstats import DropImage
 from module.ui.assets import BACK_ARROW
 from module.ui.switch import Switch
+from module.ui_white.assets import POPUP_CONFIRM_WHITE
 
 # 「获得道具」等任意点击即可关闭的弹窗的固定关闭点。
 # 选地图顶部「距离大型作战重置」横幅区：在海域地图 / 区域地图 /
@@ -149,25 +150,34 @@ class MapEventHandler(EnemySearchingHandler):
         Returns:
             bool: 是否处理了弹窗。
         """
-        if not (self.appear(POPUP_CANCEL, offset=self._popup_offset)
+        if (self.appear(POPUP_CANCEL, offset=self._popup_offset)
                 and self.appear(POPUP_CONFIRM, offset=self._popup_offset, interval=2)):
-            return False
+            if self._count_depart_confirm() > self._depart_confirm_limit:
+                POPUP_CANCEL.name = POPUP_CANCEL.name + '_DEPART_CONFIRM'
+                self.device.click(POPUP_CANCEL)
+                POPUP_CANCEL.name = POPUP_CANCEL.name[:-len('_DEPART_CONFIRM')]
+                logger.warning(
+                    '[大世界处理-事件] 出发确认弹窗反复出现，已改为点击取消止损，'
+                    '请确认该弹窗是否为信标/META 类提示'
+                )
+                self._depart_confirm_records.clear()
+                return True
 
-        if self._count_depart_confirm() > self._depart_confirm_limit:
-            POPUP_CANCEL.name = POPUP_CANCEL.name + '_DEPART_CONFIRM'
-            self.device.click(POPUP_CANCEL)
-            POPUP_CANCEL.name = POPUP_CANCEL.name[:-len('_DEPART_CONFIRM')]
-            logger.warning(
-                '[大世界处理-事件] 出发确认弹窗反复出现，已改为点击取消止损，'
-                '请确认该弹窗是否为信标/META 类提示'
-            )
-            self._depart_confirm_records.clear()
+            POPUP_CONFIRM.name = POPUP_CONFIRM.name + '_DEPART_CONFIRM'
+            self.device.click(POPUP_CONFIRM)
+            POPUP_CONFIRM.name = POPUP_CONFIRM.name[:-len('_DEPART_CONFIRM')]
             return True
 
-        POPUP_CONFIRM.name = POPUP_CONFIRM.name + '_DEPART_CONFIRM'
-        self.device.click(POPUP_CONFIRM)
-        POPUP_CONFIRM.name = POPUP_CONFIRM.name[:-len('_DEPART_CONFIRM')]
-        return True
+        # 白底确认弹窗：保留被替换前 handle_popup_confirm 的行为，OS 流程
+        # 中出现白底确认弹窗时仍会被点掉，不会无人处理空转（重复保护只针对
+        # 暗色出发确认——误点进信标·META 页的余烬弹窗是暗色样式）
+        if self.appear(POPUP_CONFIRM_WHITE, offset=self._popup_offset, interval=2):
+            POPUP_CONFIRM_WHITE.name = POPUP_CONFIRM_WHITE.name + '_DEPART_CONFIRM'
+            self.device.click(POPUP_CONFIRM_WHITE)
+            POPUP_CONFIRM_WHITE.name = POPUP_CONFIRM_WHITE.name[:-len('_DEPART_CONFIRM')]
+            return True
+
+        return False
 
     def _count_depart_confirm(self):
         """记录一次出发确认点击，并返回统计窗口内的累计次数。"""
