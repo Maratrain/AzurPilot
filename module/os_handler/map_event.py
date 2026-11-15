@@ -20,10 +20,13 @@ from module.statistics.azurstats import DropImage
 from module.ui.assets import BACK_ARROW
 from module.ui.switch import Switch
 
-# 大世界全屏结算页（战斗评价 / 经验结算）的固定关闭按钮。
-# 结算页任意点击即可关闭，选地图顶部「距离大型作战重置」横幅区：
-# 在海域地图 / 区域地图 / 作战总览 / 编队页上均无交互，避免关闭窗口的
-# 点击穿透到下层界面的右下按钮排或塞壬舰队上。
+# 「获得道具」等任意点击即可关闭的弹窗的固定关闭点。
+# 选地图顶部「距离大型作战重置」横幅区：在海域地图 / 区域地图 /
+# 作战总览 / 编队页上均无交互，避免关闭弹窗的点击穿透到下层界面的
+# 右下按钮排或塞壬舰队上。
+# 注意：战斗评价页 / 经验结算页不接受任意点击关闭（只有右下「确定」
+# 响应点击，2026-11-15 实测安全点连点十余次页面纹丝不动），
+# 不能用它关闭结算页，见 handle_os_battle_settlement()。
 # Device.click 只接受 Button 对象，不能用裸坐标元组。
 OS_SETTLEMENT_DISMISS_POINT = Button(
     area=(220, 20, 280, 50),
@@ -246,28 +249,52 @@ class MapEventHandler(EnemySearchingHandler):
         # 游戏 bug：上一个已清除海域的 AUTO_SEARCH_REWARD 弹出
         if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
             return True
-        # 残留的战斗评价页（VICTORY 大获全胜等）
-        # 全屏结算页任意点击即可关闭，但按钮点击区都压在地图右下
-        # （EXP_INFO 系按钮区 (1133,634,1262,650) 与「作战总览」按钮区
-        # (1069,641,1260,695) 大面积重叠）。窗口被上一次点击关闭后，
-        # 截图滞后的下一击会穿透到下层海域地图，随机落点命中右下按钮排
-        # 或塞壬舰队：误入作战总览 / 情报页 / 编队出击准备页，后续循环
-        # 只等海域地图元素，空转到 GameStuckError 甚至 MapDetectionError
-        # （11-10 ~ 11-15 逆迴十六夜多次卡死与崩溃的共同根因）。
-        # 因此改为固定安全点点击：地图顶部「距离大型作战重置」横幅区，
-        # 在海域地图 / 区域地图 / 作战总览 / 编队页上均无交互。
+        # 残留的战斗评价页（大获全胜 S 等）与经验结算页。
+        # 这两类页面只有右下「确定」/ 继续按钮响应点击，点其他位置
+        # （包括顶部重置横幅）不会关闭（2026-11-15 实测：固定安全点连点
+        # 十余次页面纹丝不动，最终 GameTooManyClickError）。
+        # 但按钮点击区压在海域地图右下按钮排上（EXP_INFO 系按钮区
+        # (1133,634,1262,650) 与「作战总览」按钮区 (1069,641,1260,695)
+        # 大面积重叠），窗口刚被上一击关闭、截图仍是旧帧时盲点会穿透到
+        # 下层海域地图，随机落点命中右下按钮排或塞壬舰队：误入作战总览 /
+        # 情报页 / 编队出击准备页，后续循环只等海域地图元素，空转到
+        # GameStuckError 甚至 MapDetectionError（11-10 ~ 11-15 多次卡死
+        # 与崩溃的共同根因）。因此点击前用新截图复核按钮仍在，旧帧残留
+        # 则跳过本次点击，见 _close_os_battle_settlement()。
         for button in (BATTLE_STATUS_S, BATTLE_STATUS_A, BATTLE_STATUS_B,
                        BATTLE_STATUS_C, BATTLE_STATUS_D):
-            if self.appear(button, offset=(20, 20), interval=2):
-                self.device.click(OS_SETTLEMENT_DISMISS_POINT)
-                logger.info('[大世界处理-事件] 关闭残留的战斗结算界面')
+            if self._close_os_battle_settlement(button):
                 return True
         # 评价页之后的经验结算页
         for button in (EXP_INFO_S, EXP_INFO_A, EXP_INFO_B, EXP_INFO_C, EXP_INFO_D):
-            if self.appear(button, offset=(20, 20), interval=2):
-                self.device.click(OS_SETTLEMENT_DISMISS_POINT)
+            if self._close_os_battle_settlement(button):
                 return True
         return False
+
+    def _close_os_battle_settlement(self, button):
+        """
+        确认式关闭单个结算页：检测命中后用新截图复核，再点确定按钮。
+
+        点击前的复核截图是为了堵住穿透窗口：上一击把窗口关掉后，调用方
+        循环的截图可能仍是旧画面（模拟器截图滞后可达数秒），若直接信任
+        旧帧盲点确定按钮，点击会落在下层海域地图的右下按钮排上。
+
+        Args:
+            button (Button): BATTLE_STATUS_* / EXP_INFO_* 检测按钮，
+                其 button 区即右下「确定」/ 继续按钮的点击区。
+
+        Returns:
+            bool: 是否点击了确定按钮。
+        """
+        if not self.appear(button, offset=(20, 20), interval=2):
+            return False
+        self.device.screenshot()
+        if not self.appear(button, offset=(20, 20)):
+            logger.info('[大世界处理-事件] 结算窗口已被上一击关闭，跳过本次点击')
+            return False
+        self.device.click(button)
+        logger.info('[大世界处理-事件] 关闭残留的战斗结算界面')
+        return True
 
     _story_timeout = Timer(60)
 
