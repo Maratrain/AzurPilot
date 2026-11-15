@@ -156,8 +156,9 @@ class TestOpsiMissionSkipSiren(unittest.TestCase):
         handler = self._make_handler([('finish', 186)])
         self.assertTrue(handler._os_mission_claim_skip_siren())
         self.assertEqual(len(handler.clicked), 1)
-        # 间隔未到时再次调用应被拦截，不产生新点击
-        self.assertFalse(handler._os_mission_claim_skip_siren())
+        # 间隔未到时再次调用应返回 'wait'（行仍在但限速中），不产生新点击；
+        # 调用方据此先处理弹窗再退出，而不是当成「无可领取」提前 break
+        self.assertEqual(handler._os_mission_claim_skip_siren(), 'wait')
         self.assertEqual(len(handler.clicked), 1)
         # 超过间隔后允许再次领取（回拨计时器起点模拟时间流逝）
         name = handler.clicked[0].name

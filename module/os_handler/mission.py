@@ -231,15 +231,15 @@ class MissionHandler(GlobeOperation, ZoneManager):
             if self.appear_then_click(MISSION_ENTER, offset=(200, 5), interval=5):
                 confirm_timer.reset()
                 continue
+            claimed = None
             if skip_siren_mission:
                 # 扫描全屏比对行坐标，不依赖固定行距，避免漏判导致误领塞壬研究
-                if self._os_mission_claim_skip_siren():
+                claimed = self._os_mission_claim_skip_siren()
+                if claimed is True:
                     confirm_timer.reset()
                     continue
-                # 剩余任务全是塞壬研究：没有可领取项，退出循环避免空转
-                if self._os_mission_scan_rows(MISSION_SIREN_RESEARCH):
-                    logger.info('[大世界处理-任务] 剩余任务均为塞壬研究，跳过不领取')
-                    break
+                # 'wait'（领取行全部限速中）与 False（无可领取项）都先走
+                # 下方弹窗处理，退出判定统一挪到循环末尾
             else:
                 if self.appear_then_click(MISSION_FINISH, offset=checkout_offset, interval=2):
                     self._os_mission_submitted = True
@@ -261,6 +261,16 @@ class MissionHandler(GlobeOperation, ZoneManager):
                 # 意外进入地球仪
                 confirm_timer.reset()
                 continue
+
+            # 领取行全部处于限速窗口且本轮无弹窗动作：本轮领取已完成、
+            # 弹窗已清，退出循环。旧实现在领取判定处直接 break，会带着
+            # 正在弹出的确认弹窗/奖励结算退出
+            if claimed == 'wait':
+                break
+            # 剩余任务全是塞壬研究：没有可领取项，退出循环避免空转
+            if claimed is False and self._os_mission_scan_rows(MISSION_SIREN_RESEARCH):
+                logger.info('[大世界处理-任务] 剩余任务均为塞壬研究，跳过不领取')
+                break
         return checkout_offset
 
     @cached_property
@@ -305,7 +315,9 @@ class MissionHandler(GlobeOperation, ZoneManager):
         与任意塞壬研究行纵向重叠的「领取」按钮一律跳过。
 
         Returns:
-            bool: 是否点击了某个领取按钮。
+            bool | str: True 表示已点击某个领取按钮；'wait' 表示存在非塞壬
+                领取行但全部处于 2 秒限速窗口（调用方应先处理弹窗再决定
+                是否退出）；False 表示当前画面没有可领取的非塞壬任务。
 
         Pages:
             in: MISSION_CHECK
@@ -314,15 +326,17 @@ class MissionHandler(GlobeOperation, ZoneManager):
         siren_rows = self._os_mission_scan_rows(MISSION_SIREN_RESEARCH)
         finish_rows = self._os_mission_scan_rows(MISSION_FINISH)
 
+        has_claimable = False
         for y, _ in finish_rows:
             # 「研究」文字与同一行「领取」按钮的中心纵向相差约 21 像素，取 45 像素容差
             if any(abs(y - siren_y) < 45 for siren_y, _ in siren_rows):
                 logger.info('[大世界处理-任务] 跳过塞壬研究任务')
                 continue
+            has_claimable = True
             # 名称带行号，避免多行领取共用同名按钮时触发点击洪水保护
             target = MISSION_FINISH.move((0, y - MISSION_FINISH.area[1]), name=f'MISSION_FINISH_Y{y}')
             # 补给兑换等可重复任务领取后按钮原样保留，点击需限速：
-            # 未到间隔时返回 False，让外层循环先处理确认弹窗与奖励结算
+            # 未到间隔时先处理其他行，全部限速时返回 'wait'
             timer = self.get_interval_timer(target, interval=2, renew=True)
             if not timer.reached():
                 continue
@@ -332,6 +346,13 @@ class MissionHandler(GlobeOperation, ZoneManager):
             logger.info('[大世界处理-任务] 领取非塞壬研究任务')
             return True
 
+        if has_claimable:
+            # 领取行仍在但全部处于限速窗口：上一击的确认弹窗/奖励结算可能
+            # 正在弹出。必须返回 'wait' 让调用方先处理弹窗，不能返回 False，
+            # 否则会被当成「剩余均为塞壬研究」提前退出领取循环，带着未关闭
+            # 的弹窗进入无弹窗处理的 os_mission_quit，60 秒空转触发
+            # GameStuckError（2026-11-15 月度审查发现的卡死路径）
+            return 'wait'
         return False
 
     def os_mission_quit(self):
@@ -348,6 +369,15 @@ class MissionHandler(GlobeOperation, ZoneManager):
                     break
             # 点击
             if self.appear_then_click(MISSION_QUIT, offset=(20, 20), interval=3):
+                continue
+            # 领取后延迟弹出的「合计获得奖励」/获得道具/确认弹窗会盖住返回
+            # 按钮，不处理会在裸循环里空转到卡死（2026-11-15 月度审查）。
+            # 出发确认走带重复保护的 handle_depart_confirm，避免误点信标类弹窗
+            if self.handle_map_get_items():
+                continue
+            if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
+                continue
+            if self.handle_depart_confirm():
                 continue
 
     def os_get_next_mission(self, skip_siren_mission=False, skip_unavailable=False, mission_index=0):
