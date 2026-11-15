@@ -532,8 +532,10 @@ class Combat(Combat_, MapEventHandler):
         自动搜索模式下的经验结算页面处理。
 
         依次检查 S/A/B/C/D 经验结算按钮并点击，点击后清除 S 评价计时器。
-        点击沿用战斗结算的点击冷却，避免同一页面被连点；页面是否关闭由调用方
-        继续截图确认，不再用固定时长休眠猜测界面状态。
+        点击固定 2 秒限速：自动搜索路径不经 combat()，battle_status_click_interval
+        保持类默认 0，若直接沿用会变成不限速连点（页面无响应时快速逼近
+        GameTooManyClickError）；手动作战路径的零等待不受影响。页面是否
+        关闭由调用方继续截图确认，不再用固定时长休眠猜测界面状态。
 
         Pages:
             in: 经验结算页面（S/A/B/C/D 任一可见）
@@ -543,7 +545,7 @@ class Combat(Combat_, MapEventHandler):
             bool: 是否点击了经验结算按钮。
         """
         for exp_info_button in [EXP_INFO_S, EXP_INFO_A, EXP_INFO_B, EXP_INFO_C, EXP_INFO_D]:
-            if self.appear_then_click(exp_info_button, interval=self.battle_status_click_interval):
+            if self.appear_then_click(exp_info_button, interval=2):
                 self._clear_battle_status_s_timer()
                 return True
         return False
