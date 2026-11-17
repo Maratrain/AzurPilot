@@ -14,6 +14,18 @@
 连点十余次页面纹丝不动，逆迴十六夜 18:28 / 18:59 两次 GameTooManyClickError），
 只有右下「确定」响应点击。因确定按钮的点击区压在地图右下按钮排上，
 点击前必须用新截图复核按钮仍在，旧帧残留时跳过，防止穿透。
+
+2026-11-17 补充：BATTLE_STATUS_C/D 匹配区是结算页评级字母的 22x86 竖直窄条，
+在海域地图中上部网格/地形上纯模板相似度稳定超过 0.85（11-17 23:58 逆迴十六夜
+实测 0.8538/0.8580），_close_os_battle_settlement 会把右下「作战总览」按钮
+当确定按钮误点，与 strategy_search_enter() 的 GLOBE_GOTO_MAP 兜底交替点击
+死循环，触发 GameTooManyClickError。检测改用模板+颜色双检
+（match_template_color），颜色校验滤除地图地形误匹配。
+
+2026-11-18 补充：os_get_next_mission 接取任务后游戏停留海域地图、
+任务未固定时，循环所有退出条件均不满足，空转 60 秒触发 GameStuckError
+（00:05 逆迴十六夜 OpsiDaily）。循环增加 30 秒无进展兜底，
+放弃本条任务并返回 False 走调用方收尾路径。
 """
 
 import ast
@@ -28,7 +40,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class _FakeHandler:
-    """只实现兜底方法依赖的 appear / appear_then_click / device，避免构造真实设备。"""
+    """只实现兜底方法依赖的 appear / match_template_color / device，避免构造真实设备。"""
 
     def __init__(self, visible):
         self.visible = set(visible)
@@ -37,11 +49,18 @@ class _FakeHandler:
         self.clicked = []
         self.intervals = {}
         self.screenshots = 0
+        self.color_checks = 0
 
     def appear(self, button, **kwargs):
         # 同一按钮可能被「检测 + 新帧复核」连续调用两次，只保留最大限速
         interval = kwargs.get('interval', 0)
         self.intervals[button.name] = max(self.intervals.get(button.name, 0), interval)
+        return button.name in self.visible
+
+    def match_template_color(self, button, **kwargs):
+        interval = kwargs.get('interval', 0)
+        self.intervals[button.name] = max(self.intervals.get(button.name, 0), interval)
+        self.color_checks += 1
         return button.name in self.visible
 
     def appear_then_click(self, button, **kwargs):
@@ -130,6 +149,40 @@ class TestOsBattleSettlement(unittest.TestCase):
         handler = _FakeHandler([])
         self.assertFalse(MapEventHandler.handle_os_battle_settlement(handler))
         self.assertEqual(handler.clicked, [])
+
+    def test_detection_uses_template_color(self):
+        """结算页检测必须用模板+颜色双检：BATTLE_STATUS_* 匹配区在海域地图上
+        纯模板稳定误匹配（11-17 23:58 实测 0.85+），会把右下「作战总览」
+        当确定按钮误点，与 GLOBE_GOTO_MAP 兜底交替点击触发
+        GameTooManyClickError。颜色校验滤除地图地形误匹配。"""
+        handler = _FakeHandler([BATTLE_STATUS_S.name])
+        self.assertTrue(MapEventHandler.handle_os_battle_settlement(handler))
+        # 检测 + 复核两次调用都走双检
+        self.assertEqual(handler.color_checks, 2)
+        self.assertEqual(handler.clicked, [BATTLE_STATUS_S])
+
+    def test_close_settlement_has_no_plain_appear(self):
+        """_close_os_battle_settlement 内部不允许再用纯模板 appear 检测。"""
+        node = _function_node(ROOT / 'module/os_handler/map_event.py',
+                              '_close_os_battle_settlement')
+        self.assertNotIn('appear', _called_attrs(node))
+
+
+class TestOsGetNextMissionNoProgressGuard(unittest.TestCase):
+    def test_no_progress_guard_exists(self):
+        """os_get_next_mission 接取循环必须有 30 秒无进展兜底：
+        接取后游戏停留海域地图、任务未固定时，所有退出条件均不满足，
+        空转 60 秒会触发 GameStuckError 重启游戏（2026-11-18 00:05）。
+        兜底在长时间无操作后放弃本条任务并返回 False。"""
+        node = _function_node(ROOT / 'module/os_handler/mission.py', 'os_get_next_mission')
+        source = ast.unparse(node)
+        self.assertIn('no_progress', source)
+        self.assertIn('reached', _called_attrs(node))
+        self.assertIn('reset', _called_attrs(node))
+        # 兜底命中时返回 False，让调用方按"没有更多任务"收尾
+        returns = [n.value for n in ast.walk(node)
+                   if isinstance(n, ast.Return) and isinstance(n.value, ast.Constant)]
+        self.assertIn(False, [r.value for r in returns])
 
 
 def _function_node(path, name):

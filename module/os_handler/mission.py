@@ -415,6 +415,15 @@ class MissionHandler(GlobeOperation, ZoneManager):
             return False
 
         logger.info('[大世界处理-任务] 接取大世界任务')
+        # 接取任务后游戏应自动固定海域并跳转；若既未固定、信息栏未出现，
+        # 也没有任何可处理的弹窗/按钮，说明接取失败或传送被异常打断。
+        # 此时循环空转只会在 60 秒无操作后触发 GameStuckError 重启游戏
+        # （2026-11-18 00:05 逆迴十六夜 OpsiDaily，MISSION_CHECKOUT 后
+        # 获得道具弹窗已点掉，界面停在海域地图无任何元素）。
+        # 每次有效操作后重置计时，超过 30 秒无进展则放弃本条任务，
+        # 走调用方"没有更多任务"的收尾路径，避免无意义的重启。
+        no_progress = Timer(30)
+        no_progress.reset()
         for _ in self.loop():
             # 结束
             if self.is_zone_pinned():
@@ -447,6 +456,7 @@ class MissionHandler(GlobeOperation, ZoneManager):
 
             # 保留海域中断自律后的结算弹窗也会延迟到这一步才弹出，先点掉
             if self.appear_then_click(AUTO_SEARCH_REWARD, offset=(50, 50), interval=3):
+                no_progress.reset()
                 continue
             # 接取任务后可能立即弹出「获得道具」（塞壬坐标记等任务接取即给道具），
             # 弹窗盖住接取按钮与固定海域判定，不处理会空转到 GameStuckError
@@ -455,12 +465,20 @@ class MissionHandler(GlobeOperation, ZoneManager):
             if self.appear(GET_ITEMS_1, offset=(20, 20), interval=2) \
                     or self.appear(GET_ITEMS_2, offset=(20, 20), interval=2):
                 self.device.click(OS_SETTLEMENT_DISMISS_POINT)
+                no_progress.reset()
                 continue
             if self.appear_then_click(MISSION_CHECKOUT, offset=checkout_offset, interval=2, similarity=0.78):
+                no_progress.reset()
                 continue
             if self.handle_popup_confirm('OS_MISSION_CHECKOUT'):
                 # 弹窗：退出当前海域后潜艇将撤退
+                no_progress.reset()
                 continue
+            # 无进展兜底：所有可处理元素均未出现且长时间无操作，
+            # 放弃本条任务接取，返回 False 让调用方按"没有更多任务"收尾
+            if no_progress.reached():
+                logger.warning('[大世界处理-任务] 接取任务后长时间无进展，放弃本条任务')
+                return False
 
     def os_mission_overview_accept(self, skip_siren_mission=False, skip_first_screenshot=True):
         """

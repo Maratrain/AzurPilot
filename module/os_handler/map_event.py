@@ -271,6 +271,13 @@ class MapEventHandler(EnemySearchingHandler):
         # GameStuckError 甚至 MapDetectionError（11-10 ~ 11-15 多次卡死
         # 与崩溃的共同根因）。因此点击前用新截图复核按钮仍在，旧帧残留
         # 则跳过本次点击，见 _close_os_battle_settlement()。
+        # 检测必须用模板+颜色双检：BATTLE_STATUS_C/D 的匹配区是结算页
+        # 评级字母的 22x86 竖直窄条，结构简单，在海域地图中上部网格/地形
+        # 上纯模板相似度可达 0.85 以上（2026-11-17 23:58 逆迴十六夜实测
+        # 0.8538/0.8580，稳定误匹配），误点右下按钮排进入作战总览后与
+        # GLOBE_GOTO_MAP 兜底交替点击触发 GameTooManyClickError。双检的
+        # 颜色校验可滤除此类误匹配（误匹配区为棕褐地形，与按钮期望的
+        # 浅灰评级字母色相差 60+），真实结算页该区域颜色即按钮定义色。
         for button in (BATTLE_STATUS_S, BATTLE_STATUS_A, BATTLE_STATUS_B,
                        BATTLE_STATUS_C, BATTLE_STATUS_D):
             if self._close_os_battle_settlement(button):
@@ -285,6 +292,14 @@ class MapEventHandler(EnemySearchingHandler):
         """
         确认式关闭单个结算页：检测命中后用新截图复核，再点确定按钮。
 
+        检测用 match_template_color（模板+颜色双检）而非纯模板 appear：
+        BATTLE_STATUS_* 的匹配区是结算页评级字母窄条，在海域地图上会
+        稳定误匹配（2026-11-17 23:58 实测相似度 0.85+），纯模板检测
+        会把右下「作战总览」按钮当结算页确定按钮点击，与
+        strategy_search_enter() 的 GLOBE_GOTO_MAP 兜底形成交替点击
+        死循环，触发 GameTooManyClickError。颜色校验要求匹配区颜色
+        接近评级字母色，可滤除地图地形误匹配。
+
         点击前的复核截图是为了堵住穿透窗口：上一击把窗口关掉后，调用方
         循环的截图可能仍是旧画面（模拟器截图滞后可达数秒），若直接信任
         旧帧盲点确定按钮，点击会落在下层海域地图的右下按钮排上。
@@ -296,10 +311,10 @@ class MapEventHandler(EnemySearchingHandler):
         Returns:
             bool: 是否点击了确定按钮。
         """
-        if not self.appear(button, offset=(20, 20), interval=2):
+        if not self.match_template_color(button, offset=(20, 20), interval=2):
             return False
         self.device.screenshot()
-        if not self.appear(button, offset=(20, 20)):
+        if not self.match_template_color(button, offset=(20, 20)):
             logger.info('[大世界处理-事件] 结算窗口已被上一击关闭，跳过本次点击')
             return False
         self.device.click(button)
