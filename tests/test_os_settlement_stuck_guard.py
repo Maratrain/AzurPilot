@@ -219,6 +219,34 @@ class TestEnterLoopsUseGuard(unittest.TestCase):
         node = _function_node(ROOT / 'module/os_handler/action_point.py', 'action_point_enter')
         self.assertIn('handle_os_battle_settlement', _called_attrs(node))
 
+    def test_strategy_search_enter_order_check(self):
+        """策略搜索循环增加 ORDER_CHECK 兜底：误入海域指令页同样没有策略搜索
+        开关，原逻辑只截图不操作会空转到 GameStuckError（移植自
+        changqing81/dev）。"""
+        node = _function_node(ROOT / 'module/os_handler/strategic.py', 'strategy_search_enter')
+        clicked = [
+            call.args[0].id
+            for call in ast.walk(node)
+            if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
+            and call.func.attr == 'appear_then_click' and call.args
+            and isinstance(call.args[0], ast.Name)
+        ]
+        self.assertIn('ORDER_CHECK', clicked)
+
+    def test_set_tab_has_timeout(self):
+        """strategic_search_set_tab 必须带超时：悬停说明气泡遮挡标签使颜色
+        判定持续失败时，无限循环只截图不操作会 GameStuckError（移植自
+        changqing81/dev，5 秒超时 + 0.5 秒点击限速）。"""
+        node = _function_node(ROOT / 'module/os_handler/strategic.py', 'strategic_search_set_tab')
+        loop_with_timeout = any(
+            isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute)
+            and call.func.attr == 'loop' and any(kw.arg == 'timeout' for kw in call.keywords)
+            for call in ast.walk(node)
+        )
+        self.assertTrue(loop_with_timeout, 'strategic_search_set_tab 的 loop() 必须带 timeout')
+        # 超时分支放行而不是 raise/return
+        self.assertNotIn('raise', ast.unparse(node))
+
 
 if __name__ == '__main__':
     unittest.main()

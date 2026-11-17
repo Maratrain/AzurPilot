@@ -4,6 +4,7 @@
 提供战略搜索面板的进入、标签页切换（已净化/未净化）、
 搜索选项勾选、确认弹窗处理以及滚动条控制等操作。
 """
+from module.base.timer import Timer
 from module.base.utils import get_color
 from module.logger import logger
 from module.os.assets import GLOBE_GOTO_MAP
@@ -35,18 +36,30 @@ class StrategicSearchHandler(MapEventHandler):
             # 结算弹窗或残留战斗结算页会遮挡策略搜索入口，必须先关闭
             if self.handle_os_battle_settlement():
                 continue
+            # 误入海域指令页同样没有策略搜索开关，点顶部区域退出，
+            # 否则循环只截图不操作，最终被判为 GameStuckError 并重启游戏
+            # （移植自 changqing81/dev；已用地图截图离线验证 ORDER_CHECK
+            # 在海域地图上不误匹配，sim=0.21 远低于阈值）
+            if self.appear_then_click(ORDER_CHECK, offset=(20, 20), interval=3):
+                logger.info('[大世界-策略] 误入海域指令页，退出')
+                continue
             if self.match_template_color(STRATEGIC_SEARCH_MAP_OPTION_OFF, offset=(20, 20), interval=2):
                 self.device.click(STRATEGIC_SEARCH_MAP_OPTION_OFF)
                 continue
 
     def strategic_search_set_tab(self):
         logger.info('[大世界-策略] 设置策略搜索标签')
-        for _ in self.loop():
-            if get_color(self.device.image, STRATEGIC_SEARCH_TAB_SECURED.area)[2] <= 150:
-                self.device.click(STRATEGIC_SEARCH_TAB_SECURED)
-                continue
+        # 悬停说明气泡会盖住标签使颜色判定持续失败：点击限速防连点熔断，超时后放行直接确认
+        # （移植自 changqing81/dev；原逻辑为无限循环，遮挡时空转到 GameStuckError）
+        click_limit = Timer(0.5)
+        for _ in self.loop(timeout=5):
             if get_color(self.device.image, STRATEGIC_SEARCH_TAB_SECURED.area)[2] > 150:
                 break
+            if click_limit.reached():
+                self.device.click(STRATEGIC_SEARCH_TAB_SECURED)
+                click_limit.reset()
+        else:
+            logger.warning('[大世界-策略] 设置策略搜索标签超时，跳过标签检查直接确认')
 
     def _strategy_search_scroll_appear(self):
         """
