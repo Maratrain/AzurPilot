@@ -7,7 +7,10 @@
 from time import monotonic
 from typing import Optional
 
+import numpy as np
+
 from module.base.timer import Timer
+from module.base.utils import area_offset, color_similar, get_color
 from module.combat.assets import *
 from module.exception import CampaignEnd
 from module.handler.assets import POPUP_CANCEL, POPUP_CONFIRM, STORY_SKIP_3
@@ -278,6 +281,8 @@ class MapEventHandler(EnemySearchingHandler):
         # GLOBE_GOTO_MAP 兜底交替点击触发 GameTooManyClickError。双检的
         # 颜色校验可滤除此类误匹配（误匹配区为棕褐地形，与按钮期望的
         # 浅灰评级字母色相差 60+），真实结算页该区域颜色即按钮定义色。
+        # 注意模板匹配必须走彩色通道（Button.match），不能用
+        # match_template_color 的亮度匹配，见 _os_settlement_appear()。
         for button in (BATTLE_STATUS_S, BATTLE_STATUS_A, BATTLE_STATUS_B,
                        BATTLE_STATUS_C, BATTLE_STATUS_D):
             if self._close_os_battle_settlement(button):
@@ -288,13 +293,44 @@ class MapEventHandler(EnemySearchingHandler):
                 return True
         return False
 
+    def _os_settlement_appear(self, button, offset=(20, 20), interval=0):
+        """结算页按钮检测：彩色模板匹配 + 匹配区颜色校验。
+
+        与 match_template_color 同为模板+颜色双检，但模板匹配走彩色通道
+        （appear -> Button.match）而非亮度通道（match_luma）。
+        BATTLE_STATUS_* 的匹配区是结算页评级字母窄条，接近纯色（各通道
+        标准差仅 3~5），两次捕获间的微小色差会被 TM_CCOEFF_NORMED 在亮度
+        通道上放大：2026-11-19 07:57 逆迴十六夜实测，真实战斗结算页上
+        BATTLE_STATUS_S 亮度相似度仅 0.79（低于 0.85 阈值，彩色模板匹配
+        为 0.914、颜色校验通过），match_template_color 完全检测不到结算页，
+        action_point_enter 循环 195 秒无操作触发 GameStuckError 重启游戏。
+        彩色模板匹配 + 颜色校验两侧都成立：真实结算页 0.914 且颜色一致
+        （11-19 错误截图实测），海域地图地形误匹配 0.85+ 但匹配区为棕褐
+        地形、与评级字母浅灰相差 60+，被颜色校验滤除（11-17 23:58 实测）。
+
+        Args:
+            button (Button): BATTLE_STATUS_* / EXP_INFO_* 检测按钮。
+            offset (int, tuple): 模板匹配的偏移范围。
+            interval (int): 两次检测之间的最小间隔秒数。
+
+        Returns:
+            bool: 按钮是否出现（模板与颜色同时通过）。
+        """
+        if not self.appear(button, offset=offset, interval=interval):
+            return False
+        # 与 Button.match_template_color 相同的取色方式：按模板匹配到的偏移取色
+        diff = np.subtract(button.button, button._button)[:2]
+        area = area_offset(button.area, offset=diff)
+        color = get_color(self.device.image, area)
+        return color_similar(color1=color, color2=button.color, threshold=30)
+
     def _close_os_battle_settlement(self, button):
         """
         确认式关闭单个结算页：检测命中后用新截图复核，再点确定按钮。
 
-        检测用 match_template_color（模板+颜色双检）而非纯模板 appear：
-        BATTLE_STATUS_* 的匹配区是结算页评级字母窄条，在海域地图上会
-        稳定误匹配（2026-11-17 23:58 实测相似度 0.85+），纯模板检测
+        检测用 _os_settlement_appear（彩色模板匹配+颜色双检）而非纯模板
+        appear：BATTLE_STATUS_* 的匹配区是结算页评级字母窄条，在海域地图上
+        会稳定误匹配（2026-11-17 23:58 实测相似度 0.85+），纯模板检测
         会把右下「作战总览」按钮当结算页确定按钮点击，与
         strategy_search_enter() 的 GLOBE_GOTO_MAP 兜底形成交替点击
         死循环，触发 GameTooManyClickError。颜色校验要求匹配区颜色
@@ -311,10 +347,10 @@ class MapEventHandler(EnemySearchingHandler):
         Returns:
             bool: 是否点击了确定按钮。
         """
-        if not self.match_template_color(button, offset=(20, 20), interval=2):
+        if not self._os_settlement_appear(button, offset=(20, 20), interval=2):
             return False
         self.device.screenshot()
-        if not self.match_template_color(button, offset=(20, 20)):
+        if not self._os_settlement_appear(button, offset=(20, 20)):
             logger.info('[大世界处理-事件] 结算窗口已被上一击关闭，跳过本次点击')
             return False
         self.device.click(button)

@@ -26,6 +26,14 @@
 任务未固定时，循环所有退出条件均不满足，空转 60 秒触发 GameStuckError
 （00:05 逆迴十六夜 OpsiDaily）。循环增加 30 秒无进展兜底，
 放弃本条任务并返回 False 走调用方收尾路径。
+
+2026-11-19 补充：11-18 的双检改用 match_template_color 后，其模板匹配走
+亮度通道（match_luma）。BATTLE_STATUS_* 匹配区接近纯色（各通道标准差仅
+3~5），两次捕获间的微小色差被 TM_CCOEFF_NORMED 在亮度通道上放大：07:57
+逆迴十六夜实测真实战斗结算页上 BATTLE_STATUS_S 亮度相似度仅 0.79
+（彩色模板匹配 0.914），结算页完全检测不到，action_point_enter 循环
+195 秒无操作触发 GameStuckError。检测改回彩色模板匹配（appear）+
+匹配区颜色校验，见 _os_settlement_appear()。
 """
 
 import ast
@@ -40,7 +48,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class _FakeHandler:
-    """只实现兜底方法依赖的 appear / match_template_color / device，避免构造真实设备。"""
+    """只实现兜底方法依赖的 appear / _os_settlement_appear / device，避免构造真实设备。"""
 
     def __init__(self, visible):
         self.visible = set(visible)
@@ -57,7 +65,7 @@ class _FakeHandler:
         self.intervals[button.name] = max(self.intervals.get(button.name, 0), interval)
         return button.name in self.visible
 
-    def match_template_color(self, button, **kwargs):
+    def _os_settlement_appear(self, button, **kwargs):
         interval = kwargs.get('interval', 0)
         self.intervals[button.name] = max(self.intervals.get(button.name, 0), interval)
         self.color_checks += 1
@@ -83,6 +91,10 @@ class _FakeHandler:
     class _Device:
         def __init__(self, owner):
             self._owner = owner
+
+        @property
+        def image(self):
+            return getattr(self._owner, 'image', None)
 
         def click(self, point):
             self._owner.clicked.append(point)
@@ -161,11 +173,55 @@ class TestOsBattleSettlement(unittest.TestCase):
         self.assertEqual(handler.color_checks, 2)
         self.assertEqual(handler.clicked, [BATTLE_STATUS_S])
 
+    def test_settlement_appear_is_color_template_not_luma(self):
+        """_os_settlement_appear 的模板匹配必须走彩色通道：匹配区接近纯色时
+        match_luma 的亮度相似度会被微小色差放大到 0.85 以下
+        （11-19 07:57 实测 0.79，彩色匹配 0.914），用亮度匹配会漏检真实
+        结算页导致 GameStuckError；同时必须保留颜色校验以滤除地图误匹配。"""
+        node = _function_node(ROOT / 'module/os_handler/map_event.py',
+                              '_os_settlement_appear')
+        attrs = _called_attrs(node)
+        source = ast.unparse(node)
+        self.assertIn('appear', attrs)
+        self.assertNotIn('match_luma', attrs)
+        self.assertNotIn('match_template_color', attrs)
+        self.assertIn('color_similar', source)
+        self.assertIn('get_color', source)
+
+    def test_close_settlement_uses_settlement_appear(self):
+        """_close_os_battle_settlement 的检测与复核都必须走
+        _os_settlement_appear，不允许直接用 appear / match_template_color。"""
+        node = _function_node(ROOT / 'module/os_handler/map_event.py',
+                              '_close_os_battle_settlement')
+        attrs = _called_attrs(node)
+        self.assertEqual(attrs.count('_os_settlement_appear'), 2)
+        self.assertNotIn('match_template_color', attrs)
+
     def test_close_settlement_has_no_plain_appear(self):
         """_close_os_battle_settlement 内部不允许再用纯模板 appear 检测。"""
         node = _function_node(ROOT / 'module/os_handler/map_event.py',
                               '_close_os_battle_settlement')
         self.assertNotIn('appear', _called_attrs(node))
+
+    def test_settlement_appear_requires_color_check(self):
+        """双检语义：模板匹配命中后，匹配区颜色必须接近按钮定义色。
+        海域地形误匹配（棕褐）必须被颜色校验滤除。"""
+        import numpy as np
+
+        class _Handler(_FakeHandler):
+            def __init__(self):
+                super().__init__([BATTLE_STATUS_S.name])
+                self.image = np.zeros((720, 1280, 3), dtype=np.uint8)
+        # 匹配区颜色 = 按钮定义色：双检通过
+        handler = _Handler()
+        handler.image[:, :] = BATTLE_STATUS_S.color
+        self.assertTrue(
+            MapEventHandler._os_settlement_appear(handler, BATTLE_STATUS_S))
+        # 匹配区颜色 = 海域地形棕褐：颜色校验滤除
+        handler = _Handler()
+        handler.image[:, :] = (138, 104, 80)
+        self.assertFalse(
+            MapEventHandler._os_settlement_appear(handler, BATTLE_STATUS_S))
 
 
 class TestOsGetNextMissionNoProgressGuard(unittest.TestCase):
