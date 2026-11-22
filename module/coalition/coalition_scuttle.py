@@ -73,6 +73,12 @@ class CoalitionScuttleCombat(CoalitionCombat):
                 continue
             if self.handle_mission_popup_ack():
                 continue
+            # 点「退出战斗」后游戏会弹「信息 INFORMATION / 知道了」说明弹窗。
+            # 这里重写了基类的执行循环（为了按关卡而非按战斗扣心情），
+            # 基类那份有处理器，这份没有，不补会空转到 GameStuckError。
+            if self.handle_combat_automation_confirm():
+                confirm_timer.reset()
+                continue
 
             # 结束条件
             if self.is_in_auto_search_menu() or self._handle_auto_search_menu_missing():

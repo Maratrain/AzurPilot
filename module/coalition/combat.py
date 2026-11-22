@@ -51,6 +51,11 @@ class CoalitionCombat(CoalitionUI, CampaignBase):
             # Coalition 20251120 has ship drop
             if self.handle_get_ship():
                 continue
+            # 退出/重进战斗时可能弹出「信息 INFORMATION / 知道了」说明弹窗，
+            # 不处理会空转到 GameStuckError（同 2026-11-11 大世界事故机制）。
+            if self.handle_combat_automation_confirm():
+                status_clicked = False
+                continue
             if self.handle_battle_status():
                 status_clicked = True
                 click_last.reset()

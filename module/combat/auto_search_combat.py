@@ -539,6 +539,11 @@ class AutoSearchCombat(MapOperation, Combat, CampaignStatus):
                 continue
             if self.handle_mission_popup_ack():
                 continue
+            # 点「退出战斗」后游戏会弹「信息 INFORMATION / 知道了」说明弹窗。
+            # 这条是自动搜索的结算循环，与 interrupt_auto_search 一样没有外层
+            # 战斗循环兜底，不处理会空转到 GameStuckError（同 2026-11-11 事故机制）。
+            if self.handle_combat_automation_confirm():
+                continue
 
             # 兜底点击获得道具结算界面：低心情弹窗可能在地图选项之前被确认
             # （如战斗结算中途中确认、退役后重出击），此时标志位可能未置位，

@@ -735,6 +735,11 @@ class Combat(Level, HPBalancer, Retirement, SubmarineCall, CombatAuto, CombatMan
                 continue
             if self.handle_story_unlock_popup():
                 continue
+            # 点「退出战斗」后游戏会弹「信息 INFORMATION / 知道了」说明弹窗。
+            # 这条结算循环没有战斗准备/执行那层循环兜底，不处理会空转到
+            # GameStuckError（同 2026-11-11 大世界事故机制）。
+            if self.handle_combat_automation_confirm():
+                continue
             # 战斗中的额外处理器
             if self.handle_auto_search_exit(drop=drop):
                 continue

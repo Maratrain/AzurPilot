@@ -968,6 +968,15 @@ class OSFleet(OSCamera, Combat, Fleet, OSAsh):
                 self.interval_reset(MAINTENANCE_ANNOUNCE)
                 pause_interval.reset()
                 continue
+            # 与 OSMap.interrupt_auto_search 同构：点完「退出战斗」后，游戏会弹
+            # 「信息 INFORMATION / 知道了」说明弹窗，这条循环没有外层战斗循环兜底，
+            # 不处理会一路空转到 stuck_timer_long（195s）抛 GameStuckError。
+            if self.handle_combat_automation_confirm():
+                pause_interval.reset()
+                continue
+            if self.handle_popup_single_white():
+                pause_interval.reset()
+                continue
 
             # 点击离开按钮
             if self.is_in_map() and click_timer.reached():
