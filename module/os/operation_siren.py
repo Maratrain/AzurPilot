@@ -53,13 +53,20 @@ class OperationSiren(
 ):
     """大世界（Operation Siren）主类，组合所有任务模块。"""
 
+    def _os_target_all_selected(self):
+        """检测海域探索页面上选中的「全部」标签。
+
+        部分国服画面的匹配分数低于默认阈值，放宽到 0.7（参考上游 #1489）。
+        """
+        return self.appear(TARGET_ALL_ON, offset=(200, 20), similarity=0.7)
+
     def _os_target_enter(self):
         self.os_map_goto_globe(unpin=False)
-        self.ui_click(click_button=TARGET_ENTER, check_button=TARGET_ALL_ON,
+        self.ui_click(click_button=TARGET_ENTER, check_button=self._os_target_all_selected,
                       offset=(200, 20), retry_wait=3, skip_first_screenshot=True)
 
     def _os_target_exit(self):
-        self.ui_back(check_button=TARGET_ENTER, appear_button=TARGET_ALL_ON,
+        self.ui_back(check_button=TARGET_ENTER, appear_button=self._os_target_all_selected,
                      offset=(200, 20), retry_wait=3, skip_first_screenshot=True)
         self.os_globe_goto_map()
 
