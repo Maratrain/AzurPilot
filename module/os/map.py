@@ -1091,6 +1091,7 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
         """
         logger.info("[大世界-搜索] 中断自动搜索")
         is_loading = False
+        info_logged = False
         pause_interval = Timer(0.5, count=1)
         in_main_timer = Timer(3, count=6)
         in_map_timer = Timer(1, count=6)
@@ -1145,6 +1146,24 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                 continue
             if self.handle_map_event():
                 continue
+            # 战斗中途点「退出」后，游戏会弹「信息 INFORMATION」说明弹窗
+            # （正文「注意，自律战斗时可能出现以下情况」，底部单按钮「知道了」）。
+            # 这条循环是中断自律寻敌的独立路径，没有战斗准备/执行那层循环兜底，
+            # 不在这里处理就会一直空转到 stuck_timer_long（195s）抛 GameStuckError。
+            if self.handle_combat_automation_confirm():
+                in_main_timer.reset()
+                in_map_timer.reset()
+                continue
+            # 同类单按钮提示弹窗（船坞已满 / 物品过期 / 邮箱已满等），
+            # 一旦出现在这条循环里同样没有其他处理器会认。
+            if self.handle_popup_single_white():
+                in_main_timer.reset()
+                in_map_timer.reset()
+                continue
+            if self.handle_game_tips():
+                in_main_timer.reset()
+                in_map_timer.reset()
+                continue
             # 仅在检测到时打印一次
             if not is_loading:
                 if self.is_combat_loading():
@@ -1154,7 +1173,10 @@ class OSMap(OSFleet, Map, GlobeCamera, StorageHandler, StrategicSearchHandler):
                     continue
                 # page_main 的随机背景可能触发 EXP_INFO_*，不检查它们
                 if in_main_timer.reached():
-                    logger.info("[大世界-信息] 处理经验信息")
+                    # 每帧都打会刷出上百条同质日志淹没现场，只在首次进入该分支时记录
+                    if not info_logged:
+                        info_logged = True
+                        logger.info("[大世界-信息] 处理经验信息")
                     if self.handle_battle_status():
                         continue
                     if self.handle_exp_info():
