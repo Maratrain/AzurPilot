@@ -96,7 +96,13 @@ class EmulatorInstanceBase:
         if isinstance(other, list) and self.type in other:
             return True
         if isinstance(other, EmulatorInstanceBase):
-            return super().__eq__(other) and self.type == other.type
+            # 按字段比较，保持与 __hash__ 一致：同一模拟器类型但名称或
+            # serial 不同的两个实例是不同实例
+            return (
+                self.serial == other.serial
+                and self.name == other.name
+                and self.path == other.path
+            )
         return super().__eq__(other)
 
     def __hash__(self):
