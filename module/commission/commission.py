@@ -60,6 +60,13 @@ COMMISSION_SWITCH.add_state('daily', COMMISSION_DAILY)
 COMMISSION_SWITCH.add_state('urgent', COMMISSION_URGENT)
 COMMISSION_SCROLL = Scroll(COMMISSION_SCROLL_AREA, color=(247, 211, 66), name='COMMISSION_SCROLL')
 
+# 无法开始的委托（如舰船等级不足）在短暂等待后放弃并跳过，而不是循环点击到
+# GameTooManyClickError 重启游戏、丢掉所有运行中的委托。移植自上游 dev。
+# 上游默认 90 秒（含船坞补位等待场景），本仓库未移植该场景，取 45 秒：
+# 入口无响应时每约 7.5 秒点击一次，保证在入口点击累积到交替连点阈值
+# （另一按钮已滚动 6 次时）之前先触发跳过。
+COMMISSION_SKIP_TIMEOUT = 45  # 单个委托启动的总超时（秒）。
+
 # 委托收益截图保留张数：与统计页「最近委托记录」的 50 条上限保持一致。
 # 仅在「掉落记录 - 截图保留天数」为 0 时生效，填了天数就改按天数清理。
 COMMISSION_REWARD_SCREENSHOT_KEEP = 50
@@ -654,7 +661,7 @@ class RewardCommission(UI, InfoHandler):
 
     def _commission_start_click(self, comm, is_urgent=False, skip_first_screenshot=True):
         """
-        启动一个委托。
+        启动一个委托，无法开始的委托由调用方跳过。
 
         Args:
             comm (Commission):
@@ -672,6 +679,7 @@ class RewardCommission(UI, InfoHandler):
         self.interval_clear(COMMISSION_ADVICE)
         self.interval_clear(COMMISSION_START)
         comm_timer = Timer(7)
+        skip_timer = Timer(COMMISSION_SKIP_TIMEOUT).reset()
         count = 0
         while 1:
             if skip_first_screenshot:
@@ -682,12 +690,17 @@ class RewardCommission(UI, InfoHandler):
             # 结束
             if self.info_bar_count():
                 break
+            # 无法开始：跳过而不是抛 GameStuckError，
+            # 后者会重启游戏并丢掉所有运行中的委托。
+            if skip_timer.reached():
+                logger.warning(f'[委托-启动] 启动超时，跳过: {comm.name}')
+                return False
             if count >= 3:
                 # 重启游戏以处理委托推荐 bug。
                 # 点击"推荐"后，舰船出现后突然消失。
                 # 同时委托图标闪烁。
-                logger.warning('[委托-启动] 触发了委托列表闪烁bug')
-                raise GameStuckError('[委托-启动] 触发了委托列表闪烁bug')
+                logger.warning('[委托-启动] 触发了委托列表闪烁bug，跳过该委托')
+                return False
 
             # 点击
             if self.match_template_color(COMMISSION_START, offset=(5, 20), interval=7):
