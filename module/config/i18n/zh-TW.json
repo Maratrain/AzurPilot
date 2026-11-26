@@ -107,7 +107,7 @@
       "help": ""
     },
     "Coalition": {
-      "name": "光影風尚-拍攝進行時",
+      "name": "聯合出擊",
       "help": ""
     },
     "CoalitionScuttle": {
@@ -151,7 +151,7 @@
       "help": ""
     },
     "CoalitionSp": {
-      "name": "怪谈纪实：逃离白夜山庄SP",
+      "name": "聯合出擊每日 SP",
       "help": ""
     },
     "Commission": {
@@ -1213,6 +1213,7 @@
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "光影風尚-拍攝進行時",
       "coalition_20260723": "怪談紀實",
+      "coalition_20261124": "The Transfer Student at Veritas Academy",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "斯圖爾特的硝煙",
       "event_20200326_cn": "Microlayer Medley",

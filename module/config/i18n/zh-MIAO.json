@@ -107,7 +107,7 @@
       "help": "通往深谷的特殊活动，小心迷路喵~ (´・ω・`)"
     },
     "Coalition": {
-      "name": "光影风尚拍摄进行时喵",
+      "name": "联合出击喵",
       "help": "拿起相机拍下最美的瞬间喵，模特队的胜利！(ﾉ◕ヮ◕)ﾉ"
     },
     "CoalitionScuttle": {
@@ -151,7 +151,7 @@
       "help": "共斗的每日任务，记得清掉喵~ (´・ω・`)"
     },
     "CoalitionSp": {
-      "name": "怪谈纪实：逃离白夜山庄SP喵",
+      "name": "联合出击每日 SP喵",
       "help": "逃离白夜山庄的每日SP挑战，务必小心怪谈喵！( •̀ᴗ-)✧"
     },
     "Commission": {
@@ -1213,6 +1213,7 @@
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "Light & Shadow Fashion Shoot!",
       "coalition_20260723": "Authentic Horror Story",
+      "coalition_20261124": "The Transfer Student at Veritas Academy",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "The Solomon Ranger Rerun",
       "event_20200326_cn": "Microlayer Medley",

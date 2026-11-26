@@ -107,7 +107,7 @@
       "help": ""
     },
     "Coalition": {
-      "name": "Light & Shadow Fashion - Shooting in Progress",
+      "name": "Coalition Sortie",
       "help": ""
     },
     "CoalitionScuttle": {
@@ -151,7 +151,7 @@
       "help": ""
     },
     "CoalitionSp": {
-      "name": "怪谈纪实：逃离白夜山庄SP",
+      "name": "Coalition Sortie Daily SP",
       "help": ""
     },
     "Commission": {
@@ -1213,6 +1213,7 @@
       "coalition_20251120": "DATE A LANE",
       "coalition_20260122": "Light & Shadow Fashion Shoot!",
       "coalition_20260723": "Authentic Horror Story",
+      "coalition_20261124": "The Transfer Student at Veritas Academy",
       "event_20200227_cn": "Northern Overture",
       "event_20200312_cn": "The Solomon Ranger Rerun",
       "event_20200326_cn": "Microlayer Medley",

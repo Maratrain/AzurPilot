@@ -11,12 +11,14 @@ from module.config.config import TaskEnd
 
 class CoalitionSP(Coalition):
     def run(self, *args, **kwargs):
+        """运行 SP 难度一次，若成功挑战或今日次数已用完则延期至次日，否则停止任务。"""
+        self.sp_attempt_used = False
         try:
             super().run(mode='sp', total=1)
         except TaskEnd:
-            # Catch task switch
+            # 捕获任务切换信号
             pass
-        if self.run_count > 0:
+        if self.run_count > 0 or self.sp_attempt_used:
             self.config.task_delay(server_update=True)
         else:
             self.config.task_stop()

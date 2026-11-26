@@ -323,3 +323,4 @@ To add a new event, add a new row in here, and run `python -m module.config.conf
 | 20261008   | event 20250912 cn        | A Dance for Amahara Above Rerun              | 复刻起舞于天原之上         | A Dance for Amahara Above Rerun                    | アマハラに舞い奉れ（復刻）           | -                          |
 | 20261022   | event 20261022 cn        | Tempesta and the Corridor of Mist            | 飓风与雾霭回廊             | Tempesta and the Corridor of Mist                  | テンペスタと霧靄回廊                 | -                          |
 | 20261105   | event 20261022 cn        | Tempesta and the Corridor of Mist            | -                          | -                                                  | -                                    | 颶風與霧靄迴廊             |
+| 20261124   | coalition 20261124       | The Transfer Student at Veritas Academy      | 真理学院的转校生           | The Transfer Student at Veritas Academy            | 真理学園の転校生                     | -                          |
